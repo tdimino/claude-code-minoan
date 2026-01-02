@@ -26,9 +26,9 @@ cp -r commands/* ~/.claude/commands/
 
 ## Key Commands
 
-- `/workflows/review` - Multi-agent code review (12+ parallel agents)
-- `/workflows/work` - Execute plans with quality checks
-- `/workflows/plan` - Feature planning with architecture analysis
+- `/workflows:review` - Multi-agent code review (12+ parallel agents)
+- `/workflows:work` - Execute plans with quality checks
+- `/workflows:plan` - Feature planning with architecture analysis
 - `/requirements-start` - Extensive project planning workflow
 - `/audit-plans` - Audit plans for completeness
 
@@ -52,7 +52,7 @@ osgrep "your query"
 | `osgrep list` | Show all indexed repos |
 | `osgrep index --reset` | Full re-index if stale |
 
-See OSGREP_USAGE.md for detailed patterns. Use `osgrep-reference` skill for full CLI reference.
+Use `osgrep-reference` skill for full CLI reference and search patterns.
 
 ## MCP Servers
 
@@ -60,6 +60,5 @@ Core: playwright, chrome-devtools, figma, shadcn, supabase, netlify, telnyx, exa
 
 ## Detailed Guides
 
-- @OSGREP_USAGE.md - Semantic search patterns
 - @CONTRIBUTING.md - Contribution guidelines
 - @README.md - Full setup and configuration

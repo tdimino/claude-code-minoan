@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Aldea Claude Code Setup Script
+# Minoan Claude Code Setup Script
 # Automates installation of skills, commands, and MCP servers
 
 set -e
 
-echo "🚀 Aldea Claude Code Setup"
-echo "=========================="
+echo "🚀 Minoan Claude Code Setup"
+echo "==========================="
 echo ""
 
 # Colors for output
@@ -52,7 +52,7 @@ echo "Which skills would you like to install?"
 echo ""
 echo "Available skills:"
 echo "  1. All skills (recommended for full team setup)"
-echo "  2. Core development skills only (git, souls, beads)"
+echo "  2. Core development skills only (osgrep, beads, claude-md)"
 echo "  3. Select individual skills"
 echo "  4. Skip skills setup"
 echo ""
@@ -66,9 +66,10 @@ case $skill_choice in
         ;;
     2)
         print_blue "Installing core development skills..."
-        cp -r "$SCRIPT_DIR/skills/open-souls-paradigm" ~/.claude/skills/
-        cp -r "$SCRIPT_DIR/skills/git-commit-workflow" ~/.claude/skills/
-        cp -r "$SCRIPT_DIR/skills/beads-task-tracker" ~/.claude/skills/
+        cp -r "$SCRIPT_DIR/skills/core-development/osgrep-reference" ~/.claude/skills/
+        cp -r "$SCRIPT_DIR/skills/core-development/beads-task-tracker" ~/.claude/skills/
+        cp -r "$SCRIPT_DIR/skills/core-development/claude-md-manager" ~/.claude/skills/
+        cp -r "$SCRIPT_DIR/skills/core-development/claude-agent-sdk" ~/.claude/skills/
         print_green "Core skills installed"
         ;;
     3)
@@ -186,7 +187,7 @@ echo ""
 echo "📋 Installation Summary:"
 echo ""
 
-if [ -d ~/.claude/skills/open-souls-paradigm ]; then
+if [ -d ~/.claude/skills ] && [ "$(ls -A ~/.claude/skills)" ]; then
     skill_count=$(ls ~/.claude/skills/ | wc -l | tr -d ' ')
     print_green "Skills: $skill_count installed in ~/.claude/skills/"
 fi
