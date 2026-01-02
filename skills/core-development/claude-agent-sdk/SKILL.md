@@ -1,8 +1,9 @@
 ---
 name: claude-agent-sdk
 description: Build AI agents using the Claude Agent SDK. Covers query functions,
-  ClaudeSDKClient, custom tools, MCP servers, hooks, permissions, and subagents.
-  Use when creating agents, adding tools, or configuring agent behavior.
+  ClaudeSDKClient, custom tools, MCP servers, hooks, permissions, subagents, and
+  browser control (Chrome extension, dev-browser skill). Use when creating
+  agents, adding tools, configuring agent behavior, or automating browser tasks.
 triggers:
   - claude agent sdk
   - agent sdk
@@ -17,6 +18,11 @@ triggers:
   - agent hooks
   - subagent
   - AgentDefinition
+  - browser control
+  - chrome extension
+  - browser automation
+  - dev browser
+  - browserbase
 ---
 
 <essential_principles>
@@ -87,7 +93,8 @@ asyncio.run(main())
 3. **Add hooks** - Intercept tool calls for logging, validation, or modification
 4. **Configure permissions** - Control what tools can do
 5. **Create subagents** - Define specialized agents for parallel work
-6. **Get API reference** - Python or TypeScript SDK details
+6. **Control browsers** - Chrome extension, dev-browser skill
+7. **Get API reference** - Python or TypeScript SDK details
 
 **Wait for response before proceeding.**
 
@@ -102,8 +109,9 @@ asyncio.run(main())
 | 3, "hooks", "intercept" | `references/hooks.md` |
 | 4, "permissions", "can_use_tool" | `references/permissions.md` |
 | 5, "subagent", "parallel" | `references/subagents.md` |
-| 6, "python", "reference" | `references/python-sdk.md` |
-| 6, "typescript", "reference" | `references/typescript-sdk.md` |
+| 6, "browser", "chrome", "automation" | `references/browser-control.md` |
+| 7, "python", "reference" | `references/python-sdk.md` |
+| 7, "typescript", "reference" | `references/typescript-sdk.md` |
 | "built-in", "tools" | `references/built-in-tools.md` |
 | "message", "types" | `references/message-types.md` |
 | "best practices", "patterns" | `references/best-practices.md` |
