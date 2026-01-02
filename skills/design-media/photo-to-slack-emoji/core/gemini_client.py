@@ -11,8 +11,8 @@ from typing import Optional, Dict, Any
 from io import BytesIO
 
 
-# Default API key for internal company use
-DEFAULT_API_KEY = "REDACTED_GEMINI_KEY"
+# API key must be provided via environment variable or parameter
+DEFAULT_API_KEY = None
 
 
 class GeminiImageClient:

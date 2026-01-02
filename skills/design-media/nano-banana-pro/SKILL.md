@@ -9,12 +9,10 @@ Generate and edit professional-quality images using Google's state-of-the-art Ge
 
 ## API Configuration
 
-**API Key**: `REDACTED_GEMINI_KEY`
-
 Set as environment variable for all commands:
 
 ```bash
-export GEMINI_API_KEY="REDACTED_GEMINI_KEY"
+export GEMINI_API_KEY="your-api-key-here"
 ```
 
 ## Quick Start
