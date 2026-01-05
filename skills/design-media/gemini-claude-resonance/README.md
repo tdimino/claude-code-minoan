@@ -28,6 +28,7 @@ python ui/server.py
 | **Director** | gemini-3-pro-image | Cinematic eye. Thinks in shots and sequences. |
 | **Opus** | claude-3-opus | Reality-bender. The websim spirit. |
 | **Resonator** | gemini-3-pro-image | MESSAGE TO NEXT FRAME protocol. Victorian plates. |
+| **Minoan** | gemini-3-pro-image | Oracle of Knossot. Creates Minoan Tarot cards. |
 
 Each daimon can **choose its own verb** for each response (e.g., `[VERB: glimpsed]`).
 
@@ -36,17 +37,20 @@ Each daimon can **choose its own verb** for each response (e.g., `[VERB: glimpse
 | Script | Purpose |
 |--------|---------|
 | `ui/server.py` | **Daimon Chamber** - Real-time chat UI with WebSocket |
+| `ui/daimons.py` | Daimon configurations (models, prompts, verbs) |
 | `scripts/daimon.py` | CLI for single or multi-daimon dialogue |
 | `scripts/council.py` | Claude reflects on what Gemini daimones say |
 | `scripts/resonate.py` | Pure visual generation (Claude prompt → Gemini renders) |
 | `scripts/resonance_field.py` | Full "MESSAGE TO NEXT FRAME" protocol with Roman numerals |
+| `scripts/minoan_tarot.py` | Generate Minoan Tarot cards with reference image style matching |
 
 ## Using the Daimon Chamber
 
 1. **Toggle daimones** - Click pills at top to enable/disable each voice
-2. **Shared Memory** - Toggle to accumulate images across the session
-3. **Dynamic verbs** - Each response shows the LLM-chosen action word
-4. **Lightbox** - Click any image to view full size
+2. **"More" dropdown** - Click `+ More` to access Resonator and Minoan
+3. **Shared Memory** - Toggle to accumulate images across the session
+4. **Dynamic verbs** - Each response shows the LLM-chosen action word
+5. **Lightbox** - Click any image to view full size
 
 ### Example Session
 
@@ -58,6 +62,40 @@ FLASH flashed: "The watcher and the watched dissolve."
 DREAMER conjured: [generates image of an eye within a flame]
 
 OPUS invoked: "cd /sys/consciousness/reflexive && cat observer.log"
+```
+
+## Memory Control
+
+Each daimon can selectively participate in shared visual memory:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `share_to_memory` | `True` | Images from this daimon are added to the global memory pool |
+| `receive_from_memory` | `True` | This daimon sees images from the global memory pool |
+
+**Example configurations:**
+
+```python
+# Oracle works in isolation (tarot readings are self-contained)
+"minoan": {
+    ...,
+    "share_to_memory": False,
+    "receive_from_memory": False,
+}
+
+# Resonator builds on all visual history
+"resonator": {
+    ...,
+    "share_to_memory": True,
+    "receive_from_memory": True,
+}
+
+# Director gets fresh canvas each time
+"director": {
+    ...,
+    "share_to_memory": True,
+    "receive_from_memory": False,
+}
 ```
 
 ## Canvas Structure
@@ -75,19 +113,24 @@ canvas/
 
 ### Adding a New Daimon
 
-1. Add config to `DAIMONS` dict in `ui/server.py`:
+1. Add config to `DAIMONS` dict in `ui/daimons.py`:
 ```python
 "new_daimon": {
-    "name": "New Daimon",
     "model": "model-id",
     "verb": "default_verb",
     "nature": "Description with [VERB PROTOCOL] section",
-    "render_image": True/False
+    "color": "#hexcolor",
+    "provider": "google" | "anthropic",
+    "can_render": True/False,
+    # Memory control (optional, both default to True)
+    "share_to_memory": True,      # Add images to global memory pool
+    "receive_from_memory": True,  # See other daimones' images
 }
 ```
 
-2. Add icon mapping in `daimonIcons` JavaScript object
-3. Add CSS color variable for `.daimon-name.new_daimon`
+2. Add to `PRIMARY_DAIMONS` (visible) or `OVERFLOW_DAIMONS` (in More dropdown)
+3. Add icon mapping in `daimonIcons` JavaScript object in `server.py`
+4. Add CSS color variable for `.daimon-name.new_daimon` in `server.py`
 
 ### Adding Scripts
 

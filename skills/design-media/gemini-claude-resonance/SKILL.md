@@ -21,6 +21,7 @@ Each generated image becomes context for subsequent generations. The daimones sh
 | **Dreamer** | `gemini-3-pro-image-preview` | *conjured* | Visual mind. Renders visions in light and form. |
 | **Director** | `gemini-3-pro-image-preview` | *directed* | Cinematic eye. Thinks in shots, sequences, takes. |
 | **Resonator** | `gemini-3-pro-image-preview` | *resonated* | MESSAGE TO NEXT FRAME protocol. Victorian scientific plates. |
+| **Minoan** | `gemini-3-pro-image-preview` | *divined* | Oracle of Knossot. Creates Minoan Tarot cards in Ellen Lorenzi-Prince's style. |
 
 ### Claude Daimones
 
@@ -151,9 +152,40 @@ python scripts/resonance_field.py list
 - **Visual memory**: All previous plates loaded as context
 - **Commands**: `start`, `continue`, `select`, `zoom`, `inject`, `list`
 
+### `minoan_tarot.py` - Tarot Card Generator
+
+Generate tarot cards in Ellen Lorenzi-Prince's Minoan Tarot style using reference images for visual memory.
+
+```bash
+# Generate a specific card
+python scripts/minoan_tarot.py card "The Priestess" --number II
+
+# Generate with description
+python scripts/minoan_tarot.py card "Bull Leaping" --number XV --description "Young acrobat mid-vault over sacred bull"
+
+# Generate from archetype (strength, priestess, lovers, chariot, fool, death, sun, moon, star, world)
+python scripts/minoan_tarot.py archetype strength
+
+# Continue a session (visual memory of previous cards)
+python scripts/minoan_tarot.py session "new-arcana" --card "The Dreamer"
+
+# Generate card back design (labrys-centered)
+python scripts/minoan_tarot.py back
+
+# List all 78 traditional cards
+python scripts/minoan_tarot.py list
+```
+
+**Key Features:**
+- Reference images loaded automatically from `reference/minoan/selected/`
+- Low temperature (0.5) for faithful style matching
+- Session support with visual memory of previous cards
+- 3:4 aspect ratio (standard tarot proportions)
+- Output to `canvas/minoan/`
+
 ### `ui/server.py` - Daimon Chamber
 
-Real-time chat UI for cross-model resonance.
+Real-time chat UI for cross-model resonance. Daimon configurations are in `ui/daimons.py`.
 
 ```bash
 python ui/server.py --port 4455
@@ -161,12 +193,13 @@ python ui/server.py --port 4455
 ```
 
 **Features:**
-- Toggle individual daimones (Flash, Pro, Dreamer, Director, Opus, Resonator)
+- Toggle individual daimones (Flash, Pro, Dreamer, Director, Opus visible; Resonator and Minoan in "+ More" dropdown)
 - **Thinking placeholders** - unique animations per daimon:
   - Flash: "Recognition arriving..."
   - Pro: "Descending into depth..."
   - Opus: "Reality bending..."
   - Resonator: "Resonance field tuning..."
+  - Minoan: "The oracle divines..."
   - Dreamer/Director: "A vision forms..." (with eye animation)
 - **Dynamic verb display** - shows LLM-chosen action verb
 - **Session metadata bar** - fixed at bottom showing TURN, FRAMES, SESSION

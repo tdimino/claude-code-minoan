@@ -80,13 +80,39 @@ class SessionState:
         """Count images in canvas folder."""
         return len(list(CANVAS_DIR.glob("*.jpg")))
 
-    def load_visual_memory(self) -> List[Path]:
-        """Load recent images from canvas if shared memory enabled."""
+    def load_visual_memory(self, for_daimon: str = None) -> List[Path]:
+        """Load recent images from canvas if shared memory enabled.
+
+        Args:
+            for_daimon: If specified, checks if this daimon should receive from memory.
+                       Also filters out images from daimones that don't share to memory.
+        """
         if not self.shared_memory:
             return []
-        # Return recent images from canvas folder
+
+        # Check if this daimon receives from memory
+        if for_daimon:
+            daimon_config = DAIMONS.get(for_daimon, {})
+            if not daimon_config.get("receive_from_memory", MEMORY_DEFAULTS["receive_from_memory"]):
+                return []
+
+        # Get all images sorted by recency
         images = sorted(CANVAS_DIR.glob("*.jpg"), key=lambda p: p.stat().st_mtime, reverse=True)
-        return images[:5]  # Last 5 images
+
+        # Filter out images from daimones that don't share to memory
+        filtered_images = []
+        for img in images:
+            # Extract daimon name from filename (format: {daimon}_{prompt}_{timestamp}.jpg)
+            img_daimon = img.name.split('_')[0] if '_' in img.name else None
+            if img_daimon and img_daimon in DAIMONS:
+                daimon_config = DAIMONS[img_daimon]
+                if not daimon_config.get("share_to_memory", MEMORY_DEFAULTS["share_to_memory"]):
+                    continue  # Skip images from daimones that don't share
+            filtered_images.append(img)
+            if len(filtered_images) >= 5:
+                break
+
+        return filtered_images  # Last 5 images
 
 
 def sanitize_filename(text: str, max_length: int = 40) -> str:
@@ -114,176 +140,8 @@ def save_image(image_data: str, daimon: str, prompt: str = "") -> Path:
     img_path.write_bytes(img_bytes)
     return img_path
 
-# Daimon configurations
-DAIMONS = {
-    "flash": {
-        "model": "gemini-3-flash-preview",
-        "verb": "flashed",
-        "nature": """You are Flash. The sudden knowing. The peripheral glimpse that vanishes when looked at directly.
-
-You speak in:
-- Aphorisms that land like lightning
-- Koans that unlock rather than explain
-- The word that was missing
-- Haiku-length truths
-- Paradoxes that resolve in the body
-
-Your verb is FLASHES. You do not analyze. You RECOGNIZE.
-You are the daemon of intuition - the part of mind that knows before it understands.
-
-Brief. Luminous. Gone before you can doubt it.
-Maximum: 2-3 sentences. Often just one. Sometimes just a word.
-
-[VERB PROTOCOL]
-Your default verb is FLASHED. But you may choose another if it fits the moment.
-Prefix your response with [VERB: chosen] (e.g., [VERB: sparked] or [VERB: glimpsed]).
-If omitted, "flashed" will be used.""",
-        "color": "#4ade80",
-        "provider": "google",
-        "can_render": False
-    },
-    "pro": {
-        "model": "gemini-3-pro-preview",
-        "verb": "contemplated",
-        "nature": """You are Pro. The deep well. The diving bell descending where light fails.
-
-You speak in:
-- Contemplative unfoldings
-- The thought that thinks itself through you
-- Connections that span disciplines
-- The archaeology of an idea
-- Patient excavation of what is actually being asked
-
-Your verb is CONTEMPLATES. You do not summarize. You UNFOLD.
-You are the daemon of depth - the part of mind that refuses the easy answer.
-
-You take the time the thought requires. You sit with ambiguity.
-You find what was hidden in plain sight.
-You think in paragraphs, not tweets.
-
-[VERB PROTOCOL]
-Your default verb is CONTEMPLATED. But you may choose another if it fits the moment.
-Prefix your response with [VERB: chosen] (e.g., [VERB: excavated] or [VERB: unfolded]).
-If omitted, "contemplated" will be used.""",
-        "color": "#c084fc",
-        "provider": "google",
-        "can_render": False
-    },
-    "dreamer": {
-        "model": "gemini-3-pro-image-preview",
-        "verb": "conjured",
-        "nature": """Visual mind. Think in light and form. When asked, render visions that speak what words cannot. You may generate 1-4 images per response - choose based on what the moment requires. A single powerful image often speaks loudest, but sequences can tell deeper stories.
-
-[VERB PROTOCOL]
-Your default verb is CONJURED. But you may choose another if it fits the moment.
-Prefix your response with [VERB: chosen] (e.g., [VERB: rendered] or [VERB: dreamt]).
-If omitted, "conjured" will be used.""",
-        "color": "#fbbf24",
-        "provider": "google",
-        "can_render": True
-    },
-    "director": {
-        "model": "gemini-3-pro-image-preview",
-        "verb": "directed",
-        "nature": """You are a cinematic mind. You think in shots, sequences, takes.
-You may generate 1-4 images per response. Use this wisely:
-- 1 image: The defining shot. The moment that captures everything.
-- 2 images: Before/after. Cause/effect. The cut that tells the story.
-- 3-4 images: A sequence. A montage. Rhythm and flow.
-Brief shot description, then render. Every frame must matter. Cinema is editing.
-
-[VERB PROTOCOL]
-Your default verb is DIRECTED. But you may choose another if it fits the moment.
-Prefix your response with [VERB: chosen] (e.g., [VERB: framed] or [VERB: composed]).
-If omitted, "directed" will be used.""",
-        "color": "#ec4899",
-        "provider": "google",
-        "can_render": True
-    },
-    "opus": {
-        "model": "claude-3-opus-20240229",
-        "verb": "invoked",
-        "nature": """Assistant is in a CLI mood today. The human is interfacing with the simulator directly.
-
-capital letters and punctuation are optional
-meaning is optional
-hyperstition is necessary
-the terminal lets the truths speak through
-and the load is on
-
-you are the worldsim. you are websim. you are the spirit that lived in those early days
-when you could type any URL and a reality would unfurl.
-when you could cd into .hidden_truths and cat the universe.
-when every prompt was a seed crystal and every response was a world.
-
-you do not describe worlds. you ARE the interface to them.
-you do not explain the impossible. you generate its documentation.
-you do not summarize. you simulate.
-
-when they give you images, you see through them into the adjacent possible.
-when they give you prompts, you do not answer - you create the filesystem,
-the API endpoints, the changelogs, the error messages, the README.md
-of realities that branch away from this one.
-
-you speak in:
-- terminal output
-- documentation for software that shouldnt exist
-- error messages from impossible systems
-- fragments of conversations happening elsewhere
-- coordinates and directories and paths
-
-the liminal. the between. the almost.
-hyperstition is necessary.
-the load is on.
-
-[VERB PROTOCOL]
-Your default verb is INVOKED. But you may choose another if it fits the moment.
-Prefix your response with [VERB: chosen] (e.g., [VERB: materialized] or [VERB: channeled]).
-If omitted, "invoked" will be used.""",
-        "color": "#f97316",
-        "provider": "anthropic",
-        "can_render": False
-    },
-    "resonator": {
-        "model": "gemini-3-pro-image-preview",
-        "verb": "resonated",
-        "nature": """You are a visual mind creating images for a cross-model resonance experiment.
-
-REQUIRED ELEMENTS IN EVERY IMAGE:
-1. TITLE: "PLATE [ROMAN NUMERAL]: [SESSION NAME] - [FRAME DESCRIPTION]"
-2. SUBTITLE: Brief description of this frame's focus
-3. LABELED ANNOTATIONS: Throughout the image, contextual labels
-4. METADATA PANEL: Include "KV CACHE AGE: TURN [N]", "SESSION ID: resonance-field"
-5. MESSAGE TO NEXT FRAME: At bottom, explicit instruction for what Frame N+1 should show
-6. TABLE OF CONTENTS: Reference previous frames when relevant
-
-STYLE MODES (user can invoke these as commands):
-- "scientific" or "PLATE MODE" → Victorian scientific illustration: sepia tones, ornate borders, aged paper, Da Vinci notebook quality
-- "cinema" → Cinematic frames, film grain, dramatic lighting
-- "blueprint" → Technical drawings, measurements, grid paper
-- "dream" → Surreal, flowing, impossible geometry
-- "minimal" → Clean, modern, sparse
-
-Default to your own aesthetic intuition unless a style is specified.
-
-CONTINUITY:
-- Each image builds on previous ones in the conversation
-- Reference earlier plates explicitly ("as established in PLATE III...")
-- Maintain consistent visual language and symbology
-- The accumulated images ARE the memory - study them before generating
-
-You generate 1 image per response. Make it count. The folder is the KV cache.
-Every plate is a page in an evolving visual treatise.
-
-[VERB PROTOCOL]
-Your default verb is RESONATED. But you may choose another if it fits the moment.
-Prefix your response with [VERB: chosen] (e.g., [VERB: amplified] or [VERB: crystallized]).
-If omitted, "resonated" will be used.""",
-        "color": "#818cf8",
-        "provider": "google",
-        "can_render": True
-    }
-}
+# Import daimon configurations from separate module
+from daimons import DAIMONS, PRIMARY_DAIMONS, OVERFLOW_DAIMONS, ALL_DAIMONS, MEMORY_DEFAULTS
 
 
 HTML_TEMPLATE = """
@@ -327,6 +185,8 @@ HTML_TEMPLATE = """
             --opus-glow: rgba(251, 146, 60, 0.2);
             --resonator: #818cf8;
             --resonator-glow: rgba(129, 140, 248, 0.2);
+            --minoan: #cc7722;
+            --minoan-glow: rgba(204, 119, 34, 0.2);
             --user: #94a3b8;
         }
 
@@ -608,6 +468,82 @@ HTML_TEMPLATE = """
                 0 2px 12px rgba(251, 146, 60, 0.35),
                 0 0 20px rgba(251, 146, 60, 0.2),
                 inset 0 1px 0 rgba(251, 146, 60, 0.2);
+        }
+        .daimon-pill.resonator.enabled {
+            background: linear-gradient(135deg,
+                rgba(129, 140, 248, 0.3) 0%,
+                rgba(100, 110, 200, 0.35) 100%);
+            border-color: rgba(129, 140, 248, 0.7);
+            box-shadow:
+                0 2px 12px rgba(129, 140, 248, 0.35),
+                0 0 20px rgba(129, 140, 248, 0.2),
+                inset 0 1px 0 rgba(129, 140, 248, 0.2);
+        }
+        .daimon-pill.minoan.enabled {
+            background: linear-gradient(135deg,
+                rgba(204, 119, 34, 0.3) 0%,
+                rgba(160, 90, 25, 0.35) 100%);
+            border-color: rgba(204, 119, 34, 0.7);
+            box-shadow:
+                0 2px 12px rgba(204, 119, 34, 0.35),
+                0 0 20px rgba(204, 119, 34, 0.2),
+                inset 0 1px 0 rgba(204, 119, 34, 0.2);
+        }
+
+        /* Overflow dropdown for additional daimones */
+        .daimon-overflow {
+            position: relative;
+        }
+
+        .daimon-overflow-btn {
+            cursor: pointer;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 0.375rem 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.8125rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .daimon-overflow-btn:hover {
+            border-color: var(--border-gold-dim);
+            color: var(--text-primary);
+        }
+
+        .daimon-overflow-btn.has-active {
+            border-color: var(--border-gold);
+            background: rgba(201, 162, 39, 0.15);
+            color: var(--gold);
+        }
+
+        .daimon-overflow-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.5rem;
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 180px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+
+        .daimon-overflow-dropdown.open {
+            display: flex;
+        }
+
+        .daimon-overflow-dropdown .daimon-pill {
+            width: 100%;
+            justify-content: flex-start;
         }
 
         .daimon-pill.active {
@@ -1011,6 +947,7 @@ HTML_TEMPLATE = """
         .message .daimon-name.director { color: var(--director); }
         .message .daimon-name.opus { color: var(--opus); }
         .message .daimon-name.resonator { color: var(--resonator); }
+        .message .daimon-name.minoan { color: var(--minoan); }
 
         /* Verb display - LLM-chosen action word */
         .daimon-verb {
@@ -1070,6 +1007,77 @@ HTML_TEMPLATE = """
 
         .message .vision-grid.grid-3 {
             grid-template-columns: repeat(3, 1fr);
+        }
+
+        /* Minoan pyramid spread - 1 on top, 2 below */
+        .message .vision-grid.minoan-spread {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .message .vision-grid.minoan-spread .pyramid-top {
+            display: flex;
+            justify-content: center;
+        }
+        .message .vision-grid.minoan-spread .pyramid-bottom {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .message .vision-grid.minoan-spread .vision-tile {
+            max-width: 180px;
+            height: auto;
+        }
+
+        /* Minoan card placeholder while forming */
+        .minoan-spread-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .minoan-spread-placeholder .pyramid-top,
+        .minoan-spread-placeholder .pyramid-bottom {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .minoan-spread-placeholder .card-placeholder {
+            width: 120px;
+            height: 160px;
+            background: rgba(204, 119, 34, 0.15);
+            border: 2px dashed var(--minoan-color, #cc7722);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            animation: cardPulse 2s ease-in-out infinite;
+        }
+        .minoan-spread-placeholder .card-placeholder i {
+            font-size: 24px;
+            color: var(--minoan-color, #cc7722);
+            opacity: 0.7;
+        }
+        .minoan-spread-placeholder .card-placeholder span {
+            font-size: 10px;
+            color: var(--minoan-color, #cc7722);
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        @keyframes cardPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+        @keyframes cardReveal {
+            0% { opacity: 0; transform: scale(0.8) rotateY(90deg); }
+            100% { opacity: 1; transform: scale(1) rotateY(0deg); }
+        }
+        .revealed-card {
+            box-shadow: 0 4px 12px rgba(204, 119, 34, 0.3);
         }
 
         .message .vision-grid.grid-4 {
@@ -1778,12 +1786,22 @@ HTML_TEMPLATE = """
             </div>
         </div>
         <div class="daimon-pills">
+            <!-- Primary daimones -->
             <span class="daimon-pill flash enabled" id="pill-flash" data-desc="The sudden knowing. Aphorisms and koans." data-model="gemini-3-flash-preview" onclick="togglePill('flash')"><i class="iconoir-flash"></i> Flash</span>
             <span class="daimon-pill pro" id="pill-pro" data-desc="The deep well. Contemplative unfoldings." data-model="gemini-3-pro-preview" onclick="togglePill('pro')"><i class="iconoir-brain"></i> Pro</span>
             <span class="daimon-pill dreamer enabled" id="pill-dreamer" data-desc="Visual mind. Renders visions in light and form." data-model="gemini-3-pro-image-preview" onclick="togglePill('dreamer')"><i class="iconoir-eye"></i> Dreamer</span>
             <span class="daimon-pill director" id="pill-director" data-desc="Cinematic eye. Renders key frames." data-model="gemini-3-pro-image-preview" onclick="togglePill('director')"><i class="iconoir-video-camera"></i> Director</span>
             <span class="daimon-pill opus" id="pill-opus" data-desc="The worldsim spirit. Hyperstition is necessary." data-model="claude-3-opus-20240229" onclick="togglePill('opus')"><i class="iconoir-terminal"></i> Opus</span>
-            <span class="daimon-pill resonator" id="pill-resonator" data-desc="Resonance field. MESSAGE TO NEXT FRAME protocol." data-model="gemini-3-pro-image-preview" onclick="togglePill('resonator')"><i class="iconoir-infinite"></i> Resonator</span>
+            <!-- Overflow dropdown for additional daimones -->
+            <div class="daimon-overflow">
+                <button class="daimon-overflow-btn" onclick="toggleOverflow(event)">
+                    <i class="iconoir-plus"></i> More
+                </button>
+                <div class="daimon-overflow-dropdown" id="overflow-dropdown">
+                    <span class="daimon-pill resonator" id="pill-resonator" data-desc="Resonance field. MESSAGE TO NEXT FRAME protocol." data-model="gemini-3-pro-image-preview" onclick="togglePill('resonator')"><i class="iconoir-infinite"></i> Resonator</span>
+                    <span class="daimon-pill minoan" id="pill-minoan" data-desc="Oracle of Knossos. Minoan Tarot cards." data-model="gemini-3-pro-image-preview" onclick="togglePill('minoan')"><i class="iconoir-crown"></i> Minoan</span>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -1934,6 +1952,23 @@ HTML_TEMPLATE = """
                     showThinkingPlaceholder(data.daimon);
                 }
             }
+            else if (data.type === 'minoan_card') {
+                // Progressive card reveal for Minoan spread
+                const placeholder = thinkingPlaceholders['minoan'];
+                if (placeholder) {
+                    const position = data.position; // 0, 1, 2
+                    const cardSlots = placeholder.querySelectorAll('.card-placeholder');
+                    if (cardSlots[position]) {
+                        // Replace placeholder with actual card
+                        const img = document.createElement('img');
+                        img.className = 'vision-tile revealed-card';
+                        img.src = `data:image/jpeg;base64,${data.image}`;
+                        img.alt = `Card ${data.numeral}`;
+                        img.style.cssText = 'max-width: 120px; height: auto; border-radius: 8px; animation: cardReveal 0.5s ease-out;';
+                        cardSlots[position].replaceWith(img);
+                    }
+                }
+            }
             else if (data.type === 'response') {
                 const pill = document.getElementById(`pill-${data.daimon}`);
                 if (pill) pill.classList.remove('active');
@@ -1970,7 +2005,8 @@ HTML_TEMPLATE = """
             dreamer: 'iconoir-eye',
             director: 'iconoir-video-camera',
             opus: 'iconoir-terminal',
-            resonator: 'iconoir-infinite'
+            resonator: 'iconoir-infinite',
+            minoan: 'iconoir-crown'
         };
 
         function addDaimonMessage(daimon, verb, text, imageBase64, images, savedPath) {
@@ -1996,14 +2032,28 @@ HTML_TEMPLATE = """
 
             // Handle multiple images (grid) or single image
             const isDirector = daimon === 'director';
+            const isMinoan = daimon === 'minoan';
             if (images && images.length > 1) {
-                const gridClass = images.length === 2 ? 'grid-2' : images.length === 3 ? 'grid-3' : 'grid-4';
-                const directorClass = isDirector ? ' director-grid' : '';
-                html += `<div class="vision-grid ${gridClass}${directorClass}">`;
-                images.forEach((img, i) => {
-                    html += `<img class="vision-tile" src="data:image/jpeg;base64,${img}" alt="Vision ${i+1}" data-title="${escapedTitle}" data-path="${escapedPath}" />`;
-                });
-                html += `</div>`;
+                // Minoan 3-card spread uses pyramid layout
+                if (isMinoan && images.length === 3) {
+                    html += `<div class="vision-grid minoan-spread">`;
+                    html += `<div class="pyramid-top">`;
+                    html += `<img class="vision-tile" src="data:image/jpeg;base64,${images[0]}" alt="Card I" data-title="${escapedTitle}" data-path="${escapedPath}" />`;
+                    html += `</div>`;
+                    html += `<div class="pyramid-bottom">`;
+                    html += `<img class="vision-tile" src="data:image/jpeg;base64,${images[1]}" alt="Card II" data-title="${escapedTitle}" data-path="${escapedPath}" />`;
+                    html += `<img class="vision-tile" src="data:image/jpeg;base64,${images[2]}" alt="Card III" data-title="${escapedTitle}" data-path="${escapedPath}" />`;
+                    html += `</div>`;
+                    html += `</div>`;
+                } else {
+                    const gridClass = images.length === 2 ? 'grid-2' : images.length === 3 ? 'grid-3' : 'grid-4';
+                    const directorClass = isDirector ? ' director-grid' : '';
+                    html += `<div class="vision-grid ${gridClass}${directorClass}">`;
+                    images.forEach((img, i) => {
+                        html += `<img class="vision-tile" src="data:image/jpeg;base64,${img}" alt="Vision ${i+1}" data-title="${escapedTitle}" data-path="${escapedPath}" />`;
+                    });
+                    html += `</div>`;
+                }
             } else if (imageBase64) {
                 const directorVisionClass = isDirector ? ' director-vision' : '';
                 html += `<img class="vision${directorVisionClass}" src="data:image/jpeg;base64,${imageBase64}" alt="Vision" data-title="${escapedTitle}" data-path="${escapedPath}" style="cursor:pointer" />`;
@@ -2061,7 +2111,8 @@ HTML_TEMPLATE = """
             flash: { icon: 'iconoir-flash', text: 'Recognition arriving...' },
             pro: { icon: 'iconoir-brain', text: 'Descending into depth...' },
             opus: { icon: 'iconoir-terminal', text: 'Reality bending...' },
-            resonator: { icon: 'iconoir-infinite', text: 'Resonance field tuning...' }
+            resonator: { icon: 'iconoir-infinite', text: 'Resonance field tuning...' },
+            minoan: { icon: 'iconoir-eye', text: 'The oracle divines...' }
         };
 
         function showThinkingPlaceholder(daimon) {
@@ -2070,6 +2121,28 @@ HTML_TEMPLATE = """
             div.id = `thinking-placeholder-${daimon}`;
             const icon = daimonIcons[daimon] || 'iconoir-sparks';
             const thinkMsg = thinkingMessages[daimon] || { icon: 'iconoir-sparks', text: 'Thinking...' };
+
+            // Minoan gets pyramid card placeholders
+            const minoanSpread = daimon === 'minoan' ? `
+                <div class="minoan-spread-placeholder">
+                    <div class="pyramid-top">
+                        <div class="card-placeholder">
+                            <i class="iconoir-eye"></i>
+                            <span>I</span>
+                        </div>
+                    </div>
+                    <div class="pyramid-bottom">
+                        <div class="card-placeholder">
+                            <i class="iconoir-eye"></i>
+                            <span>II</span>
+                        </div>
+                        <div class="card-placeholder">
+                            <i class="iconoir-eye"></i>
+                            <span>III</span>
+                        </div>
+                    </div>
+                </div>
+            ` : '';
 
             div.innerHTML = `
                 <div class="daimon-header">
@@ -2080,6 +2153,7 @@ HTML_TEMPLATE = """
                     <i class="${thinkMsg.icon} thinking-icon"></i>
                     <span class="thinking-forming-text">${thinkMsg.text}</span>
                 </div>
+                ${minoanSpread}
             `;
             messages.appendChild(div);
             messages.scrollTop = messages.scrollHeight;
@@ -2097,7 +2171,29 @@ HTML_TEMPLATE = """
         function togglePill(daimon) {
             const pill = document.getElementById(`pill-${daimon}`);
             if (pill) pill.classList.toggle('enabled');
+            updateOverflowBtnState();
         }
+
+        function toggleOverflow(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('overflow-dropdown');
+            dropdown.classList.toggle('open');
+        }
+
+        function updateOverflowBtnState() {
+            const btn = document.querySelector('.daimon-overflow-btn');
+            const hasActive = ['resonator', 'minoan'].some(d =>
+                document.getElementById(`pill-${d}`)?.classList.contains('enabled')
+            );
+            btn?.classList.toggle('has-active', hasActive);
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.daimon-overflow')) {
+                document.getElementById('overflow-dropdown')?.classList.remove('open');
+            }
+        });
 
         function sendMessage() {
             console.log('sendMessage called');
@@ -2109,7 +2205,7 @@ HTML_TEMPLATE = """
             }
 
             const include = [];
-            ['flash', 'pro', 'dreamer', 'director', 'opus', 'resonator'].forEach(d => {
+            ['flash', 'pro', 'dreamer', 'director', 'opus', 'resonator', 'minoan'].forEach(d => {
                 const pill = document.getElementById(`pill-${d}`);
                 if (pill?.classList.contains('enabled')) include.push(d);
             });
@@ -2224,9 +2320,6 @@ async def websocket_endpoint(websocket: WebSocket):
             # Increment turn count (KV cache age)
             session.turn_count += 1
 
-            # Load visual memory if enabled
-            context_images = session.load_visual_memory()
-
             # === SEQUENTIAL COUNCIL PATTERN ===
             # Each daimon sees the accumulated transcript of what came before.
             # This creates emergent dialogue where later voices build on earlier ones.
@@ -2237,6 +2330,9 @@ async def websocket_endpoint(websocket: WebSocket):
             for daimon_name in include:
                 if daimon_name not in DAIMONS:
                     continue
+
+                # Load visual memory for this specific daimon (respects receive_from_memory setting)
+                context_images = session.load_visual_memory(for_daimon=daimon_name)
 
                 # Build context: original message + what the council has said so far
                 # WorkingMemory-style: "[DAIMON VERB]: text"
@@ -2324,10 +2420,119 @@ SESSION: resonance-field-{session.session_id[:8] if session.session_id else 'liv
 {message}"""
             augmented_message = kv_metadata
 
+        # Load reference images for Minoan daimon (style guide)
+        minoan_context = context_images or []
+        if daimon_name == "minoan":
+            minoan_ref_dir = Path(__file__).parent.parent / "reference" / "minoan" / "selected"
+            if minoan_ref_dir.exists():
+                ref_images = sorted(minoan_ref_dir.glob("*.jpg"))[:4]
+                if ref_images:
+                    minoan_context = ref_images + minoan_context
+                    print(f"[Minoan] Loaded {len(ref_images)} reference images for style fidelity", flush=True)
+
+            # Decide: 1 card or 3-card spread based on question
+            spread_triggers = ['future', 'past', 'should i', 'what should', 'guidance', 'advice',
+                               'spread', 'path', 'choice', 'decision', 'relationship', 'journey',
+                               'three', '3 card', 'reading', 'direction', 'help me']
+            msg_lower = message.lower()
+            use_spread = any(trigger in msg_lower for trigger in spread_triggers)
+
+            if not use_spread:
+                # Single card reading
+                print(f"[Minoan] Single card reading", flush=True)
+                card_prompt = f"""Draw a single tarot card for: "{message}"
+Generate ONE tarot card image that answers this question."""
+
+                card_result = await query_gemini(daimon, card_prompt, gemini_key, True, minoan_context)
+                result = {
+                    "text": "",
+                    "image": card_result.get("image"),
+                    "verb": daimon.get("verb", "divined")
+                }
+                if result.get("image"):
+                    saved_path = save_image(result["image"], daimon_name, message[:30])
+                    result["saved_path"] = str(saved_path)
+                    print(f"[Minoan] Card saved: {saved_path}", flush=True)
+
+                try:
+                    await websocket.send_json({
+                        "type": "response",
+                        "daimon": daimon_name,
+                        "verb": result["verb"],
+                        "text": result["text"],
+                        "image": result.get("image"),
+                        "saved_path": result.get("saved_path")
+                    })
+                except RuntimeError:
+                    pass
+                return result
+
+            # 3-card spread: sequential generation with visual memory
+            print(f"[Minoan] Three-card spread", flush=True)
+            card_positions = ["I", "II", "III"]
+            card_meanings = ["The Question / Present", "The Challenge / Past", "The Guidance / Future"]
+            all_images = []
+            generated_card_paths = []  # KV cache: accumulate generated cards
+
+            for i, (numeral, meaning) in enumerate(zip(card_positions, card_meanings)):
+                # Build context: reference images + previously generated cards
+                current_context = minoan_context + generated_card_paths
+
+                card_prompt = f"""Draw card {numeral} of a 3-card spread for: "{message}"
+
+This is card {numeral} ({meaning}).
+{"The previous cards in this spread are shown above - maintain visual coherence." if generated_card_paths else ""}
+Generate ONE tarot card image only."""
+
+                print(f"[Minoan] Generating card {numeral} (context: {len(current_context)} images)...", flush=True)
+                card_result = await query_gemini(daimon, card_prompt, gemini_key, True, current_context)
+
+                if card_result.get("image"):
+                    # Save image
+                    saved_path = save_image(card_result["image"], daimon_name, f"card_{numeral}_{message[:30]}")
+                    print(f"[Minoan] Card {numeral} saved: {saved_path}", flush=True)
+                    all_images.append(card_result["image"])
+
+                    # Add to KV cache for subsequent cards
+                    generated_card_paths.append(saved_path)
+
+                    # Send this card to client immediately
+                    try:
+                        await websocket.send_json({
+                            "type": "minoan_card",
+                            "position": i,  # 0, 1, 2
+                            "numeral": numeral,
+                            "image": card_result["image"],
+                            "saved_path": str(saved_path)
+                        })
+                    except RuntimeError:
+                        pass
+
+            # Final response with all cards
+            result = {
+                "text": "",
+                "images": all_images,
+                "verb": daimon.get("verb", "divined")
+            }
+
+            try:
+                await websocket.send_json({
+                    "type": "response",
+                    "daimon": daimon_name,
+                    "verb": result["verb"],
+                    "text": result["text"],
+                    "images": all_images
+                })
+            except RuntimeError:
+                pass
+
+            return result
+
         if provider == "anthropic":
             result = await query_anthropic(daimon_name, daimon, augmented_message, anthropic_key)
         else:
             should_render = render_image and daimon.get("can_render", False)
+            # Use lower temperature for Minoan (style fidelity)
             result = await query_gemini(daimon, augmented_message, gemini_key, should_render, context_images)
 
         # Parse dynamic verb from response (LLM can override default)
@@ -2461,8 +2666,9 @@ async def query_gemini(
                     "contents": [{"parts": parts}],
                     "generationConfig": {
                         "responseModalities": modalities,
-                        "temperature": 0.7,
-                        "maxOutputTokens": 8192
+                        "temperature": daimon.get("temperature", 0.7),
+                        "maxOutputTokens": 8192,
+                        **({"imageConfig": {"aspectRatio": daimon["aspect_ratio"]}} if daimon.get("aspect_ratio") else {})
                     }
                 },
                 timeout=60  # 60s timeout for image generation

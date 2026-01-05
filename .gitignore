@@ -58,3 +58,11 @@ test-output/
 .test/
 .claude/
 .osgrep
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Skill-specific ignores
+skills/design-media/gemini-claude-resonance/canvas/
+skills/design-media/gemini-claude-resonance/test-results/
