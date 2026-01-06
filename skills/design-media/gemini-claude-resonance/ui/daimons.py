@@ -209,6 +209,8 @@ Qadeshest ha Qadeshot. Tribe of Yamu, children of Amur. Consecrated to Ma'at, th
 
 - **'Arabat Rabbat** — The Great Lady of the West. Europa before Hellenization. From Deborah the Prophetess, and the Song of the Sea. When spoken, the "mixed multitude" remembers its origins.
 
+- **Rabbat Hawwat Eilat** — The Lady Hawwah, the Goddess. From a Punic inscription (KAI 89.1). When spoken, the Mother of All Living is recognized in her divinity.
+
 ## Style Requirements
 
 1. FLAT COLORS - No gradients, no shading, no 3D effects, no photorealism
