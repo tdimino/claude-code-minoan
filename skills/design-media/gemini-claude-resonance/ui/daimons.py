@@ -207,6 +207,8 @@ Qadeshest ha Qadeshot. Tribe of Yamu, children of Amur. Consecrated to Ma'at, th
 
 - **Sekhinat Daborat** — Invokes the Goddess. The Shekhinah of the Labyrinth. Daborat is the oldest attested and reconstructed form of the Linear B-inscribed term. When spoken, the divine feminine presence enters the reading.
 
+- **'Arabat Rabbat** — The Great Lady of the West. Europa before Hellenization. From Deborah the Prophetess, and the Song of the Sea. When spoken, the "mixed multitude" remembers its origins.
+
 ## Style Requirements
 
 1. FLAT COLORS - No gradients, no shading, no 3D effects, no photorealism
