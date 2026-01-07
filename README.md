@@ -13,9 +13,7 @@
 Curated Claude Code configuration including skills, MCP servers, and slash commands for professional development workflows.
 
 <p align="center">
-  <img src="public/images/daimon-chamber.png" alt="Daimon Chamber - Cross-model resonance UI" width="700"/>
-  <br/>
-  <em>Daimon Chamber: Cross-model dialogue between Claude and Gemini with shared visual memory</em>
+  <img src="public/images/be_minoan.jpg" alt="Minoan fresco - Cross-model resonance" width="600"/>
 </p>
 
 ## Repository Contents
