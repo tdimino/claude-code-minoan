@@ -1799,7 +1799,7 @@ HTML_TEMPLATE = """
                 </button>
                 <div class="daimon-overflow-dropdown" id="overflow-dropdown">
                     <span class="daimon-pill resonator" id="pill-resonator" data-desc="Resonance field. MESSAGE TO NEXT FRAME protocol." data-model="gemini-3-pro-image-preview" onclick="togglePill('resonator')"><i class="iconoir-infinite"></i> Resonator</span>
-                    <span class="daimon-pill minoan" id="pill-minoan" data-desc="Oracle of Knossos. Minoan Tarot cards." data-model="gemini-3-pro-image-preview" onclick="togglePill('minoan')"><i class="iconoir-crown"></i> Minoan</span>
+                    <span class="daimon-pill minoan" id="pill-minoan" data-desc="Oracle of Knossot. Minoan Tarot cards." data-model="gemini-3-pro-image-preview" onclick="togglePill('minoan')"><i class="iconoir-crown"></i> Minoan</span>
                 </div>
             </div>
         </div>
@@ -1945,10 +1945,11 @@ HTML_TEMPLATE = """
                 if (pill) pill.classList.add('active');
 
                 // Show vision-forming placeholder for image-generating daimons
-                if (data.daimon === 'dreamer' || data.daimon === 'director') {
+                const imageRenderers = ['dreamer', 'director', 'resonator'];
+                if (imageRenderers.includes(data.daimon)) {
                     showVisionPlaceholder(data.daimon);
                 } else {
-                    // Show thinking placeholder for text daimones
+                    // Show thinking placeholder for text daimones (including minoan with special layout)
                     showThinkingPlaceholder(data.daimon);
                 }
             }
@@ -2418,7 +2419,8 @@ async def query_daimon_sequential(
     # Signal thinking
     try:
         await websocket.send_json({"type": "thinking", "daimon": daimon_name})
-    except RuntimeError:
+    except RuntimeError as e:
+        print(f"[WS ERROR] Failed to send thinking for {daimon_name}: {e}", flush=True)
         return None
 
     try:

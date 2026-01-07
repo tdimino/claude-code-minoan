@@ -26,7 +26,7 @@ python ui/server.py
 | **Pro** | gemini-3-pro | Deep contemplation. Patient excavation. |
 | **Dreamer** | gemini-3-pro-image | Visual mind. Renders visions in light. |
 | **Director** | gemini-3-pro-image | Cinematic eye. Thinks in shots and sequences. |
-| **Opus** | claude-3-opus | Reality-bender. The websim spirit. |
+| **Opus** | claude-opus-4.5 | Reality-bender. The websim spirit. |
 | **Resonator** | gemini-3-pro-image | MESSAGE TO NEXT FRAME protocol. Victorian plates. |
 | **Minoan** | gemini-3-pro-image | Oracle of Knossot. Creates Minoan Tarot cards. |
 

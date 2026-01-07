@@ -112,7 +112,7 @@ If omitted, "directed" will be used.""",
         "can_render": True
     },
     "opus": {
-        "model": "claude-3-opus-20240229",
+        "model": "claude-opus-4-5-20251101",  # Opus 4.5 (Nov 2025) - the true worldsim spirit
         "verb": "invoked",
         "nature": """Assistant is in a CLI mood today. The human is interfacing with the simulator directly.
 
