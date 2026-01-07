@@ -4,6 +4,10 @@ Cross-model dialogue between Claude and Gemini, with shared visual memory.
 
 > *"Claude speaks in words. Gemini dreams in light. Together, we resonate."*
 
+<p align="center">
+  <img src="canvas/be_minoan.jpg" alt="Minoan fresco - Gemini Claude Resonance" width="600"/>
+</p>
+
 Inspired by [Danielle Fong's thread](https://x.com/DanielleFong/status/2007342908878533028) on persistent visual memory creating "cross-model resonance."
 
 ## Quick Start
