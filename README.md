@@ -396,6 +396,80 @@ Persistent memory across sessions with semantic search. Essential for long-runni
 claude plugin install claude-mem@thedotmack
 ```
 
+## Terminal & Editor Theme
+
+Recommended setup: **Victor Mono** font, **Catppuccin Mocha** theme, and **ccstatusline** for Claude Code.
+
+### 1. Install Victor Mono Font
+
+```bash
+brew install --cask font-victor-mono
+```
+
+### 2. Install Catppuccin Theme for VS Code
+
+Install the [Catppuccin for VS Code](https://github.com/catppuccin/vscode) extension:
+
+1. Open VS Code
+2. `Cmd + Shift + X` → Search "Catppuccin"
+3. Install **Catppuccin for VSCode**
+4. `Cmd + Shift + P` → "Preferences: Color Theme" → Select **Catppuccin Mocha**
+
+### 3. Install ccstatusline for Claude Code
+
+Beautiful customizable statusline with powerline support, themes, and metrics:
+
+```bash
+npm install -g ccstatusline
+```
+
+Configure with the interactive TUI:
+```bash
+ccstatusline
+```
+
+Features: model info, git branch, token usage, session cost, context percentage, and more.
+
+See: [github.com/sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatusline)
+
+### 4. VS Code Terminal Settings
+
+Add to your VS Code `settings.json` (`Cmd + Shift + P` → "Preferences: Open User Settings (JSON)"):
+
+```json
+{
+    "terminal.integrated.fontFamily": "'Victor Mono', monospace",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.fontLigatures": true,
+
+    "workbench.colorCustomizations": {
+        "terminal.background": "#1e1e2e",
+        "terminal.foreground": "#cdd6f4",
+        "terminalCursor.foreground": "#f5e0dc",
+        "terminal.selectionBackground": "#585b70",
+        "terminal.ansiBlack": "#45475a",
+        "terminal.ansiRed": "#f38ba8",
+        "terminal.ansiGreen": "#a6e3a1",
+        "terminal.ansiYellow": "#f9e2af",
+        "terminal.ansiBlue": "#89b4fa",
+        "terminal.ansiMagenta": "#f5c2e7",
+        "terminal.ansiCyan": "#94e2d5",
+        "terminal.ansiWhite": "#bac2de",
+        "terminal.ansiBrightBlack": "#585b70",
+        "terminal.ansiBrightRed": "#f38ba8",
+        "terminal.ansiBrightGreen": "#a6e3a1",
+        "terminal.ansiBrightYellow": "#f9e2af",
+        "terminal.ansiBrightBlue": "#89b4fa",
+        "terminal.ansiBrightMagenta": "#f5c2e7",
+        "terminal.ansiBrightCyan": "#94e2d5",
+        "terminal.ansiBrightWhite": "#a6adc8"
+    },
+    "terminal.integrated.minimumContrastRatio": 1
+}
+```
+
+Reload VS Code (`Cmd + Shift + P` → "Developer: Reload Window") to apply.
+
 ## Security Best Practices
 
 1. **Never commit API keys** - Use placeholders in `.mcp.json`
@@ -453,6 +527,10 @@ claude plugin install claude-mem@thedotmack
 - [ ] Test a skill (claude-agent-sdk)
 - [ ] Verify MCP servers with `claude mcp list`
 - [ ] Install claude-mem plugin for persistent memory
+- [ ] Install Victor Mono font (`brew install --cask font-victor-mono`)
+- [ ] Install Catppuccin theme for VS Code
+- [ ] Install ccstatusline (`npm install -g ccstatusline`)
+- [ ] Configure VS Code terminal settings (see Terminal & Editor Theme section)
 
 ## Troubleshooting
 
