@@ -1,0 +1,137 @@
+#!/bin/bash
+# Dynamic terminal title indicator for Claude Code
+# Shows thinking/ready state in terminal tab title
+# Also sends desktop notifications with click-to-focus
+
+# Read the hook input (contains session info as JSON)
+INPUT=$(cat)
+
+# Extract the event type from the hook context
+SCRIPT_NAME=$(basename "$0")
+
+# Get the working directory from JSON or fall back to pwd
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)
+if [[ -z "$CWD" || "$CWD" == "null" ]]; then
+  CWD="$(pwd)"
+fi
+
+# Try to get session name from multiple possible JSON fields
+# Priority: session_name > cwd basename > "claude"
+SESSION_NAME=$(echo "$INPUT" | jq -r '
+  .session_name //
+  .sessionName //
+  .conversation_name //
+  .conversationName //
+  empty
+' 2>/dev/null)
+
+# If no session name found, use cwd basename
+if [[ -z "$SESSION_NAME" || "$SESSION_NAME" == "null" ]]; then
+  SESSION_NAME=$(basename "$CWD")
+fi
+
+# SECURITY: Sanitize session name to prevent escape sequence injection
+# Remove any control characters (0x00-0x1F, 0x7F) and escape sequences
+SESSION_NAME=$(echo "$SESSION_NAME" | tr -d '\000-\037\177' | sed 's/\\e//g; s/\\033//g; s/\\x1b//gi')
+
+# Truncate long names to keep title readable (max 20 chars)
+if [[ ${#SESSION_NAME} -gt 20 ]]; then
+  SESSION_NAME="${SESSION_NAME:0:17}..."
+fi
+
+# Final safety: if somehow empty after sanitization, use a safe default
+if [[ -z "$SESSION_NAME" ]]; then
+  SESSION_NAME="claude"
+fi
+
+# Duration tracking - use a temp file keyed by session/cwd
+DURATION_FILE="/tmp/claude-start-$(echo "$CWD" | md5 -q)"
+
+# Function to format duration
+format_duration() {
+  local seconds=$1
+  if [[ $seconds -lt 60 ]]; then
+    echo "${seconds}s"
+  elif [[ $seconds -lt 3600 ]]; then
+    local mins=$((seconds / 60))
+    local secs=$((seconds % 60))
+    echo "${mins}m ${secs}s"
+  else
+    local hours=$((seconds / 3600))
+    local mins=$(((seconds % 3600) / 60))
+    echo "${hours}h ${mins}m"
+  fi
+}
+
+# Function to send desktop notification (runs in background)
+send_notification() {
+  local title="$1"
+  local message="$2"
+
+  # Use terminal-notifier with click-to-focus VS Code
+  terminal-notifier \
+    -title "$title" \
+    -message "$message" \
+    -activate "com.microsoft.VSCode" \
+    -sound "" \
+    -group "claude-$SESSION_NAME" \
+    2>/dev/null &
+}
+
+# Set terminal title based on which hook called us
+case "$SCRIPT_NAME" in
+  "on-thinking.sh"|"thinking")
+    # Red circle - Claude is working (thinking/generating response)
+    TITLE="🔴 $SESSION_NAME"
+    # Record start time for duration tracking
+    date +%s > "$DURATION_FILE"
+    ;;
+  "on-ready.sh"|"ready")
+    # Green circle - Claude is ready for input
+    TITLE="🟢 $SESSION_NAME"
+
+    # Calculate duration if we have a start time
+    DURATION_MSG=""
+    if [[ -f "$DURATION_FILE" ]]; then
+      START_TIME=$(cat "$DURATION_FILE")
+      NOW=$(date +%s)
+      ELAPSED=$((NOW - START_TIME))
+      DURATION_MSG=" ($(format_duration $ELAPSED))"
+      rm -f "$DURATION_FILE"
+    fi
+
+    # Play completion sound - runs in background to not block
+    afplay ~/.claude/sounds/soft-ui.mp3 &
+
+    # Send desktop notification with click-to-focus
+    send_notification "🟢 $SESSION_NAME" "Ready for input$DURATION_MSG"
+    ;;
+  *)
+    # Determine from argument or default to ready
+    if [[ "$1" == "thinking" ]]; then
+      TITLE="🔴 $SESSION_NAME"
+      date +%s > "$DURATION_FILE"
+    else
+      TITLE="🟢 $SESSION_NAME"
+
+      DURATION_MSG=""
+      if [[ -f "$DURATION_FILE" ]]; then
+        START_TIME=$(cat "$DURATION_FILE")
+        NOW=$(date +%s)
+        ELAPSED=$((NOW - START_TIME))
+        DURATION_MSG=" ($(format_duration $ELAPSED))"
+        rm -f "$DURATION_FILE"
+      fi
+
+      afplay ~/.claude/sounds/soft-ui.mp3 &
+      send_notification "🟢 $SESSION_NAME" "Ready for input$DURATION_MSG"
+    fi
+    ;;
+esac
+
+# Set terminal title using OSC escape sequence
+# Works in VS Code, iTerm2, Terminal.app, and most modern terminals
+printf '\033]0;%s\007' "$TITLE"
+
+# Exit successfully (don't block Claude)
+exit 0

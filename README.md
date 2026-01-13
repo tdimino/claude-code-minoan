@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-21-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-22-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -23,6 +23,7 @@ claude-code-minoan/
 ├── .mcp.json                    # MCP server configurations
 ├── skills/                      # Custom Claude Code skills
 │   ├── core-development/        # Core development tools
+│   │   ├── architecture-md-builder/ # ARCHITECTURE.md codebase documentation
 │   │   ├── beads-task-tracker/      # Dependency-aware task tracking
 │   │   ├── claude-agent-sdk/        # Build AI agents with Claude Agent SDK
 │   │   ├── claude-md-manager/       # CLAUDE.md creation and optimization
@@ -59,7 +60,12 @@ claude-code-minoan/
 │   ├── interview.md             # Plan clarification questions
 │   └── ... (30+ slash commands)
 ├── hooks/                       # Claude Code hooks
-│   └── multi-response-prompt.py  # /5x trigger for 5 alternative responses
+│   ├── multi-response-prompt.py  # /5x trigger for 5 alternative responses
+│   ├── terminal-title.sh         # Dynamic tab titles + notifications
+│   ├── on-thinking.sh            # Symlink to terminal-title.sh
+│   └── on-ready.sh               # Symlink to terminal-title.sh
+├── sounds/                      # Notification sounds
+│   └── soft-ui.mp3               # Ready notification sound
 └── README.md                    # This file
 ```
 
@@ -230,6 +236,7 @@ Systematically audits implementation plans:
 
 ### Core Development (`skills/core-development/`)
 
+- **architecture-md-builder** - Build comprehensive ARCHITECTURE.md files for any repository following matklad's canonical guidelines. Produces bird's eye views, ASCII/Mermaid diagrams, codemaps, invariants, and layer boundaries
 - **beads-task-tracker** - Dependency-aware task tracking with Beads. SQLite + JSONL sync, hash-based IDs, daemon process for cross-session continuity
 - **claude-agent-sdk** - Build AI agents using the Claude Agent SDK (Python & TypeScript). Covers query functions, ClaudeSDKClient, custom tools with @tool decorator, MCP servers, hooks, permissions, and subagents. Includes 7 production-ready templates and 9 reference docs
 - **claude-md-manager** - Create, audit, and maintain CLAUDE.md documentation files. Uses the WHAT/WHY/HOW framework, progressive disclosure patterns with agent_docs/, conciseness optimization, and anti-pattern detection
@@ -341,12 +348,24 @@ Hooks are scripts that run in response to Claude Code events. Copy to `~/.claude
 | Hook | Trigger | Description |
 |------|---------|-------------|
 | `multi-response-prompt.py` | `/5x` in message | Generates 5 alternative responses sampled from distribution tails. Useful for exploring creative options |
+| `terminal-title.sh` | Claude state changes | Dynamic terminal tab indicators: 🔴 thinking, 🟢 ready. Desktop notifications with click-to-focus VS Code. Duration tracking. Sound alerts |
+
+### Terminal Title Hook Features
+
+- **Visual tab indicators**: 🔴 when Claude is thinking/generating, 🟢 when ready for input
+- **Desktop notifications**: macOS notification when Claude finishes (click to focus VS Code)
+- **Duration tracking**: Shows how long Claude took (e.g., "Ready for input (2m 34s)")
+- **Sound notification**: Plays `sounds/soft-ui.mp3` when ready
+- **Multi-session support**: Each terminal tab shows project name
+
+**Requirements**: `brew install terminal-notifier` for desktop notifications
 
 ### Setup
 
-1. Copy hooks to your Claude directory:
+1. Copy hooks and sounds to your Claude directory:
    ```bash
    cp -r hooks/* ~/.claude/hooks/
+   cp -r sounds ~/.claude/sounds/
    chmod +x ~/.claude/hooks/*.py ~/.claude/hooks/*.sh
    ```
 
@@ -360,6 +379,20 @@ Hooks are scripts that run in response to Claude Code events. Copy to `~/.claude
              {
                "type": "command",
                "command": "~/.claude/hooks/multi-response-prompt.py"
+             },
+             {
+               "type": "command",
+               "command": "~/.claude/hooks/on-thinking.sh"
+             }
+           ]
+         }
+       ],
+       "Stop": [
+         {
+           "hooks": [
+             {
+               "type": "command",
+               "command": "~/.claude/hooks/on-ready.sh"
              }
            ]
          }
@@ -368,7 +401,14 @@ Hooks are scripts that run in response to Claude Code events. Copy to `~/.claude
    }
    ```
 
-3. Use by adding `/5x` to any message:
+3. Enable dynamic terminal titles in VS Code settings (`settings.json`):
+   ```json
+   {
+     "terminal.integrated.tabs.title": "${sequence}"
+   }
+   ```
+
+4. Use `/5x` by adding it to any message:
    ```
    How should I structure this component? /5x
    ```
@@ -567,9 +607,9 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-01-13
 
-**Skills**: 21 skills across 5 categories
+**Skills**: 22 skills across 5 categories
 **Commands**: 30+ slash commands
 **MCP Servers**: 14 configured servers
 
