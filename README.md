@@ -510,6 +510,30 @@ Add to your VS Code `settings.json` (`Cmd + Shift + P` → "Preferences: Open Us
 
 Reload VS Code (`Cmd + Shift + P` → "Developer: Reload Window") to apply.
 
+### 5. Markdown Editor Settings (Workspace)
+
+This repo includes `.vscode/settings.json` with optimized Markdown editing:
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `editor.wordWrap` | on | Wrap long lines instead of horizontal scrolling |
+| `editor.lineHeight` | 1.4 | More breathing room between lines |
+| `editor.fontSize` | 13 | Comfortable reading size |
+| `editor.minimap.enabled` | false | Hide minimap (less useful for prose) |
+
+**Markdown Preview** (Cmd+K V):
+- Synced scrolling between editor and preview
+- 1.5x line spacing for readability
+- Cursor position highlighted in preview
+
+**Syntax Highlighting**:
+- Headings: Blue (`#58A6FF`)
+- Lists: Light cyan (`#7DD3FC`)
+- Links: Blue with underline
+- Code: Light gray (`#c9d1d9`)
+
+These settings apply automatically when opening this repo in VS Code.
+
 ## Security Best Practices
 
 1. **Never commit API keys** - Use placeholders in `.mcp.json`
