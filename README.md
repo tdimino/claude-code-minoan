@@ -519,7 +519,7 @@ This repo includes `.vscode/settings.json` with optimized Markdown editing:
 | `editor.wordWrap` | on | Wrap long lines instead of horizontal scrolling |
 | `editor.lineHeight` | 1.4 | More breathing room between lines |
 | `editor.fontSize` | 13 | Comfortable reading size |
-| `editor.minimap.enabled` | false | Hide minimap (less useful for prose) |
+| `editor.minimap.enabled` | true | Show minimap for quick file navigation |
 
 **Markdown Preview** (Cmd+K V):
 - Synced scrolling between editor and preview
