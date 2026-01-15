@@ -2,7 +2,7 @@
   "name": "claude-session-tracker",
   "displayName": "Claude Session Tracker",
   "description": "Track and resume Claude Code sessions easily after crashes or disconnections",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "publisher": "aldea",
   "engines": {
     "vscode": "^1.85.0"
@@ -38,12 +38,22 @@
       },
       {
         "command": "claude-tracker.showAllTerminals",
-        "title": "Show All Terminals (This Window)",
+        "title": "View Claude Sessions",
         "category": "Claude"
       },
       {
         "command": "claude-tracker.showAllSessions",
         "title": "Browse All Claude Sessions (All Projects)",
+        "category": "Claude"
+      },
+      {
+        "command": "claude-tracker.recoverSessions",
+        "title": "Recover Claude Sessions from Crash",
+        "category": "Claude"
+      },
+      {
+        "command": "claude-tracker.resumeAll",
+        "title": "Resume All Crashed Claude Sessions",
         "category": "Claude"
       }
     ],

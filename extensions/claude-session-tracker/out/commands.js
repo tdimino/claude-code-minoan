@@ -43,7 +43,7 @@ const utils_1 = require("./utils");
 /**
  * Register all extension commands
  */
-function registerCommands(context, storage, watcher) {
+function registerCommands(context, storage, watcher, crossWindowState) {
     // Focus active Claude terminal
     context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.focusTerminal', async () => {
         const activeTerminals = watcher.getActiveTerminals();
@@ -69,29 +69,70 @@ function registerCommands(context, storage, watcher) {
             selected.terminal.show();
         }
     }));
-    // Show all terminals in this VS Code window
+    // Show unified session picker: active terminals + recent resumable sessions
     context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.showAllTerminals', async () => {
-        const allTerminals = vscode.window.terminals;
         const claudeTerminals = watcher.getActiveTerminals();
-        if (allTerminals.length === 0) {
-            vscode.window.showInformationMessage('No terminals open in this window');
+        // Get recent sessions from last 12 hours
+        const recentSessions = await getRecentResumableSessions(12);
+        const items = [];
+        // Active terminals first (grouped at top)
+        if (claudeTerminals.length > 0) {
+            // Add separator label for active terminals
+            for (const terminal of claudeTerminals) {
+                items.push({
+                    type: 'active',
+                    label: `$(terminal-tmux) ${terminal.name}`,
+                    description: '$(circle-filled) Active',
+                    detail: 'Click to focus this terminal',
+                    terminal,
+                });
+            }
+        }
+        // Resumable sessions from last 12 hours
+        for (const session of recentSessions) {
+            const projectName = path.basename(session.projectPath);
+            const age = (0, utils_1.formatRelativeTime)(session.timestamp);
+            items.push({
+                type: 'resumable',
+                label: `$(debug-restart) ${(0, utils_1.truncate)(session.firstMessage, 50)}`,
+                description: session.gitBranch
+                    ? `$(git-branch) ${session.gitBranch}`
+                    : `$(folder) ${projectName}`,
+                detail: `${session.projectPath} • ${age}`,
+                sessionId: session.id,
+                workspacePath: session.projectPath,
+            });
+        }
+        if (items.length === 0) {
+            vscode.window.showInformationMessage('No Claude sessions found in the last 12 hours');
             return;
         }
-        const items = allTerminals.map((terminal) => {
-            const isClaude = claudeTerminals.includes(terminal);
-            return {
-                label: `${isClaude ? '$(terminal-tmux) ' : '$(terminal) '}${terminal.name}`,
-                description: isClaude ? 'Claude Code' : '',
-                detail: `PID: ${terminal.processId || 'unknown'}`,
-                terminal,
-            };
-        });
+        const activeCount = claudeTerminals.length;
+        const resumableCount = recentSessions.length;
+        const placeHolder = activeCount > 0
+            ? `${activeCount} active, ${resumableCount} resumable sessions (last 12h)`
+            : `${resumableCount} resumable sessions (last 12h)`;
         const selected = await vscode.window.showQuickPick(items, {
-            placeHolder: `${allTerminals.length} terminals in this window (${claudeTerminals.length} Claude)`,
+            placeHolder,
             matchOnDescription: true,
+            matchOnDetail: true,
         });
-        if (selected) {
+        if (!selected)
+            return;
+        if (selected.type === 'active' && selected.terminal) {
+            // Focus the active terminal
             selected.terminal.show();
+        }
+        else if (selected.type === 'resumable' && selected.workspacePath && selected.sessionId) {
+            // Resume the selected session in its workspace
+            try {
+                const terminal = (0, utils_1.createResumedTerminal)(selected.workspacePath);
+                (0, utils_1.sendSafeCommand)(terminal, 'claude --resume', selected.sessionId);
+            }
+            catch (err) {
+                console.error('Failed to resume session:', err);
+                vscode.window.showErrorMessage(`Failed to resume session: ${err}`);
+            }
         }
     }));
     // Show sessions across all projects
@@ -127,6 +168,92 @@ function registerCommands(context, storage, watcher) {
                 console.error('Failed to resume session:', err);
                 vscode.window.showErrorMessage(`Failed to resume session: ${err}`);
             }
+        }
+    }));
+    // Recover sessions from crash - shows sessions that were active before VS Code crashed
+    context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.recoverSessions', async () => {
+        const recoverable = crossWindowState.getRecoverableSessions();
+        if (recoverable.length === 0) {
+            vscode.window.showInformationMessage('No sessions to recover');
+            return;
+        }
+        // Deduplicate by workspacePath (same project may have been in multiple windows)
+        const uniquePaths = new Map();
+        for (const session of recoverable) {
+            if (!uniquePaths.has(session.workspacePath) ||
+                uniquePaths.get(session.workspacePath).lastUpdate < session.lastUpdate) {
+                uniquePaths.set(session.workspacePath, session);
+            }
+        }
+        const sessions = Array.from(uniquePaths.values());
+        // Show quick pick with multi-select
+        const items = sessions.map(s => ({
+            label: `$(folder) ${path.basename(s.workspacePath)}`,
+            description: s.name,
+            detail: `Last active: ${(0, utils_1.formatRelativeTime)(new Date(s.lastUpdate).toISOString())}`,
+            workspacePath: s.workspacePath,
+            picked: true, // Pre-select all by default
+        }));
+        const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: `${sessions.length} session(s) to recover from crash`,
+            canPickMany: true,
+        });
+        if (!selected || selected.length === 0) {
+            // User cancelled or selected nothing - clear stale sessions
+            crossWindowState.clearStaleSessions();
+            return;
+        }
+        // Resume each selected session
+        for (const item of selected) {
+            try {
+                const terminal = (0, utils_1.createResumedTerminal)(item.workspacePath);
+                // Use small delay between terminals to avoid overwhelming the system
+                await new Promise(resolve => setTimeout(resolve, 500));
+                (0, utils_1.sendSafeCommand)(terminal, 'claude --continue');
+            }
+            catch (err) {
+                console.error(`Failed to recover session for ${item.workspacePath}:`, err);
+            }
+        }
+        // Clear stale sessions after recovery attempt
+        crossWindowState.clearStaleSessions();
+        vscode.window.showInformationMessage(`Recovered ${selected.length} Claude session(s)`);
+    }));
+    // Resume ALL recoverable sessions at once
+    context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.resumeAll', async () => {
+        const recoverable = crossWindowState.getRecoverableSessions();
+        if (recoverable.length === 0) {
+            vscode.window.showInformationMessage('No sessions to resume');
+            return;
+        }
+        // Deduplicate by workspacePath
+        const uniquePaths = new Map();
+        for (const session of recoverable) {
+            uniquePaths.set(session.workspacePath, session);
+        }
+        const sessions = Array.from(uniquePaths.values());
+        // Confirm with user
+        const action = await vscode.window.showInformationMessage(`Resume ${sessions.length} Claude session(s) from before crash?`, 'Resume All', 'Pick Sessions', 'Dismiss');
+        if (action === 'Resume All') {
+            for (const session of sessions) {
+                try {
+                    const terminal = (0, utils_1.createResumedTerminal)(session.workspacePath);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    (0, utils_1.sendSafeCommand)(terminal, 'claude --continue');
+                }
+                catch (err) {
+                    console.error(`Failed to resume session for ${session.workspacePath}:`, err);
+                }
+            }
+            crossWindowState.clearStaleSessions();
+            vscode.window.showInformationMessage(`Resumed ${sessions.length} Claude session(s)`);
+        }
+        else if (action === 'Pick Sessions') {
+            vscode.commands.executeCommand('claude-tracker.recoverSessions');
+        }
+        else {
+            // Dismiss - clear stale sessions
+            crossWindowState.clearStaleSessions();
         }
     }));
     // Resume last session - supports multi-root workspaces
@@ -431,5 +558,74 @@ function decodeProjectPath(projectDir) {
     const encoded = path.basename(projectDir);
     // Replace leading hyphen with / and all other hyphens with /
     return encoded.replace(/^-/, '/').replace(/-/g, '/');
+}
+/**
+ * Get resumable sessions from the last N hours
+ * Filters by JSONL file modification time for accuracy
+ */
+async function getRecentResumableSessions(hours) {
+    const claudeDir = path.join(os.homedir(), '.claude', 'projects');
+    const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+    // Check if projects directory exists
+    try {
+        await fs.promises.access(claudeDir);
+    }
+    catch {
+        return [];
+    }
+    let projectDirs;
+    try {
+        const entries = await fs.promises.readdir(claudeDir, { withFileTypes: true });
+        projectDirs = entries
+            .filter(e => e.isDirectory())
+            .map(e => path.join(claudeDir, e.name));
+    }
+    catch {
+        return [];
+    }
+    // Collect all session files from all projects, filtering by modification time
+    const recentFiles = [];
+    await Promise.all(projectDirs.map(async (projectDir) => {
+        try {
+            const dirEntries = await fs.promises.readdir(projectDir);
+            const jsonlFiles = dirEntries.filter(f => f.endsWith('.jsonl'));
+            await Promise.all(jsonlFiles.map(async (f) => {
+                const filePath = path.join(projectDir, f);
+                try {
+                    const stat = await fs.promises.stat(filePath);
+                    // Filter by modification time (last N hours)
+                    if (stat.size > 0 && stat.mtime.getTime() > cutoffTime) {
+                        recentFiles.push({ name: f, path: filePath, stat, projectDir });
+                    }
+                }
+                catch {
+                    // File may have been deleted
+                }
+            }));
+        }
+        catch {
+            // Skip inaccessible project directories
+        }
+    }));
+    // Sort by modification time (most recent first)
+    const sortedFiles = recentFiles
+        .sort((a, b) => b.stat.mtime.getTime() - a.stat.mtime.getTime())
+        .slice(0, utils_1.MAX_RECENT_SESSIONS);
+    const sessions = [];
+    for (const file of sortedFiles) {
+        try {
+            const summary = await parseSessionFile(file.path);
+            if (summary) {
+                sessions.push({
+                    ...summary,
+                    projectPath: decodeProjectPath(file.projectDir),
+                });
+            }
+        }
+        catch (err) {
+            console.warn(`Failed to parse session file ${file.path}:`, err);
+        }
+    }
+    return sessions;
 }
 //# sourceMappingURL=commands.js.map

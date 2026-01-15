@@ -68,12 +68,13 @@ class StatusBarManager {
         // Build informative tooltip
         if (localCount !== undefined && localCount !== globalCount) {
             const otherCount = globalCount - localCount;
-            this.statusBarItem.tooltip = `${localCount} in this window, ${otherCount} in other window(s)\nClick to focus or view all`;
+            this.statusBarItem.tooltip = `${localCount} in this window, ${otherCount} in other window(s)\nClick to view all sessions`;
         }
         else {
-            this.statusBarItem.tooltip = 'Click to focus Claude terminal';
+            this.statusBarItem.tooltip = 'Click to view Claude sessions';
         }
-        this.statusBarItem.command = 'claude-tracker.focusTerminal';
+        // Use session picker instead of direct focus to prevent accidental commands
+        this.statusBarItem.command = 'claude-tracker.showAllTerminals';
         this.statusBarItem.backgroundColor = undefined;
         this.statusBarItem.show();
     }
@@ -90,6 +91,21 @@ class StatusBarManager {
         this.statusBarItem.tooltip = 'Click to pick a session to resume (Cmd+Shift+C)';
         this.statusBarItem.command = 'claude-tracker.pickSession';
         this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        this.statusBarItem.show();
+    }
+    /**
+     * Show status for crash-recoverable sessions
+     */
+    showRecoverable(count) {
+        if (!(0, utils_1.shouldShowStatusBar)()) {
+            this.hide();
+            return;
+        }
+        this.currentState = 'recoverable';
+        this.statusBarItem.text = `$(warning) Recover Claude (${count})`;
+        this.statusBarItem.tooltip = `${count} Claude session(s) can be recovered from crash\nClick to recover`;
+        this.statusBarItem.command = 'claude-tracker.resumeAll';
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
         this.statusBarItem.show();
     }
     /**

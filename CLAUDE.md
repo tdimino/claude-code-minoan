@@ -1,11 +1,13 @@
 # Claude-Code-Minoan
 
-Curated Claude Code configuration: skills, MCP servers, and slash commands.
+Curated Claude Code configuration: skills, MCP servers, slash commands, and VS Code extensions.
 
 ## Structure
 
 - `/skills` - Custom Claude Code skills (copy to `~/.claude/skills/`)
 - `/commands` - Slash commands (copy to `~/.claude/commands/`)
+- `/extensions` - VS Code extensions for Claude Code workflow
+- `/hooks` - Git hooks and automation scripts
 - `.mcp.json` - MCP server configurations (copy to project root)
 
 ## Quick Setup
@@ -31,6 +33,29 @@ cp -r commands/* ~/.claude/commands/
 - `/workflows:plan` - Feature planning with architecture analysis
 - `/requirements-start` - Extensive project planning workflow
 - `/audit-plans` - Audit plans for completeness
+
+## VS Code Extensions
+
+### Claude Session Tracker (`extensions/claude-session-tracker/`)
+
+Track and resume Claude Code sessions across VS Code windows and crashes.
+
+**Install:**
+```bash
+cd extensions/claude-session-tracker
+npm run compile && npx vsce package
+code --install-extension claude-session-tracker-*.vsix
+```
+
+**Features:**
+- Cross-window session tracking via `~/.claude/vscode-tracker-state.json`
+- Status bar: "Claude Active (N)" → click for session picker
+- Crash recovery: Resume sessions from before VS Code crashed
+- `Cmd+Shift+C` - Quick resume last session
+
+**Critical:** Clicking status bar shows picker - never auto-runs `claude --continue`.
+
+See `extensions/claude-session-tracker/CLAUDE.md` for development details.
 
 ## Semantic Search (OSGrep)
 

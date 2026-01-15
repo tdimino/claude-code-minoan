@@ -6,7 +6,7 @@ import { shouldShowStatusBar } from './utils';
  */
 export class StatusBarManager {
   private statusBarItem: vscode.StatusBarItem;
-  private currentState: 'active' | 'resumable' | 'hidden' = 'hidden';
+  private currentState: 'active' | 'resumable' | 'recoverable' | 'hidden' = 'hidden';
 
   constructor(context: vscode.ExtensionContext) {
     this.statusBarItem = vscode.window.createStatusBarItem(
@@ -41,12 +41,13 @@ export class StatusBarManager {
     // Build informative tooltip
     if (localCount !== undefined && localCount !== globalCount) {
       const otherCount = globalCount - localCount;
-      this.statusBarItem.tooltip = `${localCount} in this window, ${otherCount} in other window(s)\nClick to focus or view all`;
+      this.statusBarItem.tooltip = `${localCount} in this window, ${otherCount} in other window(s)\nClick to view all sessions`;
     } else {
-      this.statusBarItem.tooltip = 'Click to focus Claude terminal';
+      this.statusBarItem.tooltip = 'Click to view Claude sessions';
     }
 
-    this.statusBarItem.command = 'claude-tracker.focusTerminal';
+    // Use session picker instead of direct focus to prevent accidental commands
+    this.statusBarItem.command = 'claude-tracker.showAllTerminals';
     this.statusBarItem.backgroundColor = undefined;
     this.statusBarItem.show();
   }
@@ -69,6 +70,23 @@ export class StatusBarManager {
   }
 
   /**
+   * Show status for crash-recoverable sessions
+   */
+  showRecoverable(count: number): void {
+    if (!shouldShowStatusBar()) {
+      this.hide();
+      return;
+    }
+
+    this.currentState = 'recoverable';
+    this.statusBarItem.text = `$(warning) Recover Claude (${count})`;
+    this.statusBarItem.tooltip = `${count} Claude session(s) can be recovered from crash\nClick to recover`;
+    this.statusBarItem.command = 'claude-tracker.resumeAll';
+    this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    this.statusBarItem.show();
+  }
+
+  /**
    * Hide the status bar item
    */
   hide(): void {
@@ -79,7 +97,7 @@ export class StatusBarManager {
   /**
    * Get current state
    */
-  getState(): 'active' | 'resumable' | 'hidden' {
+  getState(): 'active' | 'resumable' | 'recoverable' | 'hidden' {
     return this.currentState;
   }
 

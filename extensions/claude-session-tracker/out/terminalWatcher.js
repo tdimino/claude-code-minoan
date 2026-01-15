@@ -79,10 +79,18 @@ class TerminalWatcher {
             this.onTerminalClosed(terminal);
         }));
         // Check existing terminals on activation
-        vscode.window.terminals.forEach(async (terminal) => {
-            if (await this.isClaudeTerminal(terminal)) {
-                await this.trackTerminal(terminal);
+        // Use Promise.all to properly handle async operations (not forEach)
+        Promise.all(vscode.window.terminals.map(async (terminal) => {
+            try {
+                if (await this.isClaudeTerminal(terminal)) {
+                    await this.trackTerminal(terminal);
+                }
             }
+            catch (err) {
+                console.error('Error checking existing terminal:', err);
+            }
+        })).catch(err => {
+            console.error('Error during terminal initialization:', err);
         });
         // Initialize status bar
         this.updateStatusBar();
@@ -132,7 +140,15 @@ class TerminalWatcher {
                 if (terminal.exitStatus !== undefined) {
                     return;
                 }
-                await this.trackTerminal(terminal);
+                // TOCTOU: Terminal may close between the check and tracking
+                // Wrap in try-catch to handle gracefully
+                try {
+                    await this.trackTerminal(terminal);
+                }
+                catch (err) {
+                    // Terminal may have closed during tracking - this is fine
+                    console.log('Terminal closed during tracking:', err);
+                }
                 return;
             }
             await (0, utils_1.sleep)(utils_1.TERMINAL_DETECTION_DELAY_MS);
@@ -269,6 +285,14 @@ class TerminalWatcher {
             this.statusBar.showActive(globalCount, localCount);
             return;
         }
+        // Check for crash-recoverable sessions (higher priority than normal resumable)
+        const recoverableSessions = this.crossWindowState.getRecoverableSessions();
+        if (recoverableSessions.length > 0) {
+            // Deduplicate by workspace path
+            const uniquePaths = new Set(recoverableSessions.map(s => s.workspacePath));
+            this.statusBar.showRecoverable(uniquePaths.size);
+            return;
+        }
         if (this.storage.hasResumableSession()) {
             this.statusBar.showResumable();
             return;
@@ -284,6 +308,13 @@ class TerminalWatcher {
             terminals.push(...set);
         }
         return terminals;
+    }
+    /**
+     * Get the cross-window state manager instance
+     * Used by commands for crash recovery
+     */
+    getCrossWindowState() {
+        return this.crossWindowState;
     }
 }
 exports.TerminalWatcher = TerminalWatcher;
