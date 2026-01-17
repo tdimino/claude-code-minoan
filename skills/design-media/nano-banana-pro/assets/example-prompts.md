@@ -151,3 +151,33 @@ Fashion photography of model wearing [CLOTHING], [POSE], [LOCATION/BACKGROUND], 
 ```
 Beauty product photography, [PRODUCT] on [BACKGROUND], clean minimal aesthetic, soft flattering light, high-end cosmetics photography style, sharp product focus, [COLOR PALETTE]
 ```
+
+## Aldea Soul Engine Avatars
+
+See `references/aldea-avatars.md` for comprehensive Aldea-specific templates including:
+- Real human advisor portraits (@realphoto @headshot, @realphoto @warmth)
+- Fictional AI soul characters (@fictional @ethereal, @android @ancient, @futurist @cyberpunk)
+- Character consistency workflows (@samescene, @samepose, @ageprogress, @outfit)
+- UI/marketing assets (@voiceorb, @bazaarheader, @appicon)
+
+### Quick Templates
+
+#### Real Human Advisor (Dr. Shefali style)
+```
+4K ultra-realistic portrait of a [AGE]-year-old [ETHNICITY] [GENDER] therapeutic professional, warm compassionate expression with genuine smile reaching the eyes, soft golden hour lighting from 45 degrees with subtle warm fill, 85mm f/1.8 lens, shallow DOF, visible pores and natural skin texture, relaxed professional styling, warm amber-toned background, DSLR realism, 3:4 composition, no smoothing, no cartoon effect, inviting and approachable atmosphere.
+```
+
+#### Fictional Soul Reference Sheet
+```
+Create side by side composition showing close up portrait (left) and full body (right) of [CHARACTER DESCRIPTION], set in [SETTING/THEME]. The character has [FACE DETAILS], [HAIR STYLE AND COLOR], and [EYE DETAILS]. Signature elements: [UNIQUE FEATURES]. Expression: [EMOTION]. Outfit: [MATERIALS, CUTS, COLORS]. Background: [DESCRIBE]. Lighting: [TYPE, DIRECTION, MOOD]. Aspect ratio 4:3.
+```
+
+#### Character Consistency (Same Character, New Scene)
+```
+Create [SCENE TYPE] featuring the same character shown in the reference image. Keep all core design elements consistent. Place the character [SCENE DESCRIPTION]. Maintain facial structure, [KEY FEATURES], [OUTFIT ELEMENTS]. Expression: [DESCRIBE]. Keep identity and signature design clearly recognizable from reference. Aspect ratio [SPECIFY].
+```
+
+#### Voice-First Demo Hero Image
+```
+Ethereal voice AI interface visualization, abstract waveforms in [SOUL COLOR] (amber/purple/teal), bioluminescent orb pulsing with warm light, soft particles floating in twilight gradient background, minimal UI elements suggesting conversation flow, cinematic depth with bokeh, 16:9 hero banner format.
+```

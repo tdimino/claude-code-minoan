@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-22-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-24-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -30,7 +30,8 @@ claude-code-minoan/
 │   │   ├── claude-agent-sdk/        # Build AI agents with Claude Agent SDK
 │   │   ├── claude-md-manager/       # CLAUDE.md creation and optimization
 │   │   ├── osgrep-reference/        # Semantic code search
-│   │   └── skill-creator/           # Guide for creating skills
+│   │   ├── react-best-practices/    # React/Next.js performance optimization
+│   │   └── skill-optimizer/         # Guide for creating and reviewing skills
 │   ├── integration-automation/  # Infrastructure & integrations
 │   │   ├── dev-browser/             # Browser automation with persistent state
 │   │   ├── figma-mcp/               # Figma design integration
@@ -46,6 +47,7 @@ claude-code-minoan/
 │   │   └── photo-to-slack-emoji/    # Photo to Slack emoji converter
 │   ├── research/                # Research tools
 │   │   ├── academic-research/       # Academic paper search with Exa + ArXiv
+│   │   ├── atk-ux-research/         # America's Test Kitchen UX research
 │   │   ├── exa-search/              # Full Exa AI API access
 │   │   └── Firecrawl/               # Web scraping (prefer over WebFetch)
 │   └── planning-productivity/   # Planning tools
@@ -243,7 +245,8 @@ Systematically audits implementation plans:
 - **claude-agent-sdk** - Build AI agents using the Claude Agent SDK (Python & TypeScript). Covers query functions, ClaudeSDKClient, custom tools with @tool decorator, MCP servers, hooks, permissions, and subagents. Includes 7 production-ready templates and 9 reference docs
 - **claude-md-manager** - Create, audit, and maintain CLAUDE.md documentation files. Uses the WHAT/WHY/HOW framework, progressive disclosure patterns with agent_docs/, conciseness optimization, and anti-pattern detection
 - **osgrep-reference** - Semantic code search using natural language queries. Find code by concept rather than keyword matching ("where do we handle authentication?" vs "grep 'auth'")
-- **skill-creator** - Guide for creating effective Claude Code skills with templates and best practices
+- **react-best-practices** - React and Next.js performance optimization guidelines from Vercel Engineering. Use when writing, reviewing, or refactoring React/Next.js code for optimal performance patterns
+- **skill-optimizer** - Guide for creating and reviewing Claude Code skills. Use when creating new skills, reviewing existing skills for quality, or optimizing skills with specialized knowledge and workflows
 
 ### Integration & Automation (`skills/integration-automation/`)
 
@@ -265,6 +268,7 @@ Systematically audits implementation plans:
 ### Research (`skills/research/`)
 
 - **academic-research** - Comprehensive academic paper search, literature reviews, and research synthesis. Combines Exa MCP with arxiv-mcp-server for paper discovery, download, and deep analysis
+- **atk-ux-research** - Specialized UX research skill for America's Test Kitchen. Gathers user feedback from app stores, Reddit, Trustpilot, BBB, and review sources using Exa Search, Firecrawl, and Perplexity MCP. Outputs structured reports with quantitative metrics and qualitative themes
 - **exa-search** - Complete Exa AI search API access with 5 specialized scripts: neural web search, URL content extraction, similar page discovery, quick AI research with citations, and async pro research
 - **Firecrawl** - Web scraping with Agent API for autonomous data extraction. **ALWAYS prefer Firecrawl over WebFetch** for cleaner output, better JS handling, and no content truncation
 
@@ -664,9 +668,9 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-01-13
+**Last Updated**: 2026-01-17
 
-**Skills**: 22 skills across 5 categories
+**Skills**: 24 skills across 5 categories
 **Commands**: 30+ slash commands
 **MCP Servers**: 14 configured servers
 

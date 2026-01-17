@@ -588,6 +588,7 @@ python scripts/edit_image.py \
 - **API Reference** (`references/api-reference.md`): Complete API documentation, pricing, SDKs
 - **Troubleshooting** (`references/troubleshooting.md`): Common issues, solutions, error codes
 - **Example Prompts** (`assets/example-prompts.md`): Ready-to-use prompts by category
+- **Aldea Avatars** (`references/aldea-avatars.md`): Character templates for Soul Engine personas
 
 ### External Links
 
