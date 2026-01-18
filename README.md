@@ -269,8 +269,8 @@ Systematically audits implementation plans:
 
 - **academic-research** - Comprehensive academic paper search, literature reviews, and research synthesis. Combines Exa MCP with arxiv-mcp-server for paper discovery, download, and deep analysis
 - **atk-ux-research** - Specialized UX research skill for America's Test Kitchen. Gathers user feedback from app stores, Reddit, Trustpilot, BBB, and review sources using Exa Search, Firecrawl, and Perplexity MCP. Outputs structured reports with quantitative metrics and qualitative themes
-- **exa-search** - Complete Exa AI search API access with 5 specialized scripts: neural web search, URL content extraction, similar page discovery, quick AI research with citations, and async pro research
-- **Firecrawl** - Web scraping with Agent API for autonomous data extraction. **ALWAYS prefer Firecrawl over WebFetch** for cleaner output, better JS handling, and no content truncation
+- **exa-search** - Complete Exa AI search API access with 6 scripts: neural web search, URL content extraction (with RAG context), similar page discovery (with moderation/text filters), AI research with streaming, async research (3 models: fast/standard/pro), and test suite. Full API coverage
+- **Firecrawl** - Web scraping with Agent API for autonomous data extraction. Actions support, branding extraction, 3 crawler models (fast/standard/quality), batch operations, and comprehensive test suite. **ALWAYS prefer Firecrawl over WebFetch**
 
 ### Planning & Productivity (`skills/planning-productivity/`)
 

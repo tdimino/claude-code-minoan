@@ -7,7 +7,7 @@ comprehensive research tasks with structured JSON output.
 
 Features:
 - Async job-based research (submit and poll for results)
-- Model selection: exa-research (standard) or exa-research-pro (enhanced)
+- Model selection: exa-research-fast (quick), exa-research (standard), or exa-research-pro (enhanced)
 - Structured JSON output with custom schemas
 - Long-form research for complex topics
 - Status polling with progress tracking
@@ -22,6 +22,7 @@ Use Cases:
 Usage:
     exa_research_async.py "What species of ant are similar to honeypot ants?"
     exa_research_async.py "Compare top 5 AI startups" --pro
+    exa_research_async.py "Quick market overview" --fast
     exa_research_async.py "Analyze climate policy trends" --schema '{"policies": [{"name": "string", "country": "string"}]}'
     exa_research_async.py status <research_id>
     exa_research_async.py list
@@ -62,7 +63,7 @@ def create_research(
 
     Args:
         instructions: Instructions for what research should be conducted (max 4096 chars)
-        model: Model to use - "exa-research" (standard) or "exa-research-pro" (enhanced)
+        model: Model to use - "exa-research-fast" (quick), "exa-research" (standard), or "exa-research-pro" (enhanced)
         output_schema: Optional JSON schema for structured output
 
     Returns:
@@ -71,8 +72,9 @@ def create_research(
     if len(instructions) > 4096:
         raise ValueError(f"Instructions too long ({len(instructions)} chars). Max is 4096.")
 
-    if model not in ["exa-research", "exa-research-pro"]:
-        raise ValueError(f"Invalid model '{model}'. Must be 'exa-research' or 'exa-research-pro'")
+    valid_models = ["exa-research-fast", "exa-research", "exa-research-pro"]
+    if model not in valid_models:
+        raise ValueError(f"Invalid model '{model}'. Must be one of: {valid_models}")
 
     payload: Dict[str, Any] = {
         "instructions": instructions,
@@ -239,13 +241,15 @@ Commands:
 Examples:
   %(prog)s "What species of ant are similar to honeypot ants?"
   %(prog)s "Compare top 5 AI agent frameworks" --pro --wait
+  %(prog)s "Quick market overview" --fast
   %(prog)s "Analyze startup funding trends" --schema '{"startups": [{"name": "str", "funding": "int"}]}'
   %(prog)s status res_abc123
   %(prog)s list --limit 20
 
 Models:
-  exa-research      Standard research model (default)
-  exa-research-pro  Enhanced research model with better synthesis
+  exa-research-fast  Faster/cheaper research model for quick tasks
+  exa-research       Standard research model (default)
+  exa-research-pro   Enhanced research model with better synthesis
         """
     )
 
@@ -253,6 +257,7 @@ Models:
     parser.add_argument("arg", nargs="?", help="Research ID for status command")
 
     parser.add_argument("--pro", action="store_true", help="Use exa-research-pro model")
+    parser.add_argument("--fast", action="store_true", help="Use exa-research-fast model (quicker/cheaper)")
     parser.add_argument("--schema", help="JSON schema for structured output")
     parser.add_argument("--wait", action="store_true", help="Wait for completion (with 'create')")
     parser.add_argument("--timeout", type=int, default=300, help="Timeout in seconds (with --wait)")
@@ -290,7 +295,13 @@ Models:
             if args.arg:
                 instructions = f"{args.command} {args.arg}"
 
-            model = "exa-research-pro" if args.pro else "exa-research"
+            # Determine model: --pro > --fast > default
+            if args.pro:
+                model = "exa-research-pro"
+            elif args.fast:
+                model = "exa-research-fast"
+            else:
+                model = "exa-research"
 
             schema = None
             if args.schema:

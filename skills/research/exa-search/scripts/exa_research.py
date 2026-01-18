@@ -12,6 +12,7 @@ Features:
 - Domain filtering for trusted sources
 - Date filtering for recency
 - Support for complex research questions
+- Streaming responses for real-time output
 
 Use Cases:
 - Quick research on any topic
@@ -67,6 +68,8 @@ def research(
     get_highlights: bool = False,
     # Model
     model: Optional[str] = None,
+    # Streaming
+    stream: bool = False,
 ) -> Dict[str, Any]:
     """
     Perform deep research using Exa's /answer endpoint.
@@ -84,9 +87,11 @@ def research(
         get_text: Include source text in response
         get_highlights: Include relevant excerpts from sources
         model: Optional model override for answer generation
+        stream: Enable SSE streaming for real-time output
 
     Returns:
         Dict with answer text, sources, and optional source content
+        (If stream=True, returns a generator yielding SSE events)
     """
     # Build payload
     payload: Dict[str, Any] = {
@@ -119,14 +124,80 @@ def research(
     if model:
         payload["model"] = model
 
+    # Streaming
+    if stream:
+        payload["stream"] = True
+
     # Make request
     response = requests.post(
         f"{BASE_URL}/answer",
         headers=_headers(),
-        json=payload
+        json=payload,
+        stream=stream
     )
     response.raise_for_status()
+
+    if stream:
+        return response  # Return response object for streaming
     return response.json()
+
+
+def process_stream(response) -> Dict[str, Any]:
+    """
+    Process SSE streaming response and print answer in real-time.
+
+    Args:
+        response: requests Response object with streaming enabled
+
+    Returns:
+        Dict with complete answer and sources after stream ends
+    """
+    result: Dict[str, Any] = {"answer": "", "results": []}
+
+    for line in response.iter_lines():
+        if not line:
+            continue
+
+        line_str = line.decode('utf-8')
+
+        # SSE format: "data: {json}"
+        if line_str.startswith('data: '):
+            data_str = line_str[6:]  # Remove "data: " prefix
+
+            if data_str.strip() == '[DONE]':
+                break
+
+            try:
+                event = json.loads(data_str)
+
+                # Handle different event types
+                if event.get("type") == "answer_chunk":
+                    chunk = event.get("data", {}).get("chunk", "")
+                    print(chunk, end="", flush=True)
+                    result["answer"] += chunk
+
+                elif event.get("type") == "result":
+                    # Source/result data
+                    result_data = event.get("data", {})
+                    result["results"].append(result_data)
+
+                elif event.get("type") == "done":
+                    # Final event with complete data
+                    if event.get("data"):
+                        final_data = event["data"]
+                        if final_data.get("answer"):
+                            result["answer"] = final_data["answer"]
+                        if final_data.get("results"):
+                            result["results"] = final_data["results"]
+                        if final_data.get("costDollars"):
+                            result["costDollars"] = final_data["costDollars"]
+
+            except json.JSONDecodeError:
+                # Skip malformed JSON
+                continue
+
+    print()  # Newline after streaming completes
+    return result
 
 
 def format_results(results: Dict[str, Any], show_sources: bool = True, max_text_length: int = 500) -> str:
@@ -257,6 +328,10 @@ Tips:
     parser.add_argument("--no-text", action="store_true", help="Don't include source text")
     parser.add_argument("--highlights", action="store_true", help="Include key excerpts from sources")
 
+    # Streaming
+    parser.add_argument("--stream", action="store_true",
+                        help="Stream the answer in real-time")
+
     # Output options
     parser.add_argument("--sources", action="store_true", help="Show detailed source information")
     parser.add_argument("--markdown", action="store_true", help="Output as markdown with citations")
@@ -268,29 +343,56 @@ Tips:
     args = parser.parse_args()
 
     try:
-        results = research(
-            query=args.query,
-            num_results=args.num,
-            include_domains=args.domains,
-            exclude_domains=args.exclude_domains,
-            start_published_date=args.after,
-            end_published_date=args.before,
-            get_text=not args.no_text,
-            get_highlights=args.highlights,
-        )
+        if args.stream:
+            # Streaming mode
+            response = research(
+                query=args.query,
+                num_results=args.num,
+                include_domains=args.domains,
+                exclude_domains=args.exclude_domains,
+                start_published_date=args.after,
+                end_published_date=args.before,
+                get_text=not args.no_text,
+                get_highlights=args.highlights,
+                stream=True,
+            )
+            print("ANSWER:", file=sys.stderr)
+            print("-" * 40, file=sys.stderr)
+            results = process_stream(response)
 
-        if args.json:
-            print(json.dumps(results, indent=2))
-        elif args.answer_only:
-            print(results.get("answer", "No answer generated"))
-        elif args.markdown:
-            print(format_markdown(results))
+            # Show sources after streaming if requested
+            if args.sources and results.get("results"):
+                print(f"\n{'='*60}")
+                print(f"SOURCES ({len(results['results'])} used):")
+                for i, s in enumerate(results['results'], 1):
+                    print(f"\n[{i}] {s.get('title', 'No title')}")
+                    print(f"    URL: {s.get('url', 'No URL')}")
         else:
-            print(format_results(
-                results,
-                show_sources=args.sources,
-                max_text_length=args.text_limit
-            ))
+            # Non-streaming mode
+            results = research(
+                query=args.query,
+                num_results=args.num,
+                include_domains=args.domains,
+                exclude_domains=args.exclude_domains,
+                start_published_date=args.after,
+                end_published_date=args.before,
+                get_text=not args.no_text,
+                get_highlights=args.highlights,
+                stream=False,
+            )
+
+            if args.json:
+                print(json.dumps(results, indent=2))
+            elif args.answer_only:
+                print(results.get("answer", "No answer generated"))
+            elif args.markdown:
+                print(format_markdown(results))
+            else:
+                print(format_results(
+                    results,
+                    show_sources=args.sources,
+                    max_text_length=args.text_limit
+                ))
 
     except requests.exceptions.HTTPError as e:
         print(f"API Error: {e}", file=sys.stderr)

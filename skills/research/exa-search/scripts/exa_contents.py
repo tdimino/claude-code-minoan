@@ -69,6 +69,9 @@ def get_contents(
     # Livecrawl
     livecrawl: Optional[str] = None,
     livecrawl_timeout: Optional[int] = None,
+    # Context (RAG)
+    get_context: bool = False,
+    context_max_chars: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Get clean content from specific URLs using Exa's /contents endpoint.
@@ -91,8 +94,10 @@ def get_contents(
         subpage_target: Where to find subpage links
         get_links: Number of links to extract per URL
         get_image_links: Number of images to extract per URL
-        livecrawl: Livecrawl mode - "always", "fallback", or "never"
+        livecrawl: Livecrawl mode - "always", "preferred", "fallback", or "never"
         livecrawl_timeout: Timeout in ms for livecrawling
+        get_context: Combine all contents into one RAG context string
+        context_max_chars: Limit context string length (None = unlimited)
 
     Returns:
         Dict with extracted content for each URL
@@ -148,6 +153,13 @@ def get_contents(
         payload["livecrawl"] = livecrawl
     if livecrawl_timeout:
         payload["livecrawlTimeout"] = livecrawl_timeout
+
+    # Context for RAG applications
+    if get_context:
+        if context_max_chars:
+            payload["context"] = {"maxCharacters": context_max_chars}
+        else:
+            payload["context"] = True
 
     # Make request
     response = requests.post(
@@ -240,6 +252,18 @@ def format_results(results: Dict[str, Any], max_text_length: int = 2000) -> str:
                     for img in extras['imageLinks'][:3]:
                         output.append(f"      - {img}")
 
+    # Context (RAG)
+    if results.get("context"):
+        context = results["context"]
+        output.append(f"\n{'='*60}")
+        output.append(f"CONTEXT ({len(context)} chars):")
+        output.append("-" * 40)
+        # Show truncated context
+        if len(context) > max_text_length:
+            output.append(f"{context[:max_text_length]}\n... [truncated, {len(context)} total chars]")
+        else:
+            output.append(context)
+
     # Cost
     if results.get("costDollars"):
         cost = results["costDollars"]
@@ -262,9 +286,10 @@ Examples:
   %(prog)s "https://news.ycombinator.com" --links 10 --images 5
 
 Livecrawl modes:
-  always   - Always fetch fresh content
-  fallback - Use index, fall back to live if not found
-  never    - Only use indexed content (default)
+  always    - Always fetch fresh content
+  preferred - Try to livecrawl, fallback to cache if fails
+  fallback  - Use index, fall back to live if not found
+  never     - Only use indexed content (default)
         """
     )
 
@@ -295,9 +320,15 @@ Livecrawl modes:
     parser.add_argument("--images", type=int, default=0, help="Extract N images per URL")
 
     # Livecrawl
-    parser.add_argument("--livecrawl", choices=["always", "fallback", "never"],
+    parser.add_argument("--livecrawl", choices=["always", "preferred", "fallback", "never"],
                         help="Livecrawl mode for fresh content")
     parser.add_argument("--timeout", type=int, help="Livecrawl timeout in ms")
+
+    # Context (RAG)
+    parser.add_argument("--context", action="store_true",
+                        help="Combine all contents into one RAG context string")
+    parser.add_argument("--context-chars", type=int,
+                        help="Limit context string length (use with --context)")
 
     # Output
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
@@ -333,6 +364,8 @@ Livecrawl modes:
             get_image_links=args.images,
             livecrawl=args.livecrawl,
             livecrawl_timeout=args.timeout,
+            get_context=args.context,
+            context_max_chars=args.context_chars,
         )
 
         if args.json:

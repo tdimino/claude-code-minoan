@@ -143,7 +143,9 @@ python3 ~/.claude/skills/exa-search/scripts/exa_contents.py URLs --json
 - `--summary` - Generate AI summary with query
 - `--highlights` - Extract key excerpts
 - `--subpages` - Crawl linked subpages
-- `--livecrawl` - Fresh content mode: `always`, `fallback`, `never`
+- `--livecrawl` - Fresh content mode: `always`, `preferred`, `fallback`, `never`
+- `--context` - Combine contents into RAG context string
+- `--context-chars` - Limit context string length
 - `--links/--images` - Extract links/images
 - `--max-chars` - Limit text length
 - `--json` - Output raw JSON
@@ -194,6 +196,11 @@ python3 ~/.claude/skills/exa-search/scripts/exa_similar.py URL --json
 - `--domains` - Only these domains
 - `--exclude-source` - Exclude the source URL's domain
 - `--after/--before` - Date filtering
+- `--must-include` - Results must contain these strings
+- `--must-exclude` - Results must NOT contain these strings
+- `--safe` - Enable content moderation filter
+- `--context` - Combine contents into RAG context string
+- `--context-chars` - Limit context string length
 - `--summary` - Generate comparison summaries
 - `--highlights` - Key excerpts
 - `--json` - Output raw JSON
@@ -223,6 +230,9 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research.py "What are the main d
 # Research with source details
 python3 ~/.claude/skills/exa-search/scripts/exa_research.py "SpaceX latest achievements" --sources
 
+# Streaming answer in real-time
+python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Explain quantum computing" --stream
+
 # Domain-filtered research (authoritative sources only)
 python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Python async best practices" --domains docs.python.org realpython.com
 
@@ -249,6 +259,7 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research.py "query" --json
 - `-n, --num` - Number of sources (default: 5, max: 20)
 - `--domains` - Only use these domains as sources
 - `--after/--before` - Date filtering
+- `--stream` - Stream the answer in real-time
 - `--sources` - Show detailed source information
 - `--highlights` - Include key excerpts
 - `--markdown` - Output as markdown with citations
@@ -261,11 +272,11 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research.py "query" --json
 
 **Command**: `python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py`
 
-Advanced async research using Exa's `/research/v1` endpoint with pro models and structured output.
+Advanced async research using Exa's `/research/v1` endpoint with multiple models and structured output.
 
 **Features:**
 - Async job-based research (submit and poll)
-- Model selection: `exa-research` or `exa-research-pro`
+- Model selection: `exa-research-fast`, `exa-research`, or `exa-research-pro`
 - Structured JSON output with custom schemas
 - Long-running research for complex topics
 - Status tracking and job management
@@ -279,6 +290,9 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "What species 
 # Use pro model and wait for completion
 python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "Compare top 5 AI agent frameworks" --pro --wait
 
+# Use fast model for quick tasks
+python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "Quick market overview" --fast
+
 # Structured output with JSON schema
 python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "Analyze AI startup funding" \
   --schema '{"startups": [{"name": "string", "funding": "number", "focus": "string"}]}'
@@ -291,6 +305,7 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py list --limit 2
 ```
 
 **Key Parameters:**
+- `--fast` - Use exa-research-fast model (quicker/cheaper)
 - `--pro` - Use exa-research-pro model (enhanced synthesis)
 - `--schema` - JSON schema for structured output
 - `--wait` - Wait for job completion
@@ -403,3 +418,35 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "AI regulation" \
 python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Python async programming patterns" \
   --context --context-chars 15000 --domains docs.python.org realpython.com
 ```
+
+---
+
+## Test Suite
+
+Run the test suite to verify API connectivity and feature functionality:
+
+```bash
+# Run all tests
+python3 ~/.claude/skills/exa-search/scripts/test_exa.py
+
+# Run quick validation only
+python3 ~/.claude/skills/exa-search/scripts/test_exa.py --quick
+
+# Show detailed output
+python3 ~/.claude/skills/exa-search/scripts/test_exa.py --verbose
+
+# Test specific endpoint
+python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint search
+python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint contents
+python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint similar
+python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint answer
+python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint research
+```
+
+The test suite verifies:
+- API key validation
+- Basic search, category filtering, domain filtering, deep search
+- Content extraction, livecrawl, context parameter
+- Find similar pages, moderation filter
+- Research/answer endpoint, streaming support
+- Async research model validation, job listing

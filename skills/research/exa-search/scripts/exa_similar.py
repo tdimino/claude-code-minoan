@@ -81,6 +81,14 @@ def find_similar(
     get_image_links: int = 0,
     # Exclude source
     exclude_source_domain: bool = False,
+    # Text filtering
+    include_text: Optional[List[str]] = None,
+    exclude_text: Optional[List[str]] = None,
+    # Moderation
+    moderation: bool = False,
+    # Context (RAG)
+    get_context: bool = False,
+    context_max_chars: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Find pages similar to a reference URL using Exa's /findSimilar endpoint.
@@ -107,6 +115,11 @@ def find_similar(
         get_links: Number of links to extract per result
         get_image_links: Number of images to extract per result
         exclude_source_domain: Exclude the source URL's domain from results
+        include_text: Results must contain ALL of these strings
+        exclude_text: Results must NOT contain ANY of these strings
+        moderation: Enable content moderation filter
+        get_context: Combine all contents into one RAG context string
+        context_max_chars: Limit context string length (None = unlimited)
 
     Returns:
         Dict with similar pages
@@ -138,6 +151,16 @@ def find_similar(
         payload["includeDomains"] = include_domains
     if domains_to_exclude:
         payload["excludeDomains"] = domains_to_exclude
+
+    # Text filtering
+    if include_text:
+        payload["includeText"] = include_text
+    if exclude_text:
+        payload["excludeText"] = exclude_text
+
+    # Moderation
+    if moderation:
+        payload["moderation"] = True
 
     # Date filtering
     if start_crawl_date:
@@ -182,6 +205,13 @@ def find_similar(
         if get_image_links > 0:
             extras["imageLinks"] = get_image_links
         contents["extras"] = extras
+
+    # Context for RAG applications
+    if get_context:
+        if context_max_chars:
+            contents["context"] = {"maxCharacters": context_max_chars}
+        else:
+            contents["context"] = True
 
     if contents:
         payload["contents"] = contents
@@ -318,6 +348,22 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
     parser.add_argument("--links", type=int, default=0, help="Extract N links per result")
     parser.add_argument("--images", type=int, default=0, help="Extract N images per result")
 
+    # Text filtering
+    parser.add_argument("--must-include", nargs="+",
+                        help="Results must contain ALL of these strings")
+    parser.add_argument("--must-exclude", nargs="+",
+                        help="Results must NOT contain ANY of these strings")
+
+    # Moderation
+    parser.add_argument("--safe", action="store_true",
+                        help="Enable content moderation filter")
+
+    # Context (RAG)
+    parser.add_argument("--context", action="store_true",
+                        help="Combine all contents into one RAG context string")
+    parser.add_argument("--context-chars", type=int,
+                        help="Limit context string length (use with --context)")
+
     # Output
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
     parser.add_argument("--text-limit", type=int, default=500,
@@ -346,6 +392,11 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
             get_links=args.links,
             get_image_links=args.images,
             exclude_source_domain=args.exclude_source,
+            include_text=args.must_include,
+            exclude_text=args.must_exclude,
+            moderation=args.safe,
+            get_context=args.context,
+            context_max_chars=args.context_chars,
         )
 
         if args.json:
