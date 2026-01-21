@@ -307,31 +307,30 @@ code --install-extension claude-session-tracker-0.1.0.vsix
 
 See [`extensions/claude-session-tracker/readme.md`](extensions/claude-session-tracker/readme.md) for full documentation.
 
-## Available MCP Servers
+## MCP Servers
 
-### AI & Search
-- **perplexity** - AI-powered search and chat
-- **arxiv** - Academic paper search, download, and analysis
-- **context7** - Up-to-date library documentation
+> **Note: We've shifted away from heavy MCP usage.** Claude Code now includes [MCP Tool Search](https://www.atcyrus.com/stories/mcp-tool-search-claude-code-context-pollution-guide), which loads tools on-demand rather than all upfront—reducing context pollution by ~85%. This means large MCP setups no longer exhaust the context window. However, we've found that **skills often provide better ergonomics** than MCPs for most workflows, with clearer documentation and simpler invocation patterns. The MCPs below are kept for reference but are not actively maintained.
 
-### Development Tools
-- **playwright** - Browser automation and testing
-- **chrome-devtools** - Browser debugging integration
-- **codex** - Enhanced code operations
-- **filesystem** - Enhanced filesystem access
+### Configured in `.mcp.json`
 
-### Design & UI
-- **figma** - Figma design integration
-- **shadcn** - shadcn/ui component library
+| Server | Type | Purpose |
+|--------|------|---------|
+| **supabase** | stdio | PostgreSQL database operations |
+| **netlify** | stdio | Deployment and site management |
+| **playwright** | stdio | Browser automation and testing |
+| **context7** | HTTP | Up-to-date library documentation |
+| **shadcn** | HTTP | shadcn/ui component library |
+| **figma** | HTTP | Figma design integration |
+| **arxiv** | stdio | Academic paper search and analysis |
+| **perplexity** | stdio | AI-powered search (requires API key) |
+| **telnyx** | stdio | Telephony, messaging, voice calls |
+| **twilio** | stdio | SMS and voice operations |
+| **mcp-google-sheets** | stdio | Google Sheets integration |
+| **chrome-devtools** | stdio | Browser debugging integration |
+| **codex** | stdio | Enhanced code operations |
+| **filesystem** | stdio | Enhanced filesystem access |
 
-### Infrastructure
-- **supabase** - PostgreSQL database operations
-- **netlify** - Deployment and site management
-- **mcp-google-sheets** - Google Sheets integration
-
-### Telephony & Communication
-- **telnyx** - Telephony, messaging, voice calls
-- **twilio** - SMS and voice operations
+See `.mcp.json` for full configuration details and setup instructions.
 
 ## All Slash Commands
 
