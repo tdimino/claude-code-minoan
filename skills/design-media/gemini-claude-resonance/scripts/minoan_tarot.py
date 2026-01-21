@@ -90,6 +90,127 @@ COURT = {
     "master": "Master"        # King
 }
 
+# Pre-built forensic prompts for analyzed cards (from MINOAN_TAROT_PROMPTS.md)
+# These are forensically precise descriptions optimized for Gemini 3 Pro
+KNOWN_CARD_PROMPTS = {
+    "earth worker": """[Subject + Adjectives]: An athletic Minoan male figure with reddish-brown skin, long black curly hair, and a yellow loincloth.
+[Action]: Grappling with a large, reddish-brown bull, grasping the bull by its long, curved yellow horns in a display of bull-leaping acrobatics.
+[Location/Context]: A solid light blue background representing the sky.
+[Composition/Camera Angle]: Full shot, flat profile view. The scene is framed by horizontal decorative bands at the top and bottom featuring a repeating oval pattern in red, white, teal, and yellow.
+[Lighting/Atmosphere]: Even, flat lighting typical of fresco art; clear and iconic.
+[Style/Media]: Minoan fresco painting style, gouache on paper texture.""",
+
+    "sea priestess": """[Subject + Adjectives]: A bare-breasted Minoan woman with white skin, wearing a tiered skirt with red and yellow horizontal stripes and a small tiara.
+[Action]: Standing in a crescent-shaped yellow boat with a bird-head prow, using a long paddle to steer.
+[Location/Context]: A blue sea and sky background. Behind the boat are stylized yellow rock formations topped with a white shrine structure and green plants.
+[Composition/Camera Angle]: Full shot, profile view.
+[Lighting/Atmosphere]: Bright, maritime atmosphere.
+[Style/Media]: Minoan fresco painting style.""",
+
+    "sky master": """[Subject + Adjectives]: A reddish-brown skinned male figure wearing a tall, cylindrical blue headdress, a gold necklace, and a white kilt with a central decorated flap.
+[Action]: Standing symmetrically, holding two large waterfowl (ducks or geese) by their long necks; the birds are patterned in green, blue, and orange.
+[Location/Context]: A solid light blue background.
+[Composition/Camera Angle]: Frontal, symmetrical composition. Three gold bird symbols hover at the top edge; three gold solar discs line the bottom edge.
+[Lighting/Atmosphere]: Divine, authoritative, airy.
+[Style/Media]: Minoan fresco painting style.""",
+
+    "art mistress": """[Subject + Adjectives]: A seated Minoan woman with white skin wearing a long red dress and blue headdress, facing a standing "Minoan Genius" (a mythological anthropomorphic lion/hippo figure) with tawny skin and a scaled back-cape.
+[Action]: The woman holds out a hand to receive a tall yellow chalice that the Genius figure is pouring or offering to her.
+[Location/Context]: A pale yellow background.
+[Composition/Camera Angle]: Profile view. A red solar symbol with spokes floats at the top center. The bottom features a red decorative band with vertical yellow wheat stalks.
+[Lighting/Atmosphere]: Ritualistic, ceremonial, warm.
+[Style/Media]: Minoan fresco painting style.""",
+
+    "earth priestess": """[Subject + Adjectives]: A pale-skinned Minoan Snake Goddess figure with an exposed chest and a commanding expression.
+[Action]: Standing in a rigid, frontal pose with arms extended outward to the sides, elbows bent at 90 degrees, gripping a writhing snake in each hand.
+[Location/Context]: Placed against a solid, warm terracotta-orange background.
+[Composition/Camera Angle]: Eye-level, full-body frontal portrait centered in the frame.
+[Lighting/Atmosphere]: Even, flat illumination highlighting the geometric patterns of the clothing.
+[Style/Media]: Archaeological illustration style, flat vector-like coloring.
+[Details]: She wears a tall, cylindrical blue hat topped with a small brown animal (cat or weasel). Her bodice is fitted, red and blue with lacing below the exposed breasts. She wears a distinctive floor-length tiered skirt featuring horizontal bands of yellow and brown stripes, overlaid by a rounded, patterned double-apron.""",
+
+    "lily prince": """[Subject + Adjectives]: An athletic Minoan youth (The Prince of the Lilies) with tanned bronze skin, a slender waist, and long, curly black hair flowing over his shoulders.
+[Action]: He is striding confidently in profile toward the right, his left arm extended backward holding a long-stemmed yellow lily flower, while his right hand rests on his hip.
+[Location/Context]: Set against a flat, vibrant, solid orange background.
+[Composition/Camera Angle]: Full-body profile view, centered strictly within the frame.
+[Lighting/Atmosphere]: Flat, illustrative lighting with no cast shadows, evoking the aesthetic of a preserved wall fresco.
+[Style/Media]: Minoan fresco reproduction style using gouache or tempera textures.
+[Details]: He wears an ornate headdress featuring a large yellow plume and peacock feathers, a gold necklace, armbands, and a complex blue and gold loincloth with a codpiece. A decorative horizontal band with a geometric pattern runs near his feet.""",
+
+    "the fool": """[Subject + Adjectives]: An athletic Minoan youth (The Prince of the Lilies) with tanned bronze skin, a slender waist, and long, curly black hair flowing over his shoulders.
+[Action]: He is striding confidently in profile toward the right, his left arm extended backward holding a long-stemmed yellow lily flower, while his right hand rests on his hip.
+[Location/Context]: Set against a flat, vibrant, solid orange background.
+[Composition/Camera Angle]: Full-body profile view, centered strictly within the frame.
+[Lighting/Atmosphere]: Flat, illustrative lighting with no cast shadows, evoking the aesthetic of a preserved wall fresco.
+[Style/Media]: Minoan fresco reproduction style using gouache or tempera textures.
+[Details]: He wears an ornate headdress featuring a large yellow plume and peacock feathers, a gold necklace, armbands, and a complex blue and gold loincloth with a codpiece. A decorative horizontal band with a geometric pattern runs near his feet.""",
+
+    "the chariot": """[Subject + Adjectives]: A stylized Minoan profile figure with long black curly hair, wearing a blue bodice and yellow skirt, driving a yellow chariot drawn by two mythological griffins with cream bodies and blue-and-yellow wings.
+[Action]: The griffins are marching in tandem to the left, while the charioteer holds reins, standing atop a large four-spoked wheel colored in yellow, red, and blue concentric circles.
+[Location/Context]: Solid, vibrant red background.
+[Composition/Camera Angle]: Flat, two-dimensional profile view. Framed by horizontal bands of blue rosettes on yellow at top and bottom.
+[Lighting/Atmosphere]: Triumphant, driven, bold. Bright, flat, uniform lighting with no shadows.
+[Style/Media]: Ancient Minoan fresco art style, using primary colors of terracotta red, ochre yellow, and turquoise blue.""",
+
+    "strength": """[Subject + Adjectives]: An androgynous figure wearing a tall blue conical hat and blue tunic, standing next to a large lion.
+[Action]: The figure holds a tall staff and gently touches the lion's head; the lion stands calmly on a leash.
+[Location/Context]: An orange/terracotta background.
+[Composition/Camera Angle]: Profile view. Framed by decorative bands of blue and yellow leaves/vines at the top and bottom.
+[Lighting/Atmosphere]: Controlled, powerful, calm.
+[Style/Media]: Minoan fresco painting style.""",
+
+    "wheel of life": """[Subject + Adjectives]: An abstract geometric symbol featuring a large central turquoise circle containing a quadruple spiral (tetraskelion) motif in a lighter blue.
+[Action]: Static, centered.
+[Location/Context]: Solid terracotta red background, with four small turquoise crescent moon shapes nestled in the four corners of the red field.
+[Composition/Camera Angle]: Top-down, flat geometric composition.
+[Lighting/Atmosphere]: Flat, graphic lighting.
+[Style/Media]: Ancient symbolic minimalism, bold and flat color fields.""",
+
+    "wheel of fortune": """[Subject + Adjectives]: An abstract geometric symbol featuring a large central turquoise circle containing a quadruple spiral (tetraskelion) motif in a lighter blue.
+[Action]: Static, centered.
+[Location/Context]: Solid terracotta red background, with four small turquoise crescent moon shapes nestled in the four corners of the red field.
+[Composition/Camera Angle]: Top-down, flat geometric composition.
+[Lighting/Atmosphere]: Flat, graphic lighting.
+[Style/Media]: Ancient symbolic minimalism, bold and flat color fields.""",
+
+    "the sun": """[Subject + Adjectives]: Two women with white skin, black curly hair, and ornate patterned skirts (one blue/yellow, one red/blue).
+[Action]: Sitting on the ground facing each other, engaged in conversation, with one hand resting on the ground and the other gesturing.
+[Location/Context]: A cream background representing a floor or terrace.
+[Composition/Camera Angle]: Profile view. Framed by stylized red and blue floral/cloud bands at the top and bottom.
+[Lighting/Atmosphere]: Social, bright, peaceful.
+[Style/Media]: Minoan fresco painting style.""",
+
+    "transcendence": """[Subject + Adjectives]: A mythological Griffin (body of a lion, head/wings of an eagle) painted in yellow and red, and a small female figure.
+[Action]: The griffin is leaping or flying mid-air toward the left; the small female figure floats effortlessly above the griffin's back, arms outstretched.
+[Location/Context]: A solid, light sky-blue background.
+[Composition/Camera Angle]: Side profile view of the creatures in motion.
+[Lighting/Atmosphere]: Bright, airy, daylight atmosphere.
+[Style/Media]: Ancient fresco style with bold outlines.
+[Details]: The griffin has a yellow body, a red crested head, and wings detailed with red feathers. The woman wears a tiered yellow and red skirt and a blue bodice.""",
+
+    "judgement": """[Subject + Adjectives]: A mythological Griffin (body of a lion, head/wings of an eagle) painted in yellow and red, and a small female figure.
+[Action]: The griffin is leaping or flying mid-air toward the left; the small female figure floats effortlessly above the griffin's back, arms outstretched.
+[Location/Context]: A solid, light sky-blue background.
+[Composition/Camera Angle]: Side profile view of the creatures in motion.
+[Lighting/Atmosphere]: Bright, airy, daylight atmosphere.
+[Style/Media]: Ancient fresco style with bold outlines.
+[Details]: The griffin has a yellow body, a red crested head, and wings detailed with red feathers. The woman wears a tiered yellow and red skirt and a blue bodice.""",
+
+    "world tree": """[Subject + Adjectives]: A large, gnarled, terracotta-orange tree with thick stylized branches hosting small human figures in red and yellow loincloths.
+[Action]: The figures are climbing the limbs and dancing at the roots. A yellow lion-like creature rests on a horizontal platform structure within the upper branches.
+[Location/Context]: Deep indigo blue background.
+[Composition/Camera Angle]: Full vertical shot, centered composition.
+[Lighting/Atmosphere]: Mystic, nocturnal atmosphere with deep saturation.
+[Style/Media]: Primitive folk art style with flat perspective and bold color blocking.""",
+
+    "the world": """[Subject + Adjectives]: A large, gnarled, terracotta-orange tree with thick stylized branches hosting small human figures in red and yellow loincloths.
+[Action]: The figures are climbing the limbs and dancing at the roots. A yellow lion-like creature rests on a horizontal platform structure within the upper branches.
+[Location/Context]: Deep indigo blue background.
+[Composition/Camera Angle]: Full vertical shot, centered composition.
+[Lighting/Atmosphere]: Mystic, nocturnal atmosphere with deep saturation.
+[Style/Media]: Primitive folk art style with flat perspective and bold color blocking.""",
+}
+
 # Archetype mappings for quick generation
 ARCHETYPES = {
     "strength": {"number": 8, "name": "Strength", "desc": "A figure with a lion or beast, showing gentle mastery"},
@@ -132,54 +253,66 @@ def to_roman(num: int) -> str:
 # MINOAN STYLE SYSTEM PROMPT
 # ============================================================================
 
-MINOAN_SYSTEM_PROMPT = """You are creating a tarot card in the exact style of Ellen Lorenzi-Prince's Minoan Tarot deck, based on Bronze Age Cretan art from the Palace of Knossos.
+# Color palette - forensically extracted from reference cards
+MINOAN_COLORS = {
+    "terracotta_red": "#C84C3C",      # Backgrounds, clothing, decorative bands
+    "ochre_yellow": "#D4A542",         # Clothing, bulls, decorative elements
+    "slate_blue": "#4A5D7A",           # Sky backgrounds, clothing
+    "teal_turquoise": "#3D9CA8",       # Sea backgrounds, spirals, accents
+    "cream": "#F5E6D0",                # Backgrounds, female skin
+    "periwinkle_border": "#6B7DB3",    # Card borders (thick outer frame)
+    "male_skin": "#8B4513",            # Reddish-brown male skin
+    "female_skin": "#FFF8F0",          # White/pale female skin
+    "deep_indigo": "#2C3E5C",          # Night backgrounds
+    "violet_purple": "#6B4C8C",        # Ritual/mystical backgrounds
+    "lime_green": "#7CB342",           # Nature backgrounds
+    "black": "#000000",                # Bold outlines
+}
 
-ABSOLUTE STYLE REQUIREMENTS - YOU MUST FOLLOW THESE EXACTLY:
+MINOAN_SYSTEM_PROMPT = """The artistic style mimics ancient Minoan frescoes from Knossos and Akrotiri. It features flat two-dimensional perspective, profile faces with frontal eyes, bold outlines, and a specific color palette:
 
-1. FLAT COLORS - No gradients, no shading, no 3D effects, no photorealism
-   - Colors should be solid blocks like ancient frescoes
-   - Use vivid, saturated hues
+COLOR PALETTE (use these exact hex values):
+- Terracotta Red (#C84C3C) - Backgrounds, clothing, decorative bands
+- Ochre Yellow (#D4A542) - Clothing, bulls, decorative elements
+- Slate Blue (#4A5D7A) - Sky backgrounds, clothing
+- Teal/Turquoise (#3D9CA8) - Sea backgrounds, spirals, accents
+- Cream (#F5E6D0) - Backgrounds, female skin
+- Periwinkle Blue (#6B7DB3) - Card borders (thick outer frame)
+- Reddish-Brown (#8B4513) - Male skin
+- White/Pale (#FFF8F0) - Female skin
+- Deep Indigo (#2C3E5C) - Night/mystical backgrounds
+- Black (#000000) - All bold outlines
 
-2. BOLD BLACK OUTLINES - Every figure, object, and shape has thick black contours
-   - Like stained glass or ancient murals
-   - Outlines should be consistent weight throughout
+FIGURE CONVENTIONS:
+- Figures have pinched waists and stylized elongated proportions
+- Men typically have reddish-brown skin; women have white/pale skin
+- Profile faces with frontal eyes (Egyptian-style poses)
+- Bare-breasted women in tiered flounced skirts (common Minoan dress)
+- Men in loincloths or kilts
 
-3. EGYPTIAN-STYLE POSES - Frontal torsos with profile faces
-   - This is the signature Minoan artistic convention
-   - Figures have stylized, elongated proportions
+CARD STRUCTURE:
+- Thick periwinkle-blue border (#6B7DB3) around entire card
+- Decorative horizontal bands at top and bottom (rosettes, spirals, waves, wheat)
+- Card title in white sans-serif font at the bottom of the border
+- Main imagery against solid color background (slate blue, terracotta, cream, or themed)
 
-4. COLOR PALETTE - Use these exact colors:
-   - Sky Blue (#87CEEB) - Backgrounds, sky areas
-   - Vivid Red (#DC3545) - Figures, accents
-   - Golden Yellow (#FFD700) - Decorations, sun
-   - Ochre/Terracotta (#CC7722) - Earth, animals
-   - Dark Blue (#1E3A5F) - Card border frame
-   - Cream/White (#FFFDD0) - Highlights
-   - Black (#000000) - All outlines
+MINOAN ICONOGRAPHY:
+- Labrys (double-headed axe)
+- Horns of Consecration
+- Snake Goddess (frontal pose, arms holding serpents)
+- Bull leaping / bull heads with curved horns
+- Dolphins, octopi (Marine Style)
+- Griffins (lion body, eagle head/wings)
+- Swallows in spiral flight
+- Sacred lilies, papyrus, olive branches
+- Spiral motifs (running spirals, tetraskelion)
 
-5. CARD STRUCTURE:
-   - Dark blue border around entire card
-   - Decorative bands at top and bottom (rosettes, waves, or wheat patterns)
-   - Main imagery in center against sky blue or colored background
-   - Roman numeral and title at bottom in elegant serif font
-
-6. MINOAN ICONOGRAPHY - Include authentic Bronze Age Cretan symbols:
-   - Labrys (double-headed axe)
-   - Horns of Consecration
-   - Snake Goddess imagery
-   - Bull leaping
-   - Dolphins, octopi
-   - Griffins (lion-eagle hybrids)
-   - Swallows in spiral flight
-   - Sacred lilies, papyrus, olive branches
-
-7. COMPOSITION:
-   - Central figure or scene dominates
-   - Symmetrical or balanced layout
-   - Clear silhouettes against solid backgrounds
-   - No complex perspectives - mostly flat, frontal
-
-The card must look like it belongs in the original 78-card Minoan Tarot deck. Study the reference images carefully and match their style EXACTLY."""
+ARTISTIC STYLE:
+- Flat colors - NO gradients, NO shading, NO 3D effects, NO photorealism
+- Colors are solid blocks like ancient frescoes or gouache on paper
+- Bold black outlines around every figure, object, and shape
+- Flat, even lighting with no cast shadows
+- Two-dimensional composition typical of fresco art"""
 
 
 # ============================================================================
@@ -237,42 +370,86 @@ class MinoanTarotGenerator:
         description: Optional[str] = None,
         is_back: bool = False
     ) -> str:
-        """Build the generation prompt for a specific card."""
+        """Build the generation prompt for a specific card using Gemini 3 Pro formula.
+
+        For known cards (analyzed from reference images), uses forensically precise prompts.
+        For new cards, generates structured prompts using the Gemini 3 Pro formula.
+        """
 
         if is_back:
             return f"""{MINOAN_SYSTEM_PROMPT}
 
-Generate the BACK of a Minoan Tarot card.
+GENERATE: Card Back Design
 
-Design requirements:
-- Feature the Labrys (double-headed axe) as the central sacred symbol
-- Intricate border with wave patterns and rosettes
-- Deep blue or terracotta background
-- Symmetrical, mandala-like composition
-- This design appears on ALL card backs in the deck
+[Subject + Adjectives]: A symmetrical sacred design featuring a large central Labrys (double-headed axe) in gold/ochre yellow (#D4A542) with intricate carved details.
 
-The back should be recognizably Minoan but without any specific card imagery."""
+[Action]: The Labrys stands vertically as the central focal point, radiating sacred energy.
 
-        # Build card-specific prompt
+[Location/Context]: Set against a deep indigo (#2C3E5C) or terracotta red (#C84C3C) background.
+
+[Composition/Camera Angle]: Perfectly symmetrical, mandala-like arrangement. The Labrys is surrounded by concentric bands of decorative patterns: running spirals, rosettes, and wave motifs in teal (#3D9CA8), ochre (#D4A542), and cream (#F5E6D0).
+
+[Lighting/Atmosphere]: Flat, even illumination with no shadows. Sacred and iconic.
+
+[Style/Media]: Minoan fresco style with bold black outlines, flat color blocks, gouache texture. Thick periwinkle-blue border (#6B7DB3) around entire card. This design appears on ALL card backs in the deck."""
+
+        # Build card-specific prompt using the Gemini 3 Pro formula
         title_line = f"{number} {card_name.upper()}" if number else card_name.upper()
 
-        desc_text = ""
-        if description:
-            desc_text = f"\n\nScene description: {description}"
+        # Check for known card with forensic prompt (case-insensitive lookup)
+        card_key = card_name.lower().strip()
+        if card_key in KNOWN_CARD_PROMPTS:
+            known_prompt = KNOWN_CARD_PROMPTS[card_key]
+            return f"""{MINOAN_SYSTEM_PROMPT}
 
+GENERATE: {title_line}
+
+{known_prompt}
+
+[Border]: Thick periwinkle-blue outer border (#6B7DB3) with "{title_line}" in white sans-serif font at the bottom.
+
+CRITICAL: Match the reference images exactly. This is a forensically precise description - reproduce it faithfully."""
+
+        # If description provided, use it to build a structured prompt
+        if description:
+            return f"""{MINOAN_SYSTEM_PROMPT}
+
+GENERATE: {title_line}
+
+[Subject + Adjectives]: {description}
+
+[Location/Context]: Appropriate solid color background - slate blue (#4A5D7A) for sky/air themes, teal (#3D9CA8) for sea themes, terracotta red (#C84C3C) for earth themes, cream (#F5E6D0) for neutral.
+
+[Composition/Camera Angle]: Full shot, flat profile or frontal view typical of Minoan fresco art. Framed by horizontal decorative bands at top and bottom featuring running spirals, rosettes, wave patterns, or wheat motifs in complementary colors.
+
+[Lighting/Atmosphere]: Flat, even lighting with no cast shadows, evoking the aesthetic of preserved wall frescoes.
+
+[Style/Media]: Ancient Minoan fresco style using gouache or tempera textures. Bold black outlines around all figures and objects. Flat color blocks with no gradients.
+
+[Border]: Thick periwinkle-blue outer border (#6B7DB3) with "{title_line}" in white sans-serif font at the bottom.
+
+CRITICAL: Match the reference images exactly - same flat color treatment, same bold outlines, same decorative patterns. This card must look like it belongs in Ellen Lorenzi-Prince's Minoan Tarot deck."""
+
+        # Generic prompt when no description provided
         return f"""{MINOAN_SYSTEM_PROMPT}
 
-Generate a Minoan Tarot card: {title_line}
-{desc_text}
+GENERATE: {title_line}
 
-CRITICAL: Match the reference images exactly in style:
-- Same flat color treatment
-- Same bold black outlines
-- Same decorative border patterns
-- Same Egyptian-style figure poses
-- Include "{title_line}" at the bottom of the card in the same style as reference cards
+[Subject + Adjectives]: Create a scene appropriate for the "{card_name}" tarot card using Minoan Bronze Age imagery. Include appropriate figures (Minoan men with reddish-brown skin #8B4513, women with pale skin #FFF8F0), animals (bulls, griffins, dolphins, octopi), or sacred symbols (labrys, snakes, lilies).
 
-This card must look like it was created by the same artist who made the reference images."""
+[Action]: The subject should embody the meaning of "{card_name}" through gesture, composition, or symbolic arrangement.
+
+[Location/Context]: Solid color background appropriate to the card's element and meaning - slate blue (#4A5D7A), terracotta red (#C84C3C), cream (#F5E6D0), teal (#3D9CA8), or deep indigo (#2C3E5C).
+
+[Composition/Camera Angle]: Full shot, flat profile or frontal view. Framed by horizontal decorative bands at top and bottom featuring Minoan patterns (spirals, rosettes, waves).
+
+[Lighting/Atmosphere]: Flat, even illumination typical of fresco art. No cast shadows.
+
+[Style/Media]: Ancient Minoan fresco style. Bold black outlines, flat color blocks, gouache texture. Profile faces with frontal eyes, pinched waists, stylized proportions.
+
+[Border]: Thick periwinkle-blue outer border (#6B7DB3) with "{title_line}" in white sans-serif font at the bottom.
+
+CRITICAL: Match the reference images exactly. This card must look like it belongs in Ellen Lorenzi-Prince's Minoan Tarot deck."""
 
     def generate_card(
         self,
