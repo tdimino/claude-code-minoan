@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-24-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-25-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -34,6 +34,7 @@ claude-code-minoan/
 │   │   └── skill-optimizer/         # Guide for creating and reviewing skills
 │   ├── integration-automation/  # Infrastructure & integrations
 │   │   ├── agent-browser/            # Browser automation using Vercel CLI
+│   │   ├── codex-orchestrator/       # ⭐ Orchestrate Codex CLI with specialized subagents
 │   │   ├── figma-mcp/               # Figma design integration
 │   │   ├── mcp-server-manager/      # MCP server configuration
 │   │   ├── netlify-integration/     # Netlify deployment management
@@ -75,7 +76,7 @@ claude-code-minoan/
 
 ## Quick Start
 
-> **New here?** Jump to [Recommended Workflow Commands](#recommended-workflow-commands) to see the most powerful commands: `/requirements-start`, `/workflows:review`, `feature-dev` plugin, `/workflows:plan`, and `/code-review`.
+> **New here?** Jump to [Recommended Workflow Commands](#recommended-workflow-commands) to see the most powerful commands: `/requirements-start`, `/workflows:review`, `feature-dev` plugin, `codex-orchestrator` skill, and `/code-review`.
 
 ### 1. Clone the Repository
 
@@ -224,6 +225,49 @@ The `feature-dev` plugin is the **official Claude Code team's toolkit** - the sa
 "Review my recent changes for any issues"
 ```
 
+### `codex-orchestrator` Skill - Delegate to Specialized Codex Subagents
+
+**Use when**: You need focused code review, debugging, architecture analysis, security audits, or documentation from Codex CLI
+
+The codex-orchestrator skill lets Claude delegate tasks to OpenAI's Codex CLI with specialized AGENTS.md personas. Each profile shapes the agent's behavior for a specific task type.
+
+**Available profiles**:
+
+| Profile | Purpose | Best For |
+|---------|---------|----------|
+| `reviewer` | Code quality, bugs, performance | Pre-commit review, PR assessment |
+| `debugger` | Root cause analysis, fixes | Investigating bugs, tracing issues |
+| `architect` | System design, component boundaries | Planning changes, evaluating architecture |
+| `security` | OWASP, vulnerabilities, secrets | Security audits, compliance checks |
+| `refactor` | Code cleanup, modernization | Reducing tech debt, improving structure |
+| `docs` | API docs, READMEs, comments | Documentation tasks |
+
+**Quick execution**:
+```bash
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Review src/auth.ts for security issues"
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh debugger "Debug the login timeout on slow networks"
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Design a caching layer for the API"
+```
+
+**Why it's powerful**:
+- Each profile has deep expertise in its domain
+- AGENTS.md persona injection guides Codex behavior
+- Supports chaining patterns (review → debug → fix)
+- Works with codex-mini, o3, o4-mini models
+- Full-auto mode for unattended execution
+
+**Example workflow**:
+```bash
+# 1. Find issues
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Review src/api/ for bugs"
+
+# 2. Investigate specific bug
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh debugger "Debug the race condition found in cache.ts"
+
+# 3. Design fix approach
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Design fix for the cache race condition"
+```
+
 ### `/audit-plans` - Plan Completeness Auditing
 
 **Use when**: Before implementing a plan to ensure nothing is missed
@@ -251,6 +295,7 @@ Systematically audits implementation plans:
 ### Integration & Automation (`skills/integration-automation/`)
 
 - **agent-browser** - Browser automation using Vercel's agent-browser CLI. Ref-based selection (@e1, @e2) from accessibility snapshots. Simple Bash commands for navigation, forms, screenshots, scraping
+- **codex-orchestrator** ⭐ - Orchestrate OpenAI Codex CLI with specialized subagents (reviewer, debugger, architect, security, refactor, docs). Each profile injects a custom AGENTS.md persona. Supports chaining patterns (review → debug → fix) and parallel delegation. Works with codex-mini, o3, o4-mini models
 - **figma-mcp** - Convert Figma designs to production code with accurate styling
 - **mcp-server-manager** - Configure and manage MCP servers in Claude Code
 - **netlify-integration** - Deploy and manage Netlify projects with Next.js serverless functions, environment variables, and continuous deployment
@@ -327,7 +372,6 @@ See [`extensions/claude-session-tracker/readme.md`](extensions/claude-session-tr
 | **twilio** | stdio | SMS and voice operations |
 | **mcp-google-sheets** | stdio | Google Sheets integration |
 | **chrome-devtools** | stdio | Browser debugging integration |
-| **codex** | stdio | Enhanced code operations |
 | **filesystem** | stdio | Enhanced filesystem access |
 
 See `.mcp.json` for full configuration details and setup instructions.
