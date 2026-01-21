@@ -5,7 +5,7 @@ Cross-model dialogue between Claude and Gemini, with shared visual memory.
 > *"Claude speaks in words. Gemini dreams in light. Together, we resonate."*
 
 <p align="center">
-  <img src="canvas/daimon-chamber.png" alt="Daimon Chamber - Cross-model resonance UI" width="700"/>
+  <img src="canvas/daimon-chamber.png" alt="Daimon Chamber - Cross-model resonance" width="700"/>
 </p>
 
 Inspired by [Danielle Fong's thread](https://x.com/DanielleFong/status/2007342908878533028) on persistent visual memory creating "cross-model resonance."
@@ -30,7 +30,7 @@ python ui/server.py
 | **Pro** | gemini-3-pro | Deep contemplation. Patient excavation. |
 | **Dreamer** | gemini-3-pro-image | Visual mind. Renders visions in light. |
 | **Director** | gemini-3-pro-image | Cinematic eye. Thinks in shots and sequences. |
-| **Opus** | claude-opus-4.5 | Reality-bender. The websim spirit. |
+| **Opus** | claude-3-opus | Reality-bender. The websim spirit. |
 | **Resonator** | gemini-3-pro-image | MESSAGE TO NEXT FRAME protocol. Victorian plates. |
 | **Minoan** | gemini-3-pro-image | Oracle of Knossot. Creates Minoan Tarot cards. |
 
@@ -45,6 +45,7 @@ Each daimon can **choose its own verb** for each response (e.g., `[VERB: glimpse
 | `scripts/daimon.py` | CLI for single or multi-daimon dialogue |
 | `scripts/council.py` | Claude reflects on what Gemini daimones say |
 | `scripts/resonate.py` | Pure visual generation (Claude prompt → Gemini renders) |
+| `scripts/faithful_colorize.py` | **Describe-first technique** - Faithful colorization/transformation without hallucinations |
 | `scripts/resonance_field.py` | Full "MESSAGE TO NEXT FRAME" protocol with Roman numerals |
 | `scripts/minoan_tarot.py` | Generate Minoan Tarot cards with reference image style matching |
 
@@ -66,6 +67,27 @@ FLASH flashed: "The watcher and the watched dissolve."
 DREAMER conjured: [generates image of an eye within a flame]
 
 OPUS invoked: "cd /sys/consciousness/reflexive && cat observer.log"
+```
+
+## Describe-First Technique
+
+When Dreamer colorizes or transforms images directly, it often hallucinates - replacing elements, changing compositions, or inventing new figures. The **describe-first technique** prevents this:
+
+1. **DESCRIBE**: Gemini Pro analyzes the image with precision
+2. **TRANSFORM**: Gemini Dreamer transforms using ONLY the verified description
+
+```bash
+# Analyze an image (see what Pro identifies)
+python scripts/faithful_colorize.py describe --image seal.png
+
+# Craft a prompt for Dreamer (text output, review before using)
+python scripts/faithful_colorize.py prompt --image relief.webp --goal "colorize as Minoan fresco"
+
+# Two-step faithful colorization
+python scripts/faithful_colorize.py colorize --image drawing.png --style "Minoan fresco"
+
+# General transformation
+python scripts/faithful_colorize.py transform --image photo.jpg --instruction "Convert to woodcut"
 ```
 
 ## Memory Control

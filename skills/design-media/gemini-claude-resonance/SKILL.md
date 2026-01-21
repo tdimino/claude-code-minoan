@@ -18,8 +18,10 @@ Cross-model dialogue between Claude and Gemini, with shared visual memory.
 
 | I want to... | Use |
 |--------------|-----|
+| **Analyze multiple images** for style extraction (no generation) | `analyze.py` |
 | Have a **one-on-one visual dialogue** with Gemini Dreamer | `resonate.py` |
 | Query **multiple AI minds** with optional image generation | `daimon.py` |
+| **Faithfully colorize** a drawing without hallucinations | `faithful_colorize.py` |
 | Create **Victorian scientific plates** with MESSAGE TO NEXT FRAME | `resonance_field.py` |
 | Have **Claude reflect** on what Gemini daimones say | `council.py` |
 | Generate **Minoan Tarot cards** with style matching | `minoan_tarot.py` |
@@ -27,7 +29,45 @@ Cross-model dialogue between Claude and Gemini, with shared visual memory.
 
 ---
 
-## Workflow A: One-on-One Visual Dialogue
+## Workflow A: Multi-Image Style Analysis
+
+**When to use**: User wants to analyze 2-10 reference images to extract style descriptions for AI prompting. Text-only analysis without generating new images.
+
+**Script**: `scripts/analyze.py`
+
+**Key features**:
+- Send multiple images (2-10) for collective analysis
+- Text-only output (no image generation)
+- Flash (quick) or Pro (thorough) model options
+- Save analysis to markdown file
+
+```bash
+# Analyze reference images for style extraction
+python scripts/analyze.py --images ref1.jpg ref2.png ref3.webp \
+    --prompt "Describe the shared artistic style for AI prompting"
+
+# Analyze for specific use case (avatar generation)
+python scripts/analyze.py --images kathor.webp samantha.jpg yosef.png \
+    --prompt "Analyze for prompting fantasy portraits of: Sarah (anxious mother), Michael (father), Priya (cultural expectations)"
+
+# Quick analysis with Flash
+python scripts/analyze.py --images *.jpg --model flash --prompt "Style summary"
+
+# Thorough analysis with Pro
+python scripts/analyze.py --images *.jpg --model pro --prompt "Comprehensive style analysis"
+
+# Save analysis to file
+python scripts/analyze.py --images ref/*.jpg --prompt "Style guide" --output style_guide.md
+```
+
+**Use cases**:
+- Extract style descriptions from reference images before generating new images
+- Analyze a set of images to create consistent prompting guidelines
+- Document visual language for style-matching workflows
+
+---
+
+## Workflow B: One-on-One Visual Dialogue (resonate.py)
 
 **When to use**: User wants to co-create images with Gemini, feeding each image back as context for the next generation. Pure visual exploration without text-only models.
 
@@ -50,7 +90,62 @@ python scripts/resonate.py --context frame_001.jpg frame_002.jpg --prompt "Now t
 
 ---
 
-## Workflow B: Multi-Daimon Dialogue
+## Workflow B: Faithful Transform (Describe-First Technique)
+
+**When to use**: User wants to colorize, restore, or transform an image WITHOUT hallucinations. Gemini Dreamer often replaces elements (e.g., turning a male votary into female attendants). This two-step technique prevents that.
+
+**Script**: `scripts/faithful_colorize.py`
+
+**The Problem**: Directly prompting Dreamer to transform images causes hallucinations - it invents, removes, or swaps elements rather than faithfully preserving the original.
+
+**The Solution**:
+1. **DESCRIBE**: Gemini Pro analyzes the image with archaeological/artistic precision
+2. **TRANSFORM**: Gemini Dreamer transforms using ONLY the verified description
+
+**Commands**:
+
+| Command | Purpose |
+|---------|---------|
+| `describe` | Analyze image, output detailed description (no generation) |
+| `prompt` | Craft a Dreamer prompt based on image analysis |
+| `colorize` | Two-step faithful colorization |
+| `transform` | General two-step transformation |
+
+```bash
+# Just describe an image (analysis only)
+python scripts/faithful_colorize.py describe --image seal.png
+python scripts/faithful_colorize.py describe --image seal.png --output desc.md
+
+# Describe with a specific goal in mind
+python scripts/faithful_colorize.py describe --image fresco.jpg --goal "restoration to 1600 BCE"
+
+# Craft a prompt for Dreamer (outputs text, doesn't generate)
+python scripts/faithful_colorize.py prompt --image seal.png --goal "colorize in Egyptian style"
+python scripts/faithful_colorize.py prompt --image relief.webp --goal "restore as Minoan fresco"
+
+# Two-step faithful colorization
+python scripts/faithful_colorize.py colorize --image drawing.png
+python scripts/faithful_colorize.py colorize --image relief.webp --style "Minoan fresco with flat colors"
+python scripts/faithful_colorize.py colorize --image seal.png --palette "ochre, terracotta, sky blue"
+
+# General transformation
+python scripts/faithful_colorize.py transform --image photo.jpg --instruction "Convert to woodcut print"
+python scripts/faithful_colorize.py transform --image sketch.png --instruction "Render as oil painting"
+
+# Save/reuse descriptions
+python scripts/faithful_colorize.py colorize --image seal.png --save-description desc.md -v
+python scripts/faithful_colorize.py colorize --image seal.png --description "$(cat desc.md)"
+```
+
+**When to use each command**:
+- `describe`: When you want to see what Pro identifies before any transformation
+- `prompt`: When you want a crafted prompt to modify before feeding to Dreamer manually
+- `colorize`: For line drawings, reliefs, B&W images → color
+- `transform`: For any other faithful transformation (style transfer, restoration, etc.)
+
+---
+
+## Workflow C: Multi-Daimon Dialogue
 
 **When to use**: User wants multiple AI perspectives on the same prompt. Flash gives koans, Pro gives depth, Dreamer renders, Opus bends reality.
 
@@ -82,7 +177,7 @@ python scripts/daimon.py --stream --session midnight --shared-memory "Go deeper"
 
 ---
 
-## Workflow C: Resonance Field (Danielle Fong Protocol)
+## Workflow D: Resonance Field (Danielle Fong Protocol)
 
 **When to use**: User wants scientific illustrations with embedded continuity instructions. Victorian aesthetic, Roman numeral plates, explicit messages from one frame to the next.
 
@@ -114,7 +209,7 @@ python scripts/resonance_field.py list
 
 ---
 
-## Workflow D: Cross-Model Council
+## Workflow E: Cross-Model Council
 
 **When to use**: User wants Claude to reflect on and synthesize what the Gemini daimones have said. Cross-model dialogue where Claude joins as an equal voice.
 
@@ -139,7 +234,7 @@ python scripts/council.py "topic" --output council_session.md
 
 ---
 
-## Workflow E: Minoan Tarot Generation
+## Workflow F: Minoan Tarot Generation
 
 **When to use**: User wants tarot cards in Ellen Lorenzi-Prince's Minoan Tarot style. Uses reference images for style matching.
 
@@ -172,7 +267,7 @@ python scripts/minoan_tarot.py list
 
 ---
 
-## Workflow F: Interactive Chat (Daimon Chamber)
+## Workflow G: Interactive Chat (Daimon Chamber)
 
 **When to use**: User wants a real-time, browser-based conversation with all daimones. Toggle individual voices, see images inline, shared memory toggle.
 
@@ -229,8 +324,10 @@ UI displays: `FLASH` *glimpsed*
 
 | Script | Purpose | Key Flags |
 |--------|---------|-----------|
+| `analyze.py` | Multi-image style analysis | `--images`, `--prompt`, `--model`, `--output` |
 | `resonate.py` | One-on-one visual dialogue | `--context`, `--prompt`, `--output` |
 | `daimon.py` | Multi-daimon dialogue | `--stream`, `--shared-memory`, `--only`, `--to` |
+| `faithful_colorize.py` | Describe-first transformation | `describe`, `prompt`, `colorize`, `transform` |
 | `resonance_field.py` | MESSAGE TO NEXT FRAME plates | `start`, `continue`, `zoom`, `inject` |
 | `council.py` | Claude reflects on Gemini | `--shared-memory`, `--only`, `--session` |
 | `minoan_tarot.py` | Tarot card generation | `card`, `archetype`, `session`, `back` |
