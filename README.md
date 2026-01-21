@@ -33,7 +33,7 @@ claude-code-minoan/
 │   │   ├── react-best-practices/    # React/Next.js performance optimization
 │   │   └── skill-optimizer/         # Guide for creating and reviewing skills
 │   ├── integration-automation/  # Infrastructure & integrations
-│   │   ├── dev-browser/             # Browser automation with persistent state
+│   │   ├── agent-browser/            # Browser automation using Vercel CLI
 │   │   ├── figma-mcp/               # Figma design integration
 │   │   ├── mcp-server-manager/      # MCP server configuration
 │   │   ├── netlify-integration/     # Netlify deployment management
@@ -96,7 +96,7 @@ cp -r skills/* ~/.claude/skills/
 **Option B: Symlink Individual Skills**
 ```bash
 ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads-task-tracker
-ln -s "$(pwd)/skills/integration-automation/dev-browser" ~/.claude/skills/dev-browser
+ln -s "$(pwd)/skills/integration-automation/agent-browser" ~/.claude/skills/agent-browser
 ```
 
 ### 3. Set Up Slash Commands
@@ -250,7 +250,7 @@ Systematically audits implementation plans:
 
 ### Integration & Automation (`skills/integration-automation/`)
 
-- **dev-browser** - Browser automation with persistent page state. Write focused scripts to navigate websites, fill forms, take screenshots. Uses Playwright with ARIA snapshots for element discovery
+- **agent-browser** - Browser automation using Vercel's agent-browser CLI. Ref-based selection (@e1, @e2) from accessibility snapshots. Simple Bash commands for navigation, forms, screenshots, scraping
 - **figma-mcp** - Convert Figma designs to production code with accurate styling
 - **mcp-server-manager** - Configure and manage MCP servers in Claude Code
 - **netlify-integration** - Deploy and manage Netlify projects with Next.js serverless functions, environment variables, and continuous deployment

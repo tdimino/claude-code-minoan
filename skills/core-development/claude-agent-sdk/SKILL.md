@@ -2,7 +2,7 @@
 name: claude-agent-sdk
 description: Build AI agents using the Claude Agent SDK. Covers query functions,
   ClaudeSDKClient, custom tools, MCP servers, hooks, permissions, subagents, and
-  browser control (Chrome extension, dev-browser skill). Use when creating
+  browser control (Chrome extension, agent-browser skill). Use when creating
   agents, adding tools, configuring agent behavior, or automating browser tasks.
 triggers:
   - claude agent sdk
@@ -21,7 +21,7 @@ triggers:
   - browser control
   - chrome extension
   - browser automation
-  - dev browser
+  - agent browser
   - browserbase
 ---
 
@@ -93,7 +93,7 @@ asyncio.run(main())
 3. **Add hooks** - Intercept tool calls for logging, validation, or modification
 4. **Configure permissions** - Control what tools can do
 5. **Create subagents** - Define specialized agents for parallel work
-6. **Control browsers** - Chrome extension, dev-browser skill
+6. **Control browsers** - Chrome extension, agent-browser skill
 7. **Get API reference** - Python or TypeScript SDK details
 
 **Wait for response before proceeding.**
