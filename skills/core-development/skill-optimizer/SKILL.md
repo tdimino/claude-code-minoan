@@ -1,7 +1,6 @@
 ---
 name: skill-optimizer
 description: Guide for creating and reviewing skills. This skill should be used when users want to create a new skill, review an existing skill for quality, or optimize a skill that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
-license: Complete terms in LICENSE.txt
 ---
 
 # Skill Creator
@@ -10,10 +9,9 @@ This skill provides guidance for creating effective skills.
 
 ## About Skills
 
-Skills are modular, self-contained packages that extend Claude's capabilities by providing
-specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific
-domains or tasks—they transform Claude from a general-purpose agent into a specialized agent
-equipped with procedural knowledge that no model can fully possess.
+Skills are modular, self-contained packages that extend Claude's capabilities by providing specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific domains or tasks—they transform Claude from a general-purpose agent into a specialized agent equipped with procedural knowledge that no model can fully possess.
+
+Skills follow the [Agent Skills](https://agentskills.io/) open standard, with Claude Code extensions for invocation control, subagent execution, and dynamic context injection.
 
 ### What Skills Provide
 
@@ -29,24 +27,161 @@ Every skill consists of a required SKILL.md file and optional bundled resources:
 ```
 skill-name/
 ├── SKILL.md (required)
-│   ├── YAML frontmatter metadata (required)
-│   │   ├── name: (required)
-│   │   └── description: (required)
-│   └── Markdown instructions (required)
+│   ├── YAML frontmatter metadata
+│   └── Markdown instructions
 └── Bundled Resources (optional)
     ├── scripts/          - Executable code (Python/Bash/etc.)
-    ├── references/       - Documentation intended to be loaded into context as needed
-    └── assets/           - Files used in output (templates, icons, fonts, etc.)
+    ├── references/       - Documentation loaded into context as needed
+    └── assets/           - Files used in output (templates, icons, fonts)
 ```
 
 #### SKILL.md (required)
 
 **Metadata Quality:** The `name` and `description` in YAML frontmatter determine when Claude will use the skill. Be specific about what the skill does and when to use it. Use the third-person (e.g. "This skill should be used when..." instead of "Use this skill when...").
 
-**Field Limits:**
-- `name`: 64 characters maximum
-- `description`: 1024 characters maximum
-- **Only** `name` and `description` are supported in YAML frontmatter (no custom fields)
+**Frontmatter Fields:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | No | Display name (max 64 chars, lowercase + hyphens). Defaults to directory name. |
+| `description` | Recommended | What the skill does and when to use it (max 1024 chars). |
+| `argument-hint` | No | Hint shown during autocomplete (e.g., `[issue-number]`). |
+| `disable-model-invocation` | No | `true` = only user can invoke via `/name`. |
+| `user-invocable` | No | `false` = hide from `/` menu (Claude-only background knowledge). |
+| `allowed-tools` | No | Restrict tools when skill is active (e.g., `Read, Grep, Glob`). |
+| `model` | No | Model override when skill is active. |
+| `context` | No | `fork` = run in isolated subagent. |
+| `agent` | No | Subagent type: `Explore`, `Plan`, `general-purpose`, or custom from `.claude/agents/`. |
+| `hooks` | No | Scoped hooks for skill lifecycle. See [Hooks docs](https://code.claude.com/docs/en/hooks). |
+
+**Example with all fields:**
+
+```yaml
+---
+name: deploy-production
+description: Deploy the application to production. Use after all tests pass.
+argument-hint: [environment]
+disable-model-invocation: true
+allowed-tools: Bash(deploy:*), Read
+context: fork
+agent: general-purpose
+---
+```
+
+### String Substitutions
+
+Skills support dynamic value substitution in the markdown content:
+
+| Variable | Description |
+|----------|-------------|
+| `$ARGUMENTS` | All arguments passed when invoking (e.g., `/my-skill arg1 arg2`) |
+| `${CLAUDE_SESSION_ID}` | Current session ID for logging or session-specific files |
+
+If `$ARGUMENTS` is not present in content, arguments are appended as `ARGUMENTS: <value>`.
+
+**Example:**
+
+```markdown
+---
+name: fix-issue
+description: Fix a GitHub issue
+disable-model-invocation: true
+---
+
+Fix GitHub issue $ARGUMENTS following our coding standards.
+
+Log progress to logs/${CLAUDE_SESSION_ID}.log
+```
+
+### Dynamic Context Injection
+
+The `` !`command` `` syntax runs shell commands before skill content reaches Claude. The command output replaces the placeholder.
+
+**Example:**
+
+```markdown
+---
+name: pr-summary
+description: Summarize changes in a pull request
+context: fork
+agent: Explore
+---
+
+## PR Context
+- Diff: !`gh pr diff`
+- Comments: !`gh pr view --comments`
+- Changed files: !`gh pr diff --name-only`
+
+Summarize this pull request...
+```
+
+When this skill runs:
+1. Each `` !`command` `` executes immediately (before Claude sees anything)
+2. The output replaces the placeholder in the skill content
+3. Claude receives the fully-rendered prompt with actual data
+
+This is preprocessing, not something Claude executes. Claude only sees the final result.
+
+### Invocation Control
+
+By default, both users and Claude can invoke any skill. Two frontmatter fields control this:
+
+| Frontmatter | User can invoke | Claude can invoke | In context |
+|-------------|-----------------|-------------------|------------|
+| (default) | Yes | Yes | Description always visible |
+| `disable-model-invocation: true` | Yes | No | Description hidden from Claude |
+| `user-invocable: false` | No | Yes | Description always visible |
+
+**When to use each:**
+
+- **`disable-model-invocation: true`**: For workflows with side effects (deploy, commit, send-message). Prevents Claude from triggering automatically.
+- **`user-invocable: false`**: For background knowledge that isn't a meaningful command (e.g., `legacy-system-context`). Claude should know this when relevant, but `/legacy-system-context` isn't useful for users.
+
+### Subagent Integration
+
+Add `context: fork` to run skills in isolation. The skill content becomes the subagent's prompt (no conversation history access).
+
+```yaml
+---
+name: deep-research
+description: Research a topic thoroughly
+context: fork
+agent: Explore
+---
+
+Research $ARGUMENTS thoroughly:
+1. Find relevant files using Glob and Grep
+2. Read and analyze the code
+3. Summarize findings with specific file references
+```
+
+**Agent options:**
+
+| Agent | Description |
+|-------|-------------|
+| `Explore` | Read-only codebase exploration (Glob, Grep, Read) |
+| `Plan` | Architecture planning and design |
+| `general-purpose` | Full capabilities (default) |
+| Custom | Any agent from `.claude/agents/` |
+
+**Note:** `context: fork` only makes sense for skills with explicit instructions. Guidelines-only skills (e.g., "use these API conventions") receive no actionable prompt and return without meaningful output.
+
+### Skill Locations
+
+Where a skill is stored determines who can use it:
+
+| Location | Path | Applies to | Priority |
+|----------|------|------------|----------|
+| Enterprise | Managed settings | All org users | Highest |
+| Personal | `~/.claude/skills/<name>/SKILL.md` | All your projects | High |
+| Project | `.claude/skills/<name>/SKILL.md` | This project only | Medium |
+| Plugin | `<plugin>/skills/<name>/SKILL.md` | Where plugin enabled | Namespaced |
+
+When skills share the same name, higher-priority locations win. Plugin skills use `plugin-name:skill-name` namespace, so they cannot conflict.
+
+**Nested discovery:** When editing files in subdirectories (e.g., `packages/frontend/`), Claude Code also discovers skills from nested `.claude/skills/` directories. This supports monorepos where packages have their own skills.
+
+**Legacy commands:** Files in `.claude/commands/` still work with the same frontmatter. Skills are recommended since they support additional features like supporting files.
 
 #### Bundled Resources (optional)
 
@@ -93,6 +228,8 @@ Skills use a three-level loading system to manage context efficiently:
 *Scripts are executed without loading code into context (only output enters context). Reference files and assets are loaded only when Claude explicitly accesses them via bash commands.
 
 **Key insight**: You can install dozens of Skills with minimal context penalty. Claude only knows each Skill exists and when to use it until one is triggered.
+
+**Context budget**: Skill descriptions are loaded into context so Claude knows what's available. If you have many skills, they may exceed the character budget (default 15,000 characters). Run `/context` to check for excluded skills. To increase the limit, set `SLASH_COMMAND_TOOL_CHAR_BUDGET` environment variable.
 
 ### The Skills Filesystem Architecture
 
@@ -236,123 +373,9 @@ python3 cli/config_validator.py configs/myframework_unified.json
 python3 cli/unified_scraper.py --config configs/myframework_unified.json
 ```
 
-**Unified Config Example:**
-
-For comprehensive skills that combine multiple sources, create a unified config:
-
-```json
-{
-  "name": "myframework_complete",
-  "description": "Complete reference combining docs, code, and PDFs",
-  "merge_mode": "claude-enhanced",
-  "sources": [
-    {
-      "type": "documentation",
-      "base_url": "https://docs.myframework.com/",
-      "selectors": {
-        "main_content": "article",
-        "title": "h1",
-        "code_blocks": "pre code"
-      }
-    },
-    {
-      "type": "github",
-      "repo": "user/myframework",
-      "extract_api": true,
-      "languages": ["python", "javascript"]
-    },
-    {
-      "type": "pdf",
-      "path": "path/to/api-spec.pdf",
-      "extract_code": true
-    }
-  ]
-}
-```
-
-**Advanced Features:**
-
-1. **Conflict Detection** - Compare documentation against actual code:
-
-   ```bash
-   python3 cli/conflict_detector.py --config configs/myframework_unified.json
-   # Detects: missing APIs, undocumented APIs, signature mismatches
-   ```
-
-2. **GitHub AST Analysis** - Deep code analysis with Abstract Syntax Tree parsing:
-
-   ```bash
-   python3 cli/code_analyzer.py --repo user/myframework
-   # Extracts: functions, classes, types with full signatures
-   ```
-
-3. **Source Merging Strategies**:
-
-   - `rule-based`: Fast, deterministic merging using predefined rules
-   - `claude-enhanced`: AI-powered merging for complex conflicts
-
-4. **Async/Parallel Scraping** - 2-3x performance boost:
-
-   ```bash
-   python3 cli/doc_scraper.py --config configs/react.json --async
-   ```
-
-**Helper Script:**
-
-Use the included helper script for guided workflow:
-
-```bash
-python3 scripts/scrape_documentation_helper.py
-```
-
-This interactive script will guide through:
-
-1. Checking if Skill_Seekers is available
-2. Choosing between documentation-only, GitHub-only, or unified multi-source scraping
-3. Selecting merge strategy (rule-based vs claude-enhanced)
-4. Generating the correct commands
-5. Running conflict detection (optional)
-6. Copying references to the skill directory
-
-**Benefits:**
-
-- **Multi-source scraping**: Combine docs + GitHub repos + PDFs into one skill
-- **GitHub code analysis**: AST parsing for Python, JS, TS, Java, C++, Go
-- **Conflict detection**: Find discrepancies between documentation and implementation
-- **Automatic categorization**: Smart organization of documentation content
-- **Code language detection**: Syntax highlighting for 10+ languages
-- **Pattern extraction**: Extract common code patterns from examples
-- **llms.txt support**: 10x faster scraping when sites provide llms.txt (e.g., hono.dev)
-- **Large documentation handling**: Auto-splitting for 10K-40K+ page docs
-- **Production-tested configs**: 15+ ready-to-use configs for popular frameworks
-- **Async/parallel scraping**: 2-3x performance boost with `--async` flag
-- **Repository metadata**: Extract README, CHANGELOG, issues, PRs, stars/forks
-
-**Common Workflows:**
-
-1. **Framework with docs + code**:
-
-   ```bash
-   # Create unified config, scrape both sources, detect conflicts
-   python3 cli/unified_scraper.py --config configs/fastapi_unified.json
-   python3 cli/conflict_detector.py --config configs/fastapi_unified.json
-   ```
-
-2. **Open source library** (code is the source of truth):
-
-   ```bash
-   # Extract API directly from source code
-   python3 cli/github_scraper.py --repo pallets/flask --extract-api
-   ```
-
-3. **Enterprise API with PDFs**:
-
-   ```bash
-   # Combine web docs + PDF specifications
-   python3 cli/unified_scraper.py --config configs/enterprise_api.json
-   ```
-
 **Alternative:** For simpler needs or when documentation is not web-based, manually create reference files in the `references/` directory.
+
+For detailed Skill_Seekers documentation, see `references/documentation-scraping.md`.
 
 #### Update SKILL.md
 
@@ -399,3 +422,43 @@ After testing the skill, users may request improvements. Often this happens righ
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
 4. Implement changes and test again
+
+## Sharing Skills
+
+Skills can be distributed at different scopes:
+
+- **Project skills**: Commit `.claude/skills/` to version control
+- **Plugins**: Create a `skills/` directory in your [plugin](https://code.claude.com/docs/en/plugins)
+- **Managed**: Deploy organization-wide through [managed settings](https://code.claude.com/docs/en/iam#managed-settings)
+
+## Troubleshooting
+
+### Skill not triggering
+
+If Claude doesn't use a skill when expected:
+
+1. Check the description includes keywords users would naturally say
+2. Verify the skill appears in response to "What skills are available?"
+3. Try rephrasing the request to match the description more closely
+4. Invoke it directly with `/skill-name` if the skill is user-invocable
+
+### Skill triggers too often
+
+If Claude uses a skill when not wanted:
+
+1. Make the description more specific
+2. Add `disable-model-invocation: true` if only manual invocation is wanted
+
+### Claude doesn't see all skills
+
+Skill descriptions are loaded into context. If there are many skills, they may exceed the character budget (default 15,000 characters). Run `/context` to check for a warning about excluded skills.
+
+To increase the limit, set the `SLASH_COMMAND_TOOL_CHAR_BUDGET` environment variable.
+
+## Related Resources
+
+- **[Subagents](https://code.claude.com/docs/en/sub-agents)**: Delegate tasks to specialized agents
+- **[Plugins](https://code.claude.com/docs/en/plugins)**: Package and distribute skills with other extensions
+- **[Hooks](https://code.claude.com/docs/en/hooks)**: Automate workflows around tool events
+- **[Memory](https://code.claude.com/docs/en/memory)**: Manage CLAUDE.md files for persistent context
+- **[Permissions](https://code.claude.com/docs/en/iam)**: Control tool and skill access

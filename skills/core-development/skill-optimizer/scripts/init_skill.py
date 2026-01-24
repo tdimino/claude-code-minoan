@@ -18,6 +18,13 @@ from pathlib import Path
 SKILL_TEMPLATE = """---
 name: {skill_name}
 description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+# argument-hint: [args]           # Hint shown during autocomplete (e.g., [issue-number])
+# disable-model-invocation: true  # Set to true if only user should invoke via /name
+# user-invocable: false           # Set to false to hide from / menu (Claude-only)
+# allowed-tools: Read, Grep       # Restrict tools when skill is active
+# model: claude-sonnet-4-20250514         # Override model when skill is active
+# context: fork                   # Set to 'fork' to run in isolated subagent
+# agent: Explore                  # Subagent type: Explore, Plan, general-purpose, or custom
 ---
 
 # {skill_title}
@@ -25,6 +32,16 @@ description: [TODO: Complete and informative explanation of what the skill does 
 ## Overview
 
 [TODO: 1-2 sentences explaining what this skill enables]
+
+## Arguments
+
+This skill supports the `$ARGUMENTS` placeholder for dynamic input:
+
+```markdown
+Process $ARGUMENTS according to the workflow below.
+```
+
+When invoked as `/skill-name my-input`, Claude receives "Process my-input according to..."
 
 ## Structuring This Skill
 
