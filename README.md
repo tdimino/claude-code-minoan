@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-26-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-27-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -45,7 +45,8 @@ claude-code-minoan/
 │   │   ├── frontend-design/         # Distinctive UI creation
 │   │   ├── gemini-claude-resonance/ # Cross-model AI dialogue with visual memory
 │   │   ├── nano-banana-pro/         # Gemini 3 Pro AI image generation
-│   │   └── photo-to-slack-emoji/    # Photo to Slack emoji converter
+│   │   ├── photo-to-slack-emoji/    # Photo to Slack emoji converter
+│   │   └── speak-response/          # Local TTS with Qwen3-TTS (Oracle voice)
 │   ├── research/                # Research tools
 │   │   ├── academic-research/       # Academic paper search with Exa + ArXiv
 │   │   ├── atk-ux-research/         # America's Test Kitchen UX research
@@ -339,6 +340,7 @@ Systematically audits implementation plans:
 - **gemini-claude-resonance** - Cross-model dialogue between Claude and Gemini with shared visual memory. Multiple daimones (Flash, Pro, Dreamer, Director, Opus, Resonator) with dynamic verb selection and WorkingMemory-style transcripts. Includes Daimon Chamber UI and Resonance Field protocol for persistent visual narratives
 - **nano-banana-pro** - Generate and edit high-quality images using Google's Nano Banana Pro (Gemini 3 Pro Image) AI model. Supports up to 4K resolution, multiple aspect ratios, and advanced prompting
 - **photo-to-slack-emoji** - Transform photos into Slack-optimized emojis using Nano Banana Pro AI (10 styles, auto-optimization for 64KB limit)
+- **speak-response** - Local text-to-speech using Qwen3-TTS. Default Oracle voice (deep, prophetic Dune narrator). Supports voice cloning, voice design, and 9 preset speakers with emotion/mood control. Runs entirely on Apple Silicon
 
 ### Research (`skills/research/`)
 
@@ -742,13 +744,14 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-01-22
+**Last Updated**: 2026-01-25
 
 **Recent Changes**:
+- **speak-response** ⭐ NEW - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator: "He was warrior and mystic, ogre and saint..."). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized with --fast bfloat16 mode
 - **super-ralph-wiggum** ⭐ NEW - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
 - **frontend-design** - Updated with refined aesthetic guidelines: bold typography, committed palettes, atmospheric backgrounds, and emphasis on distinctive design over generic AI aesthetics
 
-**Skills**: 26 skills across 5 categories
+**Skills**: 27 skills across 5 categories
 **Commands**: 30+ slash commands
 **MCP Servers**: 14 configured servers
 
