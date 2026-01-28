@@ -1,0 +1,107 @@
+{
+    // Markdown-specific editor settings (only apply when editing .md files)
+    "[markdown]": {
+        // Wrap long lines at the editor width instead of horizontal scrolling
+        "editor.wordWrap": "on",
+        // Add breathing room between lines (1.4x normal height)
+        "editor.lineHeight": 1.4,
+        // Slightly smaller font for comfortable reading
+        "editor.fontSize": 13,
+        // Show dots for leading/trailing whitespace only (not every space)
+        "editor.renderWhitespace": "boundary",
+        // Show minimap for quick file navigation
+        "editor.minimap.enabled": true,
+        // Highlight current line only in the gutter, not the full line
+        "editor.renderLineHighlight": "gutter"
+    },
+
+    // Markdown preview pane settings (Cmd+Shift+V or side-by-side preview)
+    // Font size in the preview pane
+    "markdown.preview.fontSize": 13,
+    // Line height in preview (1.5x for readability)
+    "markdown.preview.lineHeight": 1.5,
+    // Highlight the preview section matching your cursor position
+    "markdown.preview.markEditorSelection": true,
+    // Scroll preview when you scroll in the editor
+    "markdown.preview.scrollPreviewWithEditor": true,
+    // Scroll editor when you scroll in the preview
+    "markdown.preview.scrollEditorWithPreview": true,
+
+    // Markdown syntax highlighting (token colors)
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                // All headings (H1-H6) - blue and bold
+                "name": "All Headings",
+                "scope": ["markup.heading.markdown", "entity.name.section.markdown"],
+                "settings": { "foreground": "#58A6FF", "fontStyle": "bold" }
+            },
+            {
+                // The # symbols before headings
+                "name": "Heading Punctuation",
+                "scope": ["punctuation.definition.heading.markdown"],
+                "settings": { "foreground": "#58A6FF" }
+            },
+            {
+                // Bulleted and numbered lists
+                "name": "Lists",
+                "scope": ["markup.list.unnumbered.markdown", "markup.list.numbered.markdown", "punctuation.definition.list_item.markdown"],
+                "settings": { "foreground": "#7DD3FC" }
+            },
+            {
+                // **bold text** - bright white
+                "name": "Bold Text",
+                "scope": ["markup.bold.markdown"],
+                "settings": { "foreground": "#e6edf3", "fontStyle": "bold" }
+            },
+            {
+                // *italic text* - sky blue
+                "name": "Italic Text",
+                "scope": ["markup.italic.markdown"],
+                "settings": { "foreground": "#a5d6ff", "fontStyle": "italic" }
+            },
+            {
+                // [link text](url) - the URL part
+                "name": "Links",
+                "scope": ["markup.underline.link.markdown"],
+                "settings": { "foreground": "#58a6ff", "fontStyle": "underline" }
+            },
+            {
+                // [link text](url) - the text part
+                "name": "Link Text",
+                "scope": ["string.other.link.title.markdown"],
+                "settings": { "foreground": "#58a6ff" }
+            },
+            {
+                // ```code blocks```
+                "name": "Code Block",
+                "scope": ["markup.fenced_code.block.markdown"],
+                "settings": { "foreground": "#c9d1d9" }
+            },
+            {
+                // `inline code`
+                "name": "Inline Code",
+                "scope": ["markup.inline.raw.markdown"],
+                "settings": { "foreground": "#c9d1d9" }
+            },
+            {
+                // > block quotes - lavender italic for poetry/quotations
+                "name": "Blockquote",
+                "scope": ["markup.quote.markdown"],
+                "settings": { "foreground": "#d4a5ff", "fontStyle": "italic" }
+            },
+            {
+                // ~~strikethrough~~
+                "name": "Strikethrough",
+                "scope": ["markup.strikethrough.markdown"],
+                "settings": { "foreground": "#8b949e", "fontStyle": "strikethrough" }
+            },
+            {
+                // --- horizontal rules
+                "name": "Horizontal Rule",
+                "scope": ["meta.separator.markdown"],
+                "settings": { "foreground": "#21262d" }
+            }
+        ]
+    }
+}

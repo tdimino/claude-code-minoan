@@ -1,0 +1,91 @@
+// REFERENCE: Tom's global VSCode settings
+// Location: ~/Library/Application Support/Code/User/settings.json
+//
+// This is a REFERENCE COPY - not applied automatically.
+// To use these settings globally, copy to your User settings.json
+// or merge with your existing configuration.
+//
+// Last synced: 2026-01-27
+
+{
+    // === GENERAL EDITOR ===
+    "workbench.editor.empty.hint": "hidden",
+    "security.workspace.trust.enabled": false,
+    "editor.wordWrap": "on",
+    "workbench.startupEditor": "none",
+    "javascript.updateImportsOnFileMove.enabled": "always",
+
+    // === THEME & ICONS ===
+    "workbench.iconTheme": "material-icon-theme",
+    // Note: Color theme not explicitly set - uses tomdimino.github-markdown-theme or default
+
+    // === TERMINAL: Catppuccin Mocha ===
+    "workbench.colorCustomizations": {
+        "terminal.background": "#1e1e2e",
+        "terminal.foreground": "#cdd6f4",
+        "terminalCursor.foreground": "#f5e0dc",
+        "terminal.selectionBackground": "#585b70",
+        "terminal.ansiBlack": "#45475a",
+        "terminal.ansiRed": "#f38ba8",
+        "terminal.ansiGreen": "#a6e3a1",
+        "terminal.ansiYellow": "#f9e2af",
+        "terminal.ansiBlue": "#89b4fa",
+        "terminal.ansiMagenta": "#f5c2e7",
+        "terminal.ansiCyan": "#94e2d5",
+        "terminal.ansiWhite": "#bac2de",
+        "terminal.ansiBrightBlack": "#585b70",
+        "terminal.ansiBrightRed": "#f38ba8",
+        "terminal.ansiBrightGreen": "#a6e3a1",
+        "terminal.ansiBrightYellow": "#f9e2af",
+        "terminal.ansiBrightBlue": "#89b4fa",
+        "terminal.ansiBrightMagenta": "#f5c2e7",
+        "terminal.ansiBrightCyan": "#94e2d5",
+        "terminal.ansiBrightWhite": "#a6adc8"
+    },
+    "terminal.integrated.minimumContrastRatio": 1,
+    "terminal.integrated.tabs.title": "${sequence}",
+    "terminal.integrated.fontFamily": "'Victor Mono', monospace",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.fontLigatures": true,
+
+    // === CLAUDE CODE ===
+    "claudeCode.preferredLocation": "panel",
+
+    // === MARKDOWN EDITOR ===
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.lineHeight": 1.4,
+        "editor.fontSize": 13,
+        "editor.renderWhitespace": "boundary",
+        "editor.minimap.enabled": true,
+        "editor.renderLineHighlight": "gutter"
+    },
+
+    // === MARKDOWN PREVIEW ===
+    "markdown.preview.fontSize": 13,
+    "markdown.preview.lineHeight": 1.5,
+    "markdown.preview.markEditorSelection": true,
+    "markdown.preview.scrollPreviewWithEditor": true,
+    "markdown.preview.scrollEditorWithPreview": true,
+
+    // === SYNTAX HIGHLIGHTING ===
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "name": "Bold Text",
+                "scope": ["markup.bold.markdown"],
+                "settings": { "foreground": "#e6edf3", "fontStyle": "bold" }
+            },
+            {
+                "name": "Italic Text",
+                "scope": ["markup.italic.markdown"],
+                "settings": { "foreground": "#a5d6ff", "fontStyle": "italic" }
+            },
+            {
+                "name": "Blockquote",
+                "scope": ["markup.quote.markdown"],
+                "settings": { "foreground": "#d4a5ff", "fontStyle": "italic" }
+            }
+        ]
+    }
+}
