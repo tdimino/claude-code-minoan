@@ -128,18 +128,27 @@ def scrape(
     only_main_content: bool = True,
     include_tags: Optional[List[str]] = None,
     exclude_tags: Optional[List[str]] = None,
-    timeout: int = 30000
+    timeout: int = 30000,
+    actions: Optional[List[Dict[str, Any]]] = None,
+    location: Optional[Dict[str, Any]] = None,
+    max_age: Optional[int] = None,
+    store_in_cache: bool = True
 ) -> Dict[str, Any]:
     """
     Scrape a single URL and extract content.
 
     Args:
         url: URL to scrape
-        formats: Output formats - ["markdown", "html", "links", "screenshot"]
+        formats: Output formats - ["markdown", "html", "links", "screenshot", "summary", "images", "branding"]
         only_main_content: Extract only main content, skip nav/footer
         include_tags: Whitelist specific HTML tags
         exclude_tags: Blacklist specific HTML tags
         timeout: Timeout in milliseconds
+        actions: Page actions to perform before scraping (click, write, wait, scroll, screenshot)
+                 Example: [{"type": "click", "selector": "#load-more"}, {"type": "wait", "milliseconds": 2000}]
+        location: Geo-targeting - {"country": "US", "languages": ["en-US"]}
+        max_age: Maximum cache age in seconds (use cached result if fresher)
+        store_in_cache: Whether to cache this scrape result (default: True)
 
     Returns:
         Dict with scraped content in requested formats
@@ -155,6 +164,14 @@ def scrape(
         payload["includeTags"] = include_tags
     if exclude_tags:
         payload["excludeTags"] = exclude_tags
+    if actions:
+        payload["actions"] = actions
+    if location:
+        payload["location"] = location
+    if max_age is not None:
+        payload["maxAge"] = max_age
+    if not store_in_cache:
+        payload["storeInCache"] = False
 
     if HAS_FIRECRAWL_SDK:
         app = _get_app()
@@ -173,7 +190,9 @@ def agent(
     prompt: str,
     urls: Optional[List[str]] = None,
     schema: Optional[Dict[str, Any]] = None,
-    async_mode: bool = False
+    async_mode: bool = False,
+    model: str = "spark-1-mini",
+    max_credits: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Autonomous web extraction using natural language prompts.
@@ -186,6 +205,8 @@ def agent(
         urls: Optional list of URLs to focus extraction on
         schema: Optional JSON schema for structured output
         async_mode: If True, start job and return job ID for polling
+        model: Agent model - "spark-1-mini" (default, 60% cheaper) or "spark-1-pro" (more capable)
+        max_credits: Maximum credits to spend on this agent job (budget limit)
 
     Returns:
         Dict with extracted data, or job info if async_mode=True
@@ -195,9 +216,20 @@ def agent(
 
     app = _get_app()
 
+    # Build kwargs for SDK calls
+    kwargs = {"prompt": prompt}
+    if urls:
+        kwargs["urls"] = urls
+    if schema:
+        kwargs["schema"] = schema
+    if model != "spark-1-mini":
+        kwargs["model"] = model
+    if max_credits is not None:
+        kwargs["maxCredits"] = max_credits
+
     if async_mode:
         # Start async job
-        agent_job = app.start_agent(prompt=prompt, urls=urls, schema=schema)
+        agent_job = app.start_agent(**kwargs)
         return {
             "job_id": agent_job.id,
             "status": "processing",
@@ -205,11 +237,29 @@ def agent(
         }
     else:
         # Synchronous execution
-        result = app.agent(prompt=prompt, urls=urls, schema=schema)
+        result = app.agent(**kwargs)
         return {
             "success": True,
             "data": result.data if hasattr(result, 'data') else result
         }
+
+
+def cancel_agent(job_id: str) -> Dict[str, Any]:
+    """
+    Cancel a running agent job.
+
+    Args:
+        job_id: The job ID to cancel
+
+    Returns:
+        Dict with cancellation status
+    """
+    response = requests.delete(
+        f"{BASE_URL_V2}/agent/{job_id}",
+        headers=_headers()
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 def get_agent_status(job_id: str) -> Dict[str, Any]:
@@ -329,6 +379,39 @@ def cancel_crawl(job_id: str) -> Dict[str, Any]:
     return response.json()
 
 
+def get_crawl_errors(job_id: str) -> Dict[str, Any]:
+    """
+    Get errors from a crawl job.
+
+    Args:
+        job_id: The job ID to get errors for
+
+    Returns:
+        Dict with crawl errors
+    """
+    response = requests.get(
+        f"{BASE_URL}/crawl/{job_id}/errors",
+        headers=_headers()
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def get_active_crawls() -> Dict[str, Any]:
+    """
+    Get all currently active crawl jobs.
+
+    Returns:
+        Dict with list of active crawl jobs
+    """
+    response = requests.get(
+        f"{BASE_URL}/crawl/active",
+        headers=_headers()
+    )
+    response.raise_for_status()
+    return response.json()
+
+
 def batch_scrape(
     urls: List[str],
     formats: Optional[List[str]] = None,
@@ -404,6 +487,24 @@ def cancel_batch(job_id: str) -> Dict[str, Any]:
     """
     response = requests.delete(
         f"{BASE_URL_V2}/batch/scrape/{job_id}",
+        headers=_headers()
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def get_batch_errors(job_id: str) -> Dict[str, Any]:
+    """
+    Get errors from a batch scrape job.
+
+    Args:
+        job_id: The job ID to get errors for
+
+    Returns:
+        Dict with batch scrape errors
+    """
+    response = requests.get(
+        f"{BASE_URL_V2}/batch/scrape/{job_id}/errors",
         headers=_headers()
     )
     response.raise_for_status()
@@ -603,14 +704,22 @@ def main():
     scrape_parser = subparsers.add_parser("scrape", help="Scrape a single URL")
     scrape_parser.add_argument("url", help="URL to scrape")
     scrape_parser.add_argument("--formats", nargs="+", default=["markdown"],
-                               help="Output formats: markdown, html, links, screenshot")
+                               help="Output formats: markdown, html, links, screenshot, summary, images, branding")
     scrape_parser.add_argument("--full", action="store_true", help="Include nav/footer")
+    scrape_parser.add_argument("--actions", help="JSON array of page actions (click, write, wait, scroll, screenshot)")
+    scrape_parser.add_argument("--country", help="Country code for geo-targeting (e.g., US, GB, DE)")
+    scrape_parser.add_argument("--languages", nargs="+", help="Languages for geo-targeting (e.g., en-US es)")
+    scrape_parser.add_argument("--max-age", type=int, help="Use cached result if fresher than N seconds")
+    scrape_parser.add_argument("--no-cache", action="store_true", help="Don't cache this scrape result")
     scrape_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
     # Agent command
     agent_parser = subparsers.add_parser("agent", help="Autonomous data extraction")
     agent_parser.add_argument("prompt", help="Natural language description of data to find")
     agent_parser.add_argument("--urls", nargs="+", help="Optional URLs to focus on")
+    agent_parser.add_argument("--model", choices=["spark-1-mini", "spark-1-pro"], default="spark-1-mini",
+                              help="Agent model: spark-1-mini (default, 60%% cheaper) or spark-1-pro (more capable)")
+    agent_parser.add_argument("--max-credits", type=int, help="Maximum credits to spend on this job")
     agent_parser.add_argument("--async", dest="async_mode", action="store_true",
                               help="Start async job, return job ID")
     agent_parser.add_argument("--json", action="store_true", help="Output raw JSON")
@@ -619,6 +728,10 @@ def main():
     status_parser = subparsers.add_parser("status", help="Check async agent job status")
     status_parser.add_argument("job_id", help="Job ID to check")
     status_parser.add_argument("--json", action="store_true", help="Output raw JSON")
+
+    # Agent cancel command
+    agent_cancel_parser = subparsers.add_parser("agent-cancel", help="Cancel a running agent job")
+    agent_cancel_parser.add_argument("job_id", help="Job ID to cancel")
 
     # Crawl command
     crawl_parser = subparsers.add_parser("crawl", help="Crawl entire website")
@@ -639,6 +752,15 @@ def main():
     crawl_cancel_parser = subparsers.add_parser("crawl-cancel", help="Cancel a crawl job")
     crawl_cancel_parser.add_argument("job_id", help="Job ID to cancel")
 
+    # Crawl errors command
+    crawl_errors_parser = subparsers.add_parser("crawl-errors", help="Get errors from a crawl job")
+    crawl_errors_parser.add_argument("job_id", help="Job ID to get errors for")
+    crawl_errors_parser.add_argument("--json", action="store_true", help="Output raw JSON")
+
+    # Active crawls command
+    active_crawls_parser = subparsers.add_parser("crawl-active", help="List all active crawl jobs")
+    active_crawls_parser.add_argument("--json", action="store_true", help="Output raw JSON")
+
     # Batch scrape command
     batch_parser = subparsers.add_parser("batch-scrape", help="Scrape multiple URLs")
     batch_parser.add_argument("urls", nargs="+", help="URLs to scrape")
@@ -655,6 +777,11 @@ def main():
     # Batch cancel command
     batch_cancel_parser = subparsers.add_parser("batch-cancel", help="Cancel a batch scrape job")
     batch_cancel_parser.add_argument("job_id", help="Job ID to cancel")
+
+    # Batch errors command
+    batch_errors_parser = subparsers.add_parser("batch-errors", help="Get errors from a batch scrape job")
+    batch_errors_parser.add_argument("job_id", help="Job ID to get errors for")
+    batch_errors_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
     # Map command
     map_parser = subparsers.add_parser("map", help="Discover all URLs on a website")
@@ -704,10 +831,30 @@ def main():
                 print(format_search_results(results))
 
         elif args.command == "scrape":
+            # Parse actions if provided
+            actions = None
+            if args.actions:
+                try:
+                    actions = json.loads(args.actions)
+                except json.JSONDecodeError as e:
+                    print(f"Invalid JSON for --actions: {e}", file=sys.stderr)
+                    sys.exit(1)
+
+            # Build location dict if country provided
+            location = None
+            if args.country:
+                location = {"country": args.country}
+                if args.languages:
+                    location["languages"] = args.languages
+
             result = scrape(
                 args.url,
                 formats=args.formats,
-                only_main_content=not args.full
+                only_main_content=not args.full,
+                actions=actions,
+                location=location,
+                max_age=getattr(args, 'max_age', None),
+                store_in_cache=not getattr(args, 'no_cache', False)
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
@@ -718,16 +865,23 @@ def main():
             result = agent(
                 args.prompt,
                 urls=args.urls,
-                async_mode=args.async_mode
+                async_mode=args.async_mode,
+                model=args.model,
+                max_credits=getattr(args, 'max_credits', None)
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
             else:
                 if args.async_mode:
                     print(f"Job ID: {result['job_id']}")
+                    print(f"Model: {args.model}")
                     print(result['message'])
                 else:
                     print(json.dumps(result.get('data', result), indent=2, default=str))
+
+        elif args.command == "agent-cancel":
+            result = cancel_agent(args.job_id)
+            print(f"Agent job {args.job_id} cancelled")
 
         elif args.command == "status":
             result = get_agent_status(args.job_id)
@@ -779,6 +933,40 @@ def main():
             result = cancel_crawl(args.job_id)
             print(f"Crawl job {args.job_id} cancelled")
 
+        elif args.command == "crawl-errors":
+            result = get_crawl_errors(args.job_id)
+            if args.json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                errors = result.get('errors', result.get('data', []))
+                if errors:
+                    print(f"Found {len(errors)} error(s):")
+                    for err in errors:
+                        if isinstance(err, dict):
+                            print(f"  - {err.get('url', 'Unknown URL')}: {err.get('error', err.get('message', 'Unknown error'))}")
+                        else:
+                            print(f"  - {err}")
+                else:
+                    print("No errors found")
+
+        elif args.command == "crawl-active":
+            result = get_active_crawls()
+            if args.json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                crawls = result.get('crawls', result.get('data', []))
+                if crawls:
+                    print(f"Active crawl jobs: {len(crawls)}")
+                    for crawl_job in crawls:
+                        if isinstance(crawl_job, dict):
+                            print(f"  - ID: {crawl_job.get('id', 'Unknown')}")
+                            print(f"    URL: {crawl_job.get('url', 'Unknown')}")
+                            print(f"    Status: {crawl_job.get('status', 'Unknown')}")
+                        else:
+                            print(f"  - {crawl_job}")
+                else:
+                    print("No active crawl jobs")
+
         elif args.command == "batch-scrape":
             result = batch_scrape(
                 args.urls,
@@ -808,6 +996,22 @@ def main():
         elif args.command == "batch-cancel":
             result = cancel_batch(args.job_id)
             print(f"Batch job {args.job_id} cancelled")
+
+        elif args.command == "batch-errors":
+            result = get_batch_errors(args.job_id)
+            if args.json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                errors = result.get('errors', result.get('data', []))
+                if errors:
+                    print(f"Found {len(errors)} error(s):")
+                    for err in errors:
+                        if isinstance(err, dict):
+                            print(f"  - {err.get('url', 'Unknown URL')}: {err.get('error', err.get('message', 'Unknown error'))}")
+                        else:
+                            print(f"  - {err}")
+                else:
+                    print("No errors found")
 
         elif args.command == "map":
             result = map_site(

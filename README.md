@@ -51,7 +51,7 @@ claude-code-minoan/
 │   │   ├── academic-research/       # Academic paper search with Exa + ArXiv
 │   │   ├── atk-ux-research/         # America's Test Kitchen UX research
 │   │   ├── exa-search/              # Full Exa AI API access
-│   │   └── Firecrawl/               # Web scraping (prefer over WebFetch)
+│   │   └── Firecrawl/               # Official CLI + Agent API (prefer over WebFetch)
 │   └── planning-productivity/   # Planning tools
 │       ├── crypt-librarian/         # Film curator persona
 │       ├── super-ralph-wiggum/      # ⭐ Autonomous iteration loops (11 Tips)
@@ -347,7 +347,7 @@ Systematically audits implementation plans:
 - **academic-research** - Comprehensive academic paper search, literature reviews, and research synthesis. Combines Exa MCP with arxiv-mcp-server for paper discovery, download, and deep analysis
 - **atk-ux-research** - Specialized UX research skill for America's Test Kitchen. Gathers user feedback from app stores, Reddit, Trustpilot, BBB, and review sources using Exa Search, Firecrawl, and Perplexity MCP. Outputs structured reports with quantitative metrics and qualitative themes
 - **exa-search** - Complete Exa AI search API access with 6 scripts: neural web search, URL content extraction (with RAG context), similar page discovery (with moderation/text filters), AI research with streaming, async research (3 models: fast/standard/pro), and test suite. Full API coverage
-- **Firecrawl** - Web scraping with Agent API for autonomous data extraction. Actions support, branding extraction, 3 crawler models (fast/standard/quality), batch operations, and comprehensive test suite. **ALWAYS prefer Firecrawl over WebFetch**
+- **Firecrawl** - Official Firecrawl CLI (`firecrawl scrape/crawl/map/search`) plus Agent API for autonomous data extraction. Auto-save alias (`fc-save`), Python API script for batch/extract/agent commands. **ALWAYS prefer Firecrawl over WebFetch**
 
 ### Planning & Productivity (`skills/planning-productivity/`)
 
@@ -744,12 +744,12 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-01-25
+**Last Updated**: 2026-01-28
 
 **Recent Changes**:
-- **speak-response** ⭐ NEW - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator: "He was warrior and mystic, ogre and saint..."). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized with --fast bfloat16 mode
-- **super-ralph-wiggum** ⭐ NEW - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
-- **frontend-design** - Updated with refined aesthetic guidelines: bold typography, committed palettes, atmospheric backgrounds, and emphasis on distinctive design over generic AI aesthetics
+- **Firecrawl** ⭐ UPGRADED - Integrated official Firecrawl CLI v1.1.1 (`firecrawl scrape/crawl/map/search`). Auto-save alias renamed to `fc-save`. Official CLI offers `--wait --progress` for crawls, `--only-main-content` for clean output. Python API script retained for Agent, batch-scrape, and extract commands
+- **speak-response** - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized
+- **super-ralph-wiggum** - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
 
 **Skills**: 27 skills across 5 categories
 **Commands**: 30+ slash commands

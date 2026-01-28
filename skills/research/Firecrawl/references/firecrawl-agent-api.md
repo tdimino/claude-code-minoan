@@ -54,6 +54,52 @@ const app = new Firecrawl({ apiKey: 'fc-YOUR_API_KEY' });
 | `prompt` | string | Yes | Natural language description of data to extract (max 10,000 chars) |
 | `urls` | array | No | Optional URLs to focus extraction on specific pages |
 | `schema` | object | No | JSON schema for structured output (Pydantic/Zod) |
+| `model` | string | No | Agent model: `spark-1-mini` (default, 60% cheaper) or `spark-1-pro` (more capable) |
+| `maxCredits` | integer | No | Maximum credits to spend on this job (budget limit) |
+
+## Model Selection
+
+Firecrawl offers two agent models:
+
+### spark-1-mini (Default)
+- **Cost**: 60% cheaper than spark-1-pro
+- **Speed**: Faster execution
+- **Best for**: Simple extractions, well-structured data, quick research
+- **Use when**: Budget-conscious, standard data extraction tasks
+
+### spark-1-pro
+- **Cost**: Premium pricing
+- **Capability**: More sophisticated reasoning
+- **Best for**: Complex extractions, nuanced data, multi-step reasoning
+- **Use when**: High-value extractions, complex navigation, better accuracy needed
+
+```python
+# Use mini for simple tasks (default)
+result = app.agent(
+    prompt="Find company contact info",
+    model="spark-1-mini"  # default, can be omitted
+)
+
+# Use pro for complex tasks
+result = app.agent(
+    prompt="Analyze competitor pricing strategies and extract nuanced feature comparisons",
+    model="spark-1-pro"
+)
+```
+
+## Budget Control with maxCredits
+
+Limit spending on agent jobs:
+
+```python
+# Cap at 50 credits
+result = app.agent(
+    prompt="Find 100 AI startups",
+    maxCredits=50
+)
+```
+
+The job will stop when the credit limit is reached, returning partial results.
 
 ## Basic Usage
 
@@ -140,6 +186,23 @@ while True:
 - `failed` - Error occurred
 
 **Note:** Results expire after 24 hours.
+
+### Cancel Agent Job
+
+Cancel a running agent job:
+
+```python
+# Via CLI
+# python3 firecrawl_api.py agent-cancel <job_id>
+
+# Via API
+import requests
+
+response = requests.delete(
+    f"https://api.firecrawl.dev/v2/agent/{job_id}",
+    headers={"Authorization": f"Bearer {api_key}"}
+)
+```
 
 ## Use Case Examples
 
