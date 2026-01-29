@@ -1,0 +1,377 @@
+---
+name: rlama
+description: Local RAG system management with RLAMA. Create semantic knowledge bases from local documents (PDF, MD, code, etc.), query them using natural language, and manage document lifecycles. This skill should be used when building local knowledge bases, searching personal documents, or performing document Q&A. Runs 100% locally with Ollama - no cloud, no data leaving your machine.
+allowed-tools: Bash(rlama:*), Read
+---
+
+# RLAMA - Local RAG System
+
+**RLAMA** (Retrieval-Augmented Language Model Adapter) provides fully local, offline RAG for semantic search over your documents.
+
+## When to Use This Skill
+
+- Building knowledge bases from local documents
+- Searching personal notes, research papers, or code documentation
+- Document-based Q&A without sending data to the cloud
+- Indexing project documentation for quick semantic lookup
+- Creating searchable archives of PDFs, markdown, or code files
+
+## Prerequisites
+
+RLAMA requires Ollama running locally:
+
+```bash
+# Verify Ollama is running
+ollama list
+
+# If not running, start it
+brew services start ollama  # macOS
+# or: ollama serve
+```
+
+## Quick Reference
+
+### Query a RAG (Most Common)
+
+Query an existing RAG system with a natural language question:
+
+```bash
+# Non-interactive query (returns answer and exits)
+rlama run <rag-name> --query "your question here"
+
+# With more context chunks for complex questions
+rlama run <rag-name> --query "explain the authentication flow" --context-size 30
+
+# Show which documents contributed to the answer
+rlama run <rag-name> --query "what are the API endpoints?" --show-context
+
+# Use a different model for answering
+rlama run <rag-name> --query "summarize the architecture" -m deepseek-r1:8b
+```
+
+**Script wrapper** for cleaner output:
+
+```bash
+python3 ~/.claude/skills/rlama/scripts/rlama_query.py <rag-name> "your query"
+python3 ~/.claude/skills/rlama/scripts/rlama_query.py my-docs "what is the main idea?" --show-sources
+```
+
+### Create a RAG
+
+Index documents from a folder into a new RAG system:
+
+```bash
+# Basic creation (uses llama3.2 by default)
+rlama rag llama3.2 <rag-name> <folder-path>
+
+# Examples
+rlama rag llama3.2 my-notes ~/Notes
+rlama rag llama3.2 project-docs ./docs
+rlama rag llama3.2 research-papers ~/Papers
+
+# With exclusions
+rlama rag llama3.2 codebase ./src --exclude-dir=node_modules,dist,.git --exclude-ext=.log,.tmp
+
+# Only specific file types
+rlama rag llama3.2 markdown-docs ./docs --process-ext=.md,.txt
+
+# Custom chunking strategy
+rlama rag llama3.2 my-rag ./docs --chunking=semantic --chunk-size=1500 --chunk-overlap=300
+```
+
+**Chunking strategies:**
+- `hybrid` (default) - Combines semantic and fixed chunking
+- `semantic` - Respects document structure (paragraphs, sections)
+- `fixed` - Fixed character count chunks
+- `hierarchical` - Preserves document hierarchy
+
+### List RAG Systems
+
+```bash
+# List all RAGs
+rlama list
+
+# List documents in a specific RAG
+rlama list-docs <rag-name>
+
+# Inspect chunks (debugging)
+rlama list-chunks <rag-name> --document=filename.pdf
+```
+
+### Manage Documents
+
+**Add documents to existing RAG:**
+
+```bash
+rlama add-docs <rag-name> <folder-or-file>
+
+# Examples
+rlama add-docs my-notes ~/Notes/new-notes
+rlama add-docs research ./papers/new-paper.pdf
+```
+
+**Remove a document:**
+
+```bash
+rlama remove-doc <rag-name> <document-id>
+
+# Document ID is typically the filename
+rlama remove-doc my-notes old-note.md
+rlama remove-doc research outdated-paper.pdf
+
+# Force remove without confirmation
+rlama remove-doc my-notes old-note.md --force
+```
+
+### Delete a RAG
+
+```bash
+rlama delete <rag-name>
+
+# Or manually remove the data directory
+rm -rf ~/.rlama/<rag-name>
+```
+
+## Advanced Features
+
+### Web Crawling
+
+Create a RAG from website content:
+
+```bash
+# Crawl a website and create RAG
+rlama crawl-rag llama3.2 docs-rag https://docs.example.com
+
+# Add web content to existing RAG
+rlama crawl-add-docs my-rag https://blog.example.com
+```
+
+### Directory Watching
+
+Automatically update RAG when files change:
+
+```bash
+# Enable watching
+rlama watch <rag-name> <folder-path>
+
+# Check for new files manually
+rlama check-watched <rag-name>
+
+# Disable watching
+rlama watch-off <rag-name>
+```
+
+### Website Watching
+
+Monitor websites for content updates:
+
+```bash
+rlama web-watch <rag-name> https://docs.example.com
+rlama check-web-watched <rag-name>
+rlama web-watch-off <rag-name>
+```
+
+### Reranking
+
+Improve result relevance with reranking:
+
+```bash
+# Add reranker to existing RAG
+rlama add-reranker <rag-name>
+
+# Configure reranker weight (0-1, default 0.7)
+rlama update-reranker <rag-name> --reranker-weight=0.8
+
+# Disable reranking
+rlama rag llama3.2 my-rag ./docs --disable-reranker
+```
+
+### API Server
+
+Run RLAMA as an API server for programmatic access:
+
+```bash
+# Start API server
+rlama api --port 11249
+
+# Query via API
+curl -X POST http://localhost:11249/rag \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rag_name": "my-docs",
+    "prompt": "What are the key points?",
+    "context_size": 20
+  }'
+```
+
+### Model Management
+
+```bash
+# Update the model used by a RAG
+rlama update-model <rag-name> <new-model>
+
+# Example: Switch to a more powerful model
+rlama update-model my-rag deepseek-r1:8b
+
+# Use Hugging Face models
+rlama rag hf.co/username/repo my-rag ./docs
+rlama rag hf.co/username/repo:Q4_K_M my-rag ./docs
+
+# Use OpenAI models (requires OPENAI_API_KEY)
+export OPENAI_API_KEY="your-key"
+rlama rag gpt-4-turbo my-openai-rag ./docs
+```
+
+## Configuration
+
+### Data Directory
+
+By default, RLAMA stores data in `~/.rlama/`. Change this with `--data-dir`:
+
+```bash
+# Use custom data directory
+rlama --data-dir=/path/to/custom list
+rlama --data-dir=/projects/rag-data rag llama3.2 project-rag ./docs
+
+# Or set via environment (add to ~/.zshrc)
+export RLAMA_DATA_DIR="/path/to/custom"
+```
+
+### Ollama Configuration
+
+```bash
+# Custom Ollama host
+rlama --host=192.168.1.100 --port=11434 run my-rag
+
+# Or via environment
+export OLLAMA_HOST="http://192.168.1.100:11434"
+```
+
+### Default Model
+
+The skill uses `llama3.2` by default. For different defaults:
+
+```bash
+# Per-command override
+rlama rag qwen2.5:7b my-rag ./docs
+
+# For queries
+rlama run my-rag --query "question" -m deepseek-r1:8b
+```
+
+**Recommended models:**
+| Model | Size | Best For |
+|-------|------|----------|
+| `llama3.2` | 3B | Fast, general use |
+| `qwen2.5:7b` | 7B | Better reasoning |
+| `deepseek-r1:8b` | 8B | Complex questions |
+| `llama3.3:70b` | 70B | Highest quality (slow) |
+
+## Supported File Types
+
+RLAMA indexes these formats:
+- **Text**: `.txt`, `.md`, `.markdown`
+- **Documents**: `.pdf`, `.docx`, `.doc`
+- **Code**: `.py`, `.js`, `.ts`, `.go`, `.rs`, `.java`, `.rb`, `.cpp`, `.c`, `.h`
+- **Data**: `.json`, `.yaml`, `.yml`, `.csv`
+- **Web**: `.html`, `.htm`
+- **Org-mode**: `.org`
+
+## Example Workflows
+
+### Personal Knowledge Base
+
+```bash
+# Create from multiple folders
+rlama rag llama3.2 personal-kb ~/Documents
+rlama add-docs personal-kb ~/Notes
+rlama add-docs personal-kb ~/Downloads/papers
+
+# Query
+rlama run personal-kb --query "what did I write about project management?"
+```
+
+### Code Documentation
+
+```bash
+# Index project docs
+rlama rag llama3.2 project-docs ./docs ./README.md
+
+# Query architecture
+rlama run project-docs --query "how does authentication work?" --context-size 25
+```
+
+### Research Papers
+
+```bash
+# Create research RAG
+rlama rag llama3.2 papers ~/Papers --exclude-ext=.bib
+
+# Add specific paper
+rlama add-docs papers ./new-paper.pdf
+
+# Query with high context
+rlama run papers --query "what methods are used for evaluation?" --context-size 30
+```
+
+### Interactive Wizard
+
+For guided RAG creation:
+
+```bash
+rlama wizard
+```
+
+## Troubleshooting
+
+### "Ollama not found"
+
+```bash
+# Check Ollama status
+ollama --version
+ollama list
+
+# Start Ollama
+brew services start ollama  # macOS
+ollama serve                # Manual start
+```
+
+### "Model not found"
+
+```bash
+# Pull the required model
+ollama pull llama3.2
+ollama pull nomic-embed-text  # Embedding model
+```
+
+### Slow Indexing
+
+- Use smaller embedding models
+- Exclude large binary files: `--exclude-ext=.bin,.zip,.tar`
+- Exclude build directories: `--exclude-dir=node_modules,dist,build`
+
+### Poor Query Results
+
+1. Increase context size: `--context-size=30`
+2. Use a better model: `-m deepseek-r1:8b`
+3. Re-index with semantic chunking: `--chunking=semantic`
+4. Enable reranking: `rlama add-reranker <rag-name>`
+
+### Index Corruption
+
+```bash
+# Delete and recreate
+rm -rf ~/.rlama/<rag-name>
+rlama rag llama3.2 <rag-name> <folder-path>
+```
+
+## CLI Reference
+
+Full command reference available at:
+
+```bash
+rlama --help
+rlama <command> --help
+```
+
+Or see `references/rlama-commands.md` for complete documentation.

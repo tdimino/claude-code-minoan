@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-28-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-29-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -38,6 +38,7 @@ claude-code-minoan/
 │   │   ├── figma-mcp/               # Figma design integration
 │   │   ├── mcp-server-manager/      # MCP server configuration
 │   │   ├── netlify-integration/     # Netlify deployment management
+│   │   ├── rlama/                   # ⭐ Local RAG system for semantic document search
 │   │   ├── supabase-skill/          # Supabase project management
 │   │   ├── telnyx-api/              # Telnyx telephony integration
 │   │   └── twilio-api/              # Twilio SMS/Voice integration
@@ -331,6 +332,7 @@ Systematically audits implementation plans:
 - **figma-mcp** - Convert Figma designs to production code with accurate styling
 - **mcp-server-manager** - Configure and manage MCP servers in Claude Code
 - **netlify-integration** - Deploy and manage Netlify projects with Next.js serverless functions, environment variables, and continuous deployment
+- **rlama** ⭐ - Local RAG system for semantic document search. Create knowledge bases from PDFs, markdown, code files. Query documents with natural language. Runs 100% locally with Ollama - no cloud, no data leaving your machine. Includes management scripts for create/add/remove/query operations
 - **supabase-skill** - Configure and manage Supabase projects using MCP. Database design, migrations, RLS policies
 - **telnyx-api** - SMS/MMS messaging, voice calls, phone numbers, webhooks, and telephony integration
 - **twilio-api** - Twilio SMS/Voice API integration with provider-agnostic patterns, webhook security, E.164 validation, and error handling
@@ -746,15 +748,16 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-01-28
+**Last Updated**: 2026-01-29
 
 **Recent Changes**:
+- **rlama** ⭐ NEW - Local RAG system for semantic document search with Ollama. Create knowledge bases from PDFs, markdown, code. Query with natural language. 100% local - no cloud. Includes Python wrapper scripts (`rlama_query.py`, `rlama_list.py`, `rlama_manage.py`) for clean Claude Code integration. Requires FlagEmbedding for reranking (install with `uv pip install FlagEmbedding`)
 - **Firecrawl** SDK v4.x COMPATIBILITY - Updated `firecrawl_api.py` for breaking changes in `firecrawl-py` v4.13.4: class renamed `FirecrawlApp` → `Firecrawl`, methods renamed (`scrape_url()` → `scrape()`, `crawl_url()` → `crawl()`, `async_crawl_url()` → `start_crawl()`), search returns `SearchData` with `.web` attribute. All 12 tests passing
 - **Firecrawl** ⭐ UPGRADED - Integrated official Firecrawl CLI v1.1.1 (`firecrawl scrape/crawl/map/search`). Auto-save alias renamed to `fc-save`. Official CLI offers `--wait --progress` for crawls, `--only-main-content` for clean output. Python API script retained for Agent, batch-scrape, and extract commands
 - **speak-response** - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized
 - **super-ralph-wiggum** - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
 
-**Skills**: 27 skills across 5 categories
+**Skills**: 29 skills across 5 categories
 **Commands**: 30+ slash commands
 **MCP Servers**: 14 configured servers
 
