@@ -35,23 +35,25 @@ import argparse
 import time
 from typing import Optional, List, Dict, Any
 
+import requests
+
 try:
-    from firecrawl import FirecrawlApp
+    from firecrawl import Firecrawl as FirecrawlClient
     HAS_FIRECRAWL_SDK = True
 except ImportError:
     HAS_FIRECRAWL_SDK = False
-    import requests
+    FirecrawlClient = None
 
 FIRECRAWL_API_KEY = os.environ.get("FIRECRAWL_API_KEY")
 BASE_URL = "https://api.firecrawl.dev/v1"
 BASE_URL_V2 = "https://api.firecrawl.dev/v2"
 
 
-def _get_app() -> 'FirecrawlApp':
-    """Get FirecrawlApp instance with API key."""
+def _get_app() -> 'FirecrawlClient':
+    """Get Firecrawl client instance with API key."""
     if not FIRECRAWL_API_KEY:
         raise ValueError("FIRECRAWL_API_KEY environment variable not set")
-    return FirecrawlApp(api_key=FIRECRAWL_API_KEY)
+    return FirecrawlClient(api_key=FIRECRAWL_API_KEY)
 
 
 def _headers() -> Dict[str, str]:
@@ -111,7 +113,26 @@ def search(
 
     if HAS_FIRECRAWL_SDK:
         app = _get_app()
-        return app.search(query, **{k: v for k, v in payload.items() if k != "query"})
+        result = app.search(query, limit=limit)
+        # Convert SDK response to dict format
+        # New SDK returns SearchData with .web attribute containing results
+        if hasattr(result, 'web'):
+            web_results = result.web
+            if isinstance(web_results, list):
+                return {"success": True, "data": [
+                    item.model_dump() if hasattr(item, 'model_dump') else vars(item) if hasattr(item, '__dict__') else item
+                    for item in web_results
+                ]}
+            return {"success": True, "data": web_results}
+        elif hasattr(result, 'data'):
+            data = result.data
+            if isinstance(data, list):
+                return {"success": True, "data": [
+                    item.model_dump() if hasattr(item, 'model_dump') else vars(item) if hasattr(item, '__dict__') else item
+                    for item in data
+                ]}
+            return {"success": True, "data": data}
+        return {"success": True, "data": result}
     else:
         response = requests.post(
             f"{BASE_URL}/search",
@@ -175,7 +196,21 @@ def scrape(
 
     if HAS_FIRECRAWL_SDK:
         app = _get_app()
-        return app.scrape_url(url, params={k: v for k, v in payload.items() if k != "url"})
+        # New SDK uses scrape() with keyword args
+        result = app.scrape(
+            url,
+            formats=payload.get("formats", ["markdown"]),
+            only_main_content=payload.get("onlyMainContent", True),
+            timeout=payload.get("timeout", 30000),
+            actions=payload.get("actions"),
+            location=payload.get("location")
+        )
+        # Convert SDK response to dict format
+        if hasattr(result, 'model_dump'):
+            return {"success": True, "data": result.model_dump()}
+        elif hasattr(result, '__dict__'):
+            return {"success": True, "data": vars(result)}
+        return {"success": True, "data": result}
     else:
         response = requests.post(
             f"{BASE_URL}/scrape",
@@ -327,15 +362,36 @@ def crawl(
 
     if HAS_FIRECRAWL_SDK:
         app = _get_app()
+        # Build kwargs for SDK - use snake_case for SDK
+        crawl_kwargs = {"limit": limit}
+        if max_depth is not None:
+            crawl_kwargs["max_depth"] = max_depth
+        if include_paths:
+            crawl_kwargs["include_paths"] = include_paths
+        if exclude_paths:
+            crawl_kwargs["exclude_paths"] = exclude_paths
+
         if async_mode:
-            result = app.async_crawl_url(url, params={k: v for k, v in payload.items() if k != "url"})
+            # New SDK uses start_crawl() for async
+            result = app.start_crawl(url, **crawl_kwargs)
+            job_id = result.id if hasattr(result, 'id') else result.get('id')
             return {
-                "job_id": result.get('id'),
+                "job_id": job_id,
                 "status": "processing",
-                "message": f"Crawl started. Check status with: python firecrawl_api.py crawl-status {result.get('id')}"
+                "message": f"Crawl started. Check status with: python firecrawl_api.py crawl-status {job_id}"
             }
         else:
-            return app.crawl_url(url, params={k: v for k, v in payload.items() if k != "url"})
+            # New SDK uses crawl() for sync
+            result = app.crawl(url, **crawl_kwargs)
+            if hasattr(result, 'data'):
+                data = result.data
+                if isinstance(data, list):
+                    return {"data": [
+                        item.model_dump() if hasattr(item, 'model_dump') else vars(item) if hasattr(item, '__dict__') else item
+                        for item in data
+                    ]}
+                return {"data": data}
+            return result
     else:
         endpoint = f"{BASE_URL}/crawl"
         response = requests.post(endpoint, headers=_headers(), json=payload)
@@ -353,12 +409,24 @@ def get_crawl_status(job_id: str) -> Dict[str, Any]:
     Returns:
         Dict with status and crawled pages if completed
     """
-    response = requests.get(
-        f"{BASE_URL}/crawl/{job_id}",
-        headers=_headers()
-    )
-    response.raise_for_status()
-    return response.json()
+    if HAS_FIRECRAWL_SDK:
+        app = _get_app()
+        result = app.get_crawl_status(job_id)
+        status = result.status if hasattr(result, 'status') else 'unknown'
+        data = []
+        if hasattr(result, 'data') and result.data:
+            data = [
+                item.model_dump() if hasattr(item, 'model_dump') else vars(item) if hasattr(item, '__dict__') else item
+                for item in result.data
+            ]
+        return {"status": status, "data": data}
+    else:
+        response = requests.get(
+            f"{BASE_URL}/crawl/{job_id}",
+            headers=_headers()
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def cancel_crawl(job_id: str) -> Dict[str, Any]:
@@ -404,12 +472,21 @@ def get_active_crawls() -> Dict[str, Any]:
     Returns:
         Dict with list of active crawl jobs
     """
-    response = requests.get(
-        f"{BASE_URL}/crawl/active",
-        headers=_headers()
-    )
-    response.raise_for_status()
-    return response.json()
+    if HAS_FIRECRAWL_SDK:
+        app = _get_app()
+        result = app.get_active_crawls()
+        if hasattr(result, 'crawls'):
+            return {"crawls": result.crawls}
+        elif isinstance(result, list):
+            return {"crawls": result}
+        return {"crawls": result}
+    else:
+        response = requests.get(
+            f"{BASE_URL}/crawl/active",
+            headers=_headers()
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def batch_scrape(
@@ -448,13 +525,23 @@ def batch_scrape(
     if exclude_tags:
         payload["excludeTags"] = exclude_tags
 
-    response = requests.post(
-        f"{BASE_URL_V2}/batch/scrape",
-        headers=_headers(),
-        json=payload
-    )
-    response.raise_for_status()
-    return response.json()
+    if HAS_FIRECRAWL_SDK:
+        app = _get_app()
+        result = app.start_batch_scrape(
+            urls,
+            formats=formats or ["markdown"],
+            only_main_content=only_main_content
+        )
+        job_id = result.id if hasattr(result, 'id') else result.get('id')
+        return {"id": job_id, "status": "processing"}
+    else:
+        response = requests.post(
+            f"{BASE_URL_V2}/batch/scrape",
+            headers=_headers(),
+            json=payload
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def get_batch_status(job_id: str) -> Dict[str, Any]:
@@ -467,12 +554,24 @@ def get_batch_status(job_id: str) -> Dict[str, Any]:
     Returns:
         Dict with status and scraped pages if completed
     """
-    response = requests.get(
-        f"{BASE_URL_V2}/batch/scrape/{job_id}",
-        headers=_headers()
-    )
-    response.raise_for_status()
-    return response.json()
+    if HAS_FIRECRAWL_SDK:
+        app = _get_app()
+        result = app.get_batch_scrape_status(job_id)
+        status = result.status if hasattr(result, 'status') else 'unknown'
+        data = []
+        if hasattr(result, 'data') and result.data:
+            data = [
+                item.model_dump() if hasattr(item, 'model_dump') else vars(item) if hasattr(item, '__dict__') else item
+                for item in result.data
+            ]
+        return {"status": status, "data": data}
+    else:
+        response = requests.get(
+            f"{BASE_URL_V2}/batch/scrape/{job_id}",
+            headers=_headers()
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def cancel_batch(job_id: str) -> Dict[str, Any]:
@@ -550,13 +649,32 @@ def map_site(
     if timeout:
         payload["timeout"] = timeout
 
-    response = requests.post(
-        f"{BASE_URL_V2}/map",
-        headers=_headers(),
-        json=payload
-    )
-    response.raise_for_status()
-    return response.json()
+    if HAS_FIRECRAWL_SDK:
+        app = _get_app()
+        result = app.map(
+            url,
+            search=search,
+            limit=min(limit, 100000),
+            include_subdomains=include_subdomains
+        )
+        # Convert SDK response to dict format
+        if hasattr(result, 'links'):
+            links = result.links
+            if isinstance(links, list):
+                return {"success": True, "links": [
+                    link.model_dump() if hasattr(link, 'model_dump') else vars(link) if hasattr(link, '__dict__') else link
+                    for link in links
+                ]}
+            return {"success": True, "links": links}
+        return {"success": True, "links": result}
+    else:
+        response = requests.post(
+            f"{BASE_URL_V2}/map",
+            headers=_headers(),
+            json=payload
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def extract(
@@ -599,13 +717,23 @@ def extract(
     if schema:
         payload["schema"] = schema
 
-    response = requests.post(
-        f"{BASE_URL_V2}/extract",
-        headers=_headers(),
-        json=payload
-    )
-    response.raise_for_status()
-    return response.json()
+    if HAS_FIRECRAWL_SDK:
+        app = _get_app()
+        result = app.start_extract(
+            urls,
+            prompt=prompt,
+            schema=schema
+        )
+        job_id = result.id if hasattr(result, 'id') else result.get('id')
+        return {"id": job_id, "status": "processing"}
+    else:
+        response = requests.post(
+            f"{BASE_URL_V2}/extract",
+            headers=_headers(),
+            json=payload
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def get_extract_status(job_id: str) -> Dict[str, Any]:
@@ -618,12 +746,19 @@ def get_extract_status(job_id: str) -> Dict[str, Any]:
     Returns:
         Dict with status and extracted data if completed
     """
-    response = requests.get(
-        f"{BASE_URL_V2}/extract/{job_id}",
-        headers=_headers()
-    )
-    response.raise_for_status()
-    return response.json()
+    if HAS_FIRECRAWL_SDK:
+        app = _get_app()
+        result = app.get_extract_status(job_id)
+        status = result.status if hasattr(result, 'status') else 'unknown'
+        data = result.data if hasattr(result, 'data') else None
+        return {"status": status, "data": data}
+    else:
+        response = requests.get(
+            f"{BASE_URL_V2}/extract/{job_id}",
+            headers=_headers()
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def format_search_results(results: Dict[str, Any], max_text_length: int = 500) -> str:

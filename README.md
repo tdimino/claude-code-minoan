@@ -747,6 +747,7 @@ cat ~/.claude/commands/command-name.md
 **Last Updated**: 2026-01-28
 
 **Recent Changes**:
+- **Firecrawl** SDK v4.x COMPATIBILITY - Updated `firecrawl_api.py` for breaking changes in `firecrawl-py` v4.13.4: class renamed `FirecrawlApp` → `Firecrawl`, methods renamed (`scrape_url()` → `scrape()`, `crawl_url()` → `crawl()`, `async_crawl_url()` → `start_crawl()`), search returns `SearchData` with `.web` attribute. All 12 tests passing
 - **Firecrawl** ⭐ UPGRADED - Integrated official Firecrawl CLI v1.1.1 (`firecrawl scrape/crawl/map/search`). Auto-save alias renamed to `fc-save`. Official CLI offers `--wait --progress` for crawls, `--only-main-content` for clean output. Python API script retained for Agent, batch-scrape, and extract commands
 - **speak-response** - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized
 - **super-ralph-wiggum** - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
