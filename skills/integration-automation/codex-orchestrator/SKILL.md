@@ -42,6 +42,8 @@ Required:
 | `refactor` | Code cleanup, modernization | Reducing tech debt, improving structure |
 | `docs` | API docs, READMEs, comments | Documentation tasks |
 | `planner` | ExecPlan design documents | Multi-hour tasks, complex features, significant refactors |
+| `syseng` | Infrastructure, DevOps, CI/CD, monitoring | Deployment, containers, observability, production ops |
+| `builder` | Greenfield implementation, new features | Creating new code from specs, incremental feature development |
 
 ## Quick Execution
 
@@ -71,6 +73,12 @@ Examples:
 
 # Create execution plan for complex feature
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Create an ExecPlan for adding WebSocket support"
+
+# Build new feature from spec
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Implement user authentication with JWT"
+
+# Continue from previous builder session
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "continue"
 ```
 
 ## Session Management
@@ -104,6 +112,7 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 
 ### Creation Tasks
 - **architect** for design decisions
+- **builder** for new feature implementation
 - **docs** for documentation
 - **refactor** for implementation improvements
 - **planner** for multi-hour implementation plans
@@ -119,7 +128,7 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh debugger "Debug the race condition found in cache.ts"
 ```
 
-### Planner → Architect → Implement
+### Planner → Architect → Builder
 ```bash
 # 1. Create comprehensive ExecPlan
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Create ExecPlan for new authentication system"
@@ -127,8 +136,20 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 # 2. Validate architecture
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Review the auth system ExecPlan for design issues"
 
-# 3. Implement (plan guides execution)
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh refactor "Implement milestone 1 from the auth ExecPlan" --full-auto
+# 3. Build (plan guides implementation)
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Implement milestone 1 from the auth ExecPlan" --full-auto
+```
+
+### Architect → Builder → Reviewer
+```bash
+# 1. Design approach
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Design a caching layer for the API"
+
+# 2. Build the feature
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Implement the caching layer from architect's design"
+
+# 3. Review the implementation
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Review the new caching implementation"
 ```
 
 ### Architect → Review → Refactor
@@ -141,6 +162,27 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 
 # 3. Implement
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh refactor "Extract repository pattern from services"
+```
+
+### Syseng → Architect → Planner
+```bash
+# 1. Assess infrastructure needs
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh syseng "Evaluate current deployment for scaling to 10x traffic"
+
+# 2. Design architecture changes
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Design infrastructure to support 10x scale"
+
+# 3. Create implementation plan
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Create ExecPlan for infrastructure scaling"
+```
+
+### Security → Syseng
+```bash
+# 1. Security audit
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh security "Audit the Kubernetes cluster configuration"
+
+# 2. Infrastructure hardening
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh syseng "Implement security recommendations from audit"
 ```
 
 ## Script Options
@@ -208,7 +250,7 @@ export OPENAI_API_KEY=sk-...
 ```
 
 ### "Profile not found"
-Available profiles: reviewer, debugger, architect, security, refactor, docs, planner
+Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder
 
 Check profile exists:
 ```bash

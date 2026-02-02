@@ -3,7 +3,7 @@
 # Usage: codex-exec.sh <profile> "<prompt>" [options]
 # Example: codex-exec.sh reviewer "Review auth.ts for security issues"
 #
-# Profiles: reviewer, debugger, architect, security, refactor, docs
+# Profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder
 
 set -e
 
@@ -26,6 +26,9 @@ show_usage() {
     echo "  security   - Security audit specialist"
     echo "  refactor   - Code refactoring specialist"
     echo "  docs       - Documentation specialist"
+    echo "  planner    - ExecPlan design document specialist"
+    echo "  syseng     - Infrastructure/DevOps/CI-CD specialist"
+    echo "  builder    - Greenfield implementation specialist"
     echo ""
     echo "Options:"
     echo "  --model <model>     Override model (default: o3-mini)"
@@ -51,7 +54,7 @@ shift 2
 AGENTS_FILE="$AGENTS_DIR/$PROFILE.md"
 if [ ! -f "$AGENTS_FILE" ]; then
     echo -e "${RED}Error: Profile '$PROFILE' not found${NC}"
-    echo "Available profiles: reviewer, debugger, architect, security, refactor, docs"
+    echo "Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder"
     exit 1
 fi
 
