@@ -117,7 +117,8 @@ cleanup() {
 trap cleanup EXIT
 
 # Build codex command
-CODEX_CMD="codex exec --sandbox $SANDBOX"
+# --skip-git-repo-check allows running in directories not in Codex's trusted list
+CODEX_CMD="codex exec --skip-git-repo-check --sandbox $SANDBOX"
 if [ -n "$MODEL" ]; then
     CODEX_CMD="$CODEX_CMD --model $MODEL"
 fi
