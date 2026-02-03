@@ -334,7 +334,7 @@ Systematically audits implementation plans:
 - **mcp-server-manager** - Configure and manage MCP servers in Claude Code
 - **netlify-integration** - Deploy and manage Netlify projects with Next.js serverless functions, environment variables, and continuous deployment
 - **parakeet** - Local speech-to-text using NVIDIA Parakeet TDT 0.6B (~600MB, 100% offline). 3,386x realtime speed, 6.05% WER. Transcribe audio files (.wav, .mp3, .m4a, .flac, .ogg, .aac) or dictate from microphone. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
-- **rlama** ⭐ - Local RAG system for semantic document search. Create knowledge bases from PDFs, markdown, code files. Query documents with natural language. Runs 100% locally with Ollama (default: qwen2.5:7b). Includes resilient indexing that skips context overflow errors, management scripts for create/add/remove/query operations, and `--legacy` flag for llama3.2 compatibility
+- **rlama** ⭐ - Local RAG system for semantic document search. Create knowledge bases from PDFs, markdown, code files. Query documents with natural language. Runs 100% locally with Ollama (default: qwen2.5:7b). Includes resilient indexing that skips context overflow errors, management scripts for create/add/remove/query operations, and `--legacy` flag for llama3.2 compatibility. **NEW**: Progress monitoring with `tail -f ~/.rlama/logs/rlama.log` and `rlama_status.py` for real-time operation tracking with ETA
 - **supabase-skill** - Configure and manage Supabase projects using MCP. Database design, migrations, RLS policies
 - **telnyx-api** - SMS/MMS messaging, voice calls, phone numbers, webhooks, and telephony integration
 - **twilio-api** - Twilio SMS/Voice API integration with provider-agnostic patterns, webhook security, E.164 validation, and error handling
@@ -750,9 +750,10 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-01-30
+**Last Updated**: 2026-02-03
 
 **Recent Changes**:
+- **rlama** ⭐ PROGRESS MONITORING - New centralized logging system with JSON Lines format. Monitor long-running operations with `tail -f ~/.rlama/logs/rlama.log` or `rlama_status.py --follow`. ETA calculation, operations state tracking (active + recent). New scripts: `rlama_logger.py`, `rlama_status.py`, `rlama_batch_ingest.py`, `rlama_dedupe.py`
 - **parakeet** NEW - Local speech-to-text using NVIDIA Parakeet TDT 0.6B. Transcribe audio files or dictate from microphone with 3,386x realtime speed and 6.05% WER. Supports .wav, .mp3, .m4a, .flac, .ogg, .aac formats. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
 - **rlama** UPGRADED - Default model changed to `qwen2.5:7b` (better reasoning). Use `--legacy` flag for old `llama3.2` default. New `rlama_resilient.py` script processes files individually, skipping context overflow errors instead of aborting entire runs. Improved error handling: full error messages, KeyboardInterrupt support, Python 3.9 compatibility
 - **claude-session-tracker** FIX - Fixed race condition in crash recovery detection by awaiting terminal watcher initialization before checking for recoverable sessions

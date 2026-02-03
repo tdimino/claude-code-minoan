@@ -1,28 +1,47 @@
 #!/usr/bin/env python3
 """
-RLAMA Resilient Indexing Script - Processes files individually, skipping failures.
+RLAMA Resilient Indexing Script - Fast batch processing with graceful error handling.
 
-Unlike the standard RLAMA CLI which aborts on errors, this script continues
-processing when individual files fail (e.g., due to embedding context overflow).
+Uses a Pre-Filter + Batch approach for speed:
+1. Estimates which files are "safe" (unlikely to exceed context limits)
+2. Processes safe files in ONE batch call (fast!)
+3. Only processes large/risky files individually
+
+Optional parallel processing with --parallel N flag.
 
 Usage:
     python3 rlama_resilient.py create my-rag ~/Documents
     python3 rlama_resilient.py create my-rag ~/Research --docs-only
-    python3 rlama_resilient.py add my-rag ./more-docs
-    python3 rlama_resilient.py add my-rag ~/Papers --docs-only --chunk-size 500
+    python3 rlama_resilient.py create my-rag ~/Code --parallel 4
+    python3 rlama_resilient.py add my-rag ./more-docs --parallel 8
 """
 
 import argparse
+import shutil
 import subprocess
 import sys
 import os
 import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
+
+# Import logger (optional - graceful fallback if not available)
+try:
+    from rlama_logger import get_logger
+    LOGGER_AVAILABLE = True
+except ImportError:
+    LOGGER_AVAILABLE = False
 
 # Default model (qwen2.5:7b as of Jan 2026)
 DEFAULT_MODEL = 'qwen2.5:7b'
 LEGACY_MODEL = 'llama3.2'
+
+# Token estimation: ~4 characters per token on average
+# Default context is 4096 tokens, so ~16KB is the danger zone
+# We use a conservative threshold of 12KB (~3000 tokens) for "safe" files
+DEFAULT_SAFE_THRESHOLD_KB = 12
 
 # Supported file extensions by RLAMA
 SUPPORTED_EXTENSIONS = {
@@ -52,6 +71,24 @@ FATAL_ERRORS = [
     'connection refused',
     'ollama not running',
 ]
+
+
+def estimate_tokens(file_path: Path) -> int:
+    """Estimate token count from file size (~4 chars per token)."""
+    try:
+        size_bytes = file_path.stat().st_size
+        return size_bytes // 4
+    except OSError:
+        return 0
+
+
+def is_safe_file(file_path: Path, threshold_kb: int = DEFAULT_SAFE_THRESHOLD_KB) -> bool:
+    """Check if file is likely safe (won't exceed context limits)."""
+    threshold_bytes = threshold_kb * 1024
+    try:
+        return file_path.stat().st_size < threshold_bytes
+    except OSError:
+        return True  # Assume safe if can't read
 
 
 def safe_relative_path(file_path: Path, base_folder: Path) -> str:
@@ -134,70 +171,119 @@ def run_rlama_command(args: List[str], timeout: int = 300) -> Tuple[str, str, in
         return '', f'Unexpected error: {str(e)}', 1
 
 
-def create_initial_rag(
-    rag_name: str,
-    model: str,
-    chunking: str,
-    chunk_size: int,
-    chunk_overlap: int,
-) -> bool:
-    """Create an initial RAG with a dummy file to establish the RAG structure."""
+def verify_rag_exists(rag_name: str) -> bool:
+    """Verify that a RAG exists by checking rlama list output."""
+    stdout, stderr, code = run_rlama_command(['list'], timeout=30)
+    if code != 0:
+        return False
+    return rag_name in stdout
 
-    # Create a temporary file with minimal content
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-        f.write('Initial RAG setup file. This can be removed.')
-        temp_file = f.name
+
+def create_batch_folder(files: List[Path], temp_dir: str) -> str:
+    """Create a temp folder with symlinks to the given files."""
+    for f in files:
+        link_path = os.path.join(temp_dir, f.name)
+        # Handle duplicate filenames by adding parent folder
+        if os.path.exists(link_path):
+            parent = f.parent.name
+            link_path = os.path.join(temp_dir, f'{parent}_{f.name}')
+        try:
+            os.symlink(str(f.resolve()), link_path)
+        except OSError:
+            # Fallback: copy file if symlink fails
+            shutil.copy2(str(f), link_path)
+    return temp_dir
+
+
+def process_batch(
+    rag_name: str,
+    files: List[Path],
+    is_create: bool = False,
+    model: str = DEFAULT_MODEL,
+    chunking: str = 'hybrid',
+    chunk_size: int = 1000,
+    chunk_overlap: int = 200,
+) -> Tuple[bool, str, List[Path]]:
+    """
+    Process a batch of files in one rlama call.
+    Returns (success, error_message, failed_files).
+    """
+    if not files:
+        return True, '', []
+
+    temp_dir = tempfile.mkdtemp(prefix='rlama_batch_')
 
     try:
-        cmd = [
-            'rag', model, rag_name, temp_file,
-            '--chunking', chunking,
-            '--chunk-size', str(chunk_size),
-            '--chunk-overlap', str(chunk_overlap),
-        ]
+        create_batch_folder(files, temp_dir)
 
-        stdout, stderr, code = run_rlama_command(cmd, timeout=120)
+        if is_create:
+            cmd = [
+                'rag', model, rag_name, temp_dir,
+                '--chunking', chunking,
+                '--chunk-size', str(chunk_size),
+                '--chunk-overlap', str(chunk_overlap),
+            ]
+        else:
+            cmd = ['add-docs', rag_name, temp_dir]
 
-        if code != 0:
-            if is_fatal_error(stderr):
-                print(f'Fatal error creating RAG: {stderr}', file=sys.stderr)
-                return False
-            print(f'Warning during RAG creation: {stderr}', file=sys.stderr)
+        stdout, stderr, code = run_rlama_command(cmd, timeout=600)
 
-        return True
+        if code == 0:
+            return True, '', []
+
+        # Try to identify which file failed from error message
+        failed_files = []
+        for f in files:
+            if f.name in stderr:
+                failed_files.append(f)
+
+        # If we can't identify specific files, return all as potentially failed
+        if not failed_files:
+            failed_files = files
+
+        return False, stderr, failed_files
+
     finally:
-        # Clean up temp file (ignore errors if already deleted)
-        try:
-            os.unlink(temp_file)
-        except OSError:
-            pass
+        # Clean up temp directory
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def add_single_file(rag_name: str, file_path: Path) -> Tuple[bool, str]:
-    """Add a single file to the RAG. Returns (success, error_message)."""
+    """Add a single file to the RAG. Returns (success, error_message).
 
-    cmd = ['add-docs', rag_name, str(file_path)]
-    stdout, stderr, code = run_rlama_command(cmd, timeout=120)
-
-    if code == 0:
-        return True, ''
-
-    return False, stderr
-
-
-def _process_files(rag_name: str, files: List[Path], base_folder: Path) -> Tuple[int, int, List[str], Optional[str]]:
+    Note: rlama add-docs requires a folder path, so we create a temp directory
+    with a symlink to the single file.
     """
-    Process files one by one, returning (added, skipped, skipped_files, fatal_error).
+    temp_dir = tempfile.mkdtemp(prefix='rlama_add_')
+    temp_link = os.path.join(temp_dir, file_path.name)
 
-    If fatal_error is not None, processing was aborted due to a fatal error.
-    """
+    try:
+        os.symlink(str(file_path.resolve()), temp_link)
+
+        cmd = ['add-docs', rag_name, temp_dir]
+        stdout, stderr, code = run_rlama_command(cmd, timeout=120)
+
+        if code == 0:
+            return True, ''
+
+        return False, stderr
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def process_files_sequential(
+    rag_name: str,
+    files: List[Path],
+    base_folder: Path
+) -> Tuple[int, int, List[str]]:
+    """Process files one by one sequentially."""
     added = 0
     skipped = 0
     skipped_files = []
 
     for i, file_path in enumerate(files, 1):
         rel_path = safe_relative_path(file_path, base_folder)
-        print(f'[{i}/{len(files)}] {rel_path}...', end=' ', flush=True)
+        print(f'  [{i}/{len(files)}] {rel_path}...', end=' ', flush=True)
 
         success, error = add_single_file(rag_name, file_path)
 
@@ -207,30 +293,76 @@ def _process_files(rag_name: str, files: List[Path], base_folder: Path) -> Tuple
         else:
             if is_fatal_error(error):
                 print(f'\nFatal error: {error}', file=sys.stderr)
-                return added, skipped, skipped_files, error
+                return added, skipped, skipped_files
             elif is_skippable_error(error):
                 print('⚠ skipped (context overflow)')
-                skipped += 1
-                skipped_files.append(rel_path)
             else:
-                # Show full error for debugging (don't truncate)
                 print('⚠ skipped')
                 print(f'    Error: {error}', file=sys.stderr)
+            skipped += 1
+            skipped_files.append(rel_path)
+
+    return added, skipped, skipped_files
+
+
+def process_files_parallel(
+    rag_name: str,
+    files: List[Path],
+    base_folder: Path,
+    workers: int = 4
+) -> Tuple[int, int, List[str]]:
+    """Process files in parallel using ThreadPoolExecutor."""
+    added = 0
+    skipped = 0
+    skipped_files = []
+
+    print(f'  Processing {len(files)} files with {workers} parallel workers...')
+
+    def process_one(file_path: Path) -> Tuple[Path, bool, str]:
+        success, error = add_single_file(rag_name, file_path)
+        return file_path, success, error
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(process_one, f): f for f in files}
+
+        for i, future in enumerate(as_completed(futures), 1):
+            file_path, success, error = future.result()
+            rel_path = safe_relative_path(file_path, base_folder)
+
+            if success:
+                print(f'  [{i}/{len(files)}] {rel_path}... ✓')
+                added += 1
+            else:
+                if is_fatal_error(error):
+                    print(f'\nFatal error on {rel_path}: {error}', file=sys.stderr)
+                    # Cancel remaining futures
+                    for f in futures:
+                        f.cancel()
+                    break
+                elif is_skippable_error(error):
+                    print(f'  [{i}/{len(files)}] {rel_path}... ⚠ skipped (context overflow)')
+                else:
+                    print(f'  [{i}/{len(files)}] {rel_path}... ⚠ skipped')
                 skipped += 1
                 skipped_files.append(rel_path)
 
-    return added, skipped, skipped_files, None
+    return added, skipped, skipped_files
 
 
-def _print_summary(added: int, skipped: int, skipped_files: List[str]) -> None:
+def _print_summary(added: int, skipped: int, skipped_files: List[str], batch_added: int = 0) -> None:
     """Print processing summary."""
     print()
-    print(f'Done! Added {added} files, skipped {skipped} files')
+    total_added = batch_added + added
+    print(f'Done! Added {total_added} files, skipped {skipped} files')
+    if batch_added > 0:
+        print(f'  (batch: {batch_added}, individual: {added})')
 
     if skipped_files:
         print(f'\nSkipped files:')
-        for f in skipped_files:
+        for f in skipped_files[:20]:  # Limit to first 20
             print(f'  - {f}')
+        if len(skipped_files) > 20:
+            print(f'  ... and {len(skipped_files) - 20} more')
 
 
 def resilient_create(
@@ -244,8 +376,15 @@ def resilient_create(
     process_exts: Optional[List[str]] = None,
     exclude_exts: Optional[List[str]] = None,
     exclude_dirs: Optional[List[str]] = None,
+    safe_threshold_kb: int = DEFAULT_SAFE_THRESHOLD_KB,
+    parallel: int = 0,
 ) -> dict:
-    """Create a RAG, processing files individually and skipping failures."""
+    """Create a RAG using Pre-Filter + Batch approach for speed."""
+
+    # Initialize logger if available
+    logger = get_logger() if LOGGER_AVAILABLE else None
+    op_id = None
+    start_time = time.time()
 
     folder = Path(folder_path).expanduser().resolve()
 
@@ -276,37 +415,135 @@ def resilient_create(
             'skipped_files': [],
         }
 
+    # Split files into safe (batch) and large (individual)
+    safe_files = [f for f in files if is_safe_file(f, safe_threshold_kb)]
+    large_files = [f for f in files if not is_safe_file(f, safe_threshold_kb)]
+
     print(f'Found {len(files)} files to index')
+    print(f'  - {len(safe_files)} safe files (batch processing)')
+    print(f'  - {len(large_files)} large files (individual processing)')
     print(f'Creating RAG "{rag_name}" with model {model}...')
     print()
 
-    # Create initial RAG structure
-    if not create_initial_rag(rag_name, model, chunking, chunk_size, chunk_overlap):
+    # Start logging operation
+    if logger:
+        op_id = logger.ingest_start(rag_name, str(folder), len(files))
+
+    batch_added = 0
+    added = 0
+    skipped = 0
+    skipped_files = []
+
+    # Step 1: Process safe files in batch
+    if safe_files:
+        print(f'Step 1: Batch processing {len(safe_files)} safe files...')
+        success, error, failed = process_batch(
+            rag_name, safe_files, is_create=True,
+            model=model, chunking=chunking,
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        )
+
+        if success:
+            batch_added = len(safe_files)
+            print(f'  ✓ Batch processed {batch_added} files')
+            # Log batch progress
+            if logger and op_id:
+                logger.update_progress(op_id, batch_added, len(files), 'batch complete', 'ok')
+        else:
+            if is_fatal_error(error):
+                print(f'Fatal error during batch: {error}', file=sys.stderr)
+                if logger and op_id:
+                    logger.complete_operation(op_id, success=False, summary={'error': error[:100]})
+                return {
+                    'success': False,
+                    'error': error,
+                    'added': 0,
+                    'skipped': 0,
+                    'skipped_files': [],
+                }
+
+            # Batch failed - fall back to individual processing
+            print(f'  ⚠ Batch failed, falling back to individual processing...')
+            print(f'    Error: {error[:200]}...' if len(error) > 200 else f'    Error: {error}')
+
+            # Create RAG with first safe file, then add rest individually
+            if safe_files:
+                first_file = safe_files[0]
+                temp_dir = tempfile.mkdtemp(prefix='rlama_init_')
+                try:
+                    os.symlink(str(first_file.resolve()), os.path.join(temp_dir, first_file.name))
+                    cmd = [
+                        'rag', model, rag_name, temp_dir,
+                        '--chunking', chunking,
+                        '--chunk-size', str(chunk_size),
+                        '--chunk-overlap', str(chunk_overlap),
+                    ]
+                    stdout, stderr, code = run_rlama_command(cmd, timeout=120)
+                    if code == 0:
+                        batch_added = 1
+                        safe_files = safe_files[1:]  # Remove first file
+                finally:
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+
+            # Add remaining safe files to large_files for individual processing
+            large_files = safe_files + large_files
+    else:
+        # No safe files - create RAG with first large file
+        if large_files:
+            first_file = large_files[0]
+            temp_dir = tempfile.mkdtemp(prefix='rlama_init_')
+            try:
+                os.symlink(str(first_file.resolve()), os.path.join(temp_dir, first_file.name))
+                cmd = [
+                    'rag', model, rag_name, temp_dir,
+                    '--chunking', chunking,
+                    '--chunk-size', str(chunk_size),
+                    '--chunk-overlap', str(chunk_overlap),
+                ]
+                stdout, stderr, code = run_rlama_command(cmd, timeout=120)
+                if code == 0:
+                    batch_added = 1
+                    large_files = large_files[1:]
+                else:
+                    skipped += 1
+                    skipped_files.append(safe_relative_path(first_file, folder))
+                    large_files = large_files[1:]
+            finally:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+
+    # Verify RAG was created
+    if not verify_rag_exists(rag_name):
         return {
             'success': False,
-            'error': 'Failed to create initial RAG structure',
-            'added': 0,
-            'skipped': 0,
-            'skipped_files': [],
-        }
-
-    # Process files
-    added, skipped, skipped_files, fatal_error = _process_files(rag_name, files, folder)
-
-    if fatal_error:
-        return {
-            'success': False,
-            'error': fatal_error,
-            'added': added,
+            'error': f'Failed to create RAG "{rag_name}"',
+            'added': batch_added,
             'skipped': skipped,
             'skipped_files': skipped_files,
         }
 
-    _print_summary(added, skipped, skipped_files)
+    # Step 2: Process large files individually
+    if large_files:
+        print(f'\nStep 2: Processing {len(large_files)} large files individually...')
+
+        if parallel > 0:
+            a, s, sf = process_files_parallel(rag_name, large_files, folder, parallel)
+        else:
+            a, s, sf = process_files_sequential(rag_name, large_files, folder)
+
+        added += a
+        skipped += s
+        skipped_files.extend(sf)
+
+    _print_summary(added, skipped, skipped_files, batch_added)
+
+    # Log completion
+    if logger and op_id:
+        elapsed = time.time() - start_time
+        logger.ingest_complete(op_id, batch_added + added, skipped, elapsed)
 
     return {
         'success': True,
-        'added': added,
+        'added': batch_added + added,
         'skipped': skipped,
         'skipped_files': skipped_files,
     }
@@ -319,8 +556,25 @@ def resilient_add(
     process_exts: Optional[List[str]] = None,
     exclude_exts: Optional[List[str]] = None,
     exclude_dirs: Optional[List[str]] = None,
+    safe_threshold_kb: int = DEFAULT_SAFE_THRESHOLD_KB,
+    parallel: int = 0,
 ) -> dict:
-    """Add files to an existing RAG, processing individually and skipping failures."""
+    """Add files to an existing RAG using Pre-Filter + Batch approach."""
+
+    # Initialize logger if available
+    logger = get_logger() if LOGGER_AVAILABLE else None
+    op_id = None
+    start_time = time.time()
+
+    # Verify RAG exists before attempting to add files
+    if not verify_rag_exists(rag_name):
+        return {
+            'success': False,
+            'error': f'RAG "{rag_name}" does not exist. Create it first with "create" command.',
+            'added': 0,
+            'skipped': 0,
+            'skipped_files': [],
+        }
 
     folder = Path(folder_path).expanduser().resolve()
 
@@ -369,26 +623,75 @@ def resilient_add(
             'skipped_files': [],
         }
 
+    # Split files into safe (batch) and large (individual)
+    safe_files = [f for f in files if is_safe_file(f, safe_threshold_kb)]
+    large_files = [f for f in files if not is_safe_file(f, safe_threshold_kb)]
+
     print(f'Found {len(files)} files to add to "{rag_name}"')
+    print(f'  - {len(safe_files)} safe files (batch processing)')
+    print(f'  - {len(large_files)} large files (individual processing)')
     print()
 
-    # Process files
-    added, skipped, skipped_files, fatal_error = _process_files(rag_name, files, folder)
+    # Start logging operation
+    if logger:
+        op_id = logger.ingest_start(rag_name, str(folder), len(files))
 
-    if fatal_error:
-        return {
-            'success': False,
-            'error': fatal_error,
-            'added': added,
-            'skipped': skipped,
-            'skipped_files': skipped_files,
-        }
+    batch_added = 0
+    added = 0
+    skipped = 0
+    skipped_files = []
 
-    _print_summary(added, skipped, skipped_files)
+    # Step 1: Process safe files in batch
+    if safe_files:
+        print(f'Step 1: Batch processing {len(safe_files)} safe files...')
+        success, error, failed = process_batch(rag_name, safe_files, is_create=False)
+
+        if success:
+            batch_added = len(safe_files)
+            print(f'  ✓ Batch processed {batch_added} files')
+            # Log batch progress
+            if logger and op_id:
+                logger.update_progress(op_id, batch_added, len(files), 'batch complete', 'ok')
+        else:
+            if is_fatal_error(error):
+                print(f'Fatal error during batch: {error}', file=sys.stderr)
+                if logger and op_id:
+                    logger.complete_operation(op_id, success=False, summary={'error': error[:100]})
+                return {
+                    'success': False,
+                    'error': error,
+                    'added': 0,
+                    'skipped': 0,
+                    'skipped_files': [],
+                }
+
+            # Batch failed - add safe files to individual processing
+            print(f'  ⚠ Batch failed, falling back to individual processing...')
+            large_files = safe_files + large_files
+
+    # Step 2: Process large files individually
+    if large_files:
+        print(f'\nStep 2: Processing {len(large_files)} files individually...')
+
+        if parallel > 0:
+            a, s, sf = process_files_parallel(rag_name, large_files, folder, parallel)
+        else:
+            a, s, sf = process_files_sequential(rag_name, large_files, folder)
+
+        added += a
+        skipped += s
+        skipped_files.extend(sf)
+
+    _print_summary(added, skipped, skipped_files, batch_added)
+
+    # Log completion
+    if logger and op_id:
+        elapsed = time.time() - start_time
+        logger.ingest_complete(op_id, batch_added + added, skipped, elapsed)
 
     return {
         'success': True,
-        'added': added,
+        'added': batch_added + added,
         'skipped': skipped,
         'skipped_files': skipped_files,
     }
@@ -396,24 +699,24 @@ def resilient_add(
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Resilient RLAMA indexing - skips problem files instead of aborting',
+        description='Fast resilient RLAMA indexing with Pre-Filter + Batch approach',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Commands:
-  create   Create a new RAG, processing files individually
-  add      Add documents to an existing RAG, skipping failures
+  create   Create a new RAG with resilient batch processing
+  add      Add documents to an existing RAG
 
 Examples:
   %(prog)s create my-rag ~/Documents
   %(prog)s create my-rag ~/Research --docs-only
-  %(prog)s create my-rag ~/Code --legacy --exclude-dirs node_modules dist
-  %(prog)s add my-rag ./more-docs
-  %(prog)s add my-rag ~/Papers --docs-only
+  %(prog)s create my-rag ~/Code --parallel 4
+  %(prog)s add my-rag ./more-docs --parallel 8
 
-Unlike standard rlama commands, this script:
-- Processes files one at a time
-- Skips files that fail (e.g., due to embedding context overflow)
-- Reports a summary of what succeeded and what was skipped
+Speed optimization:
+- Files under 12KB are batched together (one fast call)
+- Files over 12KB are processed individually (avoids context overflow)
+- Use --parallel N for concurrent individual file processing
+- Use --safe-threshold to adjust the batch/individual cutoff
 '''
     )
 
@@ -441,6 +744,10 @@ Unlike standard rlama commands, this script:
         help='Exclude these file extensions')
     create_parser.add_argument('--exclude-dirs', nargs='+',
         help='Exclude these directories')
+    create_parser.add_argument('--safe-threshold', type=int, default=DEFAULT_SAFE_THRESHOLD_KB,
+        help=f'Files under this size (KB) are batched (default: {DEFAULT_SAFE_THRESHOLD_KB})')
+    create_parser.add_argument('--parallel', '-p', type=int, default=0,
+        help='Number of parallel workers for individual files (default: 0 = sequential)')
 
     # Add command
     add_parser = subparsers.add_parser('add', help='Add documents to a RAG (resilient mode)')
@@ -454,6 +761,10 @@ Unlike standard rlama commands, this script:
         help='Exclude these file extensions')
     add_parser.add_argument('--exclude-dirs', nargs='+',
         help='Exclude these directories')
+    add_parser.add_argument('--safe-threshold', type=int, default=DEFAULT_SAFE_THRESHOLD_KB,
+        help=f'Files under this size (KB) are batched (default: {DEFAULT_SAFE_THRESHOLD_KB})')
+    add_parser.add_argument('--parallel', '-p', type=int, default=0,
+        help='Number of parallel workers for individual files (default: 0 = sequential)')
 
     args = parser.parse_args()
 
@@ -482,6 +793,8 @@ Unlike standard rlama commands, this script:
             process_exts=args.process_exts,
             exclude_exts=args.exclude_exts,
             exclude_dirs=args.exclude_dirs,
+            safe_threshold_kb=args.safe_threshold,
+            parallel=args.parallel,
         )
 
         sys.exit(0 if result['success'] else 1)
@@ -497,6 +810,8 @@ Unlike standard rlama commands, this script:
             process_exts=args.process_exts,
             exclude_exts=args.exclude_exts,
             exclude_dirs=args.exclude_dirs,
+            safe_threshold_kb=args.safe_threshold,
+            parallel=args.parallel,
         )
 
         sys.exit(0 if result['success'] else 1)

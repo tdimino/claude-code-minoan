@@ -345,6 +345,73 @@ python3 ~/.claude/skills/rlama/scripts/rlama_resilient.py create my-rag ~/Docs -
 
 The script reports which files were added and which were skipped due to errors.
 
+## Progress Monitoring
+
+Monitor long-running RLAMA operations in real-time using the logging system.
+
+### Tail the Log File
+
+```bash
+# Watch all operations in real-time
+tail -f ~/.rlama/logs/rlama.log
+
+# Filter by RAG name
+tail -f ~/.rlama/logs/rlama.log | grep my-rag
+
+# Pretty-print with jq
+tail -f ~/.rlama/logs/rlama.log | jq -r '"\(.ts) [\(.cat)] \(.msg)"'
+
+# Show only progress updates
+tail -f ~/.rlama/logs/rlama.log | jq -r 'select(.data.i) | "\(.ts) [\(.cat)] \(.data.i)/\(.data.total) \(.data.file // .data.status)"'
+```
+
+### Check Operation Status
+
+```bash
+# Show active operations
+python3 ~/.claude/skills/rlama/scripts/rlama_status.py
+
+# Show recent completed operations
+python3 ~/.claude/skills/rlama/scripts/rlama_status.py --recent
+
+# Show both active and recent
+python3 ~/.claude/skills/rlama/scripts/rlama_status.py --all
+
+# Follow mode (formatted tail -f)
+python3 ~/.claude/skills/rlama/scripts/rlama_status.py --follow
+
+# JSON output
+python3 ~/.claude/skills/rlama/scripts/rlama_status.py --json
+```
+
+### Log File Format
+
+Logs are written in JSON Lines format to `~/.rlama/logs/rlama.log`:
+
+```json
+{"ts": "2026-02-03T12:34:56.789", "level": "info", "cat": "INGEST", "msg": "Progress 45/100", "data": {"op_id": "ingest_abc123", "i": 45, "total": 100, "file": "doc.pdf", "eta_sec": 85}}
+```
+
+### Operations State
+
+Active and recent operations are tracked in `~/.rlama/logs/operations.json`:
+
+```json
+{
+  "active": {
+    "ingest_abc123": {
+      "type": "ingest",
+      "rag_name": "my-docs",
+      "started": "2026-02-03T12:30:00",
+      "processed": 45,
+      "total": 100,
+      "eta_sec": 85
+    }
+  },
+  "recent": [...]
+}
+```
+
 ## Troubleshooting
 
 ### "Ollama not found"
