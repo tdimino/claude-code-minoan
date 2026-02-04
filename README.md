@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-30-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-31-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -49,6 +49,7 @@ claude-code-minoan/
 │   │   ├── nano-banana-pro/         # Gemini 3 Pro AI image generation
 │   │   ├── photo-to-slack-emoji/    # Photo to Slack emoji converter
 │   │   ├── rocaille-shader/         # Domain warping shader generator
+│   │   ├── smolvlm/                # Local vision-language model (SmolVLM-2B)
 │   │   └── speak-response/          # Local TTS with Qwen3-TTS (Oracle voice)
 │   ├── research/                # Research tools
 │   │   ├── academic-research/       # Academic paper search with Exa + ArXiv
@@ -346,6 +347,7 @@ Systematically audits implementation plans:
 - **nano-banana-pro** - Generate and edit high-quality images using Google's Nano Banana Pro (Gemini 3 Pro Image) AI model. Supports up to 4K resolution, multiple aspect ratios, and advanced prompting
 - **photo-to-slack-emoji** - Transform photos into Slack-optimized emojis using Nano Banana Pro AI (10 styles, auto-optimization for 64KB limit)
 - **rocaille-shader** - Generate Rocaille-style domain warping shaders with sinusoidal displacement. Creates organic swirling light effects for WebGL/GLSL visualizations, shader art, and procedural backgrounds. Outputs to Shadertoy, Three.js, P5.js, or vanilla WebGL
+- **smolvlm** ⭐ NEW - Local vision-language model using SmolVLM-2B via mlx-vlm. Analyze images locally on Apple Silicon at 87 tok/s with 5.8GB peak memory. Supports image description, OCR, UI analysis, VQA, and code screenshot reading. Commands: `python scripts/view_image.py <image> [prompt]`
 - **speak-response** - Local text-to-speech using Qwen3-TTS. Default Oracle voice (deep, prophetic Dune narrator). Supports voice cloning, voice design, and 9 preset speakers with emotion/mood control. Runs entirely on Apple Silicon
 
 ### Research (`skills/research/`)
@@ -753,6 +755,7 @@ cat ~/.claude/commands/command-name.md
 **Last Updated**: 2026-02-03
 
 **Recent Changes**:
+- **smolvlm** ⭐ NEW - Local vision-language model (SmolVLM-2B) via mlx-vlm. Analyze images at 87 tok/s on Apple Silicon with 5.8GB peak memory. OOM protection, file size guards, robust result extraction. Tasks: description, OCR, UI analysis, VQA, code screenshots
 - **rlama** ⭐ PROGRESS MONITORING - New centralized logging system with JSON Lines format. Monitor long-running operations with `tail -f ~/.rlama/logs/rlama.log` or `rlama_status.py --follow`. ETA calculation, operations state tracking (active + recent). New scripts: `rlama_logger.py`, `rlama_status.py`, `rlama_batch_ingest.py`, `rlama_dedupe.py`
 - **parakeet** NEW - Local speech-to-text using NVIDIA Parakeet TDT 0.6B. Transcribe audio files or dictate from microphone with 3,386x realtime speed and 6.05% WER. Supports .wav, .mp3, .m4a, .flac, .ogg, .aac formats. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
 - **rlama** UPGRADED - Default model changed to `qwen2.5:7b` (better reasoning). Use `--legacy` flag for old `llama3.2` default. New `rlama_resilient.py` script processes files individually, skipping context overflow errors instead of aborting entire runs. Improved error handling: full error messages, KeyboardInterrupt support, Python 3.9 compatibility
@@ -762,7 +765,7 @@ cat ~/.claude/commands/command-name.md
 - **speak-response** - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized
 - **super-ralph-wiggum** - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
 
-**Skills**: 30 skills across 5 categories
+**Skills**: 31 skills across 5 categories
 **Commands**: 30+ slash commands
 **MCP Servers**: 14 configured servers
 
