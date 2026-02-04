@@ -54,12 +54,25 @@ const app = new Firecrawl({ apiKey: 'fc-YOUR_API_KEY' });
 | `prompt` | string | Yes | Natural language description of data to extract (max 10,000 chars) |
 | `urls` | array | No | Optional URLs to focus extraction on specific pages |
 | `schema` | object | No | JSON schema for structured output (Pydantic/Zod) |
-| `model` | string | No | Agent model: `spark-1-mini` (default, 60% cheaper) or `spark-1-pro` (more capable) |
+| `model` | string | No | Agent model: `spark-1-fast`, `spark-1-mini` (default), or `spark-1-pro` |
 | `maxCredits` | integer | No | Maximum credits to spend on this job (budget limit) |
+| `webhook` | string | No | Webhook URL for async job completion notification (v2.8.0+) |
 
 ## Model Selection
 
-Firecrawl offers two agent models:
+Firecrawl offers three agent models:
+
+| Model | Speed | Cost | Best For |
+|-------|-------|------|----------|
+| `spark-1-fast` | Instant | 10 credits/cell | Simple lookups, known data, contact info |
+| `spark-1-mini` | Standard | Default pricing | General extraction (default) |
+| `spark-1-pro` | Thorough | Premium | Complex multi-page research, nuanced data |
+
+### spark-1-fast (v2.8.0+)
+- **Cost**: 10 credits per cell (cheapest)
+- **Speed**: Instant retrieval
+- **Best for**: Straightforward queries, company info, contact details
+- **Use when**: Simple lookups where speed matters most
 
 ### spark-1-mini (Default)
 - **Cost**: 60% cheaper than spark-1-pro
@@ -74,7 +87,13 @@ Firecrawl offers two agent models:
 - **Use when**: High-value extractions, complex navigation, better accuracy needed
 
 ```python
-# Use mini for simple tasks (default)
+# Use fast for simple lookups (cheapest)
+result = app.agent(
+    prompt="What is Anthropic's main product?",
+    model="spark-1-fast"
+)
+
+# Use mini for standard tasks (default)
 result = app.agent(
     prompt="Find company contact info",
     model="spark-1-mini"  # default, can be omitted
@@ -287,6 +306,76 @@ result = app.agent(
     prompt="Find all Jordan basketball shoes with prices and ratings",
     schema=ProductsSchema
 )
+```
+
+## Parallel Agents (v2.8.0+)
+
+Run hundreds or thousands of agent queries simultaneously. Uses **Intelligent Waterfall routing**: starts with spark-1-fast for instant retrieval, auto-escalates to spark-1-mini if the query requires deeper extraction.
+
+### Via CLI
+
+```bash
+# Run multiple queries in parallel
+python3 firecrawl_api.py parallel-agent \
+  "What is Anthropic's main product?" \
+  "Find Stripe's pricing tiers" \
+  "Get OpenAI's founding team"
+
+# With specific model
+python3 firecrawl_api.py parallel-agent \
+  "Query 1" "Query 2" "Query 3" \
+  --model spark-1-fast
+
+# With webhook notification
+python3 firecrawl_api.py parallel-agent \
+  "Query 1" "Query 2" \
+  --webhook "https://your-server.com/callback"
+```
+
+### Via Python SDK
+
+```python
+# Sequential parallel execution
+results = []
+prompts = [
+    "What is Anthropic's main product?",
+    "Find Stripe's pricing tiers",
+    "Get OpenAI's founding team"
+]
+
+for prompt in prompts:
+    result = app.agent(prompt=prompt, model="spark-1-fast")
+    results.append(result)
+```
+
+### Best Use Cases for Parallel Agents
+- Bulk company research (hundreds of companies)
+- Lead enrichment across many prospects
+- Price comparison across many products
+- Contact info extraction at scale
+
+## Agent Webhooks (v2.8.0+)
+
+Receive notifications when async agent jobs complete instead of polling.
+
+```python
+# Start async job with webhook
+agent_job = app.start_agent(
+    prompt="Find all YC W24 AI startups",
+    webhook="https://your-server.com/firecrawl-callback"
+)
+
+# Your webhook endpoint receives a POST with:
+# {
+#   "job_id": "...",
+#   "status": "completed",
+#   "data": { ... }
+# }
+```
+
+```bash
+# Via CLI
+python3 firecrawl_api.py agent "Find AI startups" --async --webhook "https://your-server.com/callback"
 ```
 
 ## Best Practices

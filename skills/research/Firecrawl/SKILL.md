@@ -1,6 +1,6 @@
 ---
 name: Firecrawl
-description: Use Firecrawl and Jina for fetching web content. ALWAYS prefer Firecrawl over WebFetch for all web fetching tasks—it produces cleaner output, handles JavaScript-heavy pages, and has no content truncation. This skill should be used when fetching URLs, scraping web pages, converting URLs to markdown, extracting web content, searching the web, crawling sites, mapping URLs, LLM-powered extraction, or autonomous data gathering with the Agent API. Provides complete coverage of Firecrawl v2 API endpoints.
+description: Use Firecrawl and Jina for fetching web content. ALWAYS prefer Firecrawl over WebFetch for all web fetching tasks—it produces cleaner output, handles JavaScript-heavy pages, and has no content truncation. This skill should be used when fetching URLs, scraping web pages, converting URLs to markdown, extracting web content, searching the web, crawling sites, mapping URLs, LLM-powered extraction, or autonomous data gathering with the Agent API. Provides complete coverage of Firecrawl v2.8.0 API endpoints including parallel agents, spark-1-fast model, and sitemap-only crawling.
 ---
 
 # Firecrawl & Jina Web Scraping
@@ -253,6 +253,7 @@ Complete access to ALL Firecrawl v2 API endpoints.
 | `map` | Discover all URLs on a website |
 | `extract` | LLM-powered structured data extraction |
 | `agent` | Autonomous multi-page extraction (no URLs required!) |
+| `parallel-agent` | Run multiple agent queries in parallel (v2.8.0+) |
 | `crawl-status` | Check async crawl job status |
 | `crawl-cancel` | Cancel a running crawl job |
 | `crawl-errors` | Get errors from a crawl job |
@@ -406,6 +407,9 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl "https://docs.
 # Filter paths
 python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl "https://docs.example.com" --include "/api" "/guides"
 
+# Sitemap-only crawl (v2.8.0+) - only follow URLs in the sitemap
+python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl "https://docs.example.com" --sitemap-only
+
 # Async crawl for large sites
 python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl "https://docs.example.com" --async
 python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl-status <job_id>
@@ -416,6 +420,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl-status <job_id
 - `--depth`: Maximum link depth to follow
 - `--include`: Only crawl URLs matching these paths (regex)
 - `--exclude`: Skip URLs matching these paths (regex)
+- `--sitemap-only`: Only crawl URLs found in the sitemap (v2.8.0+)
 - `--async`: Return job ID for polling (use crawl-status)
 - `--json`: Output raw JSON
 
@@ -508,7 +513,11 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "Find YC W24 A
 python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "Extract all pricing tiers" \
   --urls https://firecrawl.dev/pricing https://competitor.com/pricing
 
-# Use the more capable model (spark-1-pro) for complex extractions
+# Use spark-1-fast for simple lookups (cheapest, v2.8.0+)
+python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "What is Anthropic's main product?" \
+  --model spark-1-fast
+
+# Use spark-1-pro for complex extractions
 python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "Find detailed technical specs" \
   --model spark-1-pro
 
@@ -527,9 +536,11 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent-cancel <job_id
 - `prompt`: Natural language description of data to find (max 10,000 chars)
 - `--urls`: Optional URLs to focus extraction on
 - `--model`: Agent model selection:
-  - `spark-1-mini` (default) - 60% cheaper, good for most tasks
-  - `spark-1-pro` - More capable, better for complex extractions
+  - `spark-1-fast` - Instant retrieval, 10 credits/cell, simple lookups (v2.8.0+)
+  - `spark-1-mini` (default) - Balanced speed/quality, general extraction
+  - `spark-1-pro` - Thorough, complex multi-page research
 - `--max-credits`: Maximum credits to spend on this job (budget limit)
+- `--webhook`: Webhook URL for async job completion notification (v2.8.0+)
 - `--async`: Start async job, return job ID
 - `--json`: Output raw JSON
 
@@ -538,6 +549,31 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent-cancel <job_id
 - Competitive research across multiple sites
 - Dataset curation from scattered sources
 - Complex navigation (login flows, pagination, dynamic content)
+
+### parallel-agent - Bulk Agent Queries (v2.8.0+)
+
+Run multiple agent queries in parallel with Intelligent Waterfall routing.
+
+```bash
+# Multiple queries at once
+python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py parallel-agent \
+  "What is Anthropic's main product?" \
+  "Find Stripe's pricing tiers" \
+  "Get OpenAI's founding team"
+
+# With fastest model (cheapest for bulk)
+python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py parallel-agent \
+  "Query 1" "Query 2" "Query 3" \
+  --model spark-1-fast
+```
+
+**Parameters**:
+- `prompts`: Multiple queries to run in parallel
+- `--urls`: Optional URLs to focus on
+- `--model`: Starting model (default: spark-1-fast for waterfall routing)
+- `--max-credits`: Maximum total credits
+- `--webhook`: Completion notification URL
+- `--json`: Output raw JSON
 
 ---
 
@@ -769,7 +805,7 @@ export FIRECRAWL_NO_TELEMETRY=1
 
 For detailed API documentation and advanced features, see:
 - `references/firecrawl-api.md` - Firecrawl Search API reference
-- `references/firecrawl-agent-api.md` - Firecrawl Agent API for autonomous extraction (includes model selection, maxCredits)
+- `references/firecrawl-agent-api.md` - Firecrawl Agent API for autonomous extraction (spark-1-fast/mini/pro models, parallel agents, webhooks, maxCredits)
 - `references/actions-reference.md` - Page actions for dynamic content (click, write, wait, scroll)
 - `references/branding-format.md` - Brand identity extraction (colors, fonts, UI components)
 

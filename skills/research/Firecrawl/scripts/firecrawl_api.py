@@ -9,7 +9,8 @@ Provides direct API access to ALL Firecrawl v2 endpoints:
 - crawl: Crawl entire sites with link following
 - map: Discover all URLs on a website
 - extract: LLM-powered structured data extraction
-- agent: Autonomous multi-page data extraction
+- agent: Autonomous multi-page data extraction (spark-1-fast/mini/pro)
+- parallel-agent: Run multiple agent queries in parallel (v2.8.0+)
 
 Job management:
 - crawl-status / batch-status / extract-status: Check job status
@@ -227,7 +228,8 @@ def agent(
     schema: Optional[Dict[str, Any]] = None,
     async_mode: bool = False,
     model: str = "spark-1-mini",
-    max_credits: Optional[int] = None
+    max_credits: Optional[int] = None,
+    webhook: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Autonomous web extraction using natural language prompts.
@@ -240,8 +242,12 @@ def agent(
         urls: Optional list of URLs to focus extraction on
         schema: Optional JSON schema for structured output
         async_mode: If True, start job and return job ID for polling
-        model: Agent model - "spark-1-mini" (default, 60% cheaper) or "spark-1-pro" (more capable)
+        model: Agent model:
+            - "spark-1-fast" (instant, 10 credits/cell, simple lookups)
+            - "spark-1-mini" (default, balanced speed/quality)
+            - "spark-1-pro" (thorough, complex multi-page research)
         max_credits: Maximum credits to spend on this agent job (budget limit)
+        webhook: Optional webhook URL for async job completion notification
 
     Returns:
         Dict with extracted data, or job info if async_mode=True
@@ -261,6 +267,8 @@ def agent(
         kwargs["model"] = model
     if max_credits is not None:
         kwargs["maxCredits"] = max_credits
+    if webhook:
+        kwargs["webhook"] = webhook
 
     if async_mode:
         # Start async job
@@ -277,6 +285,67 @@ def agent(
             "success": True,
             "data": result.data if hasattr(result, 'data') else result
         }
+
+
+def parallel_agent(
+    prompts: List[str],
+    urls: Optional[List[str]] = None,
+    model: str = "spark-1-fast",
+    max_credits: Optional[int] = None,
+    webhook: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Run multiple agent queries in parallel (v2.8.0+).
+
+    Uses Intelligent Waterfall routing: starts with spark-1-fast for instant
+    retrieval, auto-escalates to spark-1-mini if needed.
+
+    Args:
+        prompts: List of natural language prompts to run in parallel
+        urls: Optional list of URLs to focus extraction on
+        model: Starting model for waterfall routing (default: spark-1-fast)
+        max_credits: Maximum total credits across all queries
+        webhook: Optional webhook URL for completion notification
+
+    Returns:
+        Dict with results from all parallel queries
+    """
+    if not HAS_FIRECRAWL_SDK:
+        raise RuntimeError("Firecrawl SDK required for parallel agent. Install: pip install firecrawl-py")
+
+    results = []
+    errors = []
+
+    for i, prompt in enumerate(prompts):
+        try:
+            result = agent(
+                prompt=prompt,
+                urls=urls,
+                model=model,
+                max_credits=max_credits,
+                webhook=webhook
+            )
+            results.append({
+                "index": i,
+                "prompt": prompt,
+                "success": True,
+                "data": result.get("data", result)
+            })
+        except Exception as e:
+            errors.append({
+                "index": i,
+                "prompt": prompt,
+                "success": False,
+                "error": str(e)
+            })
+
+    return {
+        "total": len(prompts),
+        "completed": len(results),
+        "failed": len(errors),
+        "results": results,
+        "errors": errors
+    }
 
 
 def cancel_agent(job_id: str) -> Dict[str, Any]:
@@ -328,7 +397,8 @@ def crawl(
     include_paths: Optional[List[str]] = None,
     exclude_paths: Optional[List[str]] = None,
     formats: Optional[List[str]] = None,
-    async_mode: bool = False
+    async_mode: bool = False,
+    sitemap_only: bool = False
 ) -> Dict[str, Any]:
     """
     Crawl an entire website, following links.
@@ -341,6 +411,7 @@ def crawl(
         exclude_paths: Skip URLs matching these paths (regex)
         formats: Output formats for each page
         async_mode: If True, return job ID for polling
+        sitemap_only: If True, only crawl URLs found in the sitemap (v2.8.0+)
 
     Returns:
         Dict with crawled pages, or job info if async_mode=True
@@ -359,6 +430,8 @@ def crawl(
         payload["includePaths"] = include_paths
     if exclude_paths:
         payload["excludePaths"] = exclude_paths
+    if sitemap_only:
+        payload["sitemapOnly"] = True
 
     if HAS_FIRECRAWL_SDK:
         app = _get_app()
@@ -852,12 +925,23 @@ def main():
     agent_parser = subparsers.add_parser("agent", help="Autonomous data extraction")
     agent_parser.add_argument("prompt", help="Natural language description of data to find")
     agent_parser.add_argument("--urls", nargs="+", help="Optional URLs to focus on")
-    agent_parser.add_argument("--model", choices=["spark-1-mini", "spark-1-pro"], default="spark-1-mini",
-                              help="Agent model: spark-1-mini (default, 60%% cheaper) or spark-1-pro (more capable)")
+    agent_parser.add_argument("--model", choices=["spark-1-fast", "spark-1-mini", "spark-1-pro"], default="spark-1-mini",
+                              help="Agent model: spark-1-fast (instant, 10 credits), spark-1-mini (default, balanced), spark-1-pro (thorough)")
     agent_parser.add_argument("--max-credits", type=int, help="Maximum credits to spend on this job")
+    agent_parser.add_argument("--webhook", help="Webhook URL for async job completion notification")
     agent_parser.add_argument("--async", dest="async_mode", action="store_true",
                               help="Start async job, return job ID")
     agent_parser.add_argument("--json", action="store_true", help="Output raw JSON")
+
+    # Parallel agent command (v2.8.0+)
+    parallel_parser = subparsers.add_parser("parallel-agent", help="Run multiple agent queries in parallel")
+    parallel_parser.add_argument("prompts", nargs="+", help="Natural language prompts to run in parallel")
+    parallel_parser.add_argument("--urls", nargs="+", help="Optional URLs to focus on")
+    parallel_parser.add_argument("--model", choices=["spark-1-fast", "spark-1-mini", "spark-1-pro"], default="spark-1-fast",
+                                 help="Starting model (default: spark-1-fast for waterfall routing)")
+    parallel_parser.add_argument("--max-credits", type=int, help="Maximum total credits across all queries")
+    parallel_parser.add_argument("--webhook", help="Webhook URL for completion notification")
+    parallel_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
     # Agent status command
     status_parser = subparsers.add_parser("status", help="Check async agent job status")
@@ -875,6 +959,7 @@ def main():
     crawl_parser.add_argument("--depth", type=int, help="Max link depth")
     crawl_parser.add_argument("--include", nargs="+", help="Include paths (regex)")
     crawl_parser.add_argument("--exclude", nargs="+", help="Exclude paths (regex)")
+    crawl_parser.add_argument("--sitemap-only", action="store_true", help="Only crawl URLs found in sitemap (v2.8.0+)")
     crawl_parser.add_argument("--async", dest="async_mode", action="store_true", help="Async mode")
     crawl_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
@@ -1002,7 +1087,8 @@ def main():
                 urls=args.urls,
                 async_mode=args.async_mode,
                 model=args.model,
-                max_credits=getattr(args, 'max_credits', None)
+                max_credits=getattr(args, 'max_credits', None),
+                webhook=getattr(args, 'webhook', None)
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
@@ -1013,6 +1099,27 @@ def main():
                     print(result['message'])
                 else:
                     print(json.dumps(result.get('data', result), indent=2, default=str))
+
+        elif args.command == "parallel-agent":
+            result = parallel_agent(
+                args.prompts,
+                urls=args.urls,
+                model=args.model,
+                max_credits=getattr(args, 'max_credits', None),
+                webhook=getattr(args, 'webhook', None)
+            )
+            if args.json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                print(f"Parallel Agent Results: {result['completed']}/{result['total']} completed")
+                if result['failed'] > 0:
+                    print(f"Failed: {result['failed']}")
+                for r in result['results']:
+                    print(f"\n--- Query {r['index'] + 1}: {r['prompt'][:80]} ---")
+                    print(json.dumps(r['data'], indent=2, default=str))
+                for e in result['errors']:
+                    print(f"\n--- Query {e['index'] + 1} FAILED: {e['prompt'][:80]} ---")
+                    print(f"Error: {e['error']}")
 
         elif args.command == "agent-cancel":
             result = cancel_agent(args.job_id)
@@ -1036,7 +1143,8 @@ def main():
                 max_depth=args.depth,
                 include_paths=args.include,
                 exclude_paths=args.exclude,
-                async_mode=args.async_mode
+                async_mode=args.async_mode,
+                sitemap_only=getattr(args, 'sitemap_only', False)
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
