@@ -14,7 +14,15 @@ AGENTS_DIR="$SCRIPT_DIR/../agents"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Auto-update check: run version check with auto-update enabled
+echo -e "${BLUE}Checking Codex CLI version...${NC}"
+if ! "$SCRIPT_DIR/codex-version-check.sh" --auto-update; then
+    echo -e "${YELLOW}Warning: Could not verify/update Codex CLI version${NC}"
+fi
+echo ""
 
 show_usage() {
     echo "Usage: codex-exec.sh <profile> \"<prompt>\" [options]"

@@ -55,8 +55,6 @@ Billed at standard API rates.
 | `refactor` | Code cleanup, modernization | Reducing tech debt, improving structure |
 | `docs` | API docs, READMEs, comments | Documentation tasks |
 | `planner` | ExecPlan design documents | Multi-hour tasks, complex features |
-| `builder` | Greenfield implementation | New features, incremental development |
-| `syseng` | Infrastructure, DevOps, CI/CD | Deployment, containers, monitoring |
 
 ## Quick Start
 
@@ -83,12 +81,6 @@ Billed at standard API rates.
 
 # Create execution plan (ExecPlan)
 ./scripts/codex-exec.sh planner "Create an ExecPlan for adding WebSocket support"
-
-# Build new feature from spec
-./scripts/codex-exec.sh builder "Implement user authentication with JWT"
-
-# Continue from previous builder session
-./scripts/codex-exec.sh builder "continue"
 
 # Full-auto mode (no approval prompts)
 ./scripts/codex-exec.sh reviewer "Fix all lint errors" --full-auto
@@ -149,7 +141,7 @@ model = "gpt-5.2-codex"
 ./scripts/codex-exec.sh debugger "Debug the race condition found in cache.ts"
 ```
 
-### Planner → Architect → Builder
+### Planner → Architect → Implement
 
 ```bash
 # 1. Create comprehensive ExecPlan
@@ -158,21 +150,8 @@ model = "gpt-5.2-codex"
 # 2. Validate architecture
 ./scripts/codex-exec.sh architect "Review the auth system ExecPlan for design issues"
 
-# 3. Build (plan guides implementation)
-./scripts/codex-exec.sh builder "Implement milestone 1 from the auth ExecPlan" --full-auto
-```
-
-### Architect → Builder → Reviewer
-
-```bash
-# 1. Design approach
-./scripts/codex-exec.sh architect "Design a caching layer for the API"
-
-# 2. Build the feature
-./scripts/codex-exec.sh builder "Implement the caching layer from architect's design"
-
-# 3. Review the implementation
-./scripts/codex-exec.sh reviewer "Review the new caching implementation"
+# 3. Implement (plan guides execution)
+./scripts/codex-exec.sh refactor "Implement milestone 1 from the auth ExecPlan" --full-auto
 ```
 
 ### Architect → Review → Refactor
@@ -187,51 +166,6 @@ model = "gpt-5.2-codex"
 # 3. Implement
 ./scripts/codex-exec.sh refactor "Extract repository pattern from services"
 ```
-
-## The Builder Profile
-
-The `builder` profile specializes in **greenfield implementation** - creating new features from scratch with incremental progress tracking. It maintains state via `progress.json` for session recovery.
-
-### Builder Principles
-
-1. **Atomic Units** - Build one feature/component at a time
-2. **Verification-First** - Test each piece before moving on
-3. **State Persistence** - Track progress in JSON for session recovery
-4. **Clean Boundaries** - Create files in predictable locations
-5. **Convention Following** - Match existing project patterns
-
-### Task Types
-
-- `build <requirement>` - Create new components/features from specification
-- `continue` - Resume from progress.json file
-- `verify` - Test current implementation state
-- `status` - Show progress state summary
-
-### Progress Tracking
-
-Builder maintains `progress.json` at project root:
-
-```json
-{
-  "task": "Implement user authentication",
-  "status": "in_progress",
-  "features": [
-    {"name": "Login endpoint", "status": "completed"},
-    {"name": "Session middleware", "status": "in_progress"},
-    {"name": "Logout endpoint", "status": "pending"}
-  ],
-  "verification": {"build": true, "tests": true, "lint": true}
-}
-```
-
-### When to Use Builder vs Refactor
-
-| Use Builder | Use Refactor |
-|-------------|--------------|
-| Creating new files/components | Modifying existing code |
-| Implementing new features | Behavior-preserving changes |
-| Building from a spec | Improving structure |
-| Greenfield development | Reducing tech debt |
 
 ## The Planner Profile
 
@@ -279,14 +213,12 @@ codex-orchestrator/
 ├── SKILL.md            # Claude Code skill definition
 ├── agents/             # AGENTS.md persona profiles
 │   ├── architect.md
-│   ├── builder.md      # Greenfield implementation with progress tracking
 │   ├── debugger.md
 │   ├── docs.md
 │   ├── planner.md      # ExecPlan methodology
 │   ├── refactor.md
 │   ├── reviewer.md
-│   ├── security.md
-│   └── syseng.md       # Infrastructure/DevOps
+│   └── security.md
 ├── references/         # Documentation
 │   ├── agents-md-format.md
 │   ├── codex-cli.md
@@ -330,7 +262,7 @@ export OPENAI_API_KEY=sk-...
 
 ### "Profile not found"
 
-Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `builder`, `syseng`
+Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`
 
 Check profiles exist:
 

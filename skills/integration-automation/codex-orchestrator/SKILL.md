@@ -31,6 +31,20 @@ Required:
 - Codex CLI: `npm install -g @openai/codex`
 - API Key: `export OPENAI_API_KEY=sk-...`
 
+## Auto-Update
+
+The skill automatically checks for Codex CLI updates on each invocation and updates if needed. This prevents issues caused by outdated CLI versions.
+
+To manually check/update:
+
+```bash
+# Check version only
+~/.claude/skills/codex-orchestrator/scripts/codex-version-check.sh
+
+# Check and auto-update if needed
+~/.claude/skills/codex-orchestrator/scripts/codex-version-check.sh --auto-update
+```
+
 ## Available Profiles
 
 | Profile | Purpose | Use When |
