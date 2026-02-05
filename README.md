@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-31-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-32-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -38,6 +38,7 @@ claude-code-minoan/
 │   │   ├── figma-mcp/               # Figma design integration
 │   │   ├── mcp-server-manager/      # MCP server configuration
 │   │   ├── netlify-integration/     # Netlify deployment management
+│   │   ├── llama-cpp/                   # ⭐ NEW - Secondary LLM inference with llama.cpp
 │   │   ├── parakeet/                # Local speech-to-text with NVIDIA Parakeet TDT
 │   │   ├── rlama/                   # ⭐ Local RAG system for semantic document search
 │   │   ├── supabase-skill/          # Supabase project management
@@ -332,6 +333,7 @@ Systematically audits implementation plans:
 - **agent-browser** - Browser automation using Vercel's agent-browser CLI. Ref-based selection (@e1, @e2) from accessibility snapshots. Simple Bash commands for navigation, forms, screenshots, scraping
 - **codex-orchestrator** ⭐ - Orchestrate OpenAI Codex CLI with specialized subagents (reviewer, debugger, architect, security, refactor, docs). Each profile injects a custom AGENTS.md persona. Supports chaining patterns (review → debug → fix) and parallel delegation. Works with codex-mini, o3, o4-mini models
 - **figma-mcp** - Convert Figma designs to production code with accurate styling
+- **llama-cpp** ⭐ NEW - Secondary local LLM inference via llama.cpp on Apple Silicon. ~15% faster prompt processing than Ollama, LoRA adapter hot-loading (no merge required), benchmarking scripts, GGUF conversion pipeline, and OpenAI-compatible API server. Shares GGUF model files with Ollama (no duplication). Scripts: `llama_bench.sh`, `llama_serve.sh`, `llama_lora.sh`, `ollama_model_path.sh`, `convert_lora_to_gguf.py`
 - **mcp-server-manager** - Configure and manage MCP servers in Claude Code
 - **netlify-integration** - Deploy and manage Netlify projects with Next.js serverless functions, environment variables, and continuous deployment
 - **parakeet** - Local speech-to-text using NVIDIA Parakeet TDT 0.6B (~600MB, 100% offline). 3,386x realtime speed, 6.05% WER. Transcribe audio files (.wav, .mp3, .m4a, .flac, .ogg, .aac) or dictate from microphone. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
@@ -752,9 +754,10 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-02-03
+**Last Updated**: 2026-02-05
 
 **Recent Changes**:
+- **llama-cpp** ⭐ NEW - Secondary LLM inference engine via llama.cpp. 15% faster prompt processing than Ollama on Apple Silicon (418 vs 362 t/s). LoRA adapter hot-loading, benchmarking, GGUF conversion pipeline, OpenAI-compatible server. Key flags for subprocess use: `--single-turn`, `--simple-io`, `--n-gpu-layers all`
 - **smolvlm** ⭐ NEW - Local vision-language model (SmolVLM-2B) via mlx-vlm. Analyze images at 87 tok/s on Apple Silicon with 5.8GB peak memory. OOM protection, file size guards, robust result extraction. Tasks: description, OCR, UI analysis, VQA, code screenshots
 - **rlama** ⭐ PROGRESS MONITORING - New centralized logging system with JSON Lines format. Monitor long-running operations with `tail -f ~/.rlama/logs/rlama.log` or `rlama_status.py --follow`. ETA calculation, operations state tracking (active + recent). New scripts: `rlama_logger.py`, `rlama_status.py`, `rlama_batch_ingest.py`, `rlama_dedupe.py`
 - **parakeet** NEW - Local speech-to-text using NVIDIA Parakeet TDT 0.6B. Transcribe audio files or dictate from microphone with 3,386x realtime speed and 6.05% WER. Supports .wav, .mp3, .m4a, .flac, .ogg, .aac formats. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
@@ -765,7 +768,7 @@ cat ~/.claude/commands/command-name.md
 - **speak-response** - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized
 - **super-ralph-wiggum** - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
 
-**Skills**: 31 skills across 5 categories
+**Skills**: 32 skills across 5 categories
 **Commands**: 30+ slash commands
 **MCP Servers**: 14 configured servers
 
