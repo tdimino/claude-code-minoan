@@ -1,0 +1,9 @@
+{
+  "name": "beautiful-mermaid-skill",
+  "version": "1.0.0",
+  "description": "Claude Code skill for rendering Mermaid diagrams as ASCII art or SVG",
+  "type": "module",
+  "dependencies": {
+    "beautiful-mermaid": "^0.1.3"
+  }
+}

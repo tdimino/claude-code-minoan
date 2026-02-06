@@ -38,7 +38,8 @@ claude-code-minoan/
 │   │   ├── figma-mcp/               # Figma design integration
 │   │   ├── mcp-server-manager/      # MCP server configuration
 │   │   ├── netlify-integration/     # Netlify deployment management
-│   │   ├── llama-cpp/                   # ⭐ NEW - Secondary LLM inference with llama.cpp
+│   │   ├── llama-cpp/               # ⭐ Secondary LLM inference with llama.cpp
+│   │   ├── beautiful-mermaid/       # ⭐ NEW - Mermaid diagrams as ASCII art or SVG
 │   │   ├── parakeet/                # Local speech-to-text with NVIDIA Parakeet TDT
 │   │   ├── rlama/                   # ⭐ Local RAG system for semantic document search
 │   │   ├── supabase-skill/          # Supabase project management
@@ -333,7 +334,8 @@ Systematically audits implementation plans:
 - **agent-browser** - Browser automation using Vercel's agent-browser CLI. Ref-based selection (@e1, @e2) from accessibility snapshots. Simple Bash commands for navigation, forms, screenshots, scraping
 - **codex-orchestrator** ⭐ - Orchestrate OpenAI Codex CLI with specialized subagents (reviewer, debugger, architect, security, refactor, docs). Each profile injects a custom AGENTS.md persona. Supports chaining patterns (review → debug → fix) and parallel delegation. Works with codex-mini, o3, o4-mini models
 - **figma-mcp** - Convert Figma designs to production code with accurate styling
-- **llama-cpp** ⭐ NEW - Secondary local LLM inference via llama.cpp on Apple Silicon. ~15% faster prompt processing than Ollama, LoRA adapter hot-loading (no merge required), benchmarking scripts, GGUF conversion pipeline, and OpenAI-compatible API server. Shares GGUF model files with Ollama (no duplication). Scripts: `llama_bench.sh`, `llama_serve.sh`, `llama_lora.sh`, `ollama_model_path.sh`, `convert_lora_to_gguf.py`
+- **llama-cpp** ⭐ - Secondary local LLM inference via llama.cpp on Apple Silicon. ~15% faster prompt processing than Ollama, LoRA adapter hot-loading (no merge required), benchmarking scripts, GGUF conversion pipeline, and OpenAI-compatible API server. Shares GGUF model files with Ollama (no duplication). Scripts: `llama_bench.sh`, `llama_serve.sh`, `llama_lora.sh`, `ollama_model_path.sh`, `convert_lora_to_gguf.py`
+- **beautiful-mermaid** ⭐ NEW - Render Mermaid diagrams as ASCII/Unicode art for terminal or SVG files. Supports flowcharts, state diagrams, sequence diagrams, class diagrams, and ER diagrams. 15 built-in themes (tokyo-night, catppuccin, nord, dracula, etc.). Based on beautiful-mermaid npm package by Craft.
 - **mcp-server-manager** - Configure and manage MCP servers in Claude Code
 - **netlify-integration** - Deploy and manage Netlify projects with Next.js serverless functions, environment variables, and continuous deployment
 - **parakeet** - Local speech-to-text using NVIDIA Parakeet TDT 0.6B (~600MB, 100% offline). 3,386x realtime speed, 6.05% WER. Transcribe audio files (.wav, .mp3, .m4a, .flac, .ogg, .aac) or dictate from microphone. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
@@ -754,11 +756,12 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-02-05
+**Last Updated**: 2026-02-06
 
 **Recent Changes**:
-- **llama-cpp** ⭐ NEW - Secondary LLM inference engine via llama.cpp. 15% faster prompt processing than Ollama on Apple Silicon (418 vs 362 t/s). LoRA adapter hot-loading, benchmarking, GGUF conversion pipeline, OpenAI-compatible server. Key flags for subprocess use: `--single-turn`, `--simple-io`, `--n-gpu-layers all`
-- **smolvlm** ⭐ NEW - Local vision-language model (SmolVLM-2B) via mlx-vlm. Analyze images at 87 tok/s on Apple Silicon with 5.8GB peak memory. OOM protection, file size guards, robust result extraction. Tasks: description, OCR, UI analysis, VQA, code screenshots
+- **beautiful-mermaid** ⭐ NEW - Render Mermaid diagrams as ASCII/Unicode art (terminal) or SVG (files). 15 themes, 5 diagram types (flowchart, state, sequence, class, ER). Based on beautiful-mermaid npm package by Craft.
+- **llama-cpp** ⭐ - Secondary LLM inference engine via llama.cpp. 15% faster prompt processing than Ollama on Apple Silicon (418 vs 362 t/s). LoRA adapter hot-loading, benchmarking, GGUF conversion pipeline, OpenAI-compatible server. Key flags for subprocess use: `--single-turn`, `--simple-io`, `--n-gpu-layers all`
+- **smolvlm** ⭐ - Local vision-language model (SmolVLM-2B) via mlx-vlm. Analyze images at 87 tok/s on Apple Silicon with 5.8GB peak memory. OOM protection, file size guards, robust result extraction. Tasks: description, OCR, UI analysis, VQA, code screenshots
 - **rlama** ⭐ PROGRESS MONITORING - New centralized logging system with JSON Lines format. Monitor long-running operations with `tail -f ~/.rlama/logs/rlama.log` or `rlama_status.py --follow`. ETA calculation, operations state tracking (active + recent). New scripts: `rlama_logger.py`, `rlama_status.py`, `rlama_batch_ingest.py`, `rlama_dedupe.py`
 - **parakeet** NEW - Local speech-to-text using NVIDIA Parakeet TDT 0.6B. Transcribe audio files or dictate from microphone with 3,386x realtime speed and 6.05% WER. Supports .wav, .mp3, .m4a, .flac, .ogg, .aac formats. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
 - **rlama** UPGRADED - Default model changed to `qwen2.5:7b` (better reasoning). Use `--legacy` flag for old `llama3.2` default. New `rlama_resilient.py` script processes files individually, skipping context overflow errors instead of aborting entire runs. Improved error handling: full error messages, KeyboardInterrupt support, Python 3.9 compatibility
