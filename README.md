@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-32-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-33-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -60,6 +60,7 @@ claude-code-minoan/
 │   │   └── Firecrawl/               # Official CLI + Agent API (prefer over WebFetch)
 │   └── planning-productivity/   # Planning tools
 │       ├── crypt-librarian/         # Film curator persona
+│       ├── minoan-swarm/            # Agent Teams orchestration (Minoan-Semitic naming)
 │       ├── super-ralph-wiggum/      # ⭐ Autonomous iteration loops (11 Tips)
 │       └── travel-requirements-expert/  # Travel itinerary planning
 ├── commands/                    # Slash commands
@@ -364,6 +365,7 @@ Systematically audits implementation plans:
 ### Planning & Productivity (`skills/planning-productivity/`)
 
 - **crypt-librarian** - Film curator persona for sourcing pre-2016 cinema with literary/gothic sensibility, occult atmosphere, sensual mysticism, and historical grandeur. Uses Perplexity for film discourse, Exa for web searches
+- **minoan-swarm** - Orchestrate Claude Code Agent Teams with Minoan-Semitic naming conventions. Auto-discovers project context (CLAUDE.md, roadmaps, plans, issues), provides 5 team templates (Parallel Features, Pipeline, Research Swarm, Phase Completion, Code Review Tribunal), and a naming codex of 30+ teammate names sourced from Ugaritic, Akkadian, Hebrew, and Linear B traditions. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
 - **super-ralph-wiggum** ⭐ - Autonomous iteration loops based on [AI Hero's 11 Tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum). Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal, docs generation, and migrations. HITL/AFK modes, progress tracking, Docker sandboxes for safety
 - **travel-requirements-expert** - Systematically gather comprehensive travel itinerary requirements through structured discovery questions, MCP-powered research, and expert detail gathering
 
@@ -759,6 +761,7 @@ cat ~/.claude/commands/command-name.md
 **Last Updated**: 2026-02-06
 
 **Recent Changes**:
+- **minoan-swarm** NEW - Orchestrate Agent Teams with Minoan-Semitic naming (Athirat, Qedeshot, Tiamat, Kaptaru, Elat). Auto-discovers project context, 5 team templates, 30+ named teammates from Ugaritic/Akkadian/Hebrew/Linear B traditions
 - **beautiful-mermaid** ⭐ NEW - Render Mermaid diagrams as ASCII/Unicode art (terminal) or SVG (files). 15 themes, 5 diagram types (flowchart, state, sequence, class, ER). Based on beautiful-mermaid npm package by Craft.
 - **llama-cpp** ⭐ - Secondary LLM inference engine via llama.cpp. 15% faster prompt processing than Ollama on Apple Silicon (418 vs 362 t/s). LoRA adapter hot-loading, benchmarking, GGUF conversion pipeline, OpenAI-compatible server. Key flags for subprocess use: `--single-turn`, `--simple-io`, `--n-gpu-layers all`
 - **smolvlm** ⭐ - Local vision-language model (SmolVLM-2B) via mlx-vlm. Analyze images at 87 tok/s on Apple Silicon with 5.8GB peak memory. OOM protection, file size guards, robust result extraction. Tasks: description, OCR, UI analysis, VQA, code screenshots
@@ -771,7 +774,7 @@ cat ~/.claude/commands/command-name.md
 - **speak-response** - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized
 - **super-ralph-wiggum** - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
 
-**Skills**: 32 skills across 5 categories
+**Skills**: 33 skills across 5 categories
 **Commands**: 30+ slash commands
 **MCP Servers**: 14 configured servers
 

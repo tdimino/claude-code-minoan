@@ -29,6 +29,7 @@ cp -r commands/* ~/.claude/commands/
 - **telnyx-api** / **twilio-api** - SMS/telephony integration
 - **claude-md-manager** - Create and optimize CLAUDE.md files
 - **claude-agent-sdk** - Build AI agents with Claude Agent SDK
+- **minoan-swarm** - Orchestrate Agent Teams with Minoan-Semitic naming (Athirat, Qedeshot, Tiamat, Kaptaru, Elat). Auto-discovers project context, generates named team configurations with task lists and file ownership
 
 ## Key Commands
 
