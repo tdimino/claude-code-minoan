@@ -10,6 +10,11 @@ then transcribes and outputs the text.
 
 import sys
 import os
+import warnings
+
+# Suppress warnings before any imports
+warnings.filterwarnings('ignore')
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
 
 # Add Parakeet to path (configurable via PARAKEET_HOME)
 PARAKEET_PATH = os.environ.get(
@@ -18,14 +23,18 @@ PARAKEET_PATH = os.environ.get(
 )
 sys.path.insert(0, PARAKEET_PATH)
 
-# Suppress NeMo's verbose logging
+# Suppress NeMo's verbose logging (must be before nemo imports)
 os.environ.setdefault("NEMO_CACHE_DIR", os.path.expanduser("~/.cache/nemo"))
 os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 import logging
-logging.getLogger("nemo").setLevel(logging.WARNING)
-logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+# Suppress all NeMo/PyTorch warnings for clean output
+logging.disable(logging.WARNING)
+logging.getLogger("nemo").setLevel(logging.ERROR)
+logging.getLogger("nemo_logger").setLevel(logging.ERROR)
+logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+logging.getLogger("torch").setLevel(logging.ERROR)
 
 
 def main():
