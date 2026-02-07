@@ -15,6 +15,15 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "claudeSessionBrowser",
+          "name": "Claude Sessions",
+          "contextualTitle": "Claude Sessions"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "claude-tracker.resumeLast",
@@ -55,8 +64,34 @@
         "command": "claude-tracker.resumeAll",
         "title": "Resume All Crashed Claude Sessions",
         "category": "Claude"
+      },
+      {
+        "command": "claude-tracker.refreshSessions",
+        "title": "Refresh Claude Sessions",
+        "category": "Claude",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claude-tracker.resumeSession",
+        "title": "Resume This Session",
+        "category": "Claude"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "claude-tracker.refreshSessions",
+          "when": "view == claudeSessionBrowser",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "claude-tracker.resumeSession",
+          "when": "view == claudeSessionBrowser && viewItem == claudeSession"
+        }
+      ]
+    },
     "keybindings": [
       {
         "command": "claude-tracker.resumeLast",

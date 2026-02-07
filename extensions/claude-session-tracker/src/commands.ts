@@ -18,6 +18,7 @@ import {
   MAX_RECENT_SESSIONS,
   MAX_LINES_FOR_SUMMARY,
 } from './utils';
+import { logger } from './logger';
 
 /**
  * Register all extension commands
@@ -251,9 +252,12 @@ export function registerCommands(
   // Resume ALL recoverable sessions at once
   context.subscriptions.push(
     vscode.commands.registerCommand('claude-tracker.resumeAll', async () => {
+      logger.info('resumeAll command invoked');
       const recoverable = crossWindowState.getRecoverableSessions();
+      logger.info(`Found ${recoverable.length} recoverable sessions`);
 
       if (recoverable.length === 0) {
+        logger.info('No sessions to resume');
         vscode.window.showInformationMessage('No sessions to resume');
         return;
       }
@@ -262,9 +266,11 @@ export function registerCommands(
       const uniquePaths = new Map<string, { workspacePath: string }>();
       for (const session of recoverable) {
         uniquePaths.set(session.workspacePath, session);
+        logger.debug(`Session to recover: ${session.workspacePath}`);
       }
 
       const sessions = Array.from(uniquePaths.values());
+      logger.info(`Unique sessions to recover: ${sessions.length}`);
 
       // Confirm with user
       const action = await vscode.window.showInformationMessage(
@@ -274,22 +280,35 @@ export function registerCommands(
         'Dismiss'
       );
 
+      logger.info(`User selected: ${action ?? 'Dismiss'}`);
+
       if (action === 'Resume All') {
+        let successCount = 0;
+        let failCount = 0;
+
         for (const session of sessions) {
           try {
+            logger.info(`Attempting to resume session in: ${session.workspacePath}`);
             const terminal = createResumedTerminal(session.workspacePath);
+            logger.debug(`Created terminal for ${session.workspacePath}`);
             await new Promise(resolve => setTimeout(resolve, 500));
             sendSafeCommand(terminal, 'claude --continue');
+            logger.info(`Sent 'claude --continue' to terminal for ${session.workspacePath}`);
+            successCount++;
           } catch (err) {
-            console.error(`Failed to resume session for ${session.workspacePath}:`, err);
+            failCount++;
+            logger.error(`Failed to resume session for ${session.workspacePath}:`, err);
           }
         }
+
+        logger.info(`Resume complete: ${successCount} succeeded, ${failCount} failed`);
         crossWindowState.clearStaleSessions();
-        vscode.window.showInformationMessage(`Resumed ${sessions.length} Claude session(s)`);
+        vscode.window.showInformationMessage(`Resumed ${successCount} Claude session(s)${failCount > 0 ? ` (${failCount} failed)` : ''}`);
       } else if (action === 'Pick Sessions') {
         vscode.commands.executeCommand('claude-tracker.recoverSessions');
       } else {
         // Dismiss - clear stale sessions
+        logger.info('User dismissed, clearing stale sessions');
         crossWindowState.clearStaleSessions();
       }
     })
@@ -401,6 +420,23 @@ export function registerCommands(
     vscode.commands.registerCommand('claude-tracker.showSessions', () => {
       vscode.commands.executeCommand('claude-tracker.pickSession');
     })
+  );
+
+  // Resume specific session (used by Session Browser TreeView)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'claude-tracker.resumeSession',
+      async (sessionId: string, projectPath: string) => {
+        try {
+          const terminal = createResumedTerminal(projectPath);
+          sendSafeCommand(terminal, 'claude --resume', sessionId);
+        } catch (err) {
+          console.error('Failed to resume session:', err);
+          vscode.window.showErrorMessage(`Failed to resume session: ${err}`);
+          throw err; // Propagate so VS Code knows command failed
+        }
+      }
+    )
   );
 }
 
@@ -562,7 +598,7 @@ async function parseSessionFile(filePath: string): Promise<SessionSummary | null
  * Parse Claude sessions from ALL projects
  * Returns the most recent sessions across all project directories
  */
-async function parseAllClaudeSessions(): Promise<SessionSummary[]> {
+export async function parseAllClaudeSessions(): Promise<SessionSummary[]> {
   const claudeDir = path.join(os.homedir(), '.claude', 'projects');
 
   // Check if projects directory exists

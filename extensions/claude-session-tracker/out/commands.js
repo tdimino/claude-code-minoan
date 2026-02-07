@@ -34,12 +34,14 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerCommands = registerCommands;
+exports.parseAllClaudeSessions = parseAllClaudeSessions;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const os = __importStar(require("os"));
 const readline = __importStar(require("readline"));
 const utils_1 = require("./utils");
+const logger_1 = require("./logger");
 /**
  * Register all extension commands
  */
@@ -221,8 +223,11 @@ function registerCommands(context, storage, watcher, crossWindowState) {
     }));
     // Resume ALL recoverable sessions at once
     context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.resumeAll', async () => {
+        logger_1.logger.info('resumeAll command invoked');
         const recoverable = crossWindowState.getRecoverableSessions();
+        logger_1.logger.info(`Found ${recoverable.length} recoverable sessions`);
         if (recoverable.length === 0) {
+            logger_1.logger.info('No sessions to resume');
             vscode.window.showInformationMessage('No sessions to resume');
             return;
         }
@@ -230,29 +235,41 @@ function registerCommands(context, storage, watcher, crossWindowState) {
         const uniquePaths = new Map();
         for (const session of recoverable) {
             uniquePaths.set(session.workspacePath, session);
+            logger_1.logger.debug(`Session to recover: ${session.workspacePath}`);
         }
         const sessions = Array.from(uniquePaths.values());
+        logger_1.logger.info(`Unique sessions to recover: ${sessions.length}`);
         // Confirm with user
         const action = await vscode.window.showInformationMessage(`Resume ${sessions.length} Claude session(s) from before crash?`, 'Resume All', 'Pick Sessions', 'Dismiss');
+        logger_1.logger.info(`User selected: ${action ?? 'Dismiss'}`);
         if (action === 'Resume All') {
+            let successCount = 0;
+            let failCount = 0;
             for (const session of sessions) {
                 try {
+                    logger_1.logger.info(`Attempting to resume session in: ${session.workspacePath}`);
                     const terminal = (0, utils_1.createResumedTerminal)(session.workspacePath);
+                    logger_1.logger.debug(`Created terminal for ${session.workspacePath}`);
                     await new Promise(resolve => setTimeout(resolve, 500));
                     (0, utils_1.sendSafeCommand)(terminal, 'claude --continue');
+                    logger_1.logger.info(`Sent 'claude --continue' to terminal for ${session.workspacePath}`);
+                    successCount++;
                 }
                 catch (err) {
-                    console.error(`Failed to resume session for ${session.workspacePath}:`, err);
+                    failCount++;
+                    logger_1.logger.error(`Failed to resume session for ${session.workspacePath}:`, err);
                 }
             }
+            logger_1.logger.info(`Resume complete: ${successCount} succeeded, ${failCount} failed`);
             crossWindowState.clearStaleSessions();
-            vscode.window.showInformationMessage(`Resumed ${sessions.length} Claude session(s)`);
+            vscode.window.showInformationMessage(`Resumed ${successCount} Claude session(s)${failCount > 0 ? ` (${failCount} failed)` : ''}`);
         }
         else if (action === 'Pick Sessions') {
             vscode.commands.executeCommand('claude-tracker.recoverSessions');
         }
         else {
             // Dismiss - clear stale sessions
+            logger_1.logger.info('User dismissed, clearing stale sessions');
             crossWindowState.clearStaleSessions();
         }
     }));
@@ -345,6 +362,18 @@ function registerCommands(context, storage, watcher, crossWindowState) {
     // Note: Could be extended to show a read-only list view in future
     context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.showSessions', () => {
         vscode.commands.executeCommand('claude-tracker.pickSession');
+    }));
+    // Resume specific session (used by Session Browser TreeView)
+    context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.resumeSession', async (sessionId, projectPath) => {
+        try {
+            const terminal = (0, utils_1.createResumedTerminal)(projectPath);
+            (0, utils_1.sendSafeCommand)(terminal, 'claude --resume', sessionId);
+        }
+        catch (err) {
+            console.error('Failed to resume session:', err);
+            vscode.window.showErrorMessage(`Failed to resume session: ${err}`);
+            throw err; // Propagate so VS Code knows command failed
+        }
     }));
 }
 /**

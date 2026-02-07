@@ -41,6 +41,8 @@ const statusBar_1 = require("./statusBar");
 const terminalWatcher_1 = require("./terminalWatcher");
 const commands_1 = require("./commands");
 const utils_1 = require("./utils");
+const logger_1 = require("./logger");
+const sessionBrowser_1 = require("./sessionBrowser");
 /**
  * Claude Session Tracker Extension
  *
@@ -56,7 +58,9 @@ const utils_1 = require("./utils");
  * - Session picker to choose from recent sessions
  */
 function activate(context) {
-    console.log('Claude Session Tracker activating...');
+    // Initialize logger first
+    logger_1.logger.init(context);
+    logger_1.logger.info('Claude Session Tracker activating...');
     // Initialize components
     const storage = new sessionStorage_1.SessionStorage(context);
     const statusBar = new statusBar_1.StatusBarManager(context);
@@ -65,59 +69,83 @@ function activate(context) {
     const crossWindowState = watcher.getCrossWindowState();
     // Register commands (pass watcher and crossWindowState for crash recovery)
     (0, commands_1.registerCommands)(context, storage, watcher, crossWindowState);
+    // Register Session Browser TreeView
+    const sessionBrowserProvider = new sessionBrowser_1.SessionBrowserProvider(commands_1.parseAllClaudeSessions);
+    const sessionBrowserView = vscode.window.createTreeView('claudeSessionBrowser', {
+        treeDataProvider: sessionBrowserProvider,
+        showCollapseAll: false,
+    });
+    context.subscriptions.push(sessionBrowserView);
+    // Register refresh command for Session Browser
+    context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.refreshSessions', () => {
+        sessionBrowserProvider.refresh();
+    }));
     // Start watching terminals - wait for initial scan to complete before
     // checking crash recovery to avoid race conditions with status bar state
     watcher.activate().then(() => {
         // Check for crash-recoverable sessions (higher priority than normal resume)
         const recoverableSessions = crossWindowState.getRecoverableSessions();
+        logger_1.logger.info(`Found ${recoverableSessions.length} recoverable sessions from cross-window state`);
         if (recoverableSessions.length > 0) {
+            // Log details of recoverable sessions
+            for (const session of recoverableSessions) {
+                logger_1.logger.debug(`Recoverable session: ${session.workspacePath} (window: ${session.windowId}, lastUpdate: ${new Date(session.lastUpdate).toISOString()})`);
+            }
             // Deduplicate by workspace path
             const uniquePaths = new Set(recoverableSessions.map(s => s.workspacePath));
             const count = uniquePaths.size;
+            logger_1.logger.info(`Unique workspace paths to recover: ${count}`);
             vscode.window.showWarningMessage(`${count} Claude session(s) can be recovered from crash.`, 'Resume All', 'Pick Sessions', 'Dismiss').then(action => {
+                logger_1.logger.info(`User chose: ${action ?? 'Dismiss'}`);
                 if (action === 'Resume All') {
                     vscode.commands.executeCommand('claude-tracker.resumeAll')
                         .then(undefined, err => {
-                        console.error('Failed to resume all sessions:', err);
+                        logger_1.logger.error('Failed to resume all sessions:', err);
                         vscode.window.showErrorMessage('Failed to resume sessions');
                     });
                 }
                 else if (action === 'Pick Sessions') {
                     vscode.commands.executeCommand('claude-tracker.recoverSessions')
                         .then(undefined, err => {
-                        console.error('Failed to show recovery picker:', err);
+                        logger_1.logger.error('Failed to show recovery picker:', err);
                     });
                 }
                 else {
                     // Dismissed - clear stale sessions
+                    logger_1.logger.info('Clearing stale sessions after dismissal');
                     crossWindowState.clearStaleSessions();
                 }
             }, err => {
-                console.error('Recovery notification API error:', err);
+                logger_1.logger.error('Recovery notification API error:', err);
             });
         }
         else if ((0, utils_1.isAutoResumeEnabled)() && storage.hasResumableSession()) {
             // Normal auto-resume check (no crash recovery needed)
+            logger_1.logger.info('Found resumable session from storage, showing auto-resume prompt');
             vscode.window.showInformationMessage('A previous Claude session can be resumed.', 'Resume', 'Dismiss').then(action => {
+                logger_1.logger.info(`User chose: ${action ?? 'Dismiss'}`);
                 if (action === 'Resume') {
                     vscode.commands.executeCommand('claude-tracker.resumeLast')
                         .then(undefined, err => {
-                        console.error('Failed to auto-resume session:', err);
+                        logger_1.logger.error('Failed to auto-resume session:', err);
                         vscode.window.showErrorMessage('Failed to resume Claude session');
                     });
                 }
                 // action is undefined if user dismissed (Escape/click outside)
             }, err => {
                 // Actual API error (rare) - not user dismissal
-                console.error('Auto-resume notification API error:', err);
+                logger_1.logger.error('Auto-resume notification API error:', err);
             });
         }
-        console.log('Claude Session Tracker activated');
+        else {
+            logger_1.logger.info('No sessions to recover or resume');
+        }
+        logger_1.logger.info('Claude Session Tracker activated successfully');
     }, err => {
-        console.error('Failed to activate terminal watcher:', err);
+        logger_1.logger.error('Failed to activate terminal watcher:', err);
     });
 }
 function deactivate() {
-    console.log('Claude Session Tracker deactivated');
+    logger_1.logger.info('Claude Session Tracker deactivated');
 }
 //# sourceMappingURL=extension.js.map
