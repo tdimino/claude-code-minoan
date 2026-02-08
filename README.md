@@ -475,6 +475,8 @@ Hooks are scripts that run in response to Claude Code events. Copy to `~/.claude
 |------|---------|-------------|
 | `multi-response-prompt.py` | `/5x` in message | Generates 5 alternative responses sampled from distribution tails. Useful for exploring creative options |
 | `terminal-title.sh` | Claude state changes | Dynamic terminal tab indicators: 🔴 thinking, 🟢 ready. Desktop notifications with click-to-focus VS Code. Duration tracking. Sound alerts |
+| `session-handoff.sh` | PreCompact, 5% remaining | Creates/updates session handoff notes before context compaction. Logs to `~/.claude/handoffs/YYYY-MM-DD.md` with project, session ID, git status, and structured placeholders |
+| `statusline-monitor.sh` | Every turn (StatusLine) | Monitors context percentage, triggers handoff at 5% remaining. Chains with existing statusline command |
 
 ### Terminal Title Hook Features
 
@@ -485,6 +487,43 @@ Hooks are scripts that run in response to Claude Code events. Copy to `~/.claude
 - **Multi-session support**: Each terminal tab shows project name
 
 **Requirements**: `brew install terminal-notifier` for desktop notifications
+
+### Session Handoff Hook
+
+Automatically creates structured handoff notes before context compaction:
+
+- **Triggers at 5% remaining** via StatusLine monitor
+- **Updates entry at PreCompact** changing `[5%]` to `[COMPACTED]`
+- **Logs to** `~/.claude/handoffs/YYYY-MM-DD.md`
+
+Each entry includes:
+- Session ID and directory
+- Git branch and status
+- Recent commits
+- Placeholders for: Current Objective, What Was Done, Decisions Made, Blockers, Next Steps
+
+**Setup**: Add to `~/.claude/settings.json`:
+```json
+{
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/session-handoff.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/hooks/statusline-monitor.sh",
+    "padding": 0
+  }
+}
+```
 
 ### Setup
 
