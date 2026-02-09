@@ -1,0 +1,273 @@
+#!/usr/bin/env node
+
+/**
+ * Claude Tracker Resume - Auto-resume crashed/inactive sessions
+ *
+ * Finds sessions that were running in VS Code workspaces but are now inactive
+ * (crashed or orphaned), then resumes them in tmux panes or prints commands.
+ *
+ * Usage:
+ *   claude-tracker-resume                  List crashed sessions with resume commands
+ *   claude-tracker-resume --tmux           Resume all in tmux windows
+ *   claude-tracker-resume --zsh            Resume all in new Terminal.app tabs (macOS)
+ *   claude-tracker-resume --dry-run        Show what would be resumed without doing it
+ *   claude-tracker-resume --all            Include all inactive sessions, not just VS Code
+ *   claude-tracker-resume --limit 5        Max sessions to resume (default: 10)
+ */
+
+const os = require('os');
+const path = require('path');
+const { execSync, exec } = require('child_process');
+
+const UTILS_PATH = path.join(os.homedir(), '.claude', 'lib', 'tracker-utils.js');
+let utils;
+try {
+  utils = require(UTILS_PATH);
+} catch (e) {
+  console.error('Error: Could not load tracker utilities from ' + UTILS_PATH);
+  process.exit(1);
+}
+
+// --- Argument parsing ---
+
+function parseArgs(argv) {
+  const args = {
+    tmux: false,
+    zsh: false,
+    dryRun: false,
+    all: false,
+    limit: 10,
+    help: false,
+  };
+
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--help' || arg === '-h') args.help = true;
+    else if (arg === '--tmux') args.tmux = true;
+    else if (arg === '--zsh') args.zsh = true;
+    else if (arg === '--dry-run') args.dryRun = true;
+    else if (arg === '--all') args.all = true;
+    else if (arg === '--limit' || arg === '-n') {
+      const val = parseInt(argv[++i]);
+      args.limit = (val > 0 && val <= 100) ? val : 10;
+    }
+  }
+
+  return args;
+}
+
+// --- Helpers ---
+
+function shellEscape(str) {
+  return "'" + str.replace(/'/g, "'\\''") + "'";
+}
+
+function getSessionId(filePath) {
+  return path.basename(filePath, '.jsonl');
+}
+
+// --- Session discovery ---
+
+function findCrashedSessions(allMode) {
+  const allFiles = utils.getAllSessionFiles();
+  if (allFiles.length === 0) return [];
+
+  const { sessions } = utils.buildSessionStatus(allFiles, {
+    vsCodeOnly: !allMode,
+    maxSessions: 100,
+  });
+
+  // Enrich with session ID (derived from JSONL filename)
+  for (const s of sessions) {
+    s.sessionId = getSessionId(s.filePath);
+  }
+
+  // Filter: inactive only (crashed = was in VS Code workspace but no longer running)
+  const inactive = sessions.filter(s => !s.isRunning);
+
+  // Deduplicate: keep only the most recent session per project
+  const byProject = new Map();
+  for (const s of inactive) {
+    const key = s.projectDir;
+    if (!byProject.has(key) || s.mtime > byProject.get(key).mtime) {
+      byProject.set(key, s);
+    }
+  }
+
+  return Array.from(byProject.values()).sort((a, b) => b.mtime - a.mtime);
+}
+
+// --- tmux integration ---
+
+function resumeInTmux(sessions, dryRun) {
+  const sessionName = 'claude-resume';
+
+  // Create or attach to existing session (idempotent with -A flag)
+  if (!dryRun) {
+    try {
+      execSync('tmux new-session -A -d -s ' + shellEscape(sessionName), { stdio: 'pipe' });
+    } catch (e) {
+      console.error('Failed to create tmux session:', e.message);
+      process.exit(1);
+    }
+  }
+
+  for (let i = 0; i < sessions.length; i++) {
+    const s = sessions[i];
+    const projectName = path.basename(s.projectPath);
+    const windowName = projectName.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 20);
+    const escapedPath = shellEscape(s.projectPath);
+    const cmd = `cd ${escapedPath} && claude --resume ${s.sessionId}`;
+
+    if (dryRun) {
+      console.log(`  [dry-run] tmux new-window -n ${shellEscape(windowName)} ${shellEscape(cmd)}`);
+    } else {
+      try {
+        if (i === 0) {
+          // Use the first window of the session
+          execSync(
+            `tmux send-keys -t ${shellEscape(sessionName)} ${shellEscape(cmd)} Enter`,
+            { stdio: 'pipe' }
+          );
+          execSync(
+            `tmux rename-window -t ${shellEscape(sessionName)} ${shellEscape(windowName)}`,
+            { stdio: 'pipe' }
+          );
+        } else {
+          execSync(
+            `tmux new-window -t ${shellEscape(sessionName)} -n ${shellEscape(windowName)} ${shellEscape(cmd)}`,
+            { stdio: 'pipe' }
+          );
+        }
+        console.log(`  \x1b[32m✓\x1b[0m Resumed \x1b[1m${projectName}\x1b[0m in tmux window "${windowName}"`);
+      } catch (e) {
+        console.error(`  \x1b[31m✗\x1b[0m Failed to resume ${projectName}: ${e.message}`);
+      }
+    }
+  }
+
+  if (!dryRun) {
+    console.log('\n\x1b[36mAttach with:\x1b[0m tmux attach -t ' + sessionName);
+  }
+}
+
+// --- zsh / Terminal.app integration ---
+
+function resumeInZsh(sessions, dryRun) {
+  if (process.platform !== 'darwin') {
+    console.error('Error: --zsh uses macOS Terminal.app. Use --tmux on other platforms.');
+    process.exit(1);
+  }
+
+  for (const s of sessions) {
+    const projectName = path.basename(s.projectPath);
+    const escapedPath = s.projectPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const cmd = `cd "${escapedPath}" && claude --resume ${s.sessionId}`;
+
+    // AppleScript to open a new Terminal tab and run the command
+    const script = `tell application "Terminal"
+  activate
+  do script "${cmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"
+end tell`;
+
+    if (dryRun) {
+      console.log(`  [dry-run] Open Terminal tab: cd ${shellEscape(s.projectPath)} && claude --resume ${s.sessionId}`);
+    } else {
+      try {
+        execSync(`osascript -e ${shellEscape(script)}`, { stdio: 'pipe' });
+        console.log(`  \x1b[32m✓\x1b[0m Resumed \x1b[1m${projectName}\x1b[0m in new Terminal tab`);
+      } catch (e) {
+        console.error(`  \x1b[31m✗\x1b[0m Failed to resume ${projectName}: ${e.message}`);
+      }
+    }
+  }
+}
+
+// --- Display ---
+
+async function displaySessions(sessions) {
+  // Parse sessions in parallel for summaries
+  const parsed = await Promise.all(
+    sessions.map(s => utils.parseSession(s.filePath))
+  );
+
+  for (let i = 0; i < sessions.length; i++) {
+    const s = sessions[i];
+    const p = parsed[i];
+    const projectName = path.basename(s.projectPath);
+    const age = utils.formatAge(new Date(s.mtime).toISOString());
+    const vsCodeBadge = s.isInVSCode ? ' \x1b[44m\x1b[37m VS CODE \x1b[0m' : '';
+
+    console.log(
+      '\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + projectName + '\x1b[0m' + vsCodeBadge
+    );
+
+    if (p && p.sessionSummary) {
+      console.log('    \x1b[90mSummary:\x1b[0m \x1b[1m' + p.sessionSummary + '\x1b[0m');
+    }
+
+    console.log('    \x1b[90mPath:\x1b[0m ' + s.projectPath);
+    console.log('    \x1b[90mLast active:\x1b[0m ' + age);
+    console.log('    \x1b[32mclaude --resume ' + s.sessionId + '\x1b[0m');
+    console.log('');
+  }
+}
+
+// --- Main ---
+
+async function main() {
+  const args = parseArgs(process.argv);
+
+  if (args.help) {
+    console.log(`
+Usage: claude-tracker-resume [options]
+
+Find and resume crashed/inactive Claude Code sessions.
+
+Options:
+  --tmux            Resume all sessions in tmux windows
+  --zsh             Resume all sessions in new Terminal.app tabs (macOS)
+  --dry-run         Show what would happen without doing it
+  --all             Include all inactive sessions (not just VS Code)
+  --limit <n>       Max sessions to resume (default: 10)
+  -h, --help        Show this help
+
+Examples:
+  claude-tracker-resume                List crashed VS Code sessions
+  claude-tracker-resume --tmux         Resume all in tmux windows
+  claude-tracker-resume --zsh          Resume all in Terminal.app tabs
+  claude-tracker-resume --all --tmux   Resume ALL inactive sessions in tmux
+  claude-tracker-resume --dry-run      Preview without acting
+`);
+    return;
+  }
+
+  const sessions = findCrashedSessions(args.all).slice(0, args.limit);
+
+  if (sessions.length === 0) {
+    console.log('\x1b[32mNo crashed sessions found.\x1b[0m');
+    if (!args.all) {
+      console.log('\x1b[90mTry --all to include sessions outside VS Code workspaces.\x1b[0m');
+    }
+    return;
+  }
+
+  console.log('\n\x1b[1m\x1b[36m' + sessions.length + ' crashed session(s) found\x1b[0m\n');
+
+  if (args.tmux) {
+    resumeInTmux(sessions, args.dryRun);
+  } else if (args.zsh) {
+    resumeInZsh(sessions, args.dryRun);
+  } else {
+    await displaySessions(sessions);
+    console.log('\x1b[90m───────────────────────────────────────────────────────────────\x1b[0m');
+    console.log('\x1b[90mTo auto-resume in tmux:\x1b[0m claude-tracker-resume --tmux');
+    console.log('\x1b[90mTo auto-resume in Terminal tabs:\x1b[0m claude-tracker-resume --zsh');
+    console.log('\x1b[90mTo preview:\x1b[0m claude-tracker-resume --dry-run');
+  }
+}
+
+main().catch(e => {
+  console.error('Error:', e.message);
+  process.exit(1);
+});

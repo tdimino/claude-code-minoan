@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-33-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-34-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -21,6 +21,17 @@ Curated Claude Code configuration including skills, MCP servers, and slash comma
 ```
 claude-code-minoan/
 ├── .mcp.json                    # MCP server configurations
+├── bin/                         # CLI tools (copy to ~/.local/bin/)
+│   ├── cc                       # Quick Claude Code launcher
+│   ├── cckill                   # Kill Claude Code processes
+│   ├── ccls                     # List Claude Code sessions
+│   ├── ccpick                   # Interactive session picker
+│   ├── claude-tmux-status       # Tmux statusline integration
+│   ├── claude-tracker           # Session listing & crash recovery
+│   ├── claude-tracker-resume    # Find & resume crashed sessions in tmux
+│   └── claude-tracker-search    # Search sessions by summary/content/ID
+├── lib/                         # Shared libraries (copy to ~/.claude/lib/)
+│   └── tracker-utils.js         # Session parsing, path decoding, status detection
 ├── extensions/                  # VS Code extensions
 │   └── claude-session-tracker/  # Track & resume Claude sessions across windows
 ├── skills/                      # Custom Claude Code skills
@@ -59,6 +70,7 @@ claude-code-minoan/
 │   │   ├── exa-search/              # Full Exa AI API access
 │   │   └── Firecrawl/               # Official CLI + Agent API (prefer over WebFetch)
 │   └── planning-productivity/   # Planning tools
+│       ├── claude-tracker-search/     # ⭐ NEW - Session search, project detection, setup bootstrap
 │       ├── crypt-librarian/         # Film curator persona
 │       ├── minoan-swarm/            # Agent Teams orchestration (Minoan-Semitic naming)
 │       ├── super-ralph-wiggum/      # ⭐ Autonomous iteration loops (11 Tips)
@@ -364,6 +376,7 @@ Systematically audits implementation plans:
 
 ### Planning & Productivity (`skills/planning-productivity/`)
 
+- **claude-tracker-search** ⭐ NEW - Search, browse, and manage Claude Code session history. Find past sessions by topic, detect projects across all sessions, resume crashed VS Code sessions in tmux, bootstrap new `~/.claude/` setups, and update active-projects docs. Includes `detect-projects.js` (scan sessions, check CLAUDE.md coverage, scaffold missing files) and `bootstrap-claude-setup.js` (generate complete config for new machines)
 - **crypt-librarian** - Film curator persona for sourcing pre-2016 cinema with literary/gothic sensibility, occult atmosphere, sensual mysticism, and historical grandeur. Uses Perplexity for film discourse, Exa for web searches
 - **minoan-swarm** - Orchestrate Claude Code Agent Teams with Minoan-Semitic naming conventions. Auto-discovers project context (CLAUDE.md, roadmaps, plans, issues), provides 5 team templates (Parallel Features, Pipeline, Research Swarm, Phase Completion, Code Review Tribunal), and a naming codex of 30+ teammate names sourced from Ugaritic, Akkadian, Hebrew, and Linear B traditions. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
 - **super-ralph-wiggum** ⭐ - Autonomous iteration loops based on [AI Hero's 11 Tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum). Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal, docs generation, and migrations. HITL/AFK modes, progress tracking, Docker sandboxes for safety
@@ -398,6 +411,68 @@ code --install-extension claude-session-tracker-0.1.0.vsix
 | Browse All Claude Sessions | — | Browse sessions across ALL projects |
 
 See [`extensions/claude-session-tracker/readme.md`](extensions/claude-session-tracker/readme.md) for full documentation.
+
+## CLI Tools (`bin/` + `lib/`)
+
+Copy to your PATH and Claude lib directory:
+
+```bash
+cp bin/* ~/.local/bin/
+mkdir -p ~/.claude/lib && cp lib/* ~/.claude/lib/
+```
+
+### Session Management
+
+| Tool | Description |
+|------|-------------|
+| `claude-tracker` | List recent sessions with summaries, running status, VS Code detection |
+| `claude-tracker-search` | Search sessions by summary, content, ID, project, or date range |
+| `claude-tracker-resume` | Find crashed sessions and print resume commands (or auto-resume in tmux/Terminal.app) |
+
+```bash
+# Search sessions by topic
+claude-tracker-search "kothar mac mini"
+
+# Search by session ID prefix
+claude-tracker-search --id 1da2b718
+
+# Filter by project, limit results
+claude-tracker-search --project Aldea --limit 5
+
+# Recent sessions only
+claude-tracker-search --since 7d --json
+
+# List crashed sessions with resume commands
+claude-tracker-resume
+
+# Auto-resume crashed sessions in tmux windows
+claude-tracker-resume --tmux
+
+# Auto-resume crashed sessions in Terminal.app tabs (macOS)
+claude-tracker-resume --zsh
+
+# Preview without acting
+claude-tracker-resume --dry-run
+```
+
+### Quick Launchers
+
+| Tool | Description |
+|------|-------------|
+| `cc` | Quick Claude Code launcher |
+| `cckill` | Kill Claude Code processes by name or PID |
+| `ccls` | List running Claude Code sessions |
+| `ccpick` | Interactive session picker (fzf-based) |
+| `claude-tmux-status` | Claude Code status for tmux statusline |
+
+### Shared Library (`lib/tracker-utils.js`)
+
+All tracker CLIs share `tracker-utils.js` for:
+- `loadSessionsIndex()` — Load all sessions-index.json into flat array
+- `decodeProjectPath()` — Resolve encoded dir names to real paths (with filesystem validation)
+- `buildSessionStatus()` — Detect running sessions, VS Code workspace membership
+- `parseSession()` — Parse individual JSONL session files
+- `formatAge()` — Human-readable time formatting
 
 ## MCP Servers
 
@@ -797,9 +872,11 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-02-06
+**Last Updated**: 2026-02-09
 
 **Recent Changes**:
+- **CLI Tools** ⭐ NEW - `bin/` and `lib/` directories with session management CLIs: `claude-tracker-search` (search by topic/ID/project/date), `claude-tracker-resume` (find crashed sessions, auto-resume in tmux), plus quick launchers (`cc`, `cckill`, `ccls`, `ccpick`). Shared `tracker-utils.js` library with path decoding, session parsing, and status detection
+- **claude-tracker-search** ⭐ NEW SKILL - Search, browse, and manage session history. Detect projects, bootstrap new setups, resume crashed sessions, update active-projects docs. Scripts: `detect-projects.js`, `bootstrap-claude-setup.js`
 - **minoan-swarm** NEW - Orchestrate Agent Teams with Minoan-Semitic naming (Athirat, Qedeshot, Tiamat, Kaptaru, Elat). Auto-discovers project context, 5 team templates, 30+ named teammates from Ugaritic/Akkadian/Hebrew/Linear B traditions
 - **beautiful-mermaid** ⭐ NEW - Render Mermaid diagrams as ASCII/Unicode art (terminal) or SVG (files). 15 themes, 5 diagram types (flowchart, state, sequence, class, ER). Based on beautiful-mermaid npm package by Craft.
 - **llama-cpp** ⭐ - Secondary LLM inference engine via llama.cpp. 15% faster prompt processing than Ollama on Apple Silicon (418 vs 362 t/s). LoRA adapter hot-loading, benchmarking, GGUF conversion pipeline, OpenAI-compatible server. Key flags for subprocess use: `--single-turn`, `--simple-io`, `--n-gpu-layers all`
@@ -813,7 +890,7 @@ cat ~/.claude/commands/command-name.md
 - **speak-response** - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized
 - **super-ralph-wiggum** - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
 
-**Skills**: 33 skills across 5 categories
+**Skills**: 34 skills across 5 categories
 **Commands**: 30+ slash commands
 **MCP Servers**: 14 configured servers
 

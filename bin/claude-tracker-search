@@ -1,0 +1,305 @@
+#!/usr/bin/env node
+
+/**
+ * Claude Tracker Search - Find sessions by summary, content, or ID
+ *
+ * Usage:
+ *   claude-tracker-search "kothar mac mini"           Search all sessions
+ *   claude-tracker-search "training data" --limit 5   Limit results
+ *   claude-tracker-search --id 1da2b718               Lookup by session ID
+ *   claude-tracker-search --project Aldea             Filter by project
+ *   claude-tracker-search --since 7d                  Last 7 days
+ *   claude-tracker-search --json                      JSON output
+ */
+
+const os = require('os');
+const path = require('path');
+
+const UTILS_PATH = path.join(os.homedir(), '.claude', 'lib', 'tracker-utils.js');
+let utils;
+try {
+  utils = require(UTILS_PATH);
+} catch (e) {
+  console.error('Error: Could not load tracker utilities from ' + UTILS_PATH);
+  process.exit(1);
+}
+
+// --- Argument parsing ---
+
+function parseArgs(argv) {
+  const args = { query: '', limit: 20, id: null, project: null, since: null, json: false };
+  const positional = [];
+
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--help' || arg === '-h') {
+      console.log(`
+Usage: claude-tracker-search [query] [options]
+
+Arguments:
+  query                  Search terms (searches summary, messages, keywords)
+
+Options:
+  --id <prefix>          Lookup by session ID prefix (8+ chars)
+  --project <name>       Filter by project name (substring match)
+  --since <duration>     Only sessions newer than duration (e.g., 7d, 24h, 30m)
+  --limit <n>            Max results (default: 20)
+  --json                 Output as JSON
+  -h, --help             Show this help
+
+Examples:
+  claude-tracker-search "kothar mac mini"
+  claude-tracker-search "training data" --project Aldea
+  claude-tracker-search --id 1da2b718
+  claude-tracker-search --since 7d --limit 10
+`);
+      process.exit(0);
+    } else if (arg === '--limit' || arg === '-n') {
+      const val = parseInt(argv[++i]);
+      args.limit = (val > 0 && val <= 500) ? val : 20;
+    } else if (arg === '--id') {
+      const next = argv[++i];
+      if (!next || next.startsWith('--')) { console.error('Error: --id requires a session ID prefix'); process.exit(1); }
+      args.id = next;
+    } else if (arg === '--project') {
+      const next = argv[++i];
+      if (!next || next.startsWith('--')) { console.error('Error: --project requires a name'); process.exit(1); }
+      args.project = next;
+    } else if (arg === '--since') {
+      const next = argv[++i];
+      if (!next || next.startsWith('--')) { console.error('Error: --since requires a duration (e.g., 7d, 24h)'); process.exit(1); }
+      args.since = parseDuration(next);
+    } else if (arg === '--json') {
+      args.json = true;
+    } else if (!arg.startsWith('--')) {
+      positional.push(arg);
+    }
+  }
+
+  args.query = positional.join(' ');
+  return args;
+}
+
+function parseDuration(str) {
+  if (!str) return null;
+  const match = str.match(/^(\d+)(m|h|d|w)$/);
+  if (!match) return null;
+  const n = parseInt(match[1]);
+  const unit = match[2];
+  const ms = { m: 60000, h: 3600000, d: 86400000, w: 604800000 };
+  return Date.now() - n * ms[unit];
+}
+
+// --- Search logic ---
+
+function scoreSession(session, queryTerms) {
+  if (queryTerms.length === 0) return 1; // No query = show all
+
+  let score = 0;
+  const lowerTerms = queryTerms.map(t => t.toLowerCase());
+
+  // Summary (3x weight)
+  const summary = (session.summary || '').toLowerCase();
+  for (const term of lowerTerms) {
+    if (summary.includes(term)) score += 3;
+  }
+
+  // First prompt (2x weight)
+  const firstPrompt = (session.firstPrompt || '').toLowerCase();
+  for (const term of lowerTerms) {
+    if (firstPrompt.includes(term)) score += 2;
+  }
+
+  // Project name (1x weight)
+  const projName = (session.projectName || '').toLowerCase();
+  for (const term of lowerTerms) {
+    if (projName.includes(term)) score += 1;
+  }
+
+  // Git branch (1x weight)
+  const branch = (session.gitBranch || '').toLowerCase();
+  for (const term of lowerTerms) {
+    if (branch.includes(term)) score += 1;
+  }
+
+  return score;
+}
+
+function filterById(sessions, idPrefix) {
+  const lower = idPrefix.toLowerCase();
+  const found = sessions.filter(s => s.sessionId && s.sessionId.toLowerCase().startsWith(lower));
+
+  // If not found in index and prefix is at least 4 chars, scan JSONL filenames
+  if (found.length === 0 && lower.length >= 4) {
+    const fs = require('fs');
+    try {
+      const projectDirs = fs.readdirSync(utils.PROJECTS_DIR, { withFileTypes: true })
+        .filter(d => d.isDirectory());
+
+      for (const dir of projectDirs) {
+        if (found.length >= 10) break; // Cap fallback scan results
+        try {
+          const dirPath = path.join(utils.PROJECTS_DIR, dir.name);
+          const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.jsonl') && f.toLowerCase().startsWith(lower));
+          for (const f of files) {
+            const sessionId = f.replace('.jsonl', '');
+            const filePath = path.join(dirPath, f);
+            const stat = fs.statSync(filePath);
+            const projectPath = utils.decodeProjectPath(dir.name);
+            found.push({
+              sessionId,
+              fullPath: filePath,
+              summary: null,
+              firstPrompt: null,
+              messageCount: null,
+              created: stat.birthtime.toISOString(),
+              modified: stat.mtime.toISOString(),
+              gitBranch: '',
+              projectPath,
+              projectName: path.basename(projectPath),
+              projectDir: dir.name,
+              _fromJSONL: true
+            });
+          }
+        } catch (e) {
+          // Skip unreadable dirs
+        }
+      }
+    } catch (e) {
+      // PROJECTS_DIR unreadable
+    }
+  }
+
+  return found;
+}
+
+function filterByProject(sessions, projectName) {
+  const lower = projectName.toLowerCase();
+  return sessions.filter(s => {
+    const pName = (s.projectName || '').toLowerCase();
+    const pPath = (s.projectPath || '').toLowerCase();
+    return pName.includes(lower) || pPath.includes(lower);
+  });
+}
+
+function filterBySince(sessions, sinceMs) {
+  return sessions.filter(s => {
+    const modified = s.modified || s.created;
+    if (!modified) return false;
+    return new Date(modified).getTime() >= sinceMs;
+  });
+}
+
+// --- Display ---
+
+function displaySession(session, index, jsonMode) {
+  if (jsonMode) return; // JSON output handled separately
+
+  const projectName = session.projectName || path.basename(session.projectPath || '');
+  const summary = session.summary || 'No summary';
+  const age = utils.formatAge(session.modified || session.created);
+  const branch = session.gitBranch ? ' \x1b[35m' + session.gitBranch + '\x1b[0m' : '';
+  const id = session.sessionId ? session.sessionId.substring(0, 8) : '?';
+  const msgs = session.messageCount || 0;
+
+  console.log(
+    '\x1b[33m[' + (index + 1) + ']\x1b[0m ' +
+    '\x1b[1m' + projectName + '\x1b[0m' + branch
+  );
+  console.log('    \x1b[90mSummary:\x1b[0m \x1b[1m' + summary + '\x1b[0m');
+  console.log(
+    '    \x1b[90mSession:\x1b[0m ' + id +
+    '  \x1b[90mMessages:\x1b[0m ' + msgs +
+    '  \x1b[90mLast active:\x1b[0m ' + age
+  );
+  console.log('    \x1b[90mPath:\x1b[0m ' + (session.projectPath || ''));
+  console.log('    \x1b[32mclaude --resume ' + session.sessionId + '\x1b[0m');
+  console.log('');
+}
+
+// --- Main ---
+
+async function main() {
+  const args = parseArgs(process.argv);
+
+  if (!args.query && !args.id && !args.project && !args.since) {
+    console.error('Usage: claude-tracker-search <query> [options]');
+    console.error('       claude-tracker-search --help for more info');
+    process.exit(1);
+  }
+
+  // Load session index (fast — just JSON reads)
+  let sessions = utils.loadSessionsIndex();
+
+  // Filter out sidechains and trivial sessions
+  sessions = sessions.filter(s => !s.isSidechain && (s.messageCount || 0) > 1);
+
+  // Apply filters
+  if (args.id) {
+    sessions = filterById(sessions, args.id);
+  }
+  if (args.project) {
+    sessions = filterByProject(sessions, args.project);
+  }
+  if (args.since) {
+    sessions = filterBySince(sessions, args.since);
+  }
+
+  // Score and rank
+  const queryTerms = args.query ? args.query.split(/\s+/).filter(t => t.length > 0) : [];
+
+  const scored = sessions.map(s => ({
+    ...s,
+    _score: scoreSession(s, queryTerms)
+  }));
+
+  // Filter out zero-score when there's a query
+  const results = queryTerms.length > 0
+    ? scored.filter(s => s._score > 0)
+    : scored;
+
+  // Sort by score desc, then by modified date desc
+  results.sort((a, b) => {
+    if (b._score !== a._score) return b._score - a._score;
+    const aTime = new Date(a.modified || a.created || 0).getTime();
+    const bTime = new Date(b.modified || b.created || 0).getTime();
+    return bTime - aTime;
+  });
+
+  const limited = results.slice(0, args.limit);
+
+  // Output
+  if (args.json) {
+    const jsonOutput = limited.map(s => ({
+      sessionId: s.sessionId,
+      summary: s.summary || null,
+      projectName: s.projectName,
+      projectPath: s.projectPath,
+      gitBranch: s.gitBranch || null,
+      messageCount: s.messageCount || 0,
+      created: s.created,
+      modified: s.modified,
+      score: s._score
+    }));
+    console.log(JSON.stringify(jsonOutput, null, 2));
+  } else {
+    console.log('\n\x1b[1m\x1b[36m' + limited.length + ' of ' + results.length + ' matches\x1b[0m');
+    if (queryTerms.length > 0) {
+      console.log('\x1b[90mQuery: ' + queryTerms.join(' ') + '\x1b[0m');
+    }
+    console.log('');
+
+    for (let i = 0; i < limited.length; i++) {
+      displaySession(limited[i], i, false);
+    }
+
+    if (results.length > limited.length) {
+      console.log('\x1b[90m... ' + (results.length - limited.length) + ' more results. Use --limit to show more.\x1b[0m\n');
+    }
+  }
+}
+
+main().catch(e => {
+  console.error('Error:', e.message);
+  process.exit(1);
+});
