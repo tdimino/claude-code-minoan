@@ -32,6 +32,8 @@ Finds CLAUDE.md, roadmaps, plans, issues, test infrastructure, and git state.
 | Bug investigation, unclear cause | Research Swarm | **Elat** |
 | Phase nearly done, loose ends | Phase Completion | **Qedeshot** |
 | PR needs thorough review | Code Review Tribunal | **Elat** |
+| Quality assurance, verification | Truth & Balance | **Ma'at** |
+| Final audit, release decisions | Fate's Reckoning | **Manat** |
 
 Full templates with ready-to-use tool calls: [references/team-templates.md](references/team-templates.md)
 
@@ -55,14 +57,14 @@ Apply the template, substituting project-specific details. The lead creates the 
 
 ## The Naming Codex
 
-Every team and teammate receives a name from the Minoan-Semitic divine feminine — Ugaritic, Akkadian, Hebrew, and Linear B. Names are chosen by role archetype, not randomly.
+Every team and teammate receives a name from the Minoan-Semitic divine feminine — Ugaritic, Akkadian, Hebrew, Linear B, Egyptian, and pre-Islamic Arabian. Names are chosen by role archetype, not randomly.
 
 | Archetype | Names | Ideal For |
 |-----------|-------|-----------|
-| **Leaders** | athirat-lead, qedesha-lead, tiamat-lead | Opus orchestrators |
-| **Builders** | kaptaru, mami, nintu, tehom, tip'eret, yam | Implementers |
+| **Leaders** | athirat-lead, qedesha-lead, tiamat-lead, maat-lead, allat-lead | Opus orchestrators |
+| **Builders** | kaptaru, mami, nintu, tehom, tip'eret, yam, al-uzza | Implementers |
 | **Researchers** | devorah, melissa, eileithyia, membliaros | Explorers, API discovery |
-| **Reviewers** | hokhmah, qadeshet, karme, themis | Security, architecture, code quality |
+| **Reviewers** | hokhmah, qadeshet, karme, themis, manat, allat | Security, architecture, code quality |
 | **Testers** | sassuratu, phikola, hubur | Unit, integration, E2E |
 | **Frontend** | popureja, shalamu, yashar | UI, design system, accessibility |
 | **DevOps** | selene, hestia, dikte | Cron, deploy, monitoring |
@@ -131,7 +133,7 @@ Every prompt must include:
 
 **Minoan Swarm additions:**
 
-- **One Aspect per team** — use different names (Athirat, Qedeshot, Tiamat, Kaptaru, Elat) for concurrent teams
+- **One Aspect per team** — use different names (Athirat, Qedeshot, Tiamat, Kaptaru, Elat, Ma'at, Manat) for concurrent teams
 - **No duplicate names** within a team
 - **Leads use Opus, workers use Sonnet** — balance capability with cost
 - **Haiku for lightweight research** — fast and cheap for Explore agents
