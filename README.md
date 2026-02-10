@@ -386,6 +386,7 @@ Systematically audits implementation plans:
 - **rlama** ⭐ - Local RAG system for semantic document search. Create knowledge bases from PDFs, markdown, code files. Query documents with natural language. Runs 100% locally with Ollama (default: qwen2.5:7b). Includes resilient indexing that skips context overflow errors, management scripts for create/add/remove/query operations, and `--legacy` flag for llama3.2 compatibility. **NEW**: Progress monitoring with `tail -f ~/.rlama/logs/rlama.log` and `rlama_status.py` for real-time operation tracking with ETA
 - **supabase-skill** - Configure and manage Supabase projects using MCP. Database design, migrations, RLS policies
 - **telnyx-api** - SMS/MMS messaging, voice calls, phone numbers, webhooks, and telephony integration
+- **twitter** ⭐ NEW - Twitter/X dual-mode integration. Official API v2 search/research via `x-search` (pay-per-use, $0.005/read, smart caching, cost tracking, watchlist monitoring) plus session-based posting/reading via `bird` CLI (free, browser cookies) and bookmark archival via Smaug
 - **twilio-api** - Twilio SMS/Voice API integration with provider-agnostic patterns, webhook security, E.164 validation, and error handling
 
 ### Design & Media (`skills/design-media/`)
