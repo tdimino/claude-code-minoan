@@ -97,7 +97,7 @@ claude-code-minoan/
 
 ## Quick Start
 
-> **New here?** Jump to [Recommended Workflow Commands](#recommended-workflow-commands) to see the most powerful commands: `/requirements-start`, `/workflows:review`, `feature-dev` plugin, `codex-orchestrator` skill, and `/code-review`.
+> **New here?** Jump to [Recommended Workflow Commands](#recommended-workflow-commands) to see the most powerful commands: `/requirements-start`, `/workflows:review`, `feature-dev` plugin, `codex-orchestrator` skill, `minoan-swarm` agent teams, and `/code-review`.
 
 ### 1. Clone the Repository
 
@@ -317,6 +317,37 @@ Run super-ralph-wiggum with feature-prd template using ./prd.json
 - Progress file persists learning across iterations
 - Docker sandbox support for safe unattended execution
 - "Fight entropy" and quality-first principles built in
+
+### `minoan-swarm` Skill - Agent Team Orchestration
+
+**Use when**: A task benefits from parallel agents — feature development across frontend/backend, research swarms, code review tribunals, or phased project execution
+
+Claude Code now supports native Agent Teams: multiple Claude instances working in parallel, coordinated through shared task lists and direct messaging. This is a paradigm shift from single-agent workflows with persistent memory plugins. Instead of one agent remembering everything, you orchestrate a team of specialists that divide, conquer, and converge.
+
+The `minoan-swarm` skill provides the orchestration layer: auto-discovery of project context (CLAUDE.md, roadmaps, plans, issues), pre-built team templates, and a naming codex drawn from Ugaritic, Akkadian, Hebrew, Egyptian, Linear B, and pre-Islamic Arabian traditions.
+
+**Available team templates**:
+
+| Template | Pattern | Use Case |
+|----------|---------|----------|
+| Parallel Features | Fan-out/fan-in | Build independent features simultaneously |
+| Pipeline | Sequential handoff | Research → Design → Implement → Review |
+| Research Swarm | Competitive search | Multiple agents explore different angles |
+| Phase Completion | Milestone-gated | Execute a phased plan with verification gates |
+| Code Review Tribunal | Multi-perspective | 3+ reviewers with different specializations |
+
+**Quick usage**:
+```
+Load the minoan-swarm skill, then create a Research Swarm team for investigating caching strategies
+```
+
+**Why it's powerful**:
+- Native Claude Code agent teams — no plugins, no external dependencies
+- Shared task lists with dependency tracking across agents
+- Direct messaging between teammates for real-time coordination
+- Auto-discovers project context so agents start informed
+- 30+ named teammate roles from ancient Mediterranean traditions
+- Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
 
 ### `/audit-plans` - Plan Completeness Auditing
 
@@ -668,14 +699,6 @@ The official plugin from the Claude Code team. Provides specialized agents for f
 - **`code-explorer`** - Trace execution paths and map codebase structure
 - **`code-reviewer`** - Confidence-based code review for high-priority issues
 
-### `claude-mem` - Persistent Memory
-
-Persistent memory across sessions with semantic search. Essential for long-running projects.
-
-```bash
-claude plugin install claude-mem@thedotmack
-```
-
 ## Terminal & Editor Theme
 
 Recommended setup: **Victor Mono** font, **Catppuccin Mocha** theme, and **ccstatusline** for Claude Code.
@@ -831,7 +854,6 @@ These settings apply automatically when opening this repo in VS Code.
 - [ ] Test a slash command (`/docs`)
 - [ ] Test a skill (claude-agent-sdk)
 - [ ] Verify MCP servers with `claude mcp list`
-- [ ] Install claude-mem plugin for persistent memory
 - [ ] Install Victor Mono font (`brew install --cask font-victor-mono`)
 - [ ] Install Catppuccin theme for VS Code
 - [ ] Install ccstatusline (`npm install -g ccstatusline`)
@@ -874,25 +896,16 @@ cat ~/.claude/commands/command-name.md
 
 **Last Updated**: 2026-02-09
 
-**Recent Changes**:
-- **CLI Tools** ⭐ NEW - `bin/` and `lib/` directories with session management CLIs: `claude-tracker-search` (search by topic/ID/project/date), `claude-tracker-resume` (find crashed sessions, auto-resume in tmux), plus quick launchers (`cc`, `cckill`, `ccls`, `ccpick`). Shared `tracker-utils.js` library with path decoding, session parsing, and status detection
-- **claude-tracker-search** ⭐ NEW SKILL - Search, browse, and manage session history. Detect projects, bootstrap new setups, resume crashed sessions, update active-projects docs. Scripts: `detect-projects.js`, `bootstrap-claude-setup.js`
-- **minoan-swarm** NEW - Orchestrate Agent Teams with Minoan-Semitic naming (Athirat, Qedeshot, Tiamat, Kaptaru, Elat). Auto-discovers project context, 5 team templates, 30+ named teammates from Ugaritic/Akkadian/Hebrew/Linear B traditions
-- **beautiful-mermaid** ⭐ NEW - Render Mermaid diagrams as ASCII/Unicode art (terminal) or SVG (files). 15 themes, 5 diagram types (flowchart, state, sequence, class, ER). Based on beautiful-mermaid npm package by Craft.
-- **llama-cpp** ⭐ - Secondary LLM inference engine via llama.cpp. 15% faster prompt processing than Ollama on Apple Silicon (418 vs 362 t/s). LoRA adapter hot-loading, benchmarking, GGUF conversion pipeline, OpenAI-compatible server. Key flags for subprocess use: `--single-turn`, `--simple-io`, `--n-gpu-layers all`
-- **smolvlm** ⭐ - Local vision-language model (SmolVLM-2B) via mlx-vlm. Analyze images at 87 tok/s on Apple Silicon with 5.8GB peak memory. OOM protection, file size guards, robust result extraction. Tasks: description, OCR, UI analysis, VQA, code screenshots
-- **rlama** ⭐ PROGRESS MONITORING - New centralized logging system with JSON Lines format. Monitor long-running operations with `tail -f ~/.rlama/logs/rlama.log` or `rlama_status.py --follow`. ETA calculation, operations state tracking (active + recent). New scripts: `rlama_logger.py`, `rlama_status.py`, `rlama_batch_ingest.py`, `rlama_dedupe.py`
-- **parakeet** NEW - Local speech-to-text using NVIDIA Parakeet TDT 0.6B. Transcribe audio files or dictate from microphone with 3,386x realtime speed and 6.05% WER. Supports .wav, .mp3, .m4a, .flac, .ogg, .aac formats. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
-- **rlama** UPGRADED - Default model changed to `qwen2.5:7b` (better reasoning). Use `--legacy` flag for old `llama3.2` default. New `rlama_resilient.py` script processes files individually, skipping context overflow errors instead of aborting entire runs. Improved error handling: full error messages, KeyboardInterrupt support, Python 3.9 compatibility
-- **claude-session-tracker** FIX - Fixed race condition in crash recovery detection by awaiting terminal watcher initialization before checking for recoverable sessions
-- **Firecrawl** SDK v4.x COMPATIBILITY - Updated `firecrawl_api.py` for breaking changes in `firecrawl-py` v4.13.4: class renamed `FirecrawlApp` → `Firecrawl`, methods renamed (`scrape_url()` → `scrape()`, `crawl_url()` → `crawl()`, `async_crawl_url()` → `start_crawl()`), search returns `SearchData` with `.web` attribute. All 12 tests passing
-- **Firecrawl** ⭐ UPGRADED - Integrated official Firecrawl CLI v1.1.1 (`firecrawl scrape/crawl/map/search`). Auto-save alias renamed to `fc-save`. Official CLI offers `--wait --progress` for crawls, `--only-main-content` for clean output. Python API script retained for Agent, batch-scrape, and extract commands
-- **speak-response** - Local TTS with Qwen3-TTS. Oracle voice default (deep, prophetic Dune narrator). Voice cloning, voice design, 9 preset speakers with emotion control. Apple Silicon optimized
-- **super-ralph-wiggum** - Autonomous iteration loops based on AI Hero's 11 Tips. Templates for test coverage, PRD features, lint fixing, entropy cleanup, duplication removal. HITL/AFK modes with Docker sandbox support
+**Highlights**:
+- **minoan-swarm** — Native Agent Teams orchestration with Minoan-Semitic naming. 5 team templates, 30+ named teammates from Ugaritic, Akkadian, Hebrew, Egyptian, Linear B, and pre-Islamic Arabian traditions
+- **CLI Tools** — Session management CLIs (`claude-tracker-search`, `claude-tracker-resume`, `cc`, `cckill`, `ccls`, `ccpick`) with shared `tracker-utils.js` library
+- **Local ML stack** — `llama-cpp` (LoRA hot-loading, 15% faster than Ollama), `rlama` (local RAG with progress monitoring), `parakeet` (STT, 3386x realtime), `smolvlm` (vision-language, 87 tok/s), `speak-response` (TTS, Oracle voice clone)
+- **beautiful-mermaid** — Mermaid diagrams as ASCII art or SVG. 15 themes, 5 diagram types
+- **Firecrawl** — Official CLI v1.1.1 + Python API, SDK v4.x compatible
+- **codex-orchestrator** — Delegate to specialized Codex CLI subagents (reviewer, debugger, architect, security, refactor, docs)
+- **super-ralph-wiggum** — Autonomous iteration loops with HITL/AFK modes and Docker sandbox support
 
-**Skills**: 34 skills across 5 categories
-**Commands**: 30+ slash commands
-**MCP Servers**: 14 configured servers
+**Skills**: 34 across 5 categories | **Commands**: 30+ | **MCP Servers**: 14 configured
 
 ---
 
