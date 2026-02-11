@@ -1,33 +1,69 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import type { SessionSummary } from './types';
-import { formatRelativeTime, truncate } from './utils';
+import type { EnrichedSession } from './types';
+import { formatRelativeTime, formatCost, truncate, shouldShowEnrichedData } from './utils';
+import { logger } from './logger';
 
 /**
  * TreeItem for session browser
- * Displays session info with click-to-resume functionality
+ * Displays enriched session info with click-to-resume functionality
  */
 class SessionTreeItem extends vscode.TreeItem {
-  constructor(public readonly session: SessionSummary) {
-    super(truncate(session.firstMessage, 50), vscode.TreeItemCollapsibleState.None);
+  constructor(public readonly session: EnrichedSession) {
+    super(truncate(session.displayTitle, 55), vscode.TreeItemCollapsibleState.None);
 
-    const projectName = path.basename(session.projectPath);
+    const showEnriched = shouldShowEnrichedData();
 
-    this.description = session.gitBranch
-      ? `${session.gitBranch}`
-      : projectName;
+    // Description: model + turns (or fallback to branch/project)
+    const descParts: string[] = [];
+    if (showEnriched && session.model) descParts.push(session.model);
+    if (showEnriched && session.numTurns) descParts.push(`${session.numTurns} turns`);
+    if (!descParts.length && session.gitBranch) descParts.push(session.gitBranch);
+    if (!descParts.length) descParts.push(session.projectName);
+    this.description = descParts.join(' \u00b7 ');
 
-    this.tooltip = new vscode.MarkdownString(
-      `**${projectName}**\n\n` +
-        `${session.firstMessage.slice(0, 200)}${session.firstMessage.length > 200 ? '...' : ''}\n\n` +
-        `---\n` +
-        `$(folder) \`${session.projectPath}\`\n\n` +
-        `$(clock) ${formatRelativeTime(session.timestamp)}` +
-        (session.gitBranch ? `\n\n$(git-branch) ${session.gitBranch}` : '')
-    );
+    // Rich tooltip with all available data
+    const tooltipLines = [`**${session.projectName}**\n`];
+
+    if (session.summary) {
+      const summaryText = session.summary.length > 200
+        ? session.summary.substring(0, 197) + '...'
+        : session.summary;
+      tooltipLines.push(summaryText + '\n');
+    } else if (session.firstPrompt) {
+      const promptText = session.firstPrompt.length > 200
+        ? session.firstPrompt.substring(0, 197) + '...'
+        : session.firstPrompt;
+      tooltipLines.push(promptText + '\n');
+    }
+
+    tooltipLines.push('---');
+    tooltipLines.push(`$(folder) \`${session.projectPath}\``);
+    tooltipLines.push(`$(clock) ${formatRelativeTime(session.modified)}`);
+    if (session.gitBranch) {
+      tooltipLines.push(`$(git-branch) ${session.gitBranch}`);
+    }
+    if (showEnriched) {
+      const metaParts: string[] = [];
+      if (session.numTurns) metaParts.push(`${session.numTurns} turns`);
+      if (session.totalCostUsd) metaParts.push(formatCost(session.totalCostUsd));
+      if (metaParts.length) {
+        tooltipLines.push(`$(symbol-number) ${metaParts.join(' \u00b7 ')}`);
+      }
+      if (session.model) {
+        tooltipLines.push(`$(server) ${session.model}`);
+      }
+    }
+    if (session.isWorktree) {
+      tooltipLines.push(`$(git-compare) worktree`);
+    }
+
+    this.tooltip = new vscode.MarkdownString(tooltipLines.join('\n\n'));
     this.tooltip.supportThemeIcons = true;
 
-    this.iconPath = new vscode.ThemeIcon('comment-discussion');
+    // Icon: worktree gets git-compare, normal gets comment-discussion
+    this.iconPath = session.isWorktree
+      ? new vscode.ThemeIcon('git-compare')
+      : new vscode.ThemeIcon('comment-discussion');
 
     // Click action - resume session
     this.command = {
@@ -48,16 +84,13 @@ export class SessionBrowserProvider implements vscode.TreeDataProvider<SessionTr
   private _onDidChangeTreeData = new vscode.EventEmitter<SessionTreeItem | undefined | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  private sessions: SessionSummary[] = [];
-  private loadId = 0; // Incremented on each refresh to invalidate stale loads
+  private sessions: EnrichedSession[] = [];
+  private loadId = 0;
 
-  constructor(private parseAllClaudeSessions: () => Promise<SessionSummary[]>) {}
+  constructor(private loadSessions: () => Promise<EnrichedSession[]>) {}
 
-  /**
-   * Refresh the session list
-   */
   refresh(): void {
-    this.loadId++; // Invalidate any ongoing loads
+    this.loadId++;
     this._onDidChangeTreeData.fire();
   }
 
@@ -66,7 +99,6 @@ export class SessionBrowserProvider implements vscode.TreeDataProvider<SessionTr
   }
 
   async getChildren(element?: SessionTreeItem): Promise<SessionTreeItem[]> {
-    // Flat list - no parent/child hierarchy
     if (element) {
       return [];
     }
@@ -74,18 +106,17 @@ export class SessionBrowserProvider implements vscode.TreeDataProvider<SessionTr
     const currentLoadId = this.loadId;
 
     try {
-      // Load sessions
-      this.sessions = await this.parseAllClaudeSessions();
+      const sessions = await this.loadSessions();
 
-      // Check if refresh was called during load (stale data)
+      // Don't update cache if a newer load was triggered while we waited
       if (currentLoadId !== this.loadId) {
-        return []; // Discard stale load, new getChildren() will be called
+        return [];
       }
 
-      // Transform to TreeItems
+      this.sessions = sessions;
       return this.sessions.map((session) => new SessionTreeItem(session));
     } catch (err) {
-      console.error('Failed to load Claude sessions:', err);
+      logger.error('Failed to load Claude sessions:', err);
       return [];
     }
   }

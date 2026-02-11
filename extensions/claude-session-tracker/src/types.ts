@@ -1,5 +1,41 @@
 /**
- * Tracked Claude Code session metadata
+ * Enriched Claude Code session — merges sessions-index.json + session-summaries.json
+ */
+export interface EnrichedSession {
+  /** Full session UUID */
+  id: string;
+  /** Absolute path to the project directory */
+  projectPath: string;
+  /** Basename of projectPath */
+  projectName: string;
+  /** Best available title: customTitle > cached title > truncated firstPrompt */
+  displayTitle: string;
+  /** First user message text */
+  firstPrompt: string;
+  /** AI-generated or cached summary */
+  summary?: string;
+  /** Number of messages in session */
+  messageCount?: number;
+  /** Git branch at session time */
+  gitBranch?: string;
+  /** ISO timestamp — session creation */
+  created: string;
+  /** ISO timestamp — last modification */
+  modified: string;
+  /** Observer/background session (filtered from main list) */
+  isSidechain: boolean;
+  /** Short model name (e.g., "opus-4.6") */
+  model?: string;
+  /** Number of agent turns */
+  numTurns?: number;
+  /** Total session cost in USD */
+  totalCostUsd?: number;
+  /** Session is in a git worktree */
+  isWorktree?: boolean;
+}
+
+/**
+ * Tracked Claude Code session metadata (VS Code terminal tracking)
  */
 export interface TrackedSession {
   /** Absolute path to the project directory */
@@ -17,28 +53,30 @@ export interface TrackedSession {
 }
 
 /**
- * Session data parsed from Claude's JSONL files
+ * Raw entry from sessions-index.json
  */
-export interface ClaudeSessionFile {
+export interface SessionIndexEntry {
   sessionId: string;
-  cwd: string;
+  projectPath?: string;
+  summary?: string;
+  customTitle?: string;
+  firstPrompt?: string;
+  messageCount?: number;
+  created?: string;
+  modified?: string;
   gitBranch?: string;
-  version: string;
-  timestamp: string;
-  type: 'user' | 'assistant';
-  message?: {
-    role: string;
-    content: string;
-  };
+  isSidechain?: boolean;
 }
 
 /**
- * Session summary for quick pick display
+ * Cached summary from session-summaries.json
  */
-export interface SessionSummary {
-  id: string;
-  projectPath: string;
-  firstMessage: string;
-  timestamp: string;
-  gitBranch?: string;
+export interface SessionSummaryCache {
+  title?: string;
+  summary?: string;
+  first_msg?: string;
+  model?: string;
+  num_turns?: number;
+  total_cost_usd?: number;
+  source?: string;
 }

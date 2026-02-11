@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { shouldShowStatusBar } from './utils';
+import { shouldShowStatusBar, shouldShowCostInStatusBar, formatCost } from './utils';
 
 /**
  * Manages the status bar indicator for Claude sessions
@@ -22,8 +22,9 @@ export class StatusBarManager {
    * Show status for active Claude session(s)
    * @param globalCount Total terminals across all VS Code windows
    * @param localCount Terminals in this window only (optional)
+   * @param totalCost Total session cost in USD (optional, from summary cache)
    */
-  showActive(globalCount: number, localCount?: number): void {
+  showActive(globalCount: number, localCount?: number, totalCost?: number): void {
     if (!shouldShowStatusBar()) {
       this.hide();
       return;
@@ -31,12 +32,20 @@ export class StatusBarManager {
 
     this.currentState = 'active';
 
-    // Show global count, with local count in tooltip
+    // Build status text with optional cost
+    let text: string;
     if (globalCount === 1) {
-      this.statusBarItem.text = '$(terminal) Claude Active';
+      text = '$(terminal) Claude Active';
     } else {
-      this.statusBarItem.text = `$(terminal) Claude Active (${globalCount})`;
+      text = `$(terminal) Claude Active (${globalCount})`;
     }
+
+    // Append cost if available and enabled
+    if (totalCost && totalCost > 0 && shouldShowCostInStatusBar()) {
+      text += ` \u00b7 ${formatCost(totalCost)}`;
+    }
+
+    this.statusBarItem.text = text;
 
     // Build informative tooltip
     if (localCount !== undefined && localCount !== globalCount) {

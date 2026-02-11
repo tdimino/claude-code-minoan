@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { SessionStorage } from './sessionStorage';
 import { StatusBarManager } from './statusBar';
 import { TerminalWatcher } from './terminalWatcher';
-import { registerCommands, parseAllClaudeSessions } from './commands';
-import { isAutoResumeEnabled } from './utils';
+import { registerCommands, loadAllEnrichedSessions } from './commands';
+import { isAutoResumeEnabled, CLAUDE_PROJECTS_DIR, SESSION_SUMMARIES_PATH } from './utils';
 import { logger } from './logger';
 import { SessionBrowserProvider } from './sessionBrowser';
 
@@ -20,6 +21,8 @@ import { SessionBrowserProvider } from './sessionBrowser';
  * - Crash recovery to resume sessions after VS Code crashes
  * - Cmd+Shift+C to quickly resume last session
  * - Session picker to choose from recent sessions
+ * - Enriched display: model, turns, cost from tracker-suite data
+ * - Auto-refresh via FileSystemWatcher on index/summary files
  */
 export function activate(context: vscode.ExtensionContext): void {
   // Initialize logger first
@@ -37,8 +40,8 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register commands (pass watcher and crossWindowState for crash recovery)
   registerCommands(context, storage, watcher, crossWindowState);
 
-  // Register Session Browser TreeView
-  const sessionBrowserProvider = new SessionBrowserProvider(parseAllClaudeSessions);
+  // Register Session Browser TreeView with enriched data loader
+  const sessionBrowserProvider = new SessionBrowserProvider(loadAllEnrichedSessions);
   const sessionBrowserView = vscode.window.createTreeView('claudeSessionBrowser', {
     treeDataProvider: sessionBrowserProvider,
     showCollapseAll: false,
@@ -52,6 +55,56 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  // === FileSystemWatchers for auto-refresh ===
+
+  let refreshDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+  const debouncedRefresh = () => {
+    if (refreshDebounceTimer) clearTimeout(refreshDebounceTimer);
+    refreshDebounceTimer = setTimeout(() => {
+      sessionBrowserProvider.refresh();
+    }, 2000);
+  };
+
+  // Clean up debounce timer on deactivation to prevent firing on disposed objects
+  context.subscriptions.push({
+    dispose: () => {
+      if (refreshDebounceTimer) {
+        clearTimeout(refreshDebounceTimer);
+        refreshDebounceTimer = undefined;
+      }
+    }
+  });
+
+  // Watch sessions-index.json files across all projects
+  try {
+    const indexPattern = new vscode.RelativePattern(
+      vscode.Uri.file(CLAUDE_PROJECTS_DIR),
+      '**/sessions-index.json'
+    );
+    const indexWatcher = vscode.workspace.createFileSystemWatcher(indexPattern);
+    indexWatcher.onDidChange(debouncedRefresh);
+    indexWatcher.onDidCreate(debouncedRefresh);
+    context.subscriptions.push(indexWatcher);
+    logger.info('FileSystemWatcher: watching sessions-index.json files');
+  } catch (err) {
+    logger.error('Failed to create sessions-index watcher:', err);
+  }
+
+  // Watch session-summaries.json for enrichment updates (VS Code API for proper lifecycle)
+  try {
+    const summaryPattern = new vscode.RelativePattern(
+      vscode.Uri.file(path.dirname(SESSION_SUMMARIES_PATH)),
+      'session-summaries.json'
+    );
+    const summaryWatcher = vscode.workspace.createFileSystemWatcher(summaryPattern);
+    summaryWatcher.onDidChange(debouncedRefresh);
+    summaryWatcher.onDidCreate(debouncedRefresh);
+    context.subscriptions.push(summaryWatcher);
+    logger.info('FileSystemWatcher: watching session-summaries.json');
+  } catch (err) {
+    logger.error('Failed to create session-summaries watcher:', err);
+  }
+
   // Start watching terminals - wait for initial scan to complete before
   // checking crash recovery to avoid race conditions with status bar state
   watcher.activate().then(
@@ -61,12 +114,10 @@ export function activate(context: vscode.ExtensionContext): void {
       logger.info(`Found ${recoverableSessions.length} recoverable sessions from cross-window state`);
 
       if (recoverableSessions.length > 0) {
-        // Log details of recoverable sessions
         for (const session of recoverableSessions) {
           logger.debug(`Recoverable session: ${session.workspacePath} (window: ${session.windowId}, lastUpdate: ${new Date(session.lastUpdate).toISOString()})`);
         }
 
-        // Deduplicate by workspace path
         const uniquePaths = new Set(recoverableSessions.map(s => s.workspacePath));
         const count = uniquePaths.size;
         logger.info(`Unique workspace paths to recover: ${count}`);
@@ -91,7 +142,6 @@ export function activate(context: vscode.ExtensionContext): void {
                   logger.error('Failed to show recovery picker:', err);
                 });
             } else {
-              // Dismissed - clear stale sessions
               logger.info('Clearing stale sessions after dismissal');
               crossWindowState.clearStaleSessions();
             }
@@ -101,7 +151,6 @@ export function activate(context: vscode.ExtensionContext): void {
           }
         );
       } else if (isAutoResumeEnabled() && storage.hasResumableSession()) {
-        // Normal auto-resume check (no crash recovery needed)
         logger.info('Found resumable session from storage, showing auto-resume prompt');
         vscode.window.showInformationMessage(
           'A previous Claude session can be resumed.',
@@ -117,10 +166,8 @@ export function activate(context: vscode.ExtensionContext): void {
                   vscode.window.showErrorMessage('Failed to resume Claude session');
                 });
             }
-            // action is undefined if user dismissed (Escape/click outside)
           },
           err => {
-            // Actual API error (rare) - not user dismissal
             logger.error('Auto-resume notification API error:', err);
           }
         );

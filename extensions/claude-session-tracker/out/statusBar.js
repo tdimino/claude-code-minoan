@@ -51,20 +51,27 @@ class StatusBarManager {
      * Show status for active Claude session(s)
      * @param globalCount Total terminals across all VS Code windows
      * @param localCount Terminals in this window only (optional)
+     * @param totalCost Total session cost in USD (optional, from summary cache)
      */
-    showActive(globalCount, localCount) {
+    showActive(globalCount, localCount, totalCost) {
         if (!(0, utils_1.shouldShowStatusBar)()) {
             this.hide();
             return;
         }
         this.currentState = 'active';
-        // Show global count, with local count in tooltip
+        // Build status text with optional cost
+        let text;
         if (globalCount === 1) {
-            this.statusBarItem.text = '$(terminal) Claude Active';
+            text = '$(terminal) Claude Active';
         }
         else {
-            this.statusBarItem.text = `$(terminal) Claude Active (${globalCount})`;
+            text = `$(terminal) Claude Active (${globalCount})`;
         }
+        // Append cost if available and enabled
+        if (totalCost && totalCost > 0 && (0, utils_1.shouldShowCostInStatusBar)()) {
+            text += ` \u00b7 ${(0, utils_1.formatCost)(totalCost)}`;
+        }
+        this.statusBarItem.text = text;
         // Build informative tooltip
         if (localCount !== undefined && localCount !== globalCount) {
             const otherCount = globalCount - localCount;

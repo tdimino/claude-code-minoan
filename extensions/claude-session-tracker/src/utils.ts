@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { execSync } from 'child_process';
-import { exec } from 'child_process';
+import * as os from 'os';
+import { exec, execSync } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -17,9 +17,6 @@ export const TERMINAL_DETECTION_MAX_ATTEMPTS = 10;
 
 /** Maximum recent sessions to parse */
 export const MAX_RECENT_SESSIONS = 20;
-
-/** Maximum lines to read from session file for summary */
-export const MAX_LINES_FOR_SUMMARY = 10;
 
 /** Git command timeout in milliseconds */
 export const GIT_TIMEOUT_MS = 5000;
@@ -311,4 +308,53 @@ export function getProcessCwd(pid: number): string | undefined {
     return undefined;
   }
   return undefined;
+}
+
+// === Enrichment Utilities ===
+
+/** Claude projects directory */
+export const CLAUDE_PROJECTS_DIR = path.join(os.homedir(), '.claude', 'projects');
+
+/** Session summaries cache path */
+export const SESSION_SUMMARIES_PATH = path.join(os.homedir(), '.claude', 'session-summaries.json');
+
+/**
+ * Shorten Claude model ID for display
+ */
+export function shortenModelName(model: string): string {
+  return model
+    .replace('claude-opus-4-6', 'opus-4.6')
+    .replace('claude-opus-4-5-20251101', 'opus-4.5')
+    .replace('claude-sonnet-4-5-20250929', 'sonnet-4.5')
+    .replace('claude-haiku-4-5-20251001', 'haiku-4.5')
+    .replace(/^claude-/, '');
+}
+
+/**
+ * Format USD cost for display
+ */
+export function formatCost(cost: number): string {
+  if (cost < 0.01) return '<$0.01';
+  return `$${cost.toFixed(2)}`;
+}
+
+/**
+ * Check if cost should be shown in status bar
+ */
+export function shouldShowCostInStatusBar(): boolean {
+  return getConfig().get('showCostInStatusBar', true);
+}
+
+/**
+ * Check if enriched data should be shown
+ */
+export function shouldShowEnrichedData(): boolean {
+  return getConfig().get('showEnrichedData', true);
+}
+
+/**
+ * Check if sidechain sessions should be hidden
+ */
+export function shouldHideSidechainSessions(): boolean {
+  return getConfig().get('hideSidechainSessions', true);
 }

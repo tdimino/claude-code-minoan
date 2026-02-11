@@ -2,7 +2,7 @@
   "name": "claude-session-tracker",
   "displayName": "Claude Session Tracker",
   "description": "Track and resume Claude Code sessions easily after crashes or disconnections",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "publisher": "aldea",
   "engines": {
     "vscode": "^1.85.0"
@@ -112,6 +112,21 @@
           "type": "boolean",
           "default": true,
           "description": "Show Claude session status in status bar"
+        },
+        "claudeTracker.showCostInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show session cost in status bar when active"
+        },
+        "claudeTracker.showEnrichedData": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show model, turn count, and cost in session browser and quick picks"
+        },
+        "claudeTracker.hideSidechainSessions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hide observer/sidechain sessions from session browser"
         }
       }
     }

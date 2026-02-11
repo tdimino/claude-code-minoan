@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GIT_TIMEOUT_MS = exports.MAX_LINES_FOR_SUMMARY = exports.MAX_RECENT_SESSIONS = exports.TERMINAL_DETECTION_MAX_ATTEMPTS = exports.TERMINAL_DETECTION_DELAY_MS = void 0;
+exports.SESSION_SUMMARIES_PATH = exports.CLAUDE_PROJECTS_DIR = exports.GIT_TIMEOUT_MS = exports.MAX_RECENT_SESSIONS = exports.TERMINAL_DETECTION_MAX_ATTEMPTS = exports.TERMINAL_DETECTION_DELAY_MS = void 0;
 exports.getCurrentWorkspacePath = getCurrentWorkspacePath;
 exports.encodeWorkspacePath = encodeWorkspacePath;
 exports.createResumedTerminal = createResumedTerminal;
@@ -51,12 +51,18 @@ exports.getChildProcesses = getChildProcesses;
 exports.getAllWorkspacePaths = getAllWorkspacePaths;
 exports.getWorkspaceForPath = getWorkspaceForPath;
 exports.getProcessCwd = getProcessCwd;
+exports.shortenModelName = shortenModelName;
+exports.formatCost = formatCost;
+exports.shouldShowCostInStatusBar = shouldShowCostInStatusBar;
+exports.shouldShowEnrichedData = shouldShowEnrichedData;
+exports.shouldHideSidechainSessions = shouldHideSidechainSessions;
 const vscode = __importStar(require("vscode"));
+const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
+const os = __importStar(require("os"));
 const child_process_1 = require("child_process");
-const child_process_2 = require("child_process");
 const util_1 = require("util");
-const execAsync = (0, util_1.promisify)(child_process_2.exec);
+const execAsync = (0, util_1.promisify)(child_process_1.exec);
 // === Constants ===
 /** Delay between terminal name detection attempts */
 exports.TERMINAL_DETECTION_DELAY_MS = 100;
@@ -64,8 +70,6 @@ exports.TERMINAL_DETECTION_DELAY_MS = 100;
 exports.TERMINAL_DETECTION_MAX_ATTEMPTS = 10;
 /** Maximum recent sessions to parse */
 exports.MAX_RECENT_SESSIONS = 20;
-/** Maximum lines to read from session file for summary */
-exports.MAX_LINES_FOR_SUMMARY = 10;
 /** Git command timeout in milliseconds */
 exports.GIT_TIMEOUT_MS = 5000;
 // === Workspace Utilities ===
@@ -321,5 +325,47 @@ function getProcessCwd(pid) {
         return undefined;
     }
     return undefined;
+}
+// === Enrichment Utilities ===
+/** Claude projects directory */
+exports.CLAUDE_PROJECTS_DIR = path.join(os.homedir(), '.claude', 'projects');
+/** Session summaries cache path */
+exports.SESSION_SUMMARIES_PATH = path.join(os.homedir(), '.claude', 'session-summaries.json');
+/**
+ * Shorten Claude model ID for display
+ */
+function shortenModelName(model) {
+    return model
+        .replace('claude-opus-4-6', 'opus-4.6')
+        .replace('claude-opus-4-5-20251101', 'opus-4.5')
+        .replace('claude-sonnet-4-5-20250929', 'sonnet-4.5')
+        .replace('claude-haiku-4-5-20251001', 'haiku-4.5')
+        .replace(/^claude-/, '');
+}
+/**
+ * Format USD cost for display
+ */
+function formatCost(cost) {
+    if (cost < 0.01)
+        return '<$0.01';
+    return `$${cost.toFixed(2)}`;
+}
+/**
+ * Check if cost should be shown in status bar
+ */
+function shouldShowCostInStatusBar() {
+    return getConfig().get('showCostInStatusBar', true);
+}
+/**
+ * Check if enriched data should be shown
+ */
+function shouldShowEnrichedData() {
+    return getConfig().get('showEnrichedData', true);
+}
+/**
+ * Check if sidechain sessions should be hidden
+ */
+function shouldHideSidechainSessions() {
+    return getConfig().get('hideSidechainSessions', true);
 }
 //# sourceMappingURL=utils.js.map

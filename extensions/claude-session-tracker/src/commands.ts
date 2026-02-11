@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
-import * as readline from 'readline';
 import { SessionStorage } from './sessionStorage';
 import { TerminalWatcher } from './terminalWatcher';
 import { CrossWindowStateManager } from './crossWindowState';
-import type { SessionSummary, ClaudeSessionFile } from './types';
+import type { EnrichedSession, SessionIndexEntry, SessionSummaryCache } from './types';
 import {
   getCurrentWorkspacePath,
   getAllWorkspacePaths,
@@ -15,8 +13,13 @@ import {
   encodeWorkspacePath,
   truncate,
   formatRelativeTime,
+  formatCost,
+  shortenModelName,
+  shouldShowEnrichedData,
+  shouldHideSidechainSessions,
   MAX_RECENT_SESSIONS,
-  MAX_LINES_FOR_SUMMARY,
+  CLAUDE_PROJECTS_DIR,
+  SESSION_SUMMARIES_PATH,
 } from './utils';
 import { logger } from './logger';
 
@@ -40,12 +43,10 @@ export function registerCommands(
       }
 
       if (activeTerminals.length === 1) {
-        // Single terminal - focus it directly
         activeTerminals[0].show();
         return;
       }
 
-      // Multiple terminals - show picker
       const items = activeTerminals.map((terminal, index) => ({
         label: terminal.name,
         description: `Terminal ${index + 1}`,
@@ -66,11 +67,8 @@ export function registerCommands(
   context.subscriptions.push(
     vscode.commands.registerCommand('claude-tracker.showAllTerminals', async () => {
       const claudeTerminals = watcher.getActiveTerminals();
+      const recentSessions = await loadRecentEnrichedSessions(12);
 
-      // Get recent sessions from last 12 hours
-      const recentSessions = await getRecentResumableSessions(12);
-
-      // Build unified quick pick items
       interface SessionPickerItem extends vscode.QuickPickItem {
         type: 'active' | 'resumable';
         terminal?: vscode.Terminal;
@@ -80,31 +78,38 @@ export function registerCommands(
 
       const items: SessionPickerItem[] = [];
 
-      // Active terminals first (grouped at top)
-      if (claudeTerminals.length > 0) {
-        // Add separator label for active terminals
-        for (const terminal of claudeTerminals) {
-          items.push({
-            type: 'active',
-            label: `$(terminal-tmux) ${terminal.name}`,
-            description: '$(circle-filled) Active',
-            detail: 'Click to focus this terminal',
-            terminal,
-          });
-        }
+      // Active terminals first
+      for (const terminal of claudeTerminals) {
+        items.push({
+          type: 'active',
+          label: `$(terminal-tmux) ${terminal.name}`,
+          description: '$(circle-filled) Active',
+          detail: 'Click to focus this terminal',
+          terminal,
+        });
       }
 
-      // Resumable sessions from last 12 hours
+      // Resumable sessions
+      const showEnriched = shouldShowEnrichedData();
       for (const session of recentSessions) {
-        const projectName = path.basename(session.projectPath);
-        const age = formatRelativeTime(session.timestamp);
+        const age = formatRelativeTime(session.modified);
+        const descParts: string[] = [];
+        if (showEnriched && session.model) descParts.push(session.model);
+        if (showEnriched && session.numTurns) descParts.push(`${session.numTurns} turns`);
+        if (!descParts.length && session.gitBranch) descParts.push(`$(git-branch) ${session.gitBranch}`);
+        if (!descParts.length) descParts.push(`$(folder) ${session.projectName}`);
+
+        const detailParts = [session.projectPath, age];
+        if (session.gitBranch && descParts[0] !== `$(git-branch) ${session.gitBranch}`) {
+          detailParts.splice(1, 0, session.gitBranch);
+        }
+        if (showEnriched && session.totalCostUsd) detailParts.push(formatCost(session.totalCostUsd));
+
         items.push({
           type: 'resumable',
-          label: `$(debug-restart) ${truncate(session.firstMessage, 50)}`,
-          description: session.gitBranch
-            ? `$(git-branch) ${session.gitBranch}`
-            : `$(folder) ${projectName}`,
-          detail: `${session.projectPath} • ${age}`,
+          label: `$(debug-restart) ${truncate(session.displayTitle, 50)}`,
+          description: descParts.join(' \u00b7 '),
+          detail: detailParts.join(' \u00b7 '),
           sessionId: session.id,
           workspacePath: session.projectPath,
         });
@@ -130,15 +135,13 @@ export function registerCommands(
       if (!selected) return;
 
       if (selected.type === 'active' && selected.terminal) {
-        // Focus the active terminal
         selected.terminal.show();
       } else if (selected.type === 'resumable' && selected.workspacePath && selected.sessionId) {
-        // Resume the selected session in its workspace
         try {
           const terminal = createResumedTerminal(selected.workspacePath);
           sendSafeCommand(terminal, 'claude --resume', selected.sessionId);
         } catch (err) {
-          console.error('Failed to resume session:', err);
+          logger.error('Failed to resume session:', err);
           vscode.window.showErrorMessage(`Failed to resume session: ${err}`);
         }
       }
@@ -154,7 +157,7 @@ export function registerCommands(
           title: 'Loading Claude sessions across all projects...',
           cancellable: false,
         },
-        () => parseAllClaudeSessions()
+        () => loadAllEnrichedSessions()
       );
 
       if (sessions.length === 0) {
@@ -162,14 +165,25 @@ export function registerCommands(
         return;
       }
 
-      // Group by project for better readability
-      const items = sessions.map(s => ({
-        label: truncate(s.firstMessage, 60),
-        description: `$(folder) ${path.basename(s.projectPath)}`,
-        detail: `${s.gitBranch ? `$(git-branch) ${s.gitBranch} · ` : ''}${formatRelativeTime(s.timestamp)}`,
-        sessionId: s.id,
-        projectPath: s.projectPath,
-      }));
+      const showEnriched = shouldShowEnrichedData();
+      const items = sessions.map(s => {
+        const descParts = [`$(folder) ${s.projectName}`];
+        if (showEnriched && s.model) descParts.push(s.model);
+
+        const detailParts: string[] = [];
+        if (s.gitBranch) detailParts.push(`$(git-branch) ${s.gitBranch}`);
+        if (showEnriched && s.numTurns) detailParts.push(`${s.numTurns} turns`);
+        if (showEnriched && s.totalCostUsd) detailParts.push(formatCost(s.totalCostUsd));
+        detailParts.push(formatRelativeTime(s.modified));
+
+        return {
+          label: truncate(s.displayTitle, 60),
+          description: descParts.join(' \u00b7 '),
+          detail: detailParts.join(' \u00b7 '),
+          sessionId: s.id,
+          projectPath: s.projectPath,
+        };
+      });
 
       const selected = await vscode.window.showQuickPick(items, {
         placeHolder: `${sessions.length} recent sessions across all projects`,
@@ -182,14 +196,14 @@ export function registerCommands(
           const terminal = createResumedTerminal(selected.projectPath);
           sendSafeCommand(terminal, 'claude --resume', selected.sessionId);
         } catch (err) {
-          console.error('Failed to resume session:', err);
+          logger.error('Failed to resume session:', err);
           vscode.window.showErrorMessage(`Failed to resume session: ${err}`);
         }
       }
     })
   );
 
-  // Recover sessions from crash - shows sessions that were active before VS Code crashed
+  // Recover sessions from crash
   context.subscriptions.push(
     vscode.commands.registerCommand('claude-tracker.recoverSessions', async () => {
       const recoverable = crossWindowState.getRecoverableSessions();
@@ -199,7 +213,6 @@ export function registerCommands(
         return;
       }
 
-      // Deduplicate by workspacePath (same project may have been in multiple windows)
       const uniquePaths = new Map<string, { name: string; workspacePath: string; lastUpdate: number }>();
       for (const session of recoverable) {
         if (!uniquePaths.has(session.workspacePath) ||
@@ -210,13 +223,12 @@ export function registerCommands(
 
       const sessions = Array.from(uniquePaths.values());
 
-      // Show quick pick with multi-select
       const items = sessions.map(s => ({
         label: `$(folder) ${path.basename(s.workspacePath)}`,
         description: s.name,
         detail: `Last active: ${formatRelativeTime(new Date(s.lastUpdate).toISOString())}`,
         workspacePath: s.workspacePath,
-        picked: true, // Pre-select all by default
+        picked: true,
       }));
 
       const selected = await vscode.window.showQuickPick(items, {
@@ -225,26 +237,21 @@ export function registerCommands(
       });
 
       if (!selected || selected.length === 0) {
-        // User cancelled or selected nothing - clear stale sessions
         crossWindowState.clearStaleSessions();
         return;
       }
 
-      // Resume each selected session
       for (const item of selected) {
         try {
           const terminal = createResumedTerminal(item.workspacePath);
-          // Use small delay between terminals to avoid overwhelming the system
           await new Promise(resolve => setTimeout(resolve, 500));
           sendSafeCommand(terminal, 'claude --continue');
         } catch (err) {
-          console.error(`Failed to recover session for ${item.workspacePath}:`, err);
+          logger.error(`Failed to recover session for ${item.workspacePath}:`, err);
         }
       }
 
-      // Clear stale sessions after recovery attempt
       crossWindowState.clearStaleSessions();
-
       vscode.window.showInformationMessage(`Recovered ${selected.length} Claude session(s)`);
     })
   );
@@ -262,7 +269,6 @@ export function registerCommands(
         return;
       }
 
-      // Deduplicate by workspacePath
       const uniquePaths = new Map<string, { workspacePath: string }>();
       for (const session of recoverable) {
         uniquePaths.set(session.workspacePath, session);
@@ -272,7 +278,6 @@ export function registerCommands(
       const sessions = Array.from(uniquePaths.values());
       logger.info(`Unique sessions to recover: ${sessions.length}`);
 
-      // Confirm with user
       const action = await vscode.window.showInformationMessage(
         `Resume ${sessions.length} Claude session(s) from before crash?`,
         'Resume All',
@@ -307,7 +312,6 @@ export function registerCommands(
       } else if (action === 'Pick Sessions') {
         vscode.commands.executeCommand('claude-tracker.recoverSessions');
       } else {
-        // Dismiss - clear stale sessions
         logger.info('User dismissed, clearing stale sessions');
         crossWindowState.clearStaleSessions();
       }
@@ -317,24 +321,20 @@ export function registerCommands(
   // Resume last session - supports multi-root workspaces
   context.subscriptions.push(
     vscode.commands.registerCommand('claude-tracker.resumeLast', async () => {
-      // Find all workspaces with resumable sessions
       const resumableWorkspaces = getAllWorkspacePaths()
         .filter(path => storage.getResumableForProject(path));
 
       let targetWorkspace: string | undefined;
 
       if (resumableWorkspaces.length === 0) {
-        // No resumable sessions in any workspace, use first workspace
         targetWorkspace = getCurrentWorkspacePath();
         if (!targetWorkspace) {
           vscode.window.showWarningMessage('No workspace folder open');
           return;
         }
       } else if (resumableWorkspaces.length === 1) {
-        // Single resumable workspace - use it directly
         targetWorkspace = resumableWorkspaces[0];
       } else {
-        // Multiple workspaces have resumable sessions - show picker
         const items = resumableWorkspaces.map(workspacePath => ({
           label: path.basename(workspacePath),
           description: workspacePath,
@@ -352,11 +352,9 @@ export function registerCommands(
       try {
         const terminal = createResumedTerminal(targetWorkspace);
         sendSafeCommand(terminal, 'claude --continue');
-
-        // Only clear resumable status after successful terminal creation
         await storage.clearResumable(targetWorkspace);
       } catch (err) {
-        console.error('Failed to resume Claude session:', err);
+        logger.error('Failed to resume Claude session:', err);
         vscode.window.showErrorMessage(`Failed to resume Claude session: ${err}`);
       }
     })
@@ -371,14 +369,13 @@ export function registerCommands(
         return;
       }
 
-      // Show loading
       const sessions = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           title: 'Loading Claude sessions...',
           cancellable: false,
         },
-        () => parseClaudeSessions(cwd)
+        () => loadEnrichedSessionsForProject(cwd)
       );
 
       if (sessions.length === 0) {
@@ -386,15 +383,26 @@ export function registerCommands(
         return;
       }
 
-      // Create quick pick items
-      const items = sessions.map(s => ({
-        label: truncate(s.firstMessage, 60),
-        description: s.gitBranch
-          ? `$(git-branch) ${s.gitBranch}`
-          : '$(circle-slash) No branch',
-        detail: formatRelativeTime(s.timestamp),
-        sessionId: s.id,
-      }));
+      const showEnriched = shouldShowEnrichedData();
+      const items = sessions.map(s => {
+        const descParts: string[] = [];
+        if (showEnriched && s.model) descParts.push(s.model);
+        if (showEnriched && s.numTurns) descParts.push(`${s.numTurns} turns`);
+        if (!descParts.length) {
+          descParts.push(s.gitBranch ? `$(git-branch) ${s.gitBranch}` : '$(circle-slash) No branch');
+        }
+
+        const detailParts = [formatRelativeTime(s.modified)];
+        if (s.gitBranch && showEnriched) detailParts.push(s.gitBranch);
+        if (showEnriched && s.totalCostUsd) detailParts.push(formatCost(s.totalCostUsd));
+
+        return {
+          label: truncate(s.displayTitle, 60),
+          description: descParts.join(' \u00b7 '),
+          detail: detailParts.join(' \u00b7 '),
+          sessionId: s.id,
+        };
+      });
 
       const selected = await vscode.window.showQuickPick(items, {
         placeHolder: 'Select a session to resume',
@@ -407,7 +415,7 @@ export function registerCommands(
           const terminal = createResumedTerminal(cwd);
           sendSafeCommand(terminal, 'claude --resume', selected.sessionId);
         } catch (err) {
-          console.error('Failed to resume session:', err);
+          logger.error('Failed to resume session:', err);
           vscode.window.showErrorMessage(`Failed to resume session: ${err}`);
         }
       }
@@ -415,7 +423,6 @@ export function registerCommands(
   );
 
   // Show recent sessions - alias for pickSession
-  // Note: Could be extended to show a read-only list view in future
   context.subscriptions.push(
     vscode.commands.registerCommand('claude-tracker.showSessions', () => {
       vscode.commands.executeCommand('claude-tracker.pickSession');
@@ -431,330 +438,184 @@ export function registerCommands(
           const terminal = createResumedTerminal(projectPath);
           sendSafeCommand(terminal, 'claude --resume', sessionId);
         } catch (err) {
-          console.error('Failed to resume session:', err);
+          logger.error('Failed to resume session:', err);
           vscode.window.showErrorMessage(`Failed to resume session: ${err}`);
-          throw err; // Propagate so VS Code knows command failed
+          throw err;
         }
       }
     )
   );
 }
 
+// === Session Loading via Index + Cache ===
+
 /**
- * Parse Claude session files for current workspace
- * Uses async file operations to avoid blocking the extension host
+ * Load the session summaries cache
  */
-async function parseClaudeSessions(workspacePath: string): Promise<SessionSummary[]> {
-  const claudeDir = path.join(os.homedir(), '.claude', 'projects');
-
-  // Encode the workspace path the way Claude does
-  // Claude replaces path separators with hyphens
-  const encodedPath = encodeWorkspacePath(workspacePath);
-  const projectDir = path.join(claudeDir, encodedPath);
-
-  // Check if directory exists (async)
+async function loadSummaryCache(): Promise<Record<string, SessionSummaryCache>> {
   try {
-    await fs.promises.access(projectDir);
+    const content = await fs.promises.readFile(SESSION_SUMMARIES_PATH, 'utf-8');
+    return JSON.parse(content);
   } catch {
-    return [];
+    return {};
   }
-
-  let files: { name: string; path: string; stat: fs.Stats }[];
-
-  try {
-    // Read directory async
-    const dirEntries = await fs.promises.readdir(projectDir);
-    const jsonlFiles = dirEntries.filter(f => f.endsWith('.jsonl'));
-
-    // Stat all files in parallel
-    const fileStats = await Promise.all(
-      jsonlFiles.map(async (f) => {
-        const filePath = path.join(projectDir, f);
-        try {
-          const stat = await fs.promises.stat(filePath);
-          return { name: f, path: filePath, stat };
-        } catch {
-          return null; // File may have been deleted
-        }
-      })
-    );
-
-    files = fileStats
-      .filter((f): f is { name: string; path: string; stat: fs.Stats } => f !== null && f.stat.size > 0)
-      .sort((a, b) => b.stat.mtime.getTime() - a.stat.mtime.getTime())
-      .slice(0, MAX_RECENT_SESSIONS);
-  } catch (err) {
-    console.error('Failed to read sessions directory:', err);
-    return [];
-  }
-
-  const sessions: SessionSummary[] = [];
-
-  for (const file of files) {
-    try {
-      const summary = await parseSessionFile(file.path);
-      if (summary) {
-        sessions.push(summary);
-      }
-    } catch (err) {
-      // Skip corrupt files but log for debugging
-      console.warn(`Failed to parse session file ${file.path}:`, err);
-    }
-  }
-
-  return sessions;
 }
 
 /**
- * Parse a single session file to extract summary
- * Properly handles stream cleanup to prevent file handle leaks
- */
-async function parseSessionFile(filePath: string): Promise<SessionSummary | null> {
-  return new Promise((resolve) => {
-    const sessionId = path.basename(filePath, '.jsonl');
-    let firstUserMessage = '';
-    let timestamp = '';
-    let gitBranch: string | undefined;
-
-    // Store stream reference for proper cleanup
-    const stream = fs.createReadStream(filePath);
-    const rl = readline.createInterface({
-      input: stream,
-      crlfDelay: Infinity,
-    });
-
-    let lineCount = 0;
-
-    const cleanup = () => {
-      rl.close();
-      stream.destroy(); // Explicitly destroy stream to prevent leaks
-    };
-
-    rl.on('line', (line) => {
-      lineCount++;
-
-      // Only parse first N lines to find metadata
-      if (lineCount > MAX_LINES_FOR_SUMMARY) {
-        cleanup();
-        return;
-      }
-
-      try {
-        const data = JSON.parse(line) as Partial<ClaudeSessionFile>;
-
-        if (!timestamp && data.timestamp) {
-          timestamp = data.timestamp;
-        }
-
-        if (!gitBranch && data.gitBranch) {
-          gitBranch = data.gitBranch;
-        }
-
-        if (!firstUserMessage && data.type === 'user' && data.message?.content) {
-          // Extract just the actual user message, not system prompts
-          const content = data.message.content;
-          // Filter out memory agent observations
-          if (!content.includes('<observed_from_primary_session>') &&
-              !content.includes('MEMORY PROCESSING') &&
-              content.length < 500) { // Skip very long system messages
-            firstUserMessage = content;
-          }
-        }
-      } catch {
-        // Skip malformed JSON lines
-      }
-    });
-
-    rl.on('close', () => {
-      stream.destroy(); // Ensure stream is destroyed
-      if (timestamp && firstUserMessage) {
-        resolve({
-          id: sessionId,
-          projectPath: filePath,
-          firstMessage: firstUserMessage,
-          timestamp,
-          gitBranch,
-        });
-      } else {
-        resolve(null);
-      }
-    });
-
-    rl.on('error', (err) => {
-      console.warn(`Error reading session file ${filePath}:`, err);
-      cleanup();
-      resolve(null);
-    });
-
-    stream.on('error', (err) => {
-      console.warn(`Stream error for ${filePath}:`, err);
-      cleanup();
-      resolve(null);
-    });
-  });
-}
-
-/**
- * Parse Claude sessions from ALL projects
- * Returns the most recent sessions across all project directories
- */
-export async function parseAllClaudeSessions(): Promise<SessionSummary[]> {
-  const claudeDir = path.join(os.homedir(), '.claude', 'projects');
-
-  // Check if projects directory exists
-  try {
-    await fs.promises.access(claudeDir);
-  } catch {
-    return [];
-  }
-
-  let projectDirs: string[];
-  try {
-    const entries = await fs.promises.readdir(claudeDir, { withFileTypes: true });
-    projectDirs = entries
-      .filter(e => e.isDirectory())
-      .map(e => path.join(claudeDir, e.name));
-  } catch {
-    return [];
-  }
-
-  // Collect all session files from all projects
-  const allFiles: { name: string; path: string; stat: fs.Stats; projectDir: string }[] = [];
-
-  await Promise.all(
-    projectDirs.map(async (projectDir) => {
-      try {
-        const dirEntries = await fs.promises.readdir(projectDir);
-        const jsonlFiles = dirEntries.filter(f => f.endsWith('.jsonl'));
-
-        await Promise.all(
-          jsonlFiles.map(async (f) => {
-            const filePath = path.join(projectDir, f);
-            try {
-              const stat = await fs.promises.stat(filePath);
-              if (stat.size > 0) {
-                allFiles.push({ name: f, path: filePath, stat, projectDir });
-              }
-            } catch {
-              // File may have been deleted
-            }
-          })
-        );
-      } catch {
-        // Skip inaccessible project directories
-      }
-    })
-  );
-
-  // Sort by modification time and take most recent
-  const sortedFiles = allFiles
-    .sort((a, b) => b.stat.mtime.getTime() - a.stat.mtime.getTime())
-    .slice(0, MAX_RECENT_SESSIONS * 2); // Get more since we're across all projects
-
-  const sessions: SessionSummary[] = [];
-
-  for (const file of sortedFiles) {
-    try {
-      const summary = await parseSessionFile(file.path);
-      if (summary) {
-        sessions.push({
-          ...summary,
-          projectPath: decodeProjectPath(file.projectDir),
-        });
-      }
-    } catch (err) {
-      console.warn(`Failed to parse session file ${file.path}:`, err);
-    }
-  }
-
-  return sessions;
-}
-
-/**
- * Decode a project directory name back to the original path
+ * Decode a project directory name back to the original path.
+ * Uses sessions-index.json projectPath as ground truth.
  */
 function decodeProjectPath(projectDir: string): string {
-  // Claude encodes paths by replacing separators with hyphens
-  // e.g., "-Users-tomdimino-Desktop-Project" -> "/Users/tomdimino/Desktop/Project"
   const encoded = path.basename(projectDir);
-  // Replace leading hyphen with / and all other hyphens with /
   return encoded.replace(/^-/, '/').replace(/-/g, '/');
 }
 
 /**
- * Get resumable sessions from the last N hours
- * Filters by JSONL file modification time for accuracy
+ * Build an EnrichedSession from index entry + summary cache
  */
-async function getRecentResumableSessions(hours: number): Promise<SessionSummary[]> {
-  const claudeDir = path.join(os.homedir(), '.claude', 'projects');
-  const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+function buildEnrichedSession(
+  entry: SessionIndexEntry,
+  projectPath: string,
+  cache: Record<string, SessionSummaryCache>
+): EnrichedSession {
+  const cached = cache[entry.sessionId];
+  const projectName = path.basename(projectPath);
 
-  // Check if projects directory exists
+  // Resolve display title: customTitle > cached title > firstPrompt
+  let displayTitle = entry.customTitle || cached?.title || entry.summary || '';
+  if (!displayTitle && entry.firstPrompt) {
+    displayTitle = truncate(entry.firstPrompt, 60);
+  }
+  if (!displayTitle) {
+    displayTitle = `Session ${entry.sessionId.substring(0, 8)}`;
+  }
+
+  // Model shortening
+  const model = cached?.model ? shortenModelName(cached.model) : undefined;
+
+  return {
+    id: entry.sessionId,
+    projectPath,
+    projectName,
+    displayTitle,
+    firstPrompt: entry.firstPrompt || cached?.first_msg || '',
+    summary: cached?.summary || entry.summary,
+    messageCount: entry.messageCount,
+    gitBranch: entry.gitBranch,
+    created: entry.created || '',
+    modified: entry.modified || entry.created || '',
+    isSidechain: entry.isSidechain || false,
+    model,
+    numTurns: cached?.num_turns,
+    totalCostUsd: cached?.total_cost_usd,
+  };
+}
+
+/**
+ * Load all enriched sessions across all projects
+ */
+export async function loadAllEnrichedSessions(): Promise<EnrichedSession[]> {
   try {
-    await fs.promises.access(claudeDir);
+    await fs.promises.access(CLAUDE_PROJECTS_DIR);
   } catch {
     return [];
   }
+
+  const cache = await loadSummaryCache();
+  const hideSidechain = shouldHideSidechainSessions();
+  const sessions: EnrichedSession[] = [];
 
   let projectDirs: string[];
   try {
-    const entries = await fs.promises.readdir(claudeDir, { withFileTypes: true });
-    projectDirs = entries
-      .filter(e => e.isDirectory())
-      .map(e => path.join(claudeDir, e.name));
+    const entries = await fs.promises.readdir(CLAUDE_PROJECTS_DIR, { withFileTypes: true });
+    projectDirs = entries.filter(e => e.isDirectory()).map(e => e.name);
   } catch {
     return [];
   }
 
-  // Collect all session files from all projects, filtering by modification time
-  const recentFiles: { name: string; path: string; stat: fs.Stats; projectDir: string }[] = [];
-
-  await Promise.all(
-    projectDirs.map(async (projectDir) => {
-      try {
-        const dirEntries = await fs.promises.readdir(projectDir);
-        const jsonlFiles = dirEntries.filter(f => f.endsWith('.jsonl'));
-
-        await Promise.all(
-          jsonlFiles.map(async (f) => {
-            const filePath = path.join(projectDir, f);
-            try {
-              const stat = await fs.promises.stat(filePath);
-              // Filter by modification time (last N hours)
-              if (stat.size > 0 && stat.mtime.getTime() > cutoffTime) {
-                recentFiles.push({ name: f, path: filePath, stat, projectDir });
-              }
-            } catch {
-              // File may have been deleted
-            }
-          })
-        );
-      } catch {
-        // Skip inaccessible project directories
-      }
-    })
-  );
-
-  // Sort by modification time (most recent first)
-  const sortedFiles = recentFiles
-    .sort((a, b) => b.stat.mtime.getTime() - a.stat.mtime.getTime())
-    .slice(0, MAX_RECENT_SESSIONS);
-
-  const sessions: SessionSummary[] = [];
-
-  for (const file of sortedFiles) {
+  for (const dirName of projectDirs) {
+    const indexPath = path.join(CLAUDE_PROJECTS_DIR, dirName, 'sessions-index.json');
     try {
-      const summary = await parseSessionFile(file.path);
-      if (summary) {
-        sessions.push({
-          ...summary,
-          projectPath: decodeProjectPath(file.projectDir),
-        });
+      const content = await fs.promises.readFile(indexPath, 'utf-8');
+      const index = JSON.parse(content);
+      if (!index.entries || !Array.isArray(index.entries)) continue;
+
+      // Use projectPath from first entry as ground truth, fall back to decode
+      const projectPath = index.entries[0]?.projectPath || decodeProjectPath(dirName);
+
+      for (const entry of index.entries as SessionIndexEntry[]) {
+        const session = buildEnrichedSession(
+          entry,
+          entry.projectPath || projectPath,
+          cache
+        );
+        if (hideSidechain && session.isSidechain) continue;
+        sessions.push(session);
       }
-    } catch (err) {
-      console.warn(`Failed to parse session file ${file.path}:`, err);
+    } catch {
+      // No index or parse error — skip
     }
   }
 
-  return sessions;
+  // Sort by modified timestamp descending
+  sessions.sort((a, b) => {
+    const ta = a.modified ? new Date(a.modified).getTime() : 0;
+    const tb = b.modified ? new Date(b.modified).getTime() : 0;
+    return tb - ta;
+  });
+
+  return sessions.slice(0, MAX_RECENT_SESSIONS * 2);
+}
+
+/**
+ * Load enriched sessions for a specific project workspace
+ */
+async function loadEnrichedSessionsForProject(workspacePath: string): Promise<EnrichedSession[]> {
+  const encodedPath = encodeWorkspacePath(workspacePath);
+  const indexPath = path.join(CLAUDE_PROJECTS_DIR, encodedPath, 'sessions-index.json');
+
+  try {
+    await fs.promises.access(indexPath);
+  } catch {
+    return [];
+  }
+
+  const cache = await loadSummaryCache();
+  const hideSidechain = shouldHideSidechainSessions();
+
+  try {
+    const content = await fs.promises.readFile(indexPath, 'utf-8');
+    const index = JSON.parse(content);
+    if (!index.entries || !Array.isArray(index.entries)) return [];
+
+    const sessions: EnrichedSession[] = [];
+    for (const entry of index.entries as SessionIndexEntry[]) {
+      const session = buildEnrichedSession(entry, workspacePath, cache);
+      if (hideSidechain && session.isSidechain) continue;
+      sessions.push(session);
+    }
+
+    // Sort by modified descending
+    sessions.sort((a, b) => {
+      const ta = a.modified ? new Date(a.modified).getTime() : 0;
+      const tb = b.modified ? new Date(b.modified).getTime() : 0;
+      return tb - ta;
+    });
+
+    return sessions.slice(0, MAX_RECENT_SESSIONS);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Load recent enriched sessions from last N hours (across all projects)
+ */
+async function loadRecentEnrichedSessions(hours: number): Promise<EnrichedSession[]> {
+  const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+  const all = await loadAllEnrichedSessions();
+  return all.filter(s => {
+    const t = s.modified ? new Date(s.modified).getTime() : 0;
+    return t > cutoffTime;
+  }).slice(0, MAX_RECENT_SESSIONS);
 }
