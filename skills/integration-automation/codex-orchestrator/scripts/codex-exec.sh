@@ -82,7 +82,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --full-auto)
-            FULL_AUTO="--ask-for-approval on-failure"
+            FULL_AUTO="--full-auto"
             shift
             ;;
         *)
