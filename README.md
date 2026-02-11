@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version"></a>
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-34-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-35-green.svg" alt="Skills"></a>
   <a href="#all-slash-commands"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
 </p>
 
@@ -382,7 +382,7 @@ Systematically audits implementation plans:
 - **beautiful-mermaid** ⭐ NEW - Render Mermaid diagrams as ASCII/Unicode art for terminal or SVG files. Supports flowcharts, state diagrams, sequence diagrams, class diagrams, and ER diagrams. 15 built-in themes (tokyo-night, catppuccin, nord, dracula, etc.). Based on beautiful-mermaid npm package by Craft.
 - **mcp-server-manager** - Configure and manage MCP servers in Claude Code
 - **netlify-integration** - Deploy and manage Netlify projects with Next.js serverless functions, environment variables, and continuous deployment
-- **parakeet** - Local speech-to-text using NVIDIA Parakeet TDT 0.6B (~600MB, 100% offline). 3,386x realtime speed, 6.05% WER. Transcribe audio files (.wav, .mp3, .m4a, .flac, .ogg, .aac) or dictate from microphone. Apple Silicon MPS acceleration. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
+- **parakeet** - Local speech-to-text via Handy app (push-to-talk) and NeMo CLI scripts. Parakeet V3: 25 languages, auto-detection, ~30x realtime on M4 Max, 6% WER. Handy uses transcribe-rs (ONNX int8); CLI scripts use NeMo/PyTorch. Commands: `/parakeet <file>`, `/parakeet dictate`, `/parakeet check`
 - **rlama** ⭐ - Local RAG system for semantic document search. Create knowledge bases from PDFs, markdown, code files. Query documents with natural language. Runs 100% locally with Ollama (default: qwen2.5:7b). Includes resilient indexing that skips context overflow errors, management scripts for create/add/remove/query operations, and `--legacy` flag for llama3.2 compatibility. **NEW**: Progress monitoring with `tail -f ~/.rlama/logs/rlama.log` and `rlama_status.py` for real-time operation tracking with ETA
 - **supabase-skill** - Configure and manage Supabase projects using MCP. Database design, migrations, RLS policies
 - **telnyx-api** - SMS/MMS messaging, voice calls, phone numbers, webhooks, and telephony integration
@@ -404,7 +404,7 @@ Systematically audits implementation plans:
 - **academic-research** - Comprehensive academic paper search, literature reviews, and research synthesis. Combines Exa MCP with arxiv-mcp-server for paper discovery, download, and deep analysis
 - **atk-ux-research** - Specialized UX research skill for America's Test Kitchen. Gathers user feedback from app stores, Reddit, Trustpilot, BBB, and review sources using Exa Search, Firecrawl, and Perplexity MCP. Outputs structured reports with quantitative metrics and qualitative themes
 - **exa-search** - Complete Exa AI search API access with 6 scripts: neural web search, URL content extraction (with RAG context), similar page discovery (with moderation/text filters), AI research with streaming, async research (3 models: fast/standard/pro), and test suite. Full API coverage
-- **Firecrawl** - Official Firecrawl CLI (`firecrawl scrape/crawl/map/search`) plus Agent API for autonomous data extraction. Auto-save alias (`fc-save`), Python API script for batch/extract/agent commands. **ALWAYS prefer Firecrawl over WebFetch**
+- **Firecrawl** - Official Firecrawl CLI (`firecrawl scrape/crawl/map/search`) plus Agent API for autonomous data extraction. Auto-save alias (`fc-save`), Python API script for batch/extract/agent commands, DeepWiki integration (`deepwiki.sh`). **ALWAYS prefer Firecrawl over WebFetch**
 
 ### Planning & Productivity (`skills/planning-productivity/`)
 
@@ -895,18 +895,18 @@ cat ~/.claude/commands/command-name.md
 
 ---
 
-**Last Updated**: 2026-02-09
+**Last Updated**: 2026-02-11
 
 **Highlights**:
 - **minoan-swarm** — Native Agent Teams orchestration with Minoan-Semitic naming. 5 team templates, 30+ named teammates from Ugaritic, Akkadian, Hebrew, Egyptian, Linear B, and pre-Islamic Arabian traditions
 - **CLI Tools** — Session management CLIs (`claude-tracker-search`, `claude-tracker-resume`, `cc`, `cckill`, `ccls`, `ccpick`) with shared `tracker-utils.js` library
-- **Local ML stack** — `llama-cpp` (LoRA hot-loading, 15% faster than Ollama), `rlama` (local RAG with progress monitoring), `parakeet` (STT, 3386x realtime), `smolvlm` (vision-language, 87 tok/s), `speak-response` (TTS, Oracle voice clone)
+- **Local ML stack** — `llama-cpp` (LoRA hot-loading, 15% faster than Ollama), `rlama` (local RAG with progress monitoring), `parakeet` (STT via Handy, 25 languages, ~30x realtime), `smolvlm` (vision-language, 87 tok/s), `speak-response` (TTS, Oracle voice clone)
 - **beautiful-mermaid** — Mermaid diagrams as ASCII art or SVG. 15 themes, 5 diagram types
-- **Firecrawl** — Official CLI v1.1.1 + Python API, SDK v4.x compatible
+- **Firecrawl** — Official CLI v1.1.1 + Python API + DeepWiki integration, SDK v4.x compatible
 - **codex-orchestrator** — Delegate to specialized Codex CLI subagents (reviewer, debugger, architect, security, refactor, docs)
 - **super-ralph-wiggum** — Autonomous iteration loops with HITL/AFK modes and Docker sandbox support
 
-**Skills**: 34 across 5 categories | **Commands**: 30+ | **MCP Servers**: 14 configured
+**Skills**: 35 across 5 categories | **Commands**: 30+ | **MCP Servers**: 14 configured
 
 ---
 

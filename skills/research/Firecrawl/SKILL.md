@@ -1,6 +1,6 @@
 ---
 name: Firecrawl
-description: Use Firecrawl and Jina for fetching web content. ALWAYS prefer Firecrawl over WebFetch for all web fetching tasks—it produces cleaner output, handles JavaScript-heavy pages, and has no content truncation. This skill should be used when fetching URLs, scraping web pages, converting URLs to markdown, extracting web content, searching the web, crawling sites, mapping URLs, LLM-powered extraction, or autonomous data gathering with the Agent API. Provides complete coverage of Firecrawl v2.8.0 API endpoints including parallel agents, spark-1-fast model, and sitemap-only crawling.
+description: Use Firecrawl and Jina for fetching web content. ALWAYS prefer Firecrawl over WebFetch for all web fetching tasks—it produces cleaner output, handles JavaScript-heavy pages, and has no content truncation. This skill should be used when fetching URLs, scraping web pages, converting URLs to markdown, extracting web content, searching the web, crawling sites, mapping URLs, LLM-powered extraction, autonomous data gathering with the Agent API, or fetching AI-generated documentation for GitHub repos via DeepWiki. Provides complete coverage of Firecrawl v2.8.0 API endpoints including parallel agents, spark-1-fast model, and sitemap-only crawling.
 ---
 
 # Firecrawl & Jina Web Scraping
@@ -233,7 +233,56 @@ jina https://x.com/username/status/123456  # Twitter works with Jina
 
 ---
 
-### 4. Firecrawl API Script (Advanced Features)
+### 4. DeepWiki - GitHub Repo Documentation (`deepwiki`)
+
+**Command**: `~/.claude/skills/Firecrawl/scripts/deepwiki.sh <owner/repo> [section] [options]`
+
+AI-generated wiki documentation for any public GitHub repository, powered by [DeepWiki](https://deepwiki.com) (Cognition/Devin). Converts any GitHub repo into structured, navigable documentation with architecture diagrams, component breakdowns, and cross-referenced source links — no API key required.
+
+**URL pattern**: `https://deepwiki.com/{owner}/{repo}` (overview), `https://deepwiki.com/{owner}/{repo}/{section-slug}` (subpage)
+
+**When to use**:
+- Understanding an unfamiliar GitHub repo's architecture quickly
+- Getting structured documentation for a library/framework before using it
+- Researching how open-source projects implement specific patterns
+- Alternative to reading raw README + source when you need a high-level map
+
+```bash
+# Fetch overview (architecture summary + table of contents)
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh karpathy/nanochat
+
+# List all available wiki sections
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh langchain-ai/langchain --toc
+
+# Fetch a specific section
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh karpathy/nanochat 4.1-gpt-transformer-implementation
+
+# Fetch entire wiki (all pages concatenated)
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh anthropics/anthropic-sdk-python --all
+
+# Save to file
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh openai/openai-python --save
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh openai/openai-python -o docs.md
+
+# Also accepts full GitHub URLs (strips automatically)
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh https://github.com/karpathy/nanochat
+```
+
+**Options**:
+- `--toc` - List all available wiki pages (fetches overview, displays titles only)
+- `--all` - Fetch and concatenate all wiki pages (full dump)
+- `--save` - Auto-save to `~/Desktop/Screencaps & Chats/Web-Scrapes/deepwiki-{repo}.md`
+- `-o FILE` - Save to specific file
+
+**Notes**:
+- Works on any public GitHub repo — DeepWiki indexes on demand
+- Pages include architecture diagrams (as ASCII), source file references, and cross-links
+- For private repos or repos not yet indexed, DeepWiki may not have content
+- Scraping uses Firecrawl under the hood (consumes credits like any scrape)
+
+---
+
+### 5. Firecrawl API Script (Advanced Features)
 
 **Command**: `python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py <command>`
 
@@ -682,7 +731,23 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent \
   "Find 20 B2B SaaS companies in developer tools with contact emails"
 ```
 
-### Workflow 6: Batch URL Scraping
+### Workflow 6: GitHub Repo Documentation via DeepWiki
+
+```bash
+# Quick architecture overview of any GitHub repo
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh karpathy/nanochat
+
+# Browse available sections first
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh anthropics/anthropic-sdk-python --toc
+
+# Deep-dive into a specific subsystem
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh langchain-ai/langchain 3.1-agent-system
+
+# Dump full wiki for offline reading or RAG ingestion
+~/.claude/skills/Firecrawl/scripts/deepwiki.sh openai/openai-python --all --save
+```
+
+### Workflow 7: Batch URL Scraping
 
 ```bash
 # Start batch job (Python API)
@@ -708,6 +773,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py batch-status <job_id
 | Agent (autonomous extraction) | Python API script `agent` command |
 | Batch scrape multiple URLs | Python API script `batch-scrape` command |
 | LLM-powered extraction | Python API script `extract` command |
+| GitHub repo documentation (AI wiki) | `deepwiki.sh owner/repo` |
 | Fallback / Twitter scraping | `jina URL` |
 
 ### When to use Official CLI (`firecrawl`):
@@ -726,6 +792,12 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py batch-status <job_id
 - **batch-scrape**: Multiple URLs concurrently
 - **extract**: LLM-powered structured extraction
 - Advanced features not in official CLI
+
+### When to use DeepWiki (`deepwiki.sh`):
+- Understanding a GitHub repo's architecture without reading source
+- Getting structured docs for any public GitHub repo on demand
+- Research workflow: `--toc` to browse, then fetch specific sections
+- Full wiki dump for RAG ingestion (`--all --save`)
 
 ### When to use Jina:
 - When Firecrawl fails
