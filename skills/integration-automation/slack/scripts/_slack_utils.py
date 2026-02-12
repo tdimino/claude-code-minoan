@@ -88,6 +88,23 @@ _FORM_ENCODED_METHODS = {
     "files.getUploadURLExternal",
 }
 
+# Methods that must use GET with query params (not POST with JSON body).
+# Slack's list/query endpoints ignore JSON body params for the types filter.
+_GET_METHODS = {
+    "conversations.list",
+    "conversations.history",
+    "conversations.replies",
+    "conversations.info",
+    "conversations.members",
+    "users.list",
+    "users.info",
+    "users.lookupByEmail",
+    "users.conversations",
+    "search.messages",
+    "search.files",
+    "reactions.get",
+}
+
 
 def slack_api(method: str, retries: int = 2, **params) -> Dict[str, Any]:
     """
@@ -107,7 +124,13 @@ def slack_api(method: str, retries: int = 2, **params) -> Dict[str, Any]:
     _enforce_rate_limit(method)
 
     for attempt in range(retries + 1):
-        if method in _FORM_ENCODED_METHODS:
+        if method in _GET_METHODS:
+            resp = requests.get(
+                f"{BASE_URL}/{method}",
+                headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
+                params=params,
+            )
+        elif method in _FORM_ENCODED_METHODS:
             resp = requests.post(
                 f"{BASE_URL}/{method}",
                 headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
