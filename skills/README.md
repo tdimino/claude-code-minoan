@@ -1,0 +1,99 @@
+# Skills (`skills/`)
+
+Custom Claude Code capabilities organized by category. Each skill extends Claude with specialized workflows, tools, and domain knowledge.
+
+## Installation
+
+**Option A: Copy all skills**
+```bash
+cp -r skills/*/* ~/.claude/skills/
+```
+
+**Option B: Symlink individual skills**
+```bash
+ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads-task-tracker
+```
+
+**Toggle skills on/off:**
+```bash
+./skills/skill-toggle.sh
+```
+
+## Categories
+
+### Core Development (`core-development/`)
+| Skill | Description |
+|-------|-------------|
+| `architecture-md-builder` | ARCHITECTURE.md generation following [matklad's guidelines](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html) |
+| `beads-task-tracker` | Dependency-aware task tracking with SQLite + JSONL sync |
+| `claude-agent-sdk` | Build AI agents using the [Claude Agent SDK](https://docs.anthropic.com/en/docs/agents-and-tools/claude-agent-sdk) |
+| `claude-md-manager` | CLAUDE.md creation using WHAT/WHY/HOW framework |
+| `osgrep-reference` | [OSGrep](https://osgrep.app/) semantic code search reference |
+| `react-best-practices` | React/Next.js optimization from [Vercel Engineering](https://vercel.com/blog) |
+| `skill-optimizer` | Meta-skill for creating and reviewing other skills |
+
+### Integration & Automation (`integration-automation/`)
+| Skill | Description |
+|-------|-------------|
+| `agent-browser` | Browser automation via [Vercel agent-browser](https://github.com/AkshitIredworworwordy/agent-browser) CLI |
+| `codex-orchestrator` | Orchestrate [OpenAI Codex CLI](https://github.com/openai/codex) with specialized subagents |
+| `llama-cpp` | Local LLM inference via [llama.cpp](https://github.com/ggerganov/llama.cpp) with LoRA hot-loading |
+| `beautiful-mermaid` | Mermaid diagrams as ASCII art via [beautiful-mermaid](https://github.com/nicepkg/beautiful-mermaid) |
+| `parakeet` | Speech-to-text via [NVIDIA Parakeet](https://docs.nvidia.com/nemo/asr/models/parakeet.html) + [Handy](https://github.com/cjpais/Handy) |
+| `rlama` | Local RAG via [RLAMA](https://github.com/dontizi/rlama) with Ollama |
+| `Firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) CLI + Agent API |
+| `exa-search` | Neural search via [Exa AI](https://exa.ai/) API |
+| `twitter` | Twitter/X via [bird CLI](https://github.com/nicepkg/bird) + [x-search](https://github.com/nicepkg/x-search) |
+| `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
+| `speak-response` | Local TTS via [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS) |
+
+### Design & Media (`design-media/`)
+| Skill | Description |
+|-------|-------------|
+| `frontend-design` | Production-grade UI creation with distinctive aesthetics |
+| `gemini-claude-resonance` | Cross-model dialogue between Claude and [Gemini](https://deepmind.google/technologies/gemini/) |
+| `nano-banana-pro` | Image generation via [Gemini 3 Pro](https://deepmind.google/technologies/gemini/) |
+| `rocaille-shader` | Procedural shader generation for WebGL/GLSL |
+
+### Research (`research/`)
+| Skill | Description |
+|-------|-------------|
+| `academic-research` | Paper search via Exa + [ArXiv](https://arxiv.org/) |
+| `exa-search` | Full [Exa AI](https://exa.ai/) API with 6 specialized scripts |
+| `Firecrawl` | [Firecrawl](https://firecrawl.dev/) official CLI + Agent API |
+
+### Planning & Productivity (`planning-productivity/`)
+| Skill | Description |
+|-------|-------------|
+| `claude-tracker-suite` | Session search, resume, project detection |
+| `minoan-swarm` | Agent Teams orchestration with ancient Mediterranean naming |
+| `super-ralph-wiggum` | Autonomous iteration loops based on [AI Hero's 11 Tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum) |
+| `crypt-librarian` | Film curator for pre-2016 gothic/occult/noir cinema |
+
+## Skill Structure
+
+Every skill follows this layout:
+```
+skill-name/
+├── SKILL.md          # Required — instructions loaded when skill is invoked
+├── scripts/          # Optional — executable scripts
+└── references/       # Optional — additional documentation
+```
+
+`SKILL.md` is the entry point. It tells Claude what the skill does, what tools/scripts are available, and how to use them.
+
+## Credits & Inspiration
+
+- **[Claude Code Skills](https://docs.anthropic.com/en/docs/claude-code/skills)** by Anthropic — the skills framework
+- **[compound-engineering](https://github.com/every-ai-labs/compound-engineering)** by Every AI Labs — multi-agent review workflows
+- **[feature-dev plugin](https://github.com/anthropics/claude-code)** by the Claude Code team — code-architect, code-explorer, code-reviewer agents
+- **[super-ralph-wiggum](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)** by AI Hero — autonomous iteration loop pattern
+- **[llama.cpp](https://github.com/ggerganov/llama.cpp)** by Georgi Gerganov — local LLM inference engine
+- **[RLAMA](https://github.com/dontizi/rlama)** by dontizi — local RAG system
+- **[Firecrawl](https://firecrawl.dev/)** by Mendable — web scraping and content extraction
+- **[Exa](https://exa.ai/)** — neural web search API
+- **[Handy](https://github.com/cjpais/Handy)** by CJ Pais — push-to-talk speech-to-text
+- **[ccstatusline](https://github.com/sirmalloc/ccstatusline)** by sirmalloc — terminal statusline for Claude Code
+- **[beautiful-mermaid](https://github.com/nicepkg/beautiful-mermaid)** by Craft — Mermaid diagram rendering
+- **[matklad's ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html)** — the canonical guide for codebase documentation
+- **[Open Souls](https://docs.souls.chat/)** — the AI souls paradigm that shapes our agent architecture
