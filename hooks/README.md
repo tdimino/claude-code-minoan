@@ -12,6 +12,7 @@ User types message ──→ UserPromptSubmit ────→ multi-response-pro
 Claude uses a tool ──→ PreToolUse ──────────→ on-thinking.sh (🔴 tab title)
 
 Claude responds ─────→ Stop ────────────────→ on-ready.sh (🟢 tab + sound + notification)
+                                            → propagate-rename.py (sync /rename → caches)
                                             → stop-handoff.py (checkpoint every 5 min)
 
 Context full ────────→ PreCompact ──────────→ precompact-handoff.py (full handoff)
@@ -56,6 +57,25 @@ Also updates `~/.claude/handoffs/INDEX.md` — a running markdown table of all s
 
 ---
 
+### `propagate-rename.py` — Rename Reconciliation
+
+Propagates `/rename` custom titles from `sessions-index.json` (ground truth) to `session-summaries.json` (global cache) and triggers `active-projects.md` rebuild.
+
+**Fires on**: Stop (after every Claude response)
+
+**Data flow**:
+1. Read `session_id` and `transcript_path` from hook stdin JSON
+2. Look up `customTitle` in `sessions-index.json` (per-project, written by `/rename`)
+3. Compare against `title` in `~/.claude/session-summaries.json`
+4. If mismatch: update cache, atomic write, fire `update-active-projects.py` in background
+5. If already in sync or no custom title: fast path exit (~20ms)
+
+**Why it exists**: `/rename` only updates `sessions-index.json`. Without this hook, `session-summaries.json` and `active-projects.md` never learn about the rename.
+
+**Cost**: Zero. No LLM calls, no network — pure local JSON reconciliation.
+
+---
+
 ### `stop-handoff.py` — Throttled Checkpoint
 
 Thin wrapper around `precompact-handoff.py` with three guards:
@@ -86,6 +106,7 @@ Dynamic terminal tab title with state indicators, desktop notifications, and dur
 | Ready | 🟢 `project-name` | Sets tab title, plays sound, sends notification with duration |
 
 Features:
+- Session name from `customTitle` in `sessions-index.json` (set by `/rename`)
 - Project name from `package.json`, `Cargo.toml`, or `pyproject.toml`
 - macOS desktop notification via `terminal-notifier` (click to focus VS Code)
 - Duration tracking (e.g., "Ready for input (2m 34s)")
@@ -126,6 +147,7 @@ Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously 
 
 | Scenario | Hook | Caught? |
 |----------|------|---------|
+| Session renamed | Stop (propagate-rename) | Yes |
 | Context window full | PreCompact | Yes |
 | Ctrl+C / terminal close | SessionEnd | Yes |
 | VS Code exit / restart | SessionEnd | Yes |
@@ -152,6 +174,7 @@ Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously 
         "matcher": "",
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/on-ready.sh"},
+          {"type": "command", "command": "~/.claude/hooks/propagate-rename.py"},
           {"type": "command", "command": "~/.claude/hooks/stop-handoff.py"}
         ]
       }
