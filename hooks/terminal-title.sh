@@ -3,8 +3,12 @@
 # Shows thinking/ready state in terminal tab title
 # Also sends desktop notifications with click-to-focus
 
+# Debug logging
+echo "[$(date)] on-ready.sh called" >> /tmp/claude-hook-debug.log
+
 # Read the hook input (contains session info as JSON)
 INPUT=$(cat)
+echo "[$(date)] INPUT: $INPUT" >> /tmp/claude-hook-debug.log
 
 # Extract the event type from the hook context
 SCRIPT_NAME=$(basename "$0")
@@ -25,9 +29,49 @@ SESSION_NAME=$(echo "$INPUT" | jq -r '
   empty
 ' 2>/dev/null)
 
-# If no session name found, use cwd basename
+# If no session name in hook JSON, check sessions-index.json for customTitle
+if [[ -z "$SESSION_NAME" || "$SESSION_NAME" == "null" ]]; then
+  SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+  TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
+  if [[ -n "$TRANSCRIPT_PATH" && -n "$SESSION_ID" ]]; then
+    PROJECT_DIR=$(dirname "$TRANSCRIPT_PATH")
+    INDEX_FILE="$PROJECT_DIR/sessions-index.json"
+    if [[ -f "$INDEX_FILE" ]]; then
+      CUSTOM_TITLE=$(jq -r --arg sid "$SESSION_ID" \
+        '.entries[] | select(.sessionId == $sid) | .customTitle // empty' \
+        "$INDEX_FILE" 2>/dev/null)
+      if [[ -n "$CUSTOM_TITLE" && "$CUSTOM_TITLE" != "null" ]]; then
+        SESSION_NAME="$CUSTOM_TITLE"
+      fi
+    fi
+  fi
+fi
+
+# Fall back to cwd basename if still no name
 if [[ -z "$SESSION_NAME" || "$SESSION_NAME" == "null" ]]; then
   SESSION_NAME=$(basename "$CWD")
+fi
+
+# Detect project name from package.json, Cargo.toml, or pyproject.toml
+# Only use manifest name - VS Code already shows directory
+PROJECT_NAME=""
+if [[ -f "$CWD/package.json" ]]; then
+  PROJECT_NAME=$(grep -o '"name": *"[^"]*"' "$CWD/package.json" 2>/dev/null | head -1 | cut -d'"' -f4)
+elif [[ -f "$CWD/Cargo.toml" ]]; then
+  PROJECT_NAME=$(grep -o '^name = "[^"]*"' "$CWD/Cargo.toml" 2>/dev/null | head -1 | cut -d'"' -f2)
+elif [[ -f "$CWD/pyproject.toml" ]]; then
+  PROJECT_NAME=$(grep -o '^name = "[^"]*"' "$CWD/pyproject.toml" 2>/dev/null | head -1 | cut -d'"' -f2)
+fi
+
+# Format project name with brackets if found
+PROJECT_DISPLAY=""
+if [[ -n "$PROJECT_NAME" ]]; then
+  # Sanitize
+  PROJECT_NAME=$(echo "$PROJECT_NAME" | tr -d '\000-\037\177' | sed 's/\\e//g; s/\\033//g; s/\\x1b//gi')
+  if [[ ${#PROJECT_NAME} -gt 20 ]]; then
+    PROJECT_NAME="${PROJECT_NAME:0:17}..."
+  fi
+  PROJECT_DISPLAY=" [$PROJECT_NAME]"
 fi
 
 # SECURITY: Sanitize session name to prevent escape sequence injection
@@ -82,13 +126,13 @@ send_notification() {
 case "$SCRIPT_NAME" in
   "on-thinking.sh"|"thinking")
     # Red circle - Claude is working (thinking/generating response)
-    TITLE="🔴 $SESSION_NAME"
+    TITLE="🔴 $SESSION_NAME$PROJECT_DISPLAY"
     # Record start time for duration tracking
     date +%s > "$DURATION_FILE"
     ;;
   "on-ready.sh"|"ready")
     # Green circle - Claude is ready for input
-    TITLE="🟢 $SESSION_NAME"
+    TITLE="🟢 $SESSION_NAME$PROJECT_DISPLAY"
 
     # Calculate duration if we have a start time
     DURATION_MSG=""
@@ -109,10 +153,10 @@ case "$SCRIPT_NAME" in
   *)
     # Determine from argument or default to ready
     if [[ "$1" == "thinking" ]]; then
-      TITLE="🔴 $SESSION_NAME"
+      TITLE="🔴 $SESSION_NAME$PROJECT_DISPLAY"
       date +%s > "$DURATION_FILE"
     else
-      TITLE="🟢 $SESSION_NAME"
+      TITLE="🟢 $SESSION_NAME$PROJECT_DISPLAY"
 
       DURATION_MSG=""
       if [[ -f "$DURATION_FILE" ]]; then
