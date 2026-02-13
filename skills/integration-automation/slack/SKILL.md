@@ -42,7 +42,7 @@ echo $SLACK_BOT_TOKEN
 3. OAuth & Permissions → Bot Token Scopes → add:
    - `chat:write`
    - `channels:history`, `groups:history`, `im:history`, `mpim:history`
-   - `channels:read`, `groups:read`
+   - `channels:read`, `groups:read`, `im:read`, `im:write`
    - `search:read`
    - `reactions:write`, `reactions:read`
    - `files:write`, `files:read`
