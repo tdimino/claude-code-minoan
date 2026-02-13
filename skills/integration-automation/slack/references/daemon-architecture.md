@@ -15,8 +15,7 @@ claude_handler.py
   ├── soul_engine.build_prompt()   ← assembles cognitive prompt
   │     ├── soul.md                ← personality blueprint
   │     ├── soul_memory            ← cross-thread persistent state
-  │     ├── user_models            ← per-user markdown profile
-  │     ├── working_memory         ← recent thread context
+  │     ├── user_models            ← per-user profile (conditional — Samantha-Dreams gate)
   │     └── cognitive instructions ← XML-tagged output format
   │
   ├── claude -p <prompt>           ← subprocess invocation
@@ -37,11 +36,20 @@ claude_handler.py
 
 | Tier | Scope | Storage | TTL | Purpose |
 |------|-------|---------|-----|---------|
-| **Working memory** | Per-thread | `working_memory` table | 72 hours | Recent conversation context (messages, monologues, actions) |
+| **Working memory** | Per-thread | `working_memory` table | 72 hours | Metadata store (NOT injected into prompt — `--resume` carries conversation history) |
 | **User models** | Per-user | `user_models` table | Permanent | Markdown personality profiles per Slack user |
 | **Soul memory** | Global | `soul_memory` table | Permanent | Cross-thread state (current project, task, topic, emotional state) |
 
 All three tiers are stored in `daemon/memory.db` (SQLite). Thread sessions are in `daemon/sessions.db`.
+
+**Key architectural decision:** Working memory entries are written to SQLite (for the user model gate, analytics, and debug) but are NOT injected as transcript into the prompt. Conversation continuity comes from `--resume SESSION_ID` in `claude_handler.py`, which loads the full prior conversation into Claude's context. Injecting working_memory on top of that would duplicate context and waste tokens.
+
+### User Model Injection — Samantha-Dreams Pattern
+
+User models are NOT injected on every turn. Following the Samantha-Dreams pattern from the Open Souls paradigm, injection is gated by:
+
+1. **First turn** (empty working_memory for this thread) — always inject
+2. **Subsequent turns** — inject only if the last `user_model_check` mentalQuery returned `true` (something new was learned about the user)
 
 ## Cognitive Steps
 
@@ -115,7 +123,7 @@ conversationSummary: Working on synthetic training data from Kothar interactions
 
 ## Working Memory Entry Types
 
-All entries are stored with verbs intact and formatted for prompt injection:
+All entries are stored with verbs intact in SQLite (metadata store, NOT injected into prompt):
 
 | Type | Source | Example |
 |------|--------|---------|

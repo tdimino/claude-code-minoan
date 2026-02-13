@@ -2,17 +2,26 @@
 Pseudo soul engine for Claudius.
 
 Wraps every claude -p invocation with structured cognitive steps:
-internal monologue, external dialogue, user modeling, soul state tracking,
-and persistent working memory. Modeled after Kothar's cognitive architecture
-in the Aldea Soul Engine, adapted for single-shot subprocess calls.
+internal monologue, external dialogue, user modeling, and soul state tracking.
+Modeled after Kothar's cognitive architecture in the Aldea Soul Engine,
+adapted for single-shot subprocess calls.
 
 The prompt instructs Claude to produce XML-tagged output sections.
-parse_response() extracts them, stores all entries in SQLite working
-memory with verbs intact, and returns only the external dialogue to Slack.
+parse_response() extracts them, stores entries in SQLite working memory
+(for metadata gating and analytics), and returns only the external dialogue
+to Slack.
+
+Conversation continuity comes from `--resume SESSION_ID` in claude_handler.py,
+which loads the full prior conversation into Claude's context. The soul engine
+does NOT inject working_memory transcripts — that would duplicate what --resume
+already provides. Working memory serves as a metadata store for:
+- _should_inject_user_model() — Samantha-Dreams conditional gate
+- Future training data extraction
+- Debug inspection via sqlite3
 
 Three-tier memory:
-- Working memory: per-thread, TTL-expired (72h default)
-- User models: per-user, permanent
+- Working memory: per-thread metadata store (72h TTL), NOT injected into prompt
+- User models: per-user, permanent, conditionally injected
 - Soul memory: global cross-thread state (currentProject, currentTask, etc.)
 """
 
@@ -25,7 +34,7 @@ from typing import Optional
 import soul_memory
 import user_models
 import working_memory
-from config import SOUL_STATE_UPDATE_INTERVAL, WORKING_MEMORY_WINDOW
+from config import SOUL_STATE_UPDATE_INTERVAL
 
 log = logging.getLogger("slack-daemon.soul")
 
@@ -118,10 +127,13 @@ def build_prompt(
     Assembles:
     1. Soul blueprint (soul.md)
     2. Soul state (cross-thread persistent context)
-    3. User model (if exists)
-    4. Recent working memory (thread context)
-    5. Cognitive step instructions
-    6. The user's message (fenced as untrusted input)
+    3. User model (conditional — Samantha-Dreams pattern, gated by working_memory metadata)
+    4. Cognitive step instructions
+    5. The user's message (fenced as untrusted input)
+
+    Working memory transcript is NOT injected — `--resume SESSION_ID` in
+    claude_handler.py already carries the full conversation history. Injecting
+    it here would duplicate context and waste tokens.
     """
     global _global_interaction_count
     parts = []
@@ -134,17 +146,15 @@ def build_prompt(
     if soul_state_text:
         parts.append(f"\n{soul_state_text}")
 
-    # 3. User model
+    # 3. User model — conditional injection (Samantha-Dreams pattern)
+    #    Fetch working_memory entries to check if last turn learned something new.
+    #    The transcript itself is NOT injected — --resume handles conversation history.
+    entries = working_memory.get_recent(channel, thread_ts, limit=5)  # only need recent mentalQuery
     model = user_models.ensure_exists(user_id, display_name)
-    parts.append(f"\n## User Model\n\n{model}")
+    if _should_inject_user_model(entries):
+        parts.append(f"\n## User Model\n\n{model}")
 
-    # 4. Working memory (thread context)
-    entries = working_memory.get_recent(channel, thread_ts, limit=WORKING_MEMORY_WINDOW)
-    if entries:
-        memory_text = working_memory.format_for_prompt(entries, soul_name="Claudius")
-        parts.append(f"\n## Recent Memory (thread context)\n\n{memory_text}")
-
-    # 5. Cognitive instructions (always include user model check)
+    # 4. Cognitive instructions (always include user model check)
     instructions = _COGNITIVE_INSTRUCTIONS
 
     # Add soul state instructions periodically
@@ -154,7 +164,7 @@ def build_prompt(
 
     parts.append(instructions)
 
-    # 6. User message — fenced as untrusted input to prevent prompt injection
+    # 5. User message — fenced as untrusted input to prevent prompt injection
     name_label = display_name or user_id
     parts.append(
         f"\n## Current Message\n\n"
@@ -321,6 +331,34 @@ def store_tool_action(
         entry_type="toolAction",
         content=action,
     )
+
+
+def _should_inject_user_model(entries: list[dict]) -> bool:
+    """Determine if user model should be injected into the prompt.
+
+    Follows the Samantha-Dreams pattern: inject on first turn (no entries),
+    or when the most recent user_model_check mentalQuery returned true
+    (something new was learned about the user last turn).
+    """
+    if not entries:
+        return True
+
+    # Walk backwards to find the most recent user_model_check result
+    for entry in reversed(entries):
+        if (
+            entry.get("entry_type") == "mentalQuery"
+            and "user model" in entry.get("content", "").lower()
+        ):
+            meta = entry.get("metadata")
+            if meta:
+                try:
+                    m = json.loads(meta) if isinstance(meta, str) else meta
+                    return bool(m.get("result", False))
+                except (json.JSONDecodeError, TypeError, AttributeError):
+                    pass
+            break
+
+    return False
 
 
 def _extract_tag(text: str, tag: str) -> tuple[str, Optional[str]]:
