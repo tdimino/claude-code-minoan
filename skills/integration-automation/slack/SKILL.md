@@ -1,15 +1,15 @@
 ---
 name: slack
-description: "Full Slack workspace integration — post messages, read channels, search, react, upload files, manage channels and users. 8 specialized scripts with built-in rate limiting for post-May 2025 API restrictions. This skill should be used when reading Slack messages, posting to channels, searching workspace content, uploading files, or managing channels and users."
+description: "This skill should be used when interacting with a Slack workspace — posting messages, reading channels, searching, reacting, uploading files, managing channels/users, or running the Claudius daemon (pseudo soul engine with cognitive steps, three-tier memory, and cross-thread soul state). Provides 7 on-demand scripts and a persistent Socket Mode daemon."
 ---
 
 # Slack Skill
 
-Full Slack workspace integration through 8 specialized Python scripts, each targeting a specific set of API methods with built-in rate limiting.
+Full Slack workspace integration: 7 Python scripts for on-demand operations + a Socket Mode daemon with a pseudo soul engine for persistent, personality-driven conversations.
 
 ## When to Use This Skill
 
-Use this skill when:
+### Scripts (on-demand)
 - Posting messages to Slack channels or threads
 - Reading channel history or thread replies
 - Searching messages or files across the workspace
@@ -18,9 +18,17 @@ Use this skill when:
 - Listing channels, getting channel info, or joining channels
 - Looking up users by name, ID, or email
 
-## Prerequisite
+### Daemon (persistent)
+- Responding to @mentions in real time as "Claudius, Artifex Maximus"
+- Answering DMs sent to the bot
+- Multi-turn conversations in threads (session continuity via SQLite)
+- Per-user personality modeling (learns communication style, interests, expertise)
+- Cross-thread soul state (tracks current project, task, topic, emotional state)
+- Three-tier memory: working memory (per-thread), user models (per-user), soul memory (global)
 
-All scripts require the `SLACK_BOT_TOKEN` environment variable (a Bot User OAuth Token starting with `xoxb-`).
+## Prerequisites
+
+All scripts require the `SLACK_BOT_TOKEN` environment variable (a Bot User OAuth Token starting with `xoxb-`). Scripts also require `requests` (`uv pip install --system requests`).
 
 ```bash
 # Verify token is set
@@ -56,6 +64,9 @@ python3 ~/.claude/skills/slack/scripts/slack_read.py "#general" -n 10
 
 # Search the workspace
 python3 ~/.claude/skills/slack/scripts/slack_search.py "deployment status"
+
+# Start the daemon (must run from daemon directory for local imports)
+cd ~/.claude/skills/slack/daemon && python3 bot.py --verbose
 ```
 
 ---
@@ -124,8 +135,6 @@ python3 ~/.claude/skills/slack/scripts/slack_read.py "#general" --json
 
 **Parameters**: `channel`, `-n/--num`, `--thread`, `--since`, `--resolve-users`, `--json`
 
-**Rate limit warning**: `conversations.history` is Tier 1 (1 req/min) for commercial non-Marketplace apps. Internal apps get Tier 3 (50/min). Reading a single channel is always fine.
-
 ---
 
 ### 3. slack_search.py — Search Messages & Files
@@ -164,8 +173,6 @@ python3 ~/.claude/skills/slack/scripts/slack_search.py "soul engine" --sort scor
 
 **Command**: `python3 ~/.claude/skills/slack/scripts/slack_react.py`
 
-Add, remove, or list reactions on messages.
-
 ```bash
 # Add a reaction
 python3 ~/.claude/skills/slack/scripts/slack_react.py "#general" 1234567890.123456 rocket
@@ -185,7 +192,7 @@ python3 ~/.claude/skills/slack/scripts/slack_react.py "#general" 1234567890.1234
 
 **Command**: `python3 ~/.claude/skills/slack/scripts/slack_upload.py`
 
-Upload files using the new 2-step external upload API (NOT the deprecated `files.upload`).
+Upload files using the 2-step external upload API.
 
 ```bash
 # Upload a file
@@ -208,8 +215,6 @@ python3 ~/.claude/skills/slack/scripts/slack_upload.py "#general" --snippet "pri
 ### 6. slack_channels.py — Channel Management
 
 **Command**: `python3 ~/.claude/skills/slack/scripts/slack_channels.py`
-
-List, inspect, and join channels.
 
 ```bash
 # List all channels
@@ -238,8 +243,6 @@ python3 ~/.claude/skills/slack/scripts/slack_channels.py --private
 ### 7. slack_users.py — User Lookup
 
 **Command**: `python3 ~/.claude/skills/slack/scripts/slack_users.py`
-
-List and look up workspace users.
 
 ```bash
 # List all users
@@ -281,8 +284,6 @@ python3 ~/.claude/skills/slack/scripts/slack_users.py --email tom@aldea.ai
 
 ## Rate Limit Awareness
 
-Rate limits vary by app type. Tier 1 only applies to `conversations.history/replies` for commercially-distributed non-Marketplace apps.
-
 | Tier | Rate | Key Methods |
 |------|------|-------------|
 | **Tier 1** | **1/min** | `conversations.history`, `conversations.replies` (commercial non-Marketplace only) |
@@ -297,6 +298,140 @@ All scripts handle rate limits automatically via `_slack_utils.py`:
 - Stderr warnings when waiting >5 seconds
 
 See `references/rate-limits.md` for full details.
+
+---
+
+## Test Suite
+
+```bash
+# Run all tests
+python3 ~/.claude/skills/slack/scripts/test_slack.py
+
+# Quick validation (auth + channel list)
+python3 ~/.claude/skills/slack/scripts/test_slack.py --quick
+
+# Test specific endpoint
+python3 ~/.claude/skills/slack/scripts/test_slack.py --test post
+python3 ~/.claude/skills/slack/scripts/test_slack.py --test read
+python3 ~/.claude/skills/slack/scripts/test_slack.py --test search
+
+# Verbose output
+python3 ~/.claude/skills/slack/scripts/test_slack.py --verbose
+
+# Use a specific test channel (default: #general)
+python3 ~/.claude/skills/slack/scripts/test_slack.py --test-channel "#bot-test"
+
+# Verify per-channel read/write access
+python3 ~/.claude/skills/slack/scripts/test_channels.py
+```
+
+---
+
+## Daemon Mode — Claudius, Artifex Maximus
+
+The daemon is a persistent Socket Mode bot with a **pseudo soul engine** — cognitive architecture adapted from the Aldea Soul Engine for single-shot `claude -p` subprocess calls. It provides personality, three-tier memory, per-user modeling, and cross-thread soul state.
+
+For full architecture details (cognitive steps, XML format, memory tiers, entry types, user model template, personality, prompt injection defense), see `references/daemon-architecture.md`.
+
+### Prerequisites
+
+1. **Enable Socket Mode**: [api.slack.com/apps](https://api.slack.com/apps) → Your App → Settings → Socket Mode → Enable
+2. **Generate app-level token**: Basic Information → App-Level Tokens → Generate Token
+   - Name: `socket-mode`
+   - Scope: `connections:write`
+   - Copy the `xapp-` token
+3. **Add bot event subscriptions**: Event Subscriptions → Subscribe to Bot Events → Add:
+   - `app_mention` — channel @mentions
+   - `message.im` — direct messages
+4. **Add bot scope**: OAuth & Permissions → Bot Token Scopes → `app_mentions:read`
+5. **Reinstall app** to workspace after scope changes
+
+### Environment Variables
+
+```bash
+export SLACK_BOT_TOKEN=xoxb-...   # Bot User OAuth Token
+export SLACK_APP_TOKEN=xapp-...   # App-Level Token (Socket Mode)
+```
+
+### Running the Daemon
+
+The daemon must be run from its directory due to local module imports.
+
+```bash
+# Install dependencies
+cd ~/.claude/skills/slack/daemon
+uv pip install --system slack-bolt
+
+# Dev mode — foreground with debug logging
+python3 bot.py --verbose
+
+# Without soul engine (raw claude -p passthrough)
+SLACK_DAEMON_SOUL_ENGINE=false python3 bot.py --verbose
+
+# Production — launchd (Mac Mini M4)
+./launchd/install.sh install    # load LaunchAgent
+./launchd/install.sh status     # check if running
+./launchd/install.sh logs       # tail logs
+./launchd/install.sh restart    # reload
+./launchd/install.sh uninstall  # stop and remove
+```
+
+### Configuration
+
+All settings can be overridden via environment variables prefixed with `SLACK_DAEMON_`:
+
+| Setting | Env Var | Default | Description |
+|---------|---------|---------|-------------|
+| Claude timeout | `SLACK_DAEMON_TIMEOUT` | `120` s | Max seconds per `claude -p` call |
+| Working directory | `SLACK_DAEMON_CWD` | `~/Desktop/Programming` | CWD for Claude subprocess |
+| Allowed tools | `SLACK_DAEMON_TOOLS` | `Read,Glob,Grep,Bash,WebFetch` | Tools Claude can use |
+| Session TTL | `SLACK_DAEMON_SESSION_TTL` | `24` hours | Thread session expiry |
+| Soul engine | `SLACK_DAEMON_SOUL_ENGINE` | `true` | Enable/disable soul engine |
+| Memory window | `SLACK_DAEMON_MEMORY_WINDOW` | `20` | Working memory entries per prompt |
+| Memory TTL | `SLACK_DAEMON_MEMORY_TTL` | `72` hours | Working memory expiry |
+| Soul state interval | `SLACK_DAEMON_SOUL_STATE_INTERVAL` | `3` | Interactions between soul state update prompts |
+| Max response length | *(config.py)* | `3000` chars | Slack message truncation (limit ~4000) |
+
+### Inspecting Memory
+
+```bash
+cd ~/.claude/skills/slack/daemon
+
+# View soul state
+sqlite3 memory.db "SELECT key, value FROM soul_memory"
+
+# View user models
+sqlite3 memory.db "SELECT user_id, display_name, interaction_count FROM user_models"
+
+# View recent working memory
+sqlite3 memory.db "SELECT entry_type, verb, content FROM working_memory ORDER BY created_at DESC LIMIT 20"
+
+# View active sessions
+sqlite3 sessions.db "SELECT channel, thread_ts, session_id FROM sessions"
+```
+
+### Graceful Shutdown
+
+On SIGTERM or SIGINT:
+1. Close Socket Mode handler
+2. Cleanup expired working memory and sessions
+3. Close all SQLite connections (session_store, working_memory, user_models, soul_memory)
+
+The soul state update interval counter resets on daemon restart (in-process memory only).
+
+---
+
+## Troubleshooting
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Bot not responding to @mentions | Socket Mode not enabled or `SLACK_APP_TOKEN` missing | Enable Socket Mode in app settings; verify `xapp-` token is exported |
+| "missing_scope" error | Bot lacks required OAuth scope | Add the missing scope in OAuth & Permissions → reinstall app |
+| No search results | Bot token only searches channels bot is a member of | Invite bot to channels with `/invite @Claude Code`, or use a user token (`xoxp-`) |
+| Rate limited (429) | Too many API calls | Scripts auto-retry; reduce batch sizes or add `--test-channel` for testing |
+| Daemon exits immediately | `claude` CLI not in PATH | Verify `which claude` returns a path; check `/opt/homebrew/bin` is in PATH |
+| Soul engine XML parsing fails | Claude response didn't include expected tags | Check `daemon/logs/daemon.log`; fallback raw text is returned to Slack |
+| "No virtual environment found" | `uv pip` without `--system` flag | Use `uv pip install --system slack-bolt` |
 
 ---
 
@@ -338,35 +473,6 @@ python3 ~/.claude/skills/slack/scripts/slack_users.py --info U12345678
 
 ---
 
-## Test Suite
+## Assets
 
-Verify your setup:
-
-```bash
-# Run all tests
-python3 ~/.claude/skills/slack/scripts/test_slack.py
-
-# Quick validation (auth + channel list)
-python3 ~/.claude/skills/slack/scripts/test_slack.py --quick
-
-# Test specific endpoint
-python3 ~/.claude/skills/slack/scripts/test_slack.py --test post
-python3 ~/.claude/skills/slack/scripts/test_slack.py --test read
-python3 ~/.claude/skills/slack/scripts/test_slack.py --test search
-
-# Verbose output
-python3 ~/.claude/skills/slack/scripts/test_slack.py --verbose
-
-# Use a specific test channel (default: #general)
-python3 ~/.claude/skills/slack/scripts/test_slack.py --test-channel "#bot-test"
-```
-
-The test suite verifies:
-- Auth token validation (`auth.test`)
-- Channel listing (`conversations.list`)
-- User listing (`users.list`)
-- Post + delete cycle (`chat.postMessage`, `chat.delete`)
-- History read (`conversations.history`)
-- Message search (`search.messages`)
-- Reaction add + remove cycle
-- Rate limit header presence
+- `assets/app-icon.png` — Slack app icon for bot configuration
