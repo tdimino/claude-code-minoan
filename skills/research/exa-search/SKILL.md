@@ -38,8 +38,9 @@ The most comprehensive search script with full access to Exa's `/search` endpoin
 
 **Search Types:**
 - `auto` (default) - Intelligently combines search methods
+- `instant` - Sub-150ms latency, optimized for real-time apps (Feb 2026)
 - `neural` - Pure embeddings-based semantic search
-- `fast` - Lower latency, streamlined search
+- `fast` - ~500ms latency, balance of speed and quality
 - `deep` - Comprehensive search with query expansion
 
 **Categories:**
@@ -77,6 +78,9 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "React hooks best prac
 # Search with summaries and highlights
 python3 ~/.claude/skills/exa-search/scripts/exa_search.py "startup funding" --category company --summary "funding history and investors" --highlights
 
+# Instant search for real-time apps (sub-150ms)
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "JavaScript fetch API" --instant -n 5
+
 # Fast search for quick lookups
 python3 ~/.claude/skills/exa-search/scripts/exa_search.py "JavaScript fetch API" --fast -n 5
 
@@ -92,7 +96,7 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "GraphQL vs REST" --js
 
 **Key Parameters:**
 - `-n, --num` - Number of results (max 100)
-- `--neural/--fast/--deep` - Search type
+- `--neural/--instant/--fast/--deep` - Search type
 - `--category, -c` - Filter by category
 - `--domains` - Only include these domains
 - `--exclude-domains` - Exclude these domains
@@ -329,6 +333,7 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py list --limit 2
 | Quick answers | `exa_research.py` | Fact-finding |
 | Research with citations | `exa_research.py --sources` | Report writing |
 | Complex structured research | `exa_research_async.py --pro` | Multi-source synthesis |
+| Real-time search | `exa_search.py --instant` | Chat, voice, autocomplete |
 | RAG context | `exa_search.py --context` | LLM applications |
 
 ## Comparison with Exa MCP Tools
@@ -342,6 +347,7 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py list --limit 2
 | Quick Answer | N/A | `exa_research.py` |
 | Async Research (Pro) | N/A | `exa_research_async.py` |
 | Deep Search | N/A | `exa_search.py --deep` |
+| Instant Search | N/A | `exa_search.py --instant` |
 | Category Filtering | Limited | All 9 categories |
 | Date Filtering | Limited | Full support |
 | Domain Filtering | Limited | Full support |
@@ -363,7 +369,8 @@ Exa API pricing (approximate):
 - Summary: $0.001/page
 
 To optimize costs:
-- Use `--fast` for quick lookups
+- Use `--instant` for real-time lookups (sub-150ms, lowest latency)
+- Use `--fast` for quick lookups (~500ms)
 - Limit results with `-n`
 - Use `--no-text` if content not needed
 - Filter by domains to reduce irrelevant results

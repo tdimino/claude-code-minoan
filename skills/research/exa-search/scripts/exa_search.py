@@ -6,7 +6,7 @@ This script provides comprehensive access to Exa's /search endpoint with all
 available parameters for neural, fast, auto, and deep search modes.
 
 Features:
-- 4 search types: auto, neural, fast, deep
+- 5 search types: auto, neural, fast, deep, instant
 - 9 category filters: company, research paper, news, pdf, github, tweet, personal site, people, financial report
 - Domain inclusion/exclusion filtering
 - Date filtering (crawl date and published date)
@@ -97,7 +97,7 @@ def search(
 
     Args:
         query: Natural language search query
-        search_type: Search method - "auto" (default), "neural", "fast", "deep"
+        search_type: Search method - "auto" (default), "neural", "fast", "deep", "instant"
         additional_queries: Extra queries for deep search mode only
         category: Filter by category (see VALID_CATEGORIES)
         num_results: Number of results (max 100)
@@ -128,7 +128,7 @@ def search(
         Dict with search results
     """
     # Validate search type
-    valid_types = ["auto", "neural", "fast", "deep"]
+    valid_types = ["auto", "neural", "fast", "deep", "instant"]
     if search_type not in valid_types:
         raise ValueError(f"Invalid search type '{search_type}'. Must be one of: {valid_types}")
 
@@ -328,7 +328,8 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
     # Search type
     type_group = parser.add_mutually_exclusive_group()
     type_group.add_argument("--neural", action="store_true", help="Use neural embeddings search")
-    type_group.add_argument("--fast", action="store_true", help="Use fast search (lower latency)")
+    type_group.add_argument("--fast", action="store_true", help="Use fast search (~500ms)")
+    type_group.add_argument("--instant", action="store_true", help="Use instant search (sub-150ms, real-time)")
     type_group.add_argument("--deep", action="store_true", help="Use deep search (comprehensive)")
     parser.add_argument("--additional-queries", nargs="+", help="Extra queries for deep search")
 
@@ -382,6 +383,8 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
         search_type = "neural"
     elif args.fast:
         search_type = "fast"
+    elif args.instant:
+        search_type = "instant"
     elif args.deep:
         search_type = "deep"
 
