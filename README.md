@@ -29,6 +29,7 @@ claude-code-minoan/
 ├── hooks/                       # Lifecycle hooks (handoffs, terminal UX, multi-response)
 ├── commands/                    # 30+ slash commands (workflows, planning, code review)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
+├── tools/                       # Standalone tools (md_preview_and_annotate)
 ├── lib/                         # Shared libraries (tracker-utils.js)
 ├── extensions/                  # VS Code Claude Session Tracker extension
 ├── sounds/                      # Notification audio
