@@ -7,13 +7,7 @@ description: Use Beads (bd tool) for dependency-aware task tracking and long-hor
 
 ## Overview
 
-Beads (v0.32.1+) is a git-versioned, dependency-aware issue tracker designed specifically for AI coding agents. It solves the "amnesia problem" where agents lose context between sessions by providing a persistent, queryable task database that agents can use to orient themselves, find ready work, and track dependencies across long-horizon projects.
-
-**Key Architecture:**
-- **SQLite database** (`beads.db`) for efficient local queries
-- **JSONL file** (`issues.jsonl`) for git-based synchronization
-- **Hash-based IDs** (e.g., `bd-a1b2`, `bd-f14c`) prevent merge conflicts in multi-agent workflows
-- **Daemon process** maintains sync between database and JSONL
+Beads is a git-versioned, dependency-aware issue tracker designed specifically for AI coding agents. It solves the "amnesia problem" where agents lose context between sessions by providing a persistent, queryable task database that agents can use to orient themselves, find ready work, and track dependencies across long-horizon projects.
 
 Use Beads when:
 - Working on projects with multiple interconnected tasks
