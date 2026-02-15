@@ -95,22 +95,22 @@ Log progress to logs/${CLAUDE_SESSION_ID}.log
 
 ### Dynamic Context Injection
 
-The exclamation-backtick syntax (`!` followed by a backtick-wrapped command) runs shell commands before skill content reaches Claude. The command output replaces the placeholder.
+The exclamation-backtick syntax runs shell commands before skill content reaches Claude. The command output replaces the placeholder.
 
-**Syntax:** `!` + `` `shell-command` ``
+**Syntax:** exclamation mark followed by backtick-wrapped command: `EXCLAIM` + `BACKTICK command BACKTICK`
 
 **Example skill content:**
 
 ```
 ## PR Context
-- Diff: [exclamation]`gh pr diff`
-- Comments: [exclamation]`gh pr view --comments`
-- Changed files: [exclamation]`gh pr diff --name-only`
+- Diff: EXCLAIM-BACKTICK gh pr diff BACKTICK
+- Comments: EXCLAIM-BACKTICK gh pr view --comments BACKTICK
+- Changed files: EXCLAIM-BACKTICK gh pr diff --name-only BACKTICK
 
 Summarize this pull request...
 ```
 
-(Replace `[exclamation]` with actual `!` character in real skills)
+(Replace EXCLAIM with the exclamation mark character and BACKTICK with the backtick character in real skills)
 
 When this skill runs:
 1. Each exclamation-backtick command executes immediately (before Claude sees anything)

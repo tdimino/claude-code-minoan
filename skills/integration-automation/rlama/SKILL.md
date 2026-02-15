@@ -56,6 +56,95 @@ python3 ~/.claude/skills/rlama/scripts/rlama_query.py <rag-name> "your query"
 python3 ~/.claude/skills/rlama/scripts/rlama_query.py my-docs "what is the main idea?" --show-sources
 ```
 
+### Retrieve-Only Mode (Claude Synthesizes)
+
+Get raw chunks without local LLM generation. Claude reads the chunks directly and synthesizes a stronger answer than local models can produce.
+
+**When to use retrieve vs standard query:**
+
+| Scenario | Use |
+|----------|-----|
+| Quick lookup, local model sufficient | `rlama_query.py` (standard) |
+| Complex synthesis, nuanced reasoning | `rlama_retrieve.py` (retrieve-only) |
+| Claude needs raw evidence to cite | `rlama_retrieve.py` (retrieve-only) |
+| Offline/no Ollama for generation | `rlama_retrieve.py` (retrieve-only) |
+
+```bash
+# Retrieve top 10 chunks (human-readable)
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query"
+
+# Retrieve as JSON for programmatic use
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --json
+
+# More chunks for broad queries
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" -k 20
+
+# Force rebuild embedding cache
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --rebuild-cache
+
+# List RAGs with cache status
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py --list
+```
+
+**External LLM Synthesis** (optional—retrieve chunks AND synthesize via OpenRouter, TogetherAI, Ollama, or any OpenAI-compatible endpoint):
+
+```bash
+# Synthesize via OpenRouter (auto-detected from model with /)
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --synthesize --synth-model anthropic/claude-sonnet-4
+
+# Synthesize via TogetherAI
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --synthesize --provider togetherai
+
+# Synthesize via local Ollama (fully offline, uses research-grade system prompt)
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --synthesize --provider ollama
+
+# Synthesize via custom endpoint
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --synthesize --endpoint https://my-api.com/v1/chat/completions
+```
+
+**Environment variables for synthesis:**
+
+| Variable | Provider |
+|----------|----------|
+| `OPENROUTER_API_KEY` | OpenRouter (default, auto-detected first) |
+| `TOGETHER_API_KEY` | TogetherAI |
+| `SYNTH_API_KEY` | Custom endpoint (via `--endpoint`) |
+| *(none needed)* | Ollama (local, no auth) |
+
+Provider auto-detection: model names with `/` → OpenRouter, otherwise → TogetherAI. Falls back to whichever API key is set.
+
+**Quality tiers:**
+
+| Tier | Method | Quality | Latency |
+|------|--------|---------|---------|
+| Best | Retrieve-only → Claude synthesizes | Strongest synthesis | ~1s retrieve |
+| Good | `--synthesize --synth-model anthropic/claude-sonnet-4` | Strong, cited | ~3s |
+| Decent | `--synthesize --provider togetherai` (Llama 70B) | Solid for factual | ~2s |
+| Local | `--synthesize --provider ollama` (Qwen 7B) | Basic, may hedge | ~5s |
+| Baseline | `rlama_query.py` (RLAMA built-in) | Weakest, no prompt control | ~3s |
+
+Small local models (7B) use a tuned prompt optimized for Qwen (structured output, anti-hedge, domain-keyword aware). Cloud providers use a strict research-grade prompt with mandatory citations.
+
+First run builds an embedding cache (~30s for 3K chunks). Subsequent queries are <1s.
+
+**Benchmarking:**
+
+```bash
+# Retrieval quality only
+python3 ~/.claude/skills/rlama/scripts/rlama_bench.py <rag-name> --retrieval-only
+
+# Full synthesis benchmark (8 test cases)
+python3 ~/.claude/skills/rlama/scripts/rlama_bench.py <rag-name> --provider ollama --verbose
+
+# Single test case
+python3 ~/.claude/skills/rlama/scripts/rlama_bench.py <rag-name> --provider ollama --case 0
+
+# JSON output for analysis
+python3 ~/.claude/skills/rlama/scripts/rlama_bench.py <rag-name> --provider ollama --json
+```
+
+Scores: retrieval precision, topic coverage, grounding, directness (anti-hedge), composite (0-100).
+
 ### Create a RAG
 
 Index documents from a folder into a new RAG system:
