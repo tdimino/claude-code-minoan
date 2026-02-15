@@ -67,9 +67,10 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 | Skill | Description |
 |-------|-------------|
 | `claude-tracker-suite` | Session search, resume, project detection |
+| `crypt-librarian` | Film curator for pre-2016 gothic/occult/noir cinema |
+| `mdpreview` | Catppuccin live-reloading Markdown viewer with multi-tab support and margin annotations |
 | `minoan-swarm` | Agent Teams orchestration with ancient Mediterranean naming |
 | `super-ralph-wiggum` | Autonomous iteration loops based on [AI Hero's 11 Tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum) |
-| `crypt-librarian` | Film curator for pre-2016 gothic/occult/noir cinema |
 
 ## Skill Structure
 
