@@ -131,27 +131,27 @@ source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_delete
 # 4. Remove hourglass reaction
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_react.py "CHANNEL" "MESSAGE_TS" "hourglass_flowing_sand" --remove
 
-# 4b. If reaction_check was true, react to the user's original message
+# 5. If reaction_check was true, react to the user's original message
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_react.py "CHANNEL" "MESSAGE_TS" "REACTION_EMOJI"
 
-# 5. If user_model_check was true, apply the update (use heredoc for multi-line):
+# 6. If user_model_check was true, apply the update (use heredoc for multi-line):
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py update-user-model "USER_ID" <<'EOF'
 UPDATED_MODEL_MARKDOWN
 EOF
 
-# 6. If soul_state_check was true, apply each changed key:
+# 7. If soul_state_check was true, apply each changed key:
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py update-soul-state "KEY" "VALUE"
 
-# 7. Log the user_model_check decision to working memory (for Samantha-Dreams gating)
+# 8. Log the user_model_check decision to working memory (for Samantha-Dreams gating)
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudius" "mentalQuery" --verb "checked" --content "user model check" --metadata '{"result": USER_MODEL_CHECK_BOOL}'
 
-# 8. Log the response to working memory
+# 9. Log the response to working memory
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudius" "externalDialog" --verb "VERB" --content "DIALOGUE_TEXT"
 
-# 9. Increment interaction counter
+# 10. Increment interaction counter
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py increment "USER_ID"
 
-# 10. Mark as handled
+# 11. Mark as handled
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_check.py --ack MESSAGE_NUMBER
 ```
 
@@ -177,7 +177,7 @@ Responded to N message(s) as Claudius.
 - Monologue is private — it is logged to `daemon/logs/monologue.log` but never posted to Slack.
 - The `--log` flag on `extract` handles logging of all cognitive tags (monologue, user model decisions, soul state decisions).
 - Memory is persistent across sessions. User models and soul state are stored in `~/.claude/skills/slack/daemon/memory.db`.
-- Thinking messages use `_EMOJI <URL|text>..._` format (italic with contextual emoji and hyperlink to Aldea repo).
+- Thinking messages use `_EMOJI <URL|text>..._` format (italic with contextual emoji and repo hyperlink).
 - Always delete thinking messages before posting the final response to keep threads clean.
 - Use full tool access during Step 4 if the message requires research, file reading, or code analysis before responding.
 
@@ -274,6 +274,7 @@ The pipeline processes each incoming message through 8 cognitive steps, implemen
 | `scripts/slack_format.py` | XML tag definitions (`COGNITIVE_INSTRUCTIONS`) + extraction (`cmd_extract`) |
 | `scripts/slack_memory.py` | Memory persistence — user models, soul state, working memory |
 | `scripts/slack_post.py` | Slack message posting (thinking messages, dialogue) |
+| `scripts/slack_delete.py` | Message deletion (thinking message cleanup) |
 | `scripts/slack_react.py` | Emoji reactions (hourglass removal, conditional reactions) |
 | `scripts/slack_check.py` | Inbox management (read, ack) |
 | `daemon/slack_listen.py` | Socket Mode listener — catches events, writes inbox |
