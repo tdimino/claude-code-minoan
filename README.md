@@ -30,7 +30,7 @@ claude-code-minoan/
 ├── commands/                    # 30+ slash commands (workflows, planning, code review)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
-├── tools/                       # Standalone tools (md_preview_and_annotate)
+├── tools/                       # Standalone tools (md_preview_and_annotate — canonical: github.com/tdimino/md-preview-and-annotate)
 ├── lib/                         # Shared libraries (tracker-utils.js)
 ├── extensions/                  # VS Code Claude Session Tracker extension
 ├── sounds/                      # Notification audio

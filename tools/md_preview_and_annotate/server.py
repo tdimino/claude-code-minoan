@@ -89,6 +89,18 @@ class PreviewHandler(http.server.BaseHTTPRequestHandler):
             tab_id = params.get("tab", [None])[0]
             if tab_id and tab_id in self._tabs:
                 filepath = self._tabs[tab_id]["filepath"]
+                tab = self._tabs[tab_id]
+                # Ensure we have fresh content for orphan detection
+                try:
+                    mtime_file = os.path.getmtime(tab["filepath"])
+                    if mtime_file != tab["mtime"]:
+                        with open(tab["filepath"]) as f:
+                            tab["content"] = f.read()
+                        tab["mtime"] = mtime_file
+                except Exception:
+                    pass
+                # Auto-cleanup orphaned annotations
+                annotations.cleanup_orphans(filepath, tab["content"])
                 data, mtime = annotations.read(filepath)
                 self._json_response({
                     "annotations": data.get("annotations", []),

@@ -52,3 +52,29 @@ def write_resolved(filepath, data):
     path = get_resolved_path(filepath)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
+
+
+def cleanup_orphans(filepath, content):
+    """Remove annotations whose anchor text no longer exists in the document.
+
+    Returns the number of orphans removed."""
+    data, _ = read(filepath)
+    anns = data.get("annotations", [])
+    if not anns:
+        return 0
+
+    kept = []
+    removed = 0
+    for ann in anns:
+        anchor = ann.get("anchor", {})
+        anchor_text = anchor.get("text", "") if isinstance(anchor, dict) else ""
+        if anchor_text and anchor_text not in content:
+            removed += 1
+        else:
+            kept.append(ann)
+
+    if removed > 0:
+        data["annotations"] = kept
+        write(filepath, data)
+
+    return removed

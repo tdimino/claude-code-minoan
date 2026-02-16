@@ -50,6 +50,50 @@ function toggleToc() {
   document.body.classList.toggle('toc-collapsed');
 }
 
+/* ── TOC Resize ──────────────────────────────────────── */
+(function initTocResize() {
+  const MIN_W = 180, MAX_W = 500;
+  const saved = parseInt(localStorage.getItem('mdpreview-toc-width'));
+  if (saved && saved >= MIN_W && saved <= MAX_W) {
+    document.documentElement.style.setProperty('--toc-width', saved + 'px');
+  }
+
+  const handle = document.getElementById('toc-resize-handle');
+  if (!handle) return;
+
+  let dragging = false;
+  handle.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    dragging = true;
+    handle.classList.add('dragging');
+    document.body.classList.add('toc-resizing');
+    /* Disable TOC slide transition while dragging */
+    document.getElementById('toc').style.transition = 'none';
+    document.getElementById('main-area').style.transition = 'none';
+    handle.style.transition = 'background 0.15s';
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    let w = Math.max(MIN_W, Math.min(MAX_W, e.clientX));
+    document.documentElement.style.setProperty('--toc-width', w + 'px');
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.classList.remove('toc-resizing');
+    /* Restore transitions */
+    document.getElementById('toc').style.transition = '';
+    document.getElementById('main-area').style.transition = '';
+    handle.style.transition = '';
+    /* Persist */
+    const w = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--toc-width'));
+    if (w) localStorage.setItem('mdpreview-toc-width', w);
+  });
+})();
+
 /* ── Utility ──────────────────────────────────────────── */
 function slugify(text) {
   return text.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');

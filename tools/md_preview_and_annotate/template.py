@@ -55,6 +55,7 @@ def get_html(title="mdpreview", default_author="Tom"):
       <ul id="toc-list"></ul>
     </div>
   </nav>
+  <div id="toc-resize-handle"></div>
   <button id="toc-restore" title="Show sidebar" onclick="toggleToc()"><i class="ph ph-caret-right"></i></button>
 
   <div id="main-area">

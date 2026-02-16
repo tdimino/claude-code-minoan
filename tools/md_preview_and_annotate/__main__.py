@@ -130,15 +130,44 @@ def _kill_port(port):
         pass
 
 
+def _server_running(port):
+    """Check if a mark server is already running on the given port."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/api/tabs", method="GET")
+        urllib.request.urlopen(req, timeout=1)
+        return True
+    except Exception:
+        return False
+
+
+def _add_to_running(port, files):
+    """Add files to a running server as new tabs."""
+    import urllib.request
+    added = []
+    for fp in files:
+        try:
+            req_data = json.dumps({"filepath": fp}).encode()
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{port}/api/add",
+                data=req_data,
+                headers={"Content-Type": "application/json"},
+            )
+            resp = urllib.request.urlopen(req, timeout=3)
+            result = json.loads(resp.read())
+            label = "already open" if result.get("existing") else "added"
+            added.append((result.get("filename", os.path.basename(fp)), label))
+        except Exception as e:
+            added.append((os.path.basename(fp), f"failed: {e}"))
+    return added
+
+
 def cmd_serve(argv):
     """Start the preview server with one or more files."""
     import subprocess
     import webbrowser
 
     port = int(_flag_value(argv, "--port", str(DEFAULT_PORT)))
-
-    _clear_pyc()
-    _kill_port(port)
     default_author = _flag_value(argv, "--author", "Tom")
 
     # Collect file paths
@@ -157,6 +186,18 @@ def cmd_serve(argv):
     if not files:
         print("Error: no files specified")
         sys.exit(1)
+
+    # Tab reuse: if a server is already running, add files as new tabs
+    if _server_running(port):
+        results = _add_to_running(port, files)
+        for name, status in results:
+            icon = "\033[38;2;166;227;161m\u2713\033[0m" if "fail" not in status else "\033[38;2;243;139;168m\u2717\033[0m"
+            print(f"{icon} {name} ({status})")
+        print(f"\033[38;2;88;91;112mServer already running at http://127.0.0.1:{port}\033[0m")
+        sys.exit(0)
+
+    _clear_pyc()
+    _kill_port(port)
 
     PreviewHandler.default_author = default_author
     for fp in files:
