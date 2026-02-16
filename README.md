@@ -28,6 +28,7 @@ claude-code-minoan/
 │   └── planning-productivity/   #   Session tracking, swarms, iteration loops
 ├── hooks/                       # Lifecycle hooks (handoffs, terminal UX, multi-response)
 ├── commands/                    # 30+ slash commands (workflows, planning, code review)
+├── agents/                      # Custom subagents (librarian, etc.)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
 ├── tools/                       # Standalone tools (md_preview_and_annotate)
 ├── lib/                         # Shared libraries (tracker-utils.js)
@@ -118,6 +119,16 @@ Markdown templates invoked as `/command-name`. Key workflows:
 | `/code-review` | PR review with structured output |
 | `/audit-plans` | Plan completeness auditing |
 | `/workflows:plan` | Transform descriptions into implementation plans |
+
+---
+
+### [Agents](agents/) — Custom subagents
+
+Read-only research subagents invoked via the Task tool with `subagent_type: "Bash"` and the agent instructions in the prompt.
+
+| Agent | Model | Purpose |
+|-------|-------|---------|
+| `librarian` | sonnet | GitHub repo exploration via `gh` CLI. Caches to `/tmp/claude-librarian/`. |
 
 ---
 

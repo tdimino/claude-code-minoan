@@ -222,21 +222,9 @@ When reviewing existing CLAUDE.md:
 - [ ] OSGrep validation run? (commands, directories, conventions)
 - [ ] File references still valid?
 
-## Global CLAUDE.md Reference
+## Global Registration
 
-Every project CLAUDE.md should reference the global `~/.claude/CLAUDE.md` and its folders. This gives sessions access to:
-
-- `~/.claude/plans/` — Dated plans (`YYYY-MM-DD-description.md`) related to the project/directory
-- `~/.claude/agent_docs/` — Domain guides (tools, local ML, RAG, active projects, skills)
-- `~/.claude/userModels/` — User personality and preference models
-
-Reference with `@` imports:
-```markdown
-@~/.claude/CLAUDE.md
-@~/.claude/agent_docs/active-projects.md
-```
-
-When creating a new CLAUDE.md, always check `~/.claude/plans/README.md` for plans related to the project directory and link them.
+When creating or refreshing a project CLAUDE.md, ensure the project has an entry in `~/.claude/agent_docs/active-projects.md` with its directory and active plan.
 
 ## Hierarchical Files
 
