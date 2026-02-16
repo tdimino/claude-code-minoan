@@ -36,6 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SESSION_SUMMARIES_PATH = exports.CLAUDE_PROJECTS_DIR = exports.GIT_TIMEOUT_MS = exports.MAX_RECENT_SESSIONS = exports.TERMINAL_DETECTION_MAX_ATTEMPTS = exports.TERMINAL_DETECTION_DELAY_MS = void 0;
 exports.getCurrentWorkspacePath = getCurrentWorkspacePath;
 exports.encodeWorkspacePath = encodeWorkspacePath;
+exports.getTerminalColor = getTerminalColor;
+exports.getTerminalIcon = getTerminalIcon;
+exports.formatTerminalName = formatTerminalName;
+exports.createEnrichedTerminal = createEnrichedTerminal;
 exports.createResumedTerminal = createResumedTerminal;
 exports.sendSafeCommand = sendSafeCommand;
 exports.getConfig = getConfig;
@@ -98,17 +102,83 @@ function encodeWorkspacePath(workspacePath) {
     // Replace both forward and back slashes for consistency
     return workspacePath.replace(/[/\\]/g, '-');
 }
-// === Terminal Utilities ===
 /**
- * Create a terminal for resuming Claude sessions
+ * Compute terminal tab color from session recency
  */
-function createResumedTerminal(cwd) {
+function getTerminalColor(ctx) {
+    if (ctx?.isRecovery)
+        return new vscode.ThemeColor('terminal.ansiRed');
+    if (!ctx?.modified)
+        return new vscode.ThemeColor('terminal.ansiCyan');
+    const hours = (Date.now() - new Date(ctx.modified).getTime()) / 3600000;
+    if (hours < 1)
+        return new vscode.ThemeColor('terminal.ansiGreen');
+    if (hours < 6)
+        return new vscode.ThemeColor('terminal.ansiCyan');
+    if (hours < 24)
+        return new vscode.ThemeColor('terminal.ansiYellow');
+    if (hours < 72)
+        return new vscode.ThemeColor('terminal.ansiMagenta');
+    return new vscode.ThemeColor('terminal.ansiBrightBlack');
+}
+/**
+ * Compute terminal tab icon from model name
+ */
+function getTerminalIcon(ctx) {
+    if (ctx?.isRecovery)
+        return new vscode.ThemeIcon('warning');
+    if (!ctx?.model)
+        return new vscode.ThemeIcon('robot');
+    const m = ctx.model.toLowerCase();
+    if (m.includes('opus'))
+        return new vscode.ThemeIcon('sparkle');
+    if (m.includes('haiku'))
+        return new vscode.ThemeIcon('zap');
+    return new vscode.ThemeIcon('robot');
+}
+/**
+ * Format enriched terminal name from session context
+ * Terminal name doubles as hover tooltip in VS Code
+ */
+function formatTerminalName(ctx) {
+    if (!ctx)
+        return 'Claude Code (Resumed)';
+    const parts = ['Claude'];
+    if (ctx.isRecovery) {
+        parts.push('Recovered');
+    }
+    else if (ctx.displayTitle) {
+        parts.push(`"${truncate(ctx.displayTitle, 35)}"`);
+    }
+    if (ctx.model)
+        parts.push(ctx.model);
+    if (ctx.gitBranch)
+        parts.push(ctx.gitBranch);
+    if (ctx.totalCostUsd)
+        parts.push(formatCost(ctx.totalCostUsd));
+    if (ctx.modified)
+        parts.push(formatRelativeTime(ctx.modified));
+    return parts.join(' \u00b7 ');
+}
+/**
+ * Create a terminal with enriched icon, color, and name
+ */
+function createEnrichedTerminal(cwd, ctx) {
     const terminal = vscode.window.createTerminal({
-        name: 'Claude Code (Resumed)',
+        name: formatTerminalName(ctx),
         cwd,
+        iconPath: getTerminalIcon(ctx),
+        color: getTerminalColor(ctx),
     });
     terminal.show();
     return terminal;
+}
+/**
+ * Create a terminal for resuming Claude sessions
+ * @deprecated Use createEnrichedTerminal() for enriched terminal tabs
+ */
+function createResumedTerminal(cwd) {
+    return createEnrichedTerminal(cwd);
 }
 /**
  * Safely execute a command in terminal

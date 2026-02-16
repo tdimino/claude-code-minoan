@@ -8,7 +8,7 @@ import type { EnrichedSession, SessionIndexEntry, SessionSummaryCache } from './
 import {
   getCurrentWorkspacePath,
   getAllWorkspacePaths,
-  createResumedTerminal,
+  createEnrichedTerminal,
   sendSafeCommand,
   encodeWorkspacePath,
   truncate,
@@ -21,7 +21,22 @@ import {
   CLAUDE_PROJECTS_DIR,
   SESSION_SUMMARIES_PATH,
 } from './utils';
+import type { TerminalSessionContext } from './utils';
 import { logger } from './logger';
+
+/**
+ * Extract terminal display context from an EnrichedSession
+ */
+function toTerminalContext(session: EnrichedSession): TerminalSessionContext {
+  return {
+    displayTitle: session.displayTitle,
+    model: session.model,
+    gitBranch: session.gitBranch,
+    numTurns: session.numTurns,
+    totalCostUsd: session.totalCostUsd,
+    modified: session.modified,
+  };
+}
 
 /**
  * Register all extension commands
@@ -74,6 +89,7 @@ export function registerCommands(
         terminal?: vscode.Terminal;
         sessionId?: string;
         workspacePath?: string;
+        sessionCtx?: TerminalSessionContext;
       }
 
       const items: SessionPickerItem[] = [];
@@ -112,6 +128,7 @@ export function registerCommands(
           detail: detailParts.join(' \u00b7 '),
           sessionId: session.id,
           workspacePath: session.projectPath,
+          sessionCtx: toTerminalContext(session),
         });
       }
 
@@ -138,7 +155,7 @@ export function registerCommands(
         selected.terminal.show();
       } else if (selected.type === 'resumable' && selected.workspacePath && selected.sessionId) {
         try {
-          const terminal = createResumedTerminal(selected.workspacePath);
+          const terminal = createEnrichedTerminal(selected.workspacePath, selected.sessionCtx);
           sendSafeCommand(terminal, 'claude --resume', selected.sessionId);
         } catch (err) {
           logger.error('Failed to resume session:', err);
@@ -182,6 +199,7 @@ export function registerCommands(
           detail: detailParts.join(' \u00b7 '),
           sessionId: s.id,
           projectPath: s.projectPath,
+          sessionCtx: toTerminalContext(s),
         };
       });
 
@@ -193,7 +211,7 @@ export function registerCommands(
 
       if (selected) {
         try {
-          const terminal = createResumedTerminal(selected.projectPath);
+          const terminal = createEnrichedTerminal(selected.projectPath, selected.sessionCtx);
           sendSafeCommand(terminal, 'claude --resume', selected.sessionId);
         } catch (err) {
           logger.error('Failed to resume session:', err);
@@ -228,6 +246,7 @@ export function registerCommands(
         description: s.name,
         detail: `Last active: ${formatRelativeTime(new Date(s.lastUpdate).toISOString())}`,
         workspacePath: s.workspacePath,
+        lastUpdate: s.lastUpdate,
         picked: true,
       }));
 
@@ -243,7 +262,10 @@ export function registerCommands(
 
       for (const item of selected) {
         try {
-          const terminal = createResumedTerminal(item.workspacePath);
+          const terminal = createEnrichedTerminal(item.workspacePath, {
+            isRecovery: true,
+            modified: new Date(item.lastUpdate).toISOString(),
+          });
           await new Promise(resolve => setTimeout(resolve, 500));
           sendSafeCommand(terminal, 'claude --continue');
         } catch (err) {
@@ -294,7 +316,7 @@ export function registerCommands(
         for (const session of sessions) {
           try {
             logger.info(`Attempting to resume session in: ${session.workspacePath}`);
-            const terminal = createResumedTerminal(session.workspacePath);
+            const terminal = createEnrichedTerminal(session.workspacePath, { isRecovery: true });
             logger.debug(`Created terminal for ${session.workspacePath}`);
             await new Promise(resolve => setTimeout(resolve, 500));
             sendSafeCommand(terminal, 'claude --continue');
@@ -350,7 +372,12 @@ export function registerCommands(
       }
 
       try {
-        const terminal = createResumedTerminal(targetWorkspace);
+        // Look up most recent session for enriched terminal display
+        const recentSessions = await loadEnrichedSessionsForProject(targetWorkspace);
+        const sessionCtx = recentSessions.length > 0
+          ? toTerminalContext(recentSessions[0])
+          : undefined;
+        const terminal = createEnrichedTerminal(targetWorkspace, sessionCtx);
         sendSafeCommand(terminal, 'claude --continue');
         await storage.clearResumable(targetWorkspace);
       } catch (err) {
@@ -401,6 +428,7 @@ export function registerCommands(
           description: descParts.join(' \u00b7 '),
           detail: detailParts.join(' \u00b7 '),
           sessionId: s.id,
+          sessionCtx: toTerminalContext(s),
         };
       });
 
@@ -412,7 +440,7 @@ export function registerCommands(
 
       if (selected) {
         try {
-          const terminal = createResumedTerminal(cwd);
+          const terminal = createEnrichedTerminal(cwd, selected.sessionCtx);
           sendSafeCommand(terminal, 'claude --resume', selected.sessionId);
         } catch (err) {
           logger.error('Failed to resume session:', err);
@@ -433,9 +461,9 @@ export function registerCommands(
   context.subscriptions.push(
     vscode.commands.registerCommand(
       'claude-tracker.resumeSession',
-      async (sessionId: string, projectPath: string) => {
+      async (sessionId: string, projectPath: string, sessionCtx?: TerminalSessionContext) => {
         try {
-          const terminal = createResumedTerminal(projectPath);
+          const terminal = createEnrichedTerminal(projectPath, sessionCtx);
           sendSafeCommand(terminal, 'claude --resume', sessionId);
         } catch (err) {
           logger.error('Failed to resume session:', err);
@@ -570,7 +598,7 @@ export async function loadAllEnrichedSessions(): Promise<EnrichedSession[]> {
 /**
  * Load enriched sessions for a specific project workspace
  */
-async function loadEnrichedSessionsForProject(workspacePath: string): Promise<EnrichedSession[]> {
+export async function loadEnrichedSessionsForProject(workspacePath: string): Promise<EnrichedSession[]> {
   const encodedPath = encodeWorkspacePath(workspacePath);
   const indexPath = path.join(CLAUDE_PROJECTS_DIR, encodedPath, 'sessions-index.json');
 

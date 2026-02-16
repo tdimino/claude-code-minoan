@@ -35,11 +35,25 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerCommands = registerCommands;
 exports.loadAllEnrichedSessions = loadAllEnrichedSessions;
+exports.loadEnrichedSessionsForProject = loadEnrichedSessionsForProject;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const utils_1 = require("./utils");
 const logger_1 = require("./logger");
+/**
+ * Extract terminal display context from an EnrichedSession
+ */
+function toTerminalContext(session) {
+    return {
+        displayTitle: session.displayTitle,
+        model: session.model,
+        gitBranch: session.gitBranch,
+        numTurns: session.numTurns,
+        totalCostUsd: session.totalCostUsd,
+        modified: session.modified,
+    };
+}
 /**
  * Register all extension commands
  */
@@ -108,6 +122,7 @@ function registerCommands(context, storage, watcher, crossWindowState) {
                 detail: detailParts.join(' \u00b7 '),
                 sessionId: session.id,
                 workspacePath: session.projectPath,
+                sessionCtx: toTerminalContext(session),
             });
         }
         if (items.length === 0) {
@@ -131,7 +146,7 @@ function registerCommands(context, storage, watcher, crossWindowState) {
         }
         else if (selected.type === 'resumable' && selected.workspacePath && selected.sessionId) {
             try {
-                const terminal = (0, utils_1.createResumedTerminal)(selected.workspacePath);
+                const terminal = (0, utils_1.createEnrichedTerminal)(selected.workspacePath, selected.sessionCtx);
                 (0, utils_1.sendSafeCommand)(terminal, 'claude --resume', selected.sessionId);
             }
             catch (err) {
@@ -170,6 +185,7 @@ function registerCommands(context, storage, watcher, crossWindowState) {
                 detail: detailParts.join(' \u00b7 '),
                 sessionId: s.id,
                 projectPath: s.projectPath,
+                sessionCtx: toTerminalContext(s),
             };
         });
         const selected = await vscode.window.showQuickPick(items, {
@@ -179,7 +195,7 @@ function registerCommands(context, storage, watcher, crossWindowState) {
         });
         if (selected) {
             try {
-                const terminal = (0, utils_1.createResumedTerminal)(selected.projectPath);
+                const terminal = (0, utils_1.createEnrichedTerminal)(selected.projectPath, selected.sessionCtx);
                 (0, utils_1.sendSafeCommand)(terminal, 'claude --resume', selected.sessionId);
             }
             catch (err) {
@@ -208,6 +224,7 @@ function registerCommands(context, storage, watcher, crossWindowState) {
             description: s.name,
             detail: `Last active: ${(0, utils_1.formatRelativeTime)(new Date(s.lastUpdate).toISOString())}`,
             workspacePath: s.workspacePath,
+            lastUpdate: s.lastUpdate,
             picked: true,
         }));
         const selected = await vscode.window.showQuickPick(items, {
@@ -220,7 +237,10 @@ function registerCommands(context, storage, watcher, crossWindowState) {
         }
         for (const item of selected) {
             try {
-                const terminal = (0, utils_1.createResumedTerminal)(item.workspacePath);
+                const terminal = (0, utils_1.createEnrichedTerminal)(item.workspacePath, {
+                    isRecovery: true,
+                    modified: new Date(item.lastUpdate).toISOString(),
+                });
                 await new Promise(resolve => setTimeout(resolve, 500));
                 (0, utils_1.sendSafeCommand)(terminal, 'claude --continue');
             }
@@ -256,7 +276,7 @@ function registerCommands(context, storage, watcher, crossWindowState) {
             for (const session of sessions) {
                 try {
                     logger_1.logger.info(`Attempting to resume session in: ${session.workspacePath}`);
-                    const terminal = (0, utils_1.createResumedTerminal)(session.workspacePath);
+                    const terminal = (0, utils_1.createEnrichedTerminal)(session.workspacePath, { isRecovery: true });
                     logger_1.logger.debug(`Created terminal for ${session.workspacePath}`);
                     await new Promise(resolve => setTimeout(resolve, 500));
                     (0, utils_1.sendSafeCommand)(terminal, 'claude --continue');
@@ -309,7 +329,12 @@ function registerCommands(context, storage, watcher, crossWindowState) {
             targetWorkspace = selected.workspacePath;
         }
         try {
-            const terminal = (0, utils_1.createResumedTerminal)(targetWorkspace);
+            // Look up most recent session for enriched terminal display
+            const recentSessions = await loadEnrichedSessionsForProject(targetWorkspace);
+            const sessionCtx = recentSessions.length > 0
+                ? toTerminalContext(recentSessions[0])
+                : undefined;
+            const terminal = (0, utils_1.createEnrichedTerminal)(targetWorkspace, sessionCtx);
             (0, utils_1.sendSafeCommand)(terminal, 'claude --continue');
             await storage.clearResumable(targetWorkspace);
         }
@@ -354,6 +379,7 @@ function registerCommands(context, storage, watcher, crossWindowState) {
                 description: descParts.join(' \u00b7 '),
                 detail: detailParts.join(' \u00b7 '),
                 sessionId: s.id,
+                sessionCtx: toTerminalContext(s),
             };
         });
         const selected = await vscode.window.showQuickPick(items, {
@@ -363,7 +389,7 @@ function registerCommands(context, storage, watcher, crossWindowState) {
         });
         if (selected) {
             try {
-                const terminal = (0, utils_1.createResumedTerminal)(cwd);
+                const terminal = (0, utils_1.createEnrichedTerminal)(cwd, selected.sessionCtx);
                 (0, utils_1.sendSafeCommand)(terminal, 'claude --resume', selected.sessionId);
             }
             catch (err) {
@@ -377,9 +403,9 @@ function registerCommands(context, storage, watcher, crossWindowState) {
         vscode.commands.executeCommand('claude-tracker.pickSession');
     }));
     // Resume specific session (used by Session Browser TreeView)
-    context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.resumeSession', async (sessionId, projectPath) => {
+    context.subscriptions.push(vscode.commands.registerCommand('claude-tracker.resumeSession', async (sessionId, projectPath, sessionCtx) => {
         try {
-            const terminal = (0, utils_1.createResumedTerminal)(projectPath);
+            const terminal = (0, utils_1.createEnrichedTerminal)(projectPath, sessionCtx);
             (0, utils_1.sendSafeCommand)(terminal, 'claude --resume', sessionId);
         }
         catch (err) {

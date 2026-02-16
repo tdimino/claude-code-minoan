@@ -2,7 +2,7 @@
   "name": "claude-session-tracker",
   "displayName": "Claude Session Tracker",
   "description": "Track and resume Claude Code sessions easily after crashes or disconnections",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "aldea",
   "engines": {
     "vscode": "^1.85.0"

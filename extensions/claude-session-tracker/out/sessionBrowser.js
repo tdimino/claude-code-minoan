@@ -103,7 +103,14 @@ class SessionTreeItem extends vscode.TreeItem {
         this.command = {
             command: 'claude-tracker.resumeSession',
             title: 'Resume Session',
-            arguments: [session.id, session.projectPath],
+            arguments: [session.id, session.projectPath, {
+                    displayTitle: session.displayTitle,
+                    model: session.model,
+                    gitBranch: session.gitBranch,
+                    numTurns: session.numTurns,
+                    totalCostUsd: session.totalCostUsd,
+                    modified: session.modified,
+                }],
         };
         this.contextValue = 'claudeSession';
     }
