@@ -7,8 +7,8 @@ embeds the query via Ollama, and returns top-K chunks by cosine similarity.
 Optionally synthesizes an answer via OpenRouter, TogetherAI, or any
 OpenAI-compatible endpoint.
 
-First run builds an embedding cache (~30s for 3K chunks).
-Subsequent queries are <1s.
+First run builds an embedding cache (~30s for 3K chunks, ~10min for 25K).
+Subsequent queries are <1s. Supports incremental checkpointing for large RAGs.
 
 Usage:
     python3 rlama_retrieve.py <rag-name> "your query"
@@ -34,7 +34,11 @@ RLAMA_DIR = os.path.expanduser("~/.rlama")
 OLLAMA_URL = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 DEFAULT_EMBED_MODEL = "nomic-embed-text"
 CACHE_FILENAME = "claude_cache.json"
-BATCH_SIZE = 50  # chunks per embedding request
+BATCH_SIZE = 50  # max chunks per embedding request
+MAX_BATCH_CHARS = 30000  # max total chars per batch (nomic-embed-text context limit)
+MAX_CHUNK_CHARS = 5000  # max chars per individual chunk (nomic-embed-text ~8K token context)
+CHECKPOINT_INTERVAL = 500  # save progress every N chunks
+BATCH_COOLDOWN = 0.1  # seconds between batches to let Ollama breathe
 
 
 def load_chunks(rag_name: str) -> list[dict]:
@@ -70,7 +74,7 @@ def get_info_mtime(rag_name: str) -> float:
 
 
 def embed_texts(texts: list[str], model: str = DEFAULT_EMBED_MODEL) -> list[list[float]]:
-    """Embed texts via Ollama API. Batches automatically."""
+    """Embed texts via Ollama API. Batches automatically with retry."""
     all_embeddings = []
 
     for i in range(0, len(texts), BATCH_SIZE):
@@ -83,13 +87,41 @@ def embed_texts(texts: list[str], model: str = DEFAULT_EMBED_MODEL) -> list[list
             headers={"Content-Type": "application/json"},
         )
 
-        try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                result = json.loads(resp.read())
-        except urllib.error.URLError as e:
-            raise ConnectionError(
-                f"Cannot reach Ollama at {OLLAMA_URL}. Is it running? Error: {e}"
-            )
+        retries = 3
+        for attempt in range(retries):
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    result = json.loads(resp.read())
+                break
+            except urllib.error.HTTPError as e:
+                if attempt < retries - 1:
+                    wait = 2 ** attempt
+                    print(f"  HTTP {e.code} at chunk {i}, retrying in {wait}s (attempt {attempt + 1}/{retries})...", file=sys.stderr)
+                    time.sleep(wait)
+                    # Recreate request (consumed by previous attempt)
+                    req = urllib.request.Request(
+                        f"{OLLAMA_URL}/api/embed",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                    )
+                else:
+                    raise ConnectionError(
+                        f"Ollama embedding failed at chunk {i} after {retries} attempts. HTTP {e.code}: {e.read().decode()[:200] if e.fp else ''}"
+                    )
+            except urllib.error.URLError as e:
+                if attempt < retries - 1:
+                    wait = 2 ** attempt
+                    print(f"  Connection error at chunk {i}, retrying in {wait}s...", file=sys.stderr)
+                    time.sleep(wait)
+                    req = urllib.request.Request(
+                        f"{OLLAMA_URL}/api/embed",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                    )
+                else:
+                    raise ConnectionError(
+                        f"Cannot reach Ollama at {OLLAMA_URL}. Is it running? Error: {e}"
+                    )
 
         embeddings = result.get("embeddings", [])
         if len(embeddings) != len(batch):
@@ -102,6 +134,10 @@ def embed_texts(texts: list[str], model: str = DEFAULT_EMBED_MODEL) -> list[list
         if i + BATCH_SIZE < len(texts):
             done = min(i + BATCH_SIZE, len(texts))
             print(f"  Embedded {done}/{len(texts)} chunks...", file=sys.stderr)
+
+        # Cooldown between batches to prevent Ollama memory pressure
+        if BATCH_COOLDOWN > 0 and i + BATCH_SIZE < len(texts):
+            time.sleep(BATCH_COOLDOWN)
 
     return all_embeddings
 
@@ -120,37 +156,170 @@ def dot_product(a: list[float], b: list[float]) -> float:
 
 
 def build_cache(rag_name: str, chunks: list[dict], model: str = DEFAULT_EMBED_MODEL) -> dict:
-    """Build embedding cache for a RAG's chunks."""
-    print(f"Building embedding cache for '{rag_name}' ({len(chunks)} chunks)...", file=sys.stderr)
+    """Build embedding cache with incremental checkpointing.
+
+    Saves progress every CHECKPOINT_INTERVAL chunks so partial work
+    survives Ollama crashes on large RAGs (25K+ chunks).
+    """
+    total = len(chunks)
+    print(f"Building embedding cache for '{rag_name}' ({total} chunks)...", file=sys.stderr)
     start = time.time()
 
-    texts = [c["content"] for c in chunks]
-    raw_embeddings = embed_texts(texts, model)
+    checkpoint_path = os.path.join(RLAMA_DIR, rag_name, "claude_cache_checkpoint.json")
+    cache_path = os.path.join(RLAMA_DIR, rag_name, CACHE_FILENAME)
 
-    # Pre-normalize for fast cosine similarity
-    normalized = [l2_normalize(e) for e in raw_embeddings]
+    # Resume from checkpoint if one exists
+    normalized = []
+    resume_from = 0
+    if os.path.exists(checkpoint_path):
+        try:
+            with open(checkpoint_path) as f:
+                checkpoint = json.load(f)
+            if checkpoint.get("model") == model and checkpoint.get("chunk_count") == total:
+                normalized = checkpoint.get("embeddings", [])
+                resume_from = len(normalized)
+                print(f"  Resuming from checkpoint: {resume_from}/{total} chunks already embedded", file=sys.stderr)
+            else:
+                print("  Checkpoint stale (model or chunk count changed). Starting fresh.", file=sys.stderr)
+        except (json.JSONDecodeError, KeyError):
+            print("  Corrupt checkpoint, starting fresh.", file=sys.stderr)
 
+    # Embed remaining chunks in batches with checkpoint saves
+    # Dynamic batching: respect both BATCH_SIZE and MAX_BATCH_CHARS
+    # Truncate oversized individual chunks to fit embedding model context
+    texts = [c["content"][:MAX_CHUNK_CHARS] for c in chunks]
+    i = resume_from
+    while i < total:
+        # Build batch respecting char limit
+        batch = []
+        batch_chars = 0
+        j = i
+        while j < total and len(batch) < BATCH_SIZE:
+            chunk_len = len(texts[j])
+            if batch and batch_chars + chunk_len > MAX_BATCH_CHARS:
+                break  # would exceed limit, stop here
+            batch.append(texts[j])
+            batch_chars += chunk_len
+            j += 1
+        # Safety: always include at least 1 chunk (even if oversized, truncate it)
+        if not batch:
+            batch = [texts[i][:MAX_BATCH_CHARS]]
+            j = i + 1
+        payload = json.dumps({"model": model, "input": batch}).encode()
+        req = urllib.request.Request(
+            f"{OLLAMA_URL}/api/embed",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+
+        retries = 3
+        result = None
+        for attempt in range(retries):
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    result = json.loads(resp.read())
+                break
+            except urllib.error.HTTPError as e:
+                if attempt < retries - 1:
+                    wait = 2 ** attempt
+                    print(f"  HTTP {e.code} at chunk {i}, retrying in {wait}s (attempt {attempt + 1}/{retries})...", file=sys.stderr)
+                    time.sleep(wait)
+                    req = urllib.request.Request(
+                        f"{OLLAMA_URL}/api/embed",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                    )
+                else:
+                    # Save checkpoint before failing
+                    if normalized:
+                        _save_checkpoint(checkpoint_path, model, total, normalized)
+                        print(f"  Checkpoint saved at {len(normalized)}/{total} before failure.", file=sys.stderr)
+                    raise ConnectionError(
+                        f"Ollama embedding failed at chunk {i} after {retries} attempts. "
+                        f"HTTP {e.code}: {e.read().decode()[:200] if e.fp else ''}. "
+                        f"Re-run to resume from checkpoint."
+                    )
+            except urllib.error.URLError as e:
+                if attempt < retries - 1:
+                    wait = 2 ** attempt
+                    print(f"  Connection error at chunk {i}, retrying in {wait}s...", file=sys.stderr)
+                    time.sleep(wait)
+                    req = urllib.request.Request(
+                        f"{OLLAMA_URL}/api/embed",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                    )
+                else:
+                    if normalized:
+                        _save_checkpoint(checkpoint_path, model, total, normalized)
+                        print(f"  Checkpoint saved at {len(normalized)}/{total} before failure.", file=sys.stderr)
+                    raise ConnectionError(
+                        f"Cannot reach Ollama at {OLLAMA_URL}. Is it running? Error: {e}. "
+                        f"Re-run to resume from checkpoint."
+                    )
+
+        embeddings = result.get("embeddings", [])
+        if len(embeddings) != len(batch):
+            if normalized:
+                _save_checkpoint(checkpoint_path, model, total, normalized)
+            raise ValueError(f"Expected {len(batch)} embeddings, got {len(embeddings)}")
+
+        # Normalize and accumulate
+        for emb in embeddings:
+            normalized.append(l2_normalize(emb))
+
+        done = j
+        print(f"  Embedded {done}/{total} chunks...", file=sys.stderr)
+
+        # Save checkpoint at intervals
+        if done % CHECKPOINT_INTERVAL < len(batch) and done < total:
+            _save_checkpoint(checkpoint_path, model, total, normalized)
+            print(f"  Checkpoint saved at {done}/{total}", file=sys.stderr)
+
+        # Cooldown between batches
+        if BATCH_COOLDOWN > 0 and j < total:
+            time.sleep(BATCH_COOLDOWN)
+
+        # Advance position
+        i = j
+
+    # Build final cache
     cache = {
         "model": model,
-        "chunk_count": len(chunks),
+        "chunk_count": total,
         "info_mtime": get_info_mtime(rag_name),
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "embeddings": normalized,
         "chunk_ids": [c["id"] for c in chunks],
     }
 
-    cache_path = os.path.join(RLAMA_DIR, rag_name, CACHE_FILENAME)
     with open(cache_path, "w") as f:
         json.dump(cache, f)
+
+    # Clean up checkpoint
+    if os.path.exists(checkpoint_path):
+        os.remove(checkpoint_path)
 
     elapsed = time.time() - start
     size_mb = os.path.getsize(cache_path) / (1024 * 1024)
     print(
-        f"Cache built: {len(chunks)} embeddings, {size_mb:.1f}MB, {elapsed:.1f}s",
+        f"Cache built: {total} embeddings, {size_mb:.1f}MB, {elapsed:.1f}s",
         file=sys.stderr,
     )
 
     return cache
+
+
+def _save_checkpoint(path: str, model: str, chunk_count: int, embeddings: list) -> None:
+    """Save partial embedding progress to a checkpoint file."""
+    checkpoint = {
+        "model": model,
+        "chunk_count": chunk_count,
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "embeddings": embeddings,
+    }
+    with open(path, "w") as f:
+        json.dump(checkpoint, f)
 
 
 def load_or_build_cache(
