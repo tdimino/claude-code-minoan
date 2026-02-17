@@ -438,6 +438,6 @@ log("info", "SMS webhook received", {
 
 ## Resources
 
-- [Twilio-Aldea README](/Users/tomdimino/Desktop/Aldea/Prompt development/Twilio-Aldea/README.md)
-- [Twilio-Aldea CLAUDE.md](/Users/tomdimino/Desktop/Aldea/Prompt development/Twilio-Aldea/CLAUDE.md)
-- [Daimonic Souls Engine Docs](/Users/tomdimino/Desktop/A.I. & LLMs/daimonic-souls-engine/)
+- Twilio-Aldea README: `~/Desktop/Aldea/Prompt development/Twilio-Aldea/README.md`
+- Twilio-Aldea CLAUDE.md: `~/Desktop/Aldea/Prompt development/Twilio-Aldea/CLAUDE.md`
+- Daimonic Souls Engine Docs: `~/Desktop/A.I. & LLMs/daimonic-souls-engine/`

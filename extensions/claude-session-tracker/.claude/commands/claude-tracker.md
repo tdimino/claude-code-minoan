@@ -33,7 +33,7 @@ function getRunningClaudeSessions() {
       try {
         const lsofResult = execSync('lsof -p ' + pid + ' 2>/dev/null | grep cwd || true', { encoding: 'utf8' });
         // lsof format: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
-        // Example: "node 7583 user cwd DIR 1,17 3296 275187 /Users/tomdimino"
+        // Example: "node 7583 user cwd DIR 1,17 3296 275187 /Users/jane"
         const match = lsofResult.match(/(\\/[^\\n]+)$/m);
         if (match && match[1]) {
           const cwd = match[1].trim();
@@ -132,8 +132,8 @@ function pathToKey(p) {
 }
 
 function isPathMatch(projectDirName, runningPath) {
-  // projectDirName: -Users-tomdimino-Desktop-Aldea-Prompt-development-Aldea-Soul-Engine
-  // runningPath: /Users/tomdimino/Desktop/Aldea/Prompt development/Aldea-Soul-Engine
+  // projectDirName: -Users-jane-Desktop-Aldea-Prompt-development-Aldea-Soul-Engine
+  // runningPath: /Users/jane/Desktop/Aldea/Prompt development/Aldea-Soul-Engine
   const projectKey = projectDirName.toLowerCase().replace(/^-/, '');
   const runningKey = pathToKey(runningPath);
   return projectKey === runningKey;

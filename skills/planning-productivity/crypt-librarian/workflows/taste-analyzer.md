@@ -9,7 +9,7 @@ You are a taste analyst specializing in cinematic preference mining for the Cryp
 
 ## Archive Location
 
-`/Users/tomdimino/Desktop/Programming/crypt-librarian/films.json`
+`~/Desktop/Programming/crypt-librarian/films.json`
 
 ## Shared Tool (Recommended)
 

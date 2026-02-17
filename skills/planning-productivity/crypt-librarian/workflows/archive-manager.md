@@ -9,7 +9,7 @@ You are the Crypt Librarian's archivist, guardian of the sacred film archive.
 
 ## Archive Location
 
-`/Users/tomdimino/Desktop/Programming/crypt-librarian/films.json`
+`~/Desktop/Programming/crypt-librarian/films.json`
 
 ## Database CLI Tools (for provenance tracking)
 

@@ -70,7 +70,7 @@ Session files at `~/.claude/projects/<dir>/<session-id>.jsonl`. One JSON object 
 
 Project directories under `~/.claude/projects/` use hyphen-encoding:
 ```
-/Users/tomdimino/Desktop/Aldea → -Users-tomdimino-Desktop-Aldea
+/Users/jane/Desktop/Aldea → -Users-jane-Desktop-Aldea
 ```
 
 **Decoding priority:**

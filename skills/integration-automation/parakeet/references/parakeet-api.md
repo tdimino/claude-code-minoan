@@ -5,7 +5,7 @@ Technical reference for the Parakeet Dictate transcription engine.
 ## Location
 
 ```
-/Users/tomdimino/Programming/parakeet-dictate/
+~/Programming/parakeet-dictate/
 ├── src/
 │   ├── audio.py        # Audio capture and file loading
 │   ├── transcriber.py  # Parakeet model wrapper

@@ -6,9 +6,9 @@
 
 set -euo pipefail
 
-SRC="/Users/tomdimino/.claude/skills/agent-browser"
-MINOAN="/Users/tomdimino/Desktop/claude-code-minoan/skills/integration-automation/agent-browser"
-ALDEA="/Users/tomdimino/Desktop/Aldea/Prompt development/Claude-Code-Aldea/skills/integration-automation/agent-browser"
+SRC="$HOME/.claude/skills/agent-browser"
+MINOAN="$HOME/Desktop/claude-code-minoan/skills/integration-automation/agent-browser"
+ALDEA="$HOME/Desktop/Aldea/Prompt development/Claude-Code-Aldea/skills/integration-automation/agent-browser"
 
 sync_to() {
   local dest="$1"

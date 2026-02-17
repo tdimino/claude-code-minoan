@@ -740,7 +740,7 @@ const { data: allMessages } = await supabase
 
 ## Resources
 
-- **Twilio-Aldea Source**: `/Users/tomdimino/Desktop/Aldea/Prompt development/Twilio-Aldea/src/lib/supabase/`
+- **Twilio-Aldea Source**: `~/Desktop/Aldea/Prompt development/Twilio-Aldea/src/lib/supabase/`
 - **Database Patterns**: `references/database-patterns.md`
 - **Schema Design**: `references/schema-design.md`
 - **RLS Policies**: `references/official-docs/row-level-security.md`
