@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-40-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-41-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-10-orange.svg" alt="Hooks"></a>
 </p>
@@ -20,7 +20,7 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 40 custom skills across 5 categories
+├── skills/                      # 41 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
@@ -74,7 +74,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 40 skills across 5 categories
+### [Skills](skills/README.md) — 41 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -83,7 +83,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
 | Core Development | 7 | `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk` |
-| Integration & Automation | 14 | `llama-cpp`, `rlama`, `parakeet`, `Firecrawl`, `codex-orchestrator` |
+| Integration & Automation | 15 | `llama-cpp`, `rlama`, `linkedin-export`, `parakeet`, `Firecrawl`, `codex-orchestrator` |
 | Design & Media | 7 | `gemini-claude-resonance`, `nano-banana-pro`, `speak-response` |
 | Research | 4 | `academic-research`, `exa-search`, `Firecrawl` |
 | Planning & Productivity | 5 | `minoan-swarm`, `super-ralph-wiggum`, `claude-tracker-suite` |
@@ -240,7 +240,7 @@ See [github.com/sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatuslin
 
 ---
 
-**Skills**: 40 | **Commands**: 30+ | **Hooks**: 10 | **CLI Tools**: 8
+**Skills**: 41 | **Commands**: 30+ | **Hooks**: 10 | **CLI Tools**: 8
 
 ---
 

@@ -47,6 +47,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 | `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
 | `speak-response` | Local TTS via [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS) |
 | `slack` | [Slack](https://api.slack.com/) workspace integration — post, read, search, react, upload files, manage channels & users (8 scripts, built-in rate limiting) |
+| `linkedin-export` | Parse LinkedIn GDPR data exports — search messages, analyze connections, export Markdown, ingest into RLAMA |
 
 ### Design & Media (`design-media/`)
 | Skill | Description |
