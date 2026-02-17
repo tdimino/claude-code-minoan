@@ -94,23 +94,57 @@ If all guards pass, calls `precompact-handoff.py` via subprocess with `trigger: 
 
 ---
 
-### `terminal-title.sh` — Terminal UX
+### `terminal-title.sh` — Two-Tier Terminal Title with Repo Icons
 
-Dynamic terminal tab title with state indicators, desktop notifications, and duration tracking.
+Dynamic terminal tab title with repo-type emoji icons, two-tier naming (persistent main title + dynamic subtitle), desktop notifications, and duration tracking.
 
 **Fires on**: PreToolUse (via `on-thinking.sh` symlink), Stop (via `on-ready.sh` symlink)
 
-| State | Indicator | Action |
-|-------|-----------|--------|
-| Thinking | 🔴 `project-name` | Sets tab title, records start time |
-| Ready | 🟢 `project-name` | Sets tab title, plays sound, sends notification with duration |
+**Title format**: `STATUS REPO_ICON MAIN_TITLE: SUBTITLE`
+
+```
+🔴 🐍 claudius: Building test suite     ← thinking
+🟢 ⚛️ knossot: Ready                    ← ready
+🔴 🦀 bg3se-macos: Debugging init hooks
+🟢 📜 Thera-Paper: Reviewing cognates
+```
+
+| Component | Source | Persistence |
+|-----------|--------|-------------|
+| `🔴/🟢` | Hook event (PreToolUse/Stop) | Per-event |
+| Repo icon | CWD heuristics (CLAUDE.md keywords, then file detection) | Cached per CWD in `/tmp/` |
+| Main title | `customTitle` via `/rename`, else `basename $CWD` | Persistent — only changes via `/rename` |
+| Subtitle | Last assistant message from transcript JSONL | Updated on each Stop event |
+
+**Repo icon detection** (priority order):
+
+| Indicator | Emoji | Detection |
+|-----------|-------|-----------|
+| Soul/daimonic | 👁 | CLAUDE.md contains "soul", "daimonic", "daimon" |
+| Research/ancient | 📜 | CLAUDE.md contains "research", "Minoan", "Semitic", "Linear A" |
+| Game modding | 🎮 | CLAUDE.md contains "game", "BG3", "modding", "Script Extender" |
+| Events/community | 🏛 | CLAUDE.md contains "event", "communit" |
+| React | ⚛️ | `package.json` with `react` dep |
+| Astro | 🚀 | `package.json` with `astro` dep |
+| Next.js | ▲ | `package.json` with `next` dep |
+| Svelte | 🔥 | `package.json` with `svelte` dep |
+| Vue | 💚 | `package.json` with `vue` dep |
+| JavaScript/Node | 🟨 | `package.json` (no framework match) |
+| Rust | 🦀 | `Cargo.toml` |
+| Python | 🐍 | `pyproject.toml`, `setup.py`, `requirements.txt` |
+| Ruby | 💎 | `Gemfile` |
+| Go | 🔵 | `go.mod` |
+| Docker | 🐳 | `Dockerfile` (no package.json/pyproject.toml) |
+| Swift | 🐦 | `Package.swift`, `.swift-version` |
+| C/C++ | 🔧 | `CMakeLists.txt`, `Makefile` |
+| Default | 📁 | Fallback |
 
 Features:
-- Session name from `customTitle` in `sessions-index.json` (set by `/rename`)
-- Project name from `package.json`, `Cargo.toml`, or `pyproject.toml`
-- macOS desktop notification via `terminal-notifier` (click to focus VS Code)
-- Duration tracking (e.g., "Ready for input (2m 34s)")
-- Sound alert (`sounds/soft-ui.mp3`)
+- **Two-tier title**: Main title never changes unless user runs `/rename`; subtitle auto-updates from transcript
+- **Repo icons**: Emoji derived from CLAUDE.md semantic keywords or project file heuristics, cached per CWD
+- **Desktop notification** via `terminal-notifier` with repo icon and subtitle (click to focus VS Code)
+- **Duration tracking** (e.g., "2m 34s")
+- **Sound alert** (`sounds/soft-ui.mp3`)
 
 **Requires**: `brew install terminal-notifier`
 
@@ -152,6 +186,9 @@ Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously 
 | Ctrl+C / terminal close | SessionEnd | Yes |
 | VS Code exit / restart | SessionEnd | Yes |
 | Active work (rolling) | Stop (5-min) | Yes |
+| Git command in any directory | PreToolUse/Bash (git-track) | Yes |
+| Git commit result (hash) | PostToolUse/Bash (git-track-post) | Yes |
+| Cross-repo session discovery | SessionEnd (git-track-rebuild) | Yes |
 | Idle session | Stop | Skipped (by design) |
 | SIGKILL / force quit | — | No (5-min max gap) |
 | System panic / OOM | — | No (5-min max gap) |
@@ -183,7 +220,8 @@ Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously 
       {
         "matcher": "",
         "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/precompact-handoff.py"}
+          {"type": "command", "command": "~/.claude/hooks/precompact-handoff.py"},
+          {"type": "command", "command": "python3 ~/.claude/hooks/git-track-rebuild.py"}
         ]
       }
     ],
@@ -197,9 +235,23 @@ Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously 
     ],
     "PreToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {"type": "command", "command": "~/.claude/hooks/git-track.sh"}
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/on-thinking.sh"}
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {"type": "command", "command": "~/.claude/hooks/git-track-post.sh"}
         ]
       }
     ]

@@ -58,9 +58,10 @@ test-output/
 .claude/
 .osgrep
 
-# Python cache
+# Python cache and venvs
 __pycache__/
 *.pyc
+.venv/
 
 # Skill-specific ignores
 skills/design-media/gemini-claude-resonance/canvas/

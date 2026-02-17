@@ -5,7 +5,7 @@
 <p align="center">
   <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-40-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
-  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-7-orange.svg" alt="Hooks"></a>
+  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-10-orange.svg" alt="Hooks"></a>
 </p>
 
 # Minoan Claude Code Configuration
@@ -94,17 +94,24 @@ Toggle skills on/off: `./skills/skill-toggle.sh`
 
 ### [Hooks](hooks/README.md) — Lifecycle event scripts
 
-Scripts that run in response to Claude Code events — terminal UX, crash-resilient session handoffs, and multi-response sampling.
+Scripts that run in response to Claude Code events — terminal UX, crash-resilient session handoffs, cross-repo git tracking, and multi-response sampling.
 
 ```
 UserPromptSubmit ──→ multi-response-prompt.py    (/5x trigger)
-PreToolUse ────────→ on-thinking.sh              (🔴 tab title)
-Stop ──────────────→ on-ready.sh + stop-handoff.py (🟢 title + 5-min checkpoint)
+PreToolUse ────────→ on-thinking.sh              (🔴 repo-icon + title)
+                   → git-track.sh               (Bash: log git commands to JSONL)
+PostToolUse ───────→ git-track-post.sh           (Bash: capture commit hashes)
+Stop ──────────────→ on-ready.sh + stop-handoff.py (🟢 title:subtitle + 5-min checkpoint)
 PreCompact ────────→ precompact-handoff.py       (full handoff before compaction)
 SessionEnd ────────→ precompact-handoff.py       (handoff on graceful exit)
+                   → git-track-rebuild.py        (rebuild git tracking index)
 ```
 
+**Terminal Title**: Two-tier format with repo-type emoji icons — `🔴 🐍 claudius: Building test suite`. Icons auto-detected from CLAUDE.md keywords and project files. Main title persists across events; subtitle updates from transcript.
+
 **Session Handoff System**: Three hooks ensure context survives compaction, graceful exits, and crashes. Writes structured YAML to `~/.claude/handoffs/` with objective, decisions, blockers, and next steps. Auto-maintains `INDEX.md`.
+
+**Git Tracking**: Three hooks intercept git commands across any directory, capturing repos, branches, operations, and commit hashes. Builds a bidirectional session↔repo index. Query with `getSessionsForRepo()` / `getReposForSession()` or generate a dashboard with `/session-report`.
 
 ---
 
@@ -119,6 +126,7 @@ Markdown templates invoked as `/command-name`. Key workflows:
 | `/code-review` | PR review with structured output |
 | `/audit-plans` | Plan completeness auditing |
 | `/workflows:plan` | Transform descriptions into implementation plans |
+| `/session-report` | Markdown dashboard: sessions, git activity, commits, repos |
 
 ---
 
@@ -230,7 +238,7 @@ See [github.com/sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatuslin
 
 ---
 
-**Skills**: 40 | **Commands**: 30+ | **Hooks**: 7 | **CLI Tools**: 8
+**Skills**: 40 | **Commands**: 30+ | **Hooks**: 10 | **CLI Tools**: 8
 
 ---
 

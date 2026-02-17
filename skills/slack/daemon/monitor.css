@@ -1,0 +1,192 @@
+/* Claudius Soul Monitor — Textual CSS */
+/* Dual theme: dark (default) + light mode via [m] toggle */
+
+Screen {
+    background: $surface;
+}
+
+/* ── Header ── */
+
+Header {
+    dock: top;
+}
+
+.status-running {
+    color: $success;
+    text-style: bold;
+}
+
+.status-stopped {
+    color: $error;
+    text-style: bold;
+}
+
+/* ── Main layout ── */
+
+#main-area {
+    layout: grid;
+    grid-size: 2 2;
+    grid-columns: 1fr 3fr;
+    grid-rows: 3fr 2fr;
+    grid-gutter: 1;
+    padding: 0 1;
+}
+
+/* ── Panel base styling ── */
+
+.panel {
+    border: solid $primary-darken-2;
+    padding: 0 1;
+}
+
+.panel:dark {
+    background: $surface;
+}
+
+.panel:light {
+    background: $surface;
+    border: solid $primary-lighten-2;
+}
+
+.panel > Static {
+    text-style: bold;
+    padding: 0 0 1 0;
+}
+
+/* ── Left column panels ── */
+
+#soul-state-panel {
+    column-span: 1;
+    row-span: 1;
+}
+
+#soul-state-panel > Static {
+    color: $secondary;
+}
+
+#soul-state-table {
+    height: 100%;
+}
+
+#soul-state-table > .datatable--header {
+    display: none;
+}
+
+#users-panel {
+    column-span: 1;
+    row-span: 1;
+}
+
+#users-panel > Static {
+    color: $accent;
+}
+
+/* ── Right column panels ── */
+
+#cognitive-panel {
+    column-span: 1;
+    row-span: 1;
+}
+
+#cognitive-panel:dark {
+    background: $panel;
+}
+
+#cognitive-panel:light {
+    background: $background;
+}
+
+#cognitive-panel > Static {
+    color: $secondary;
+}
+
+#sessions-panel {
+    column-span: 1;
+    row-span: 1;
+}
+
+#sessions-panel > Static {
+    color: $accent;
+}
+
+/* ── Raw log ── */
+
+#raw-log-panel {
+    height: 10;
+    margin: 0 1;
+}
+
+#raw-log-panel:dark {
+    background: $panel;
+    border: solid $primary-darken-3;
+}
+
+#raw-log-panel:light {
+    background: $background;
+    border: solid $primary-lighten-2;
+}
+
+#raw-log-panel > Static {
+    color: $text-muted;
+    text-style: bold;
+    padding: 0 0 1 0;
+}
+
+/* ── RichLog styling ── */
+
+RichLog {
+    scrollbar-size: 1 1;
+}
+
+RichLog:dark {
+    scrollbar-color: $primary-darken-2;
+    scrollbar-color-hover: $secondary;
+    scrollbar-color-active: $secondary;
+}
+
+RichLog:light {
+    scrollbar-color: $primary-lighten-2;
+    scrollbar-color-hover: $primary;
+    scrollbar-color-active: $primary;
+}
+
+/* ── DataTable styling ── */
+
+DataTable {
+    scrollbar-size: 1 1;
+    height: 100%;
+}
+
+DataTable:dark {
+    scrollbar-color: $primary-darken-2;
+}
+
+DataTable:light {
+    scrollbar-color: $primary-lighten-2;
+}
+
+DataTable > .datatable--header {
+    background: $panel;
+    color: $secondary;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $boost;
+}
+
+DataTable:dark > .datatable--even-row {
+    background: $surface;
+}
+
+DataTable:dark > .datatable--odd-row {
+    background: $panel;
+}
+
+DataTable:light > .datatable--even-row {
+    background: $surface;
+}
+
+DataTable:light > .datatable--odd-row {
+    background: $background;
+}
