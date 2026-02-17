@@ -30,7 +30,7 @@ claude-code-minoan/
 ├── commands/                    # 30+ slash commands (workflows, planning, code review)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
-├── tools/                       # Standalone tools (md_preview_and_annotate — canonical: github.com/tdimino/md-preview-and-annotate)
+├── tools/                       # Standalone tools (see github.com/tdimino/md-preview-and-annotate)
 ├── lib/                         # Shared libraries (tracker-utils.js)
 ├── extensions/                  # VS Code Claude Session Tracker extension
 ├── sounds/                      # Notification audio
@@ -235,6 +235,8 @@ See [github.com/sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatuslin
 - **[Handy](https://github.com/cjpais/Handy)** by CJ Pais — push-to-talk speech-to-text
 - **[matklad's ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html)** — codebase documentation guide
 - **[Open Souls](https://docs.souls.chat/)** — the AI souls paradigm
+- **[Claudius](https://github.com/tdimino/claudius)** — open-source soul agent framework (daemon, soul engine, cognitive pipeline, three-tier memory)
+- **[md-preview-and-annotate](https://github.com/tdimino/md-preview-and-annotate)** — zero-dependency Markdown previewer with annotations and bookmarks
 
 ---
 
