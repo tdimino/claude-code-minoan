@@ -67,7 +67,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 ### Planning & Productivity (`planning-productivity/`)
 | Skill | Description |
 |-------|-------------|
-| `claude-tracker-suite` | Session search, resume, project detection |
+| `claude-tracker-suite` | Session search, resume, project detection, resume-in-terminal (Ghostty/VS Code/Cursor) |
 | `crypt-librarian` | Film curator for pre-2016 gothic/occult/noir cinema |
 | `mdpreview` | Catppuccin live-reloading Markdown viewer with multi-tab support and margin annotations |
 | `minoan-swarm` | Agent Teams orchestration with ancient Mediterranean naming |

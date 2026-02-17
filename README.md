@@ -147,9 +147,10 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 | `claude-tracker` | List recent sessions with summaries and status |
 | `claude-tracker-search` | Search sessions by topic, ID, project, date |
 | `claude-tracker-resume` | Find crashed sessions, auto-resume in tmux |
+| `resume-in-vscode.sh` | Resume a session in a new Ghostty/VS Code/Cursor terminal |
 | `cc` / `cckill` / `ccls` / `ccpick` | Quick launchers and session management |
 
-All CLIs share `lib/tracker-utils.js` for session parsing and status detection.
+All CLIs share `lib/tracker-utils.js` for session parsing and status detection. The `resume-in-vscode.sh` script auto-detects the project directory from the session ID (via `decodeProjectPath`) and `cd`s there before resuming — no `--project` flag needed.
 
 ---
 

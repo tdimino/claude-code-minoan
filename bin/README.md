@@ -42,6 +42,21 @@ claude-tracker-resume --zsh        # Auto-resume in Terminal.app tabs
 claude-tracker-resume --dry-run    # Preview without acting
 ```
 
+### `resume-in-vscode.sh` — Resume in New Terminal
+
+Open a session in a new Ghostty tab, VS Code terminal, or Cursor terminal. Auto-detects the project directory from the session ID.
+
+```bash
+resume-in-vscode.sh <session-id>              # Ghostty (default)
+resume-in-vscode.sh <session-id> --vscode     # VS Code terminal
+resume-in-vscode.sh <session-id> --cursor     # Cursor terminal
+resume-in-vscode.sh <session-id> --project ~/myproject  # Override project dir
+```
+
+Uses AppleScript for terminal automation. Ghostty uses clipboard-paste (Cmd+V) for reliability; VS Code/Cursor use Ctrl+Shift+` for new terminal.
+
+**Requires**: macOS, Ghostty/VS Code/Cursor
+
 ## Quick Launchers
 
 ### `cc` — Session Launcher
