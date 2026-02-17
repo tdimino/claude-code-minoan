@@ -12,6 +12,8 @@
  *   watchlist remove <user>     Remove user from watchlist
  *   watchlist check             Check recent tweets from all watchlist accounts
  *   cache clear                 Clear search cache
+ *   post <text>                 Post a tweet (OAuth 1.0a)
+ *   reply <tweet_id> <text>     Reply to a tweet (OAuth 1.0a)
  *
  * Search options:
  *   --sort likes|impressions|retweets|recent   Sort order (default: likes)
@@ -343,6 +345,51 @@ async function cmdCache() {
   }
 }
 
+async function cmdPost() {
+  const text = args.slice(1).join(" ");
+  if (!text) {
+    console.error("Usage: x-search post <text>");
+    process.exit(1);
+  }
+  if (text.length > 280) {
+    console.error(`Tweet too long: ${text.length}/280 chars`);
+    process.exit(1);
+  }
+  const result = await api.postTweet(text);
+  console.log(`Posted: https://x.com/i/status/${result.id}`);
+  console.log(`Cost: ~$0.01`);
+}
+
+async function cmdReply() {
+  const tweetId = args[1];
+  const text = args.slice(2).join(" ");
+  if (!tweetId || !text) {
+    console.error("Usage: x-search reply <tweet_id> <text>");
+    process.exit(1);
+  }
+  if (text.length > 280) {
+    console.error(`Reply too long: ${text.length}/280 chars`);
+    process.exit(1);
+  }
+  const result = await api.replyToTweet(text, tweetId);
+  console.log(`Replied: https://x.com/i/status/${result.id}`);
+  console.log(`Cost: ~$0.01`);
+}
+
+async function cmdDelete() {
+  const tweetId = args[1];
+  if (!tweetId) {
+    console.error("Usage: x-search delete <tweet_id>");
+    process.exit(1);
+  }
+  const deleted = await api.deleteTweet(tweetId);
+  if (deleted) {
+    console.log(`Deleted tweet ${tweetId}`);
+  } else {
+    console.error(`Failed to delete tweet ${tweetId}`);
+  }
+}
+
 function usage() {
   console.log(`x-search — X/Twitter research CLI (official API v2)
 
@@ -351,6 +398,8 @@ Commands:
   thread <tweet_id>           Fetch full conversation thread
   profile <username>          Recent tweets from a user
   tweet <tweet_id>            Fetch a single tweet
+  post <text>                 Post a tweet (requires OAuth 1.0a)
+  reply <tweet_id> <text>     Reply to a tweet (requires OAuth 1.0a)
   watchlist                   Show watchlist
   watchlist add <user> [note] Add user to watchlist
   watchlist remove <user>     Remove user from watchlist
@@ -372,7 +421,7 @@ Search options:
   --json                     Raw JSON output
   --markdown                 Markdown research doc
 
-Cost: $0.005/post read, $0.01/user lookup (pay-per-use)`);
+Cost: $0.005/post read, $0.01/user lookup, $0.01/post create (pay-per-use)`);
 }
 
 async function main() {
@@ -398,6 +447,16 @@ async function main() {
       break;
     case "cache":
       await cmdCache();
+      break;
+    case "post":
+      await cmdPost();
+      break;
+    case "reply":
+      await cmdReply();
+      break;
+    case "delete":
+    case "rm":
+      await cmdDelete();
       break;
     default:
       usage();

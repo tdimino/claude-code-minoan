@@ -9,6 +9,7 @@
  */
 
 import { readFileSync } from "fs";
+import { createHmac, randomBytes } from "crypto";
 
 const BASE = "https://api.x.com/2";
 const RATE_DELAY_MS = 350;
@@ -167,6 +168,179 @@ async function apiGet(url: string): Promise<RawResponse> {
   }
 
   return res.json();
+}
+
+// --- OAuth 1.0a for posting ---
+
+interface OAuthCredentials {
+  apiKey: string;
+  apiSecret: string;
+  accessToken: string;
+  accessTokenSecret: string;
+}
+
+function getOAuthCredentials(): OAuthCredentials {
+  const keys = ["X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"];
+  const vals: Record<string, string> = {};
+
+  // Check env vars first
+  for (const k of keys) {
+    if (process.env[k]) vals[k] = process.env[k]!;
+  }
+
+  // Fall back to .env files if any missing
+  if (Object.keys(vals).length < 4) {
+    const envPaths = [
+      `${process.env.HOME}/.config/env/global.env`,
+      `${process.env.HOME}/.claude/skills/twitter/.env`,
+    ];
+    for (const path of envPaths) {
+      try {
+        const content = readFileSync(path, "utf-8");
+        for (const k of keys) {
+          if (!vals[k]) {
+            const match = content.match(new RegExp(`${k}=["']?([^"'\\n]+)`));
+            if (match && match[1].trim()) vals[k] = match[1].trim();
+          }
+        }
+      } catch {}
+    }
+  }
+
+  const missing = keys.filter((k) => !vals[k]);
+  if (missing.length > 0) {
+    throw new Error(
+      `OAuth 1.0a credentials missing: ${missing.join(", ")}\n` +
+      "Set them in ~/.claude/skills/twitter/.env or as env vars.\n" +
+      "Generate at https://console.x.com → Project → Keys and tokens\n" +
+      "(ensure Read and Write permissions are enabled)"
+    );
+  }
+
+  return {
+    apiKey: vals.X_API_KEY,
+    apiSecret: vals.X_API_SECRET,
+    accessToken: vals.X_ACCESS_TOKEN,
+    accessTokenSecret: vals.X_ACCESS_TOKEN_SECRET,
+  };
+}
+
+function percentEncode(str: string): string {
+  return encodeURIComponent(str).replace(/[!'()*]/g, (c) =>
+    "%" + c.charCodeAt(0).toString(16).toUpperCase()
+  );
+}
+
+function oauthSign(
+  method: string,
+  url: string,
+  params: Record<string, string>,
+  creds: OAuthCredentials
+): string {
+  const oauthParams: Record<string, string> = {
+    oauth_consumer_key: creds.apiKey,
+    oauth_nonce: randomBytes(16).toString("hex"),
+    oauth_signature_method: "HMAC-SHA1",
+    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+    oauth_token: creds.accessToken,
+    oauth_version: "1.0",
+  };
+
+  // Combine all params for signature base
+  const allParams = { ...params, ...oauthParams };
+  const paramStr = Object.keys(allParams)
+    .sort()
+    .map((k) => `${percentEncode(k)}=${percentEncode(allParams[k])}`)
+    .join("&");
+
+  const baseStr = `${method.toUpperCase()}&${percentEncode(url)}&${percentEncode(paramStr)}`;
+  const signingKey = `${percentEncode(creds.apiSecret)}&${percentEncode(creds.accessTokenSecret)}`;
+  const signature = createHmac("sha1", signingKey).update(baseStr).digest("base64");
+
+  oauthParams.oauth_signature = signature;
+
+  const header = Object.keys(oauthParams)
+    .sort()
+    .map((k) => `${percentEncode(k)}="${percentEncode(oauthParams[k])}"`)
+    .join(", ");
+
+  return `OAuth ${header}`;
+}
+
+async function apiPost(endpoint: string, body: Record<string, unknown>): Promise<any> {
+  const creds = getOAuthCredentials();
+  const url = `${BASE}${endpoint}`;
+  const authHeader = oauthSign("POST", url, {}, creds);
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: authHeader,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (res.status === 401) {
+    throw new Error("OAuth 1.0a authentication failed. Check your credentials at console.x.com");
+  }
+  if (res.status === 403) {
+    throw new Error("Forbidden — ensure your app has Read and Write permissions at console.x.com");
+  }
+  if (res.status === 429) {
+    const reset = res.headers.get("x-rate-limit-reset");
+    const waitSec = reset
+      ? Math.max(parseInt(reset) - Math.floor(Date.now() / 1000), 1)
+      : 60;
+    throw new Error(`Rate limited. Resets in ${waitSec}s`);
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`X API POST ${res.status}: ${text.slice(0, 300)}`);
+  }
+
+  return res.json();
+}
+
+export async function postTweet(text: string): Promise<{ id: string; text: string }> {
+  const result = await apiPost("/tweets", { text });
+  return { id: result.data.id, text: result.data.text };
+}
+
+export async function replyToTweet(
+  text: string,
+  replyToId: string
+): Promise<{ id: string; text: string }> {
+  const result = await apiPost("/tweets", {
+    text,
+    reply: { in_reply_to_tweet_id: replyToId },
+  });
+  return { id: result.data.id, text: result.data.text };
+}
+
+export async function deleteTweet(tweetId: string): Promise<boolean> {
+  const creds = getOAuthCredentials();
+  const url = `${BASE}/tweets/${tweetId}`;
+  const authHeader = oauthSign("DELETE", url, {}, creds);
+
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: { Authorization: authHeader },
+  });
+
+  if (res.status === 401) {
+    throw new Error("OAuth 1.0a authentication failed. Check your credentials at console.x.com");
+  }
+  if (res.status === 403) {
+    throw new Error("Forbidden — ensure your app has Read and Write permissions at console.x.com");
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`X API DELETE ${res.status}: ${text.slice(0, 300)}`);
+  }
+
+  const result = await res.json();
+  return result.data?.deleted === true;
 }
 
 export async function search(

@@ -43,7 +43,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 | `rlama` | Local RAG via [RLAMA](https://github.com/dontizi/rlama) with Ollama |
 | `Firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) CLI + Agent API |
 | `exa-search` | Neural search via [Exa AI](https://exa.ai/) API |
-| `twitter` | Twitter/X via [bird CLI](https://github.com/nicepkg/bird) + [x-search](https://github.com/nicepkg/x-search) |
+| `twitter` | Twitter/X — search/research via x-search (official API v2), posting via OAuth 1.0a, reading via [bird CLI](https://github.com/steipete/bird) |
 | `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
 | `speak-response` | Local TTS via [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS) |
 | `slack` | [Slack](https://api.slack.com/) workspace integration — post, read, search, react, upload files, manage channels & users (8 scripts, built-in rate limiting) |

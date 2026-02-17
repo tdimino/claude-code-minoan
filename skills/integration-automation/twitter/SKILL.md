@@ -10,6 +10,7 @@ Three tools for different operations. Choose by task:
 | Mode | Tool | Auth | Cost | Use For |
 |------|------|------|------|---------|
 | **Official API** | `x-search` | Bearer token | $0.005/read, $0.01/user | Search, research, profiles, threads, monitoring |
+| **Official API** | `x-search post/reply` | OAuth 1.0a | $0.01/post | Posting, replying via official API |
 | **Session** | `bird` | Browser cookies | Free | Posting, replying, bookmarks, mentions, media |
 | **Archival** | `smaug` | Via bird | Free | Bookmark/likes processing, AI-powered filing |
 
@@ -26,6 +27,22 @@ echo 'X_BEARER_TOKEN=your_token_here' >> ~/.claude/skills/twitter/.env
 export X_BEARER_TOKEN=your_token_here
 # OR
 mkdir -p ~/.config/env && echo 'X_BEARER_TOKEN=your_token_here' >> ~/.config/env/global.env
+```
+
+#### OAuth 1.0a (for posting)
+
+Posting requires OAuth 1.0a credentials in addition to the Bearer token.
+
+1. Go to [console.x.com](https://console.x.com) → your project → Keys and tokens
+2. Under "Consumer Keys", copy **API Key** and **API Key Secret**
+3. Under "Authentication Tokens", generate **Access Token** and **Access Token Secret** (with **Read and Write** permissions)
+4. Add all four to `~/.claude/skills/twitter/.env`:
+
+```bash
+X_API_KEY=your_api_key
+X_API_SECRET=your_api_secret
+X_ACCESS_TOKEN=your_access_token
+X_ACCESS_TOKEN_SECRET=your_access_token_secret
 ```
 
 ### bird CLI
@@ -100,6 +117,23 @@ bun run ~/.claude/skills/twitter/x-search/x-search.ts watchlist check           
 ```
 
 Watchlist stored at `~/.claude/skills/twitter/x-search/data/watchlist.json`.
+
+### Posting and Replying (OAuth 1.0a)
+
+Post tweets and replies via the official API. Requires OAuth 1.0a credentials (see setup above).
+
+```bash
+# Post a tweet
+bun run ~/.claude/skills/twitter/x-search/x-search.ts post "Hello from x-search!"
+
+# Reply to a tweet
+bun run ~/.claude/skills/twitter/x-search/x-search.ts reply 1234567890 "Great thread!"
+```
+
+- 280-character limit enforced
+- Cost: $0.01 per post
+- Returns the posted tweet URL
+- Errors: descriptive messages for missing credentials, permission issues, rate limits
 
 ### Cache
 
@@ -231,7 +265,8 @@ Wait for reset. x-search shows reset time. bird: wait a few minutes.
 | Search tweets by topic | x-search | Official API, cost-tracked, cached |
 | Research a topic deeply | x-search | Multi-page, markdown output, save |
 | Monitor specific accounts | x-search watchlist | Batch check with cost tracking |
-| Post a tweet or reply | bird | Free, immediate, media support |
+| Post a tweet or reply | x-search post/reply | Official API, reliable, $0.01/post |
+| Post with media | bird | Free, media upload support |
 | Read a specific tweet/thread | bird (free) or x-search (tracked) | bird for quick reads, x-search for research |
 | Check mentions | bird | Free, real-time |
 | Archive bookmarks | smaug | AI categorization, markdown output |
