@@ -13,14 +13,27 @@ Search, browse, monitor, and manage Claude Code session history across all proje
 
 | Tool | Purpose |
 |------|---------|
-| `claude-tracker-search` | Search sessions by topic, ID, project, or time range |
+| `claude-tracker-search` | Search sessions by keyword (standalone script) |
 | `claude-tracker-resume` | Find and resume crashed/inactive sessions |
 | `claude-tracker-alive` | Check which sessions have running processes |
 | `claude-tracker-watch` | Daemon: auto-summarize new sessions, update active-projects.md |
-| `claude-tracker` | List recent sessions (all or VS Code only) |
+| `claude-tracker` | List recent sessions with status badges (standalone script) |
 | `detect-projects.js` | Scan sessions to find all projects, check CLAUDE.md coverage |
 | `bootstrap-claude-setup.js` | Generate complete ~/.claude/ config for new machine |
 | `update-active-projects.py` | Regenerate active-projects.md with enriched session data |
+
+## Standalone Scripts
+
+Commands delegate to standalone Node.js scripts (avoids shell escaping issues with inline `node -e`):
+
+| Script | Called By | Purpose |
+|--------|-----------|---------|
+| `scripts/search-sessions.js` | `/claude-tracker-search` | Keyword search across all sessions (8K lines/file, noise-filtered) |
+| `scripts/list-sessions.js` | `/claude-tracker` | List recent sessions with status badges |
+| `scripts/detect-projects.js` | Direct invocation | Project discovery and CLAUDE.md scaffolding |
+| `scripts/bootstrap-claude-setup.js` | Direct invocation | New machine setup generator |
+
+All scripts use `~/.claude/lib/tracker-utils.js` for shared utilities (path decoding, session parsing, git remote detection).
 
 ## Quick Start
 
@@ -146,6 +159,21 @@ Creates directory structure, global CLAUDE.md, userModel template, agent_docs st
 1. `claude-tracker-alive` — see what's running vs stale
 2. `claude-tracker-watch --daemon` — keep summaries auto-updated
 3. Read `~/.claude/agent_docs/active-projects.md` — curated project overview
+
+## Related: Soul Registry
+
+The soul registry (`~/.claude/hooks/soul-registry.py`) tracks **live** sessions with heartbeats, topics, and Slack channel bindings. It complements the tracker suite:
+
+| | Tracker Suite | Soul Registry |
+|--|---------------|---------------|
+| **Scope** | All sessions, all time | Active sessions only |
+| **Data source** | JSONL transcripts, sessions-index.json | `~/.claude/soul-sessions/registry.json` |
+| **Updates** | After session ends (summaries) | Real-time (heartbeat every turn) |
+| **Purpose** | Search, resume, project detection | Cross-session awareness, Slack binding |
+
+To view the live registry: `python3 ~/.claude/hooks/soul-registry.py list --md`
+
+To activate Claudius identity in a session: `/ensoul` (opt-in per session). To bind a session to Slack: `/slack-sync #channel`.
 
 ## References
 
