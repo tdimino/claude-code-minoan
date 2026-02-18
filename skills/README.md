@@ -47,8 +47,9 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 | `twitter` | Twitter/X — search/research via x-search (official API v2), posting via OAuth 1.0a, reading via [bird CLI](https://github.com/steipete/bird) |
 | `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
 | `speak-response` | Local TTS via [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS) |
-| `slack` | [Slack](https://api.slack.com/) workspace integration — post, read, search, react, upload files, manage channels & users (8 scripts, built-in rate limiting) |
 | `classical-887` | WRHV 88.7 FM (Classical WMHT) — now playing, playlist history, Markdown reports, Spotify playlist creation via [NPR Composer API](https://classicalwmht.org/playlist) |
+| `slack` | [Slack](https://api.slack.com/) workspace integration — 7 on-demand scripts (post, read, search, react, upload, channels, users) + Session Bridge for connecting Claude Code sessions to Slack |
+| `slack-respond` | Process unhandled Slack messages as [Claudius](https://github.com/tdimino/claudius) with persistent memory, cognitive pipeline, and soul state |
 | `linkedin-export` | Parse LinkedIn GDPR data exports — search messages, analyze connections, export Markdown, ingest into RLAMA |
 
 ### Design & Media (`design-media/`)
