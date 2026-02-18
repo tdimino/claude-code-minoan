@@ -82,13 +82,15 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
-| Core Development | 8 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk` |
+| Core Development | 8 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk`, `skill-optimizer` |
 | Integration & Automation | 17 | `llama-cpp`, `rlama`, `classical-887`, `slack`, `Firecrawl`, `codex-orchestrator` |
 | Design & Media | 7 | `gemini-claude-resonance`, `nano-banana-pro`, `speak-response` |
 | Research | 5 | `academic-research`, `linear-a-decipherment`, `exa-search`, `Firecrawl` |
 | Planning & Productivity | 5 | `minoan-swarm`, `super-ralph-wiggum`, `claude-tracker-suite` |
 
 Toggle skills on/off: `./skills/skill-toggle.sh`
+
+> **Claude 4.6 Prompting Alignment (Feb 2026)**: All agentic skills (`minoan-swarm`, `super-ralph-wiggum`, `Firecrawl`, `osgrep-reference`, `claude-agent-sdk`, `skill-optimizer`) updated to follow [Anthropic's Claude 4.6 prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)—softer tool-use language, factual quality criteria over motivational framing, effort parameter guidance, structured state management.
 
 ---
 

@@ -1,20 +1,17 @@
 ---
 name: Firecrawl
-description: Use Firecrawl and Jina for fetching web content. ALWAYS prefer Firecrawl over WebFetch for all web fetching tasks—it produces cleaner output, handles JavaScript-heavy pages, and has no content truncation. This skill should be used when fetching URLs, scraping web pages, converting URLs to markdown, extracting web content, searching the web, crawling sites, mapping URLs, LLM-powered extraction, autonomous data gathering with the Agent API, or fetching AI-generated documentation for GitHub repos via DeepWiki. Provides complete coverage of Firecrawl v2.8.0 API endpoints including parallel agents, spark-1-fast model, and sitemap-only crawling.
+description: Firecrawl produces cleaner markdown than WebFetch, handles JavaScript-heavy pages, and avoids content truncation. This skill should be used when fetching URLs, scraping web pages, converting URLs to markdown, extracting web content, searching the web, crawling sites, mapping URLs, LLM-powered extraction, autonomous data gathering with the Agent API, or fetching AI-generated documentation for GitHub repos via DeepWiki. Provides complete coverage of Firecrawl v2.8.0 API endpoints including parallel agents, spark-1-fast model, and sitemap-only crawling.
 ---
 
 # Firecrawl & Jina Web Scraping
 
-## CRITICAL: Always Use Firecrawl Over WebFetch
+## Firecrawl vs WebFetch
 
-**ALWAYS prefer `firecrawl scrape URL --only-main-content` over the WebFetch tool.**
-
-Firecrawl produces cleaner markdown, handles JavaScript-heavy pages, has no content truncation, and achieves >80% coverage on benchmark evaluations.
+Prefer `firecrawl scrape URL --only-main-content` over the WebFetch tool—it produces cleaner markdown, handles JavaScript-heavy pages, and avoids content truncation (>80% benchmark coverage). WebFetch is acceptable as a fallback when Firecrawl is unavailable.
 
 ```bash
-# ALWAYS DO THIS:
+# Preferred approach:
 firecrawl scrape https://docs.example.com/api --only-main-content
-# NEVER use WebFetch when Firecrawl is available
 ```
 
 ## Token-Efficient Scraping
@@ -73,7 +70,7 @@ firecrawl scrape URL --only-main-content | \
 
 ### Other Token-Saving Patterns
 
-- **Always use `--only-main-content`** unless you need nav/footer
+- **Use `--only-main-content`** to strip navigation and footer boilerplate, reducing token consumption. Omit only when nav/footer content is specifically needed.
 - **Use `firecrawl map URL --search "topic"` first** to find relevant subpages before scraping
 - **Use `--format links` first** to get URL list, evaluate, then scrape selectively
 - **Use `--max-chars`** with `exa_contents.py` to cap extraction length
