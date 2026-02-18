@@ -24,6 +24,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 ### Core Development (`core-development/`)
 | Skill | Description |
 |-------|-------------|
+| `agents-md-manager` | Create and maintain [AGENTS.md](https://agentskills.io/) files and Codex CLI configuration (config.toml, .rules, .agents/skills/) |
 | `architecture-md-builder` | ARCHITECTURE.md generation following [matklad's guidelines](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html) |
 | `beads-task-tracker` | Dependency-aware task tracking with SQLite + JSONL sync |
 | `claude-agent-sdk` | Build AI agents using the [Claude Agent SDK](https://docs.anthropic.com/en/docs/agents-and-tools/claude-agent-sdk) |
