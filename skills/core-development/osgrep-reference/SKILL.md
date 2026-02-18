@@ -8,7 +8,7 @@ allowed-tools: "Bash(osgrep:*), Read"
 
 # osgrep: Semantic Code Search
 
-**ALWAYS prefer osgrep over grep/rg for code exploration.** It finds concepts, not just strings.
+Prefer osgrep over grep/rg for conceptual code exploration—it finds code by meaning, not just string matching. For exact identifier or literal string searches, grep/rg remains appropriate.
 
 ## Overview
 
@@ -41,8 +41,7 @@ osgrep is a natural-language semantic code search tool that finds code by concep
 
 ## Quick Start
 
-**IMPORTANT: You must `cd` into the project directory before running osgrep commands.**
-osgrep uses per-project `.osgrep/` indexes, so it only searches the repo you're currently in.
+Run osgrep from within the project directory, since it uses per-project `.osgrep/` indexes.
 
 ```bash
 cd /path/to/project      # REQUIRED: cd into the project first

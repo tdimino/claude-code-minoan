@@ -376,13 +376,32 @@ For detailed Skill_Seekers documentation, see `references/documentation-scraping
 
 #### Update SKILL.md
 
-**Writing Style:** Write the entire skill using **imperative/infinitive form** (verb-first instructions), not second person. Use objective, instructional language (e.g., "To accomplish X, do Y" rather than "You should do X" or "If you need to do X"). This maintains consistency and clarity for AI consumption.
+**Writing Style:** Write the entire skill using **imperative/infinitive form** (verb-first instructions), not second person. Use objective, instructional language (e.g., "To accomplish X, do Y" rather than "You should do X" or "If you need to do X"). This maintains consistency and clarity for AI consumption. Avoid ALL CAPS for emphasis — use bold markdown or section headings instead. Avoid CRITICAL/MANDATORY/MUST qualifiers; direct imperatives are sufficient for Claude 4.6.
 
 To complete SKILL.md, answer the following questions:
 
 1. What is the purpose of the skill, in a few sentences?
 2. When should the skill be used?
 3. In practice, how should Claude use the skill? All reusable skill contents developed above should be referenced so that Claude knows how to use them.
+
+#### Claude 4.6 Prompting Alignment
+
+When writing or reviewing skill instructions, follow these patterns:
+
+**Language calibration:**
+- Use direct imperatives without ALL CAPS emphasis. "Use Firecrawl for web scraping" not "ALWAYS use Firecrawl" or "You MUST use Firecrawl."
+- Replace CRITICAL/MANDATORY/MUST markers with plain headings. Claude 4.6 follows well-structured instructions without coercive framing.
+- Explain WHY behind directives. "Use --only-main-content to reduce token consumption" not "ALWAYS use --only-main-content." Claude generalizes better from explanations.
+
+**Remove anti-laziness prompts:**
+- Do not include "be thorough," "think carefully," "do not be lazy," or motivational framing. Claude 4.6 is already proactive — these amplify it into over-planning or write-then-rewrite loops.
+
+**Subagent guidance (for orchestration skills):**
+- Include explicit guidance on when NOT to spawn agents. Claude 4.6 tends to reach for subagents even when a direct approach is faster.
+- "Use agents when tasks can run in parallel or require isolated context. For sequential tasks, single-file edits, or work completable in under 5 minutes, work directly."
+
+**Overeagerness prevention:**
+- Include guidance about minimal solutions. Factual quality criteria ("maintain existing conventions") outperform motivational framing ("fight entropy").
 
 ### Step 5: Packaging a Skill
 

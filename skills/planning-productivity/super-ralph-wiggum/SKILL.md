@@ -132,19 +132,15 @@ Ralph doesn't know if this is a throwaway prototype or production code. **Tell i
 | Production | "Must be maintainable. Follow best practices." | Adds tests, docs |
 | Library | "Public API. Backward compatibility matters." | Careful about breaking changes |
 
-### The "Fight Entropy" Prompt
+### Code Quality Prompt
 
-Add to AGENTS.md or inject directly into your Ralph prompt:
+If the loop should maintain high code quality, specify it factually:
 
-> This codebase will outlive you. Every shortcut you take becomes
-> someone else's burden. Every hack compounds into technical debt
-> that slows the whole team down.
->
-> You are not just writing code. You are shaping the future of this
-> project. The patterns you establish will be copied. The corners
-> you cut will be cut again.
->
-> Fight entropy. Leave the codebase better than you found it.
+> Maintain existing code conventions and quality standards.
+> Each change should leave test coverage equal to or better than before.
+> Prefer incremental improvements over large rewrites.
+
+Avoid motivational framing ("fight entropy", "be thorough")—Claude 4.6 already tends toward thoroughness and these amplify it into over-planning. Factual quality criteria are more effective.
 
 ### The Repo Wins
 
@@ -152,7 +148,7 @@ Your instructions compete with your codebase. When Ralph explores your repo, it 
 
 If you write "never use `any` types" but Ralph sees `any` throughout your existing code, it will follow the codebase, not your instructions.
 
-**Agents amplify what they see.** Keep your codebase clean before letting Ralph loose.
+Claude learns patterns from the existing codebase. If the codebase uses `any` types throughout, the loop will follow that pattern regardless of instructions. Clean up the specific patterns you care about before running the loop.
 
 ## Task Prioritization Order
 
@@ -242,6 +238,9 @@ Previous iteration learnings persist in `progress.txt`. Templates auto-inject th
 
 ### 6. One Change Per Commit
 Keep changes small and focused. Prefer multiple small commits over one large commit.
+
+### 7. Structure State Appropriately
+Use JSON for structured progress data (coverage percentages, feature pass/fail, migration counts). Use freeform text in progress.txt for observations and session learnings. Use git commits as checkpoints between iterations so each new context window can discover state from the filesystem.
 
 ## References
 

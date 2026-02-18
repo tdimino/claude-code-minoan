@@ -51,7 +51,7 @@ Apply the template, substituting project-specific details. The lead creates the 
 - Multi-layer changes spanning frontend, backend, tests, deploy
 - Any task where 3+ independent workstreams can run simultaneously
 
-**When NOT to use:** Sequential tasks, same-file edits, simple fixes, or work with heavy dependencies between steps. Use regular subagents or a single session instead.
+**When NOT to use:** Sequential tasks, same-file edits, simple fixes, tasks completable in under 5 minutes, or work with heavy dependencies between steps. The coordination overhead of a full team exceeds the benefit for small or serial work. Use a single session or regular subagent instead.
 
 ---
 
@@ -92,7 +92,7 @@ Choose from [team-templates.md](references/team-templates.md). For multi-phase w
 
 ### Step 4: Assign file ownership
 
-**Critical:** Two teammates editing the same file causes overwrites. Create an explicit ownership matrix:
+Two teammates editing the same file causes overwrites. Create an explicit ownership matrix before launching the team:
 
 ```
 | Teammate  | Owns                        | Must NOT touch       |
@@ -130,6 +130,7 @@ Every prompt must include:
 - **Wait for teammates** — tell the lead to wait if it starts implementing instead of delegating
 - **Monitor and steer** — check in, redirect approaches that drift, synthesize as results arrive
 - **Shut down gracefully** — `shutdown_request` each teammate before `TeamDelete`
+- **Survive compaction** — if the lead's context compacts, it should re-read the task list and team config to recover state. Include in the lead's prompt: "If your context is compacted, re-read TaskList and the team config at ~/.claude/teams/{team-name}/config.json to recover coordination state."
 
 **Minoan Swarm additions:**
 
@@ -138,16 +139,16 @@ Every prompt must include:
 - **Leads use Opus, workers use Sonnet** — balance capability with cost
 - **Haiku for lightweight research** — fast and cheap for Explore agents
 
-**Tool Preferences (MANDATORY for all agents):**
+**Tool Preferences:**
 
-- **Firecrawl over WebFetch** — Always use `firecrawl scrape URL --only-main-content` instead of WebFetch for fetching web content. Firecrawl produces cleaner markdown, handles JavaScript better, and has no token limits.
-- **Exa over WebSearch** — Always use the `exa-search` skill scripts instead of WebSearch for web searches. Exa provides neural search, category filtering (research papers, GitHub, news), and domain filtering capabilities.
+- **Firecrawl over WebFetch** — Firecrawl produces cleaner markdown, handles JavaScript better, and avoids content truncation. Use `firecrawl scrape URL --only-main-content` for web fetching.
+- **Exa over WebSearch** — Exa provides neural search with category filtering (research papers, GitHub, news) and domain filtering. Use the `exa-search` skill scripts for web searches.
 
 Include these tool preferences in every teammate prompt:
 ```
 ## Tool Preferences
-- Use Firecrawl skill for web fetching (not WebFetch)
-- Use Exa skill for web searching (not WebSearch)
+- Prefer Firecrawl for web fetching (cleaner markdown, JS support)
+- Prefer Exa for web searching (neural search, category filtering)
 ```
 
 ---
@@ -165,6 +166,15 @@ TaskList      → see all tasks
 TaskUpdate    → claim, start, complete, set dependencies
 TeamDelete    → clean up (after all teammates shutdown)
 ```
+
+---
+
+## State Management
+
+- Use the shared task list (TaskCreate/TaskUpdate) for structured coordination state
+- Use progress notes in task descriptions for freeform observations
+- Use git commits as checkpoints between phases, so teammates can reference each other's committed work
+- For long-running teams, have the lead maintain a `progress.md` summarizing completed work and remaining tasks
 
 ---
 

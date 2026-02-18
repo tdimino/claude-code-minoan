@@ -6,9 +6,9 @@
 
 set -euo pipefail
 
-SRC="$HOME/.claude/skills/minoan-swarm"
-MINOAN="$HOME/Desktop/claude-code-minoan/skills/planning-productivity/minoan-swarm"
-ALDEA="$HOME/Desktop/Aldea/Prompt development/Claude-Code-Aldea/skills/planning-productivity/minoan-swarm"
+SRC="/Users/tomdimino/.claude/skills/minoan-swarm"
+MINOAN="/Users/tomdimino/Desktop/claude-code-minoan/skills/planning-productivity/minoan-swarm"
+ALDEA="/Users/tomdimino/Desktop/Aldea/Prompt development/Claude-Code-Aldea/skills/planning-productivity/minoan-swarm"
 
 sync_to() {
   local dest="$1"

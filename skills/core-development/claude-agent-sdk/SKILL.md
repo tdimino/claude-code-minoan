@@ -194,6 +194,31 @@ from claude_agent_sdk import (
 
 </quick_reference>
 
+<thinking_config>
+
+## Thinking & Effort Configuration
+
+Control agent thinking depth via the effort parameter rather than prompt-level instructions like "think carefully":
+
+| Use Case | Effort | Notes |
+|----------|--------|-------|
+| Quick lookups, simple edits | low | Minimal thinking overhead |
+| Standard development | medium | Default for most agents |
+| Complex architecture, security | high | Deeper reasoning |
+| Deep research, long-horizon | max | Maximum thinking budget |
+
+```python
+# Adaptive thinking (recommended for Claude 4.6)
+options = ClaudeAgentOptions(
+    model="claude-opus-4-6",  # or claude-sonnet-4-6
+    # Effort is controlled at the API level, not in the agent options
+)
+```
+
+Avoid adding "think carefully" or "be thorough" to agent system prompts—Claude 4.6 calibrates thinking depth automatically based on task complexity.
+
+</thinking_config>
+
 <examples>
 
 ## Common Patterns
