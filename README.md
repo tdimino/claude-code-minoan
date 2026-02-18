@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-42-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-44-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-12-orange.svg" alt="Hooks"></a>
 </p>
@@ -20,7 +20,7 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 42 custom skills across 5 categories
+├── skills/                      # 44 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
@@ -83,9 +83,9 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
 | Core Development | 8 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk` |
-| Integration & Automation | 15 | `llama-cpp`, `rlama`, `linkedin-export`, `parakeet`, `Firecrawl`, `codex-orchestrator` |
+| Integration & Automation | 16 | `llama-cpp`, `rlama`, `classical-887`, `parakeet`, `Firecrawl`, `codex-orchestrator` |
 | Design & Media | 7 | `gemini-claude-resonance`, `nano-banana-pro`, `speak-response` |
-| Research | 4 | `academic-research`, `exa-search`, `Firecrawl` |
+| Research | 5 | `academic-research`, `linear-a-decipherment`, `exa-search`, `Firecrawl` |
 | Planning & Productivity | 5 | `minoan-swarm`, `super-ralph-wiggum`, `claude-tracker-suite` |
 
 Toggle skills on/off: `./skills/skill-toggle.sh`
@@ -245,7 +245,7 @@ See [github.com/sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatuslin
 
 ---
 
-**Skills**: 42 | **Commands**: 30+ | **Hooks**: 12 | **CLI Tools**: 8
+**Skills**: 44 | **Commands**: 30+ | **Hooks**: 12 | **CLI Tools**: 8
 
 ---
 

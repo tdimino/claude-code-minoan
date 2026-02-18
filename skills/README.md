@@ -48,6 +48,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 | `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
 | `speak-response` | Local TTS via [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS) |
 | `slack` | [Slack](https://api.slack.com/) workspace integration — post, read, search, react, upload files, manage channels & users (8 scripts, built-in rate limiting) |
+| `classical-887` | WRHV 88.7 FM (Classical WMHT) — now playing, playlist history, Markdown reports, Spotify playlist creation via [NPR Composer API](https://classicalwmht.org/playlist) |
 | `linkedin-export` | Parse LinkedIn GDPR data exports — search messages, analyze connections, export Markdown, ingest into RLAMA |
 
 ### Design & Media (`design-media/`)
@@ -64,6 +65,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 | `academic-research` | Paper search via Exa + [ArXiv](https://arxiv.org/) |
 | `exa-search` | Full [Exa AI](https://exa.ai/) API with 6 specialized scripts |
 | `Firecrawl` | [Firecrawl](https://firecrawl.dev/) official CLI + Agent API |
+| `linear-a-decipherment` | Computational [Linear A](https://en.wikipedia.org/wiki/Linear_A) analysis — [Gordon](https://en.wikipedia.org/wiki/Cyrus_H._Gordon) 5-step pipeline, cognate search, corpus statistics, sign analysis |
 
 ### Planning & Productivity (`planning-productivity/`)
 | Skill | Description |
