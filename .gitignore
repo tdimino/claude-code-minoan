@@ -66,3 +66,5 @@ __pycache__/
 # Skill-specific ignores
 skills/design-media/gemini-claude-resonance/canvas/
 skills/design-media/gemini-claude-resonance/test-results/
+skills/integration-automation/classical-887/.spotify-cache
+skills/research/linear-a-decipherment/data/
