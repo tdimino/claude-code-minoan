@@ -5,7 +5,7 @@
 <p align="center">
   <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-42-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
-  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-10-orange.svg" alt="Hooks"></a>
+  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-12-orange.svg" alt="Hooks"></a>
 </p>
 
 # Minoan Claude Code Configuration
@@ -101,10 +101,12 @@ UserPromptSubmit ──→ multi-response-prompt.py    (/5x trigger)
 PreToolUse ────────→ on-thinking.sh              (🔴 repo-icon + title)
                    → git-track.sh               (Bash: log git commands to JSONL)
 PostToolUse ───────→ git-track-post.sh           (Bash: capture commit hashes)
+                   → plan-rename.py              (Write/Edit/MultiEdit: random→dated slug)
 Stop ──────────────→ on-ready.sh + stop-handoff.py (🟢 title:subtitle + 5-min checkpoint)
 PreCompact ────────→ precompact-handoff.py       (full handoff before compaction)
 SessionEnd ────────→ precompact-handoff.py       (handoff on graceful exit)
                    → git-track-rebuild.py        (rebuild git tracking index)
+                   → plan-cleanup-symlinks.py    (remove plan forwarding symlinks)
 ```
 
 **Terminal Title**: Two-tier format with repo-type emoji icons — `🔴 🐍 claudius: Building test suite`. Icons auto-detected from CLAUDE.md keywords and project files. Main title persists across events; subtitle updates from transcript.
@@ -112,6 +114,8 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
 **Session Handoff System**: Three hooks ensure context survives compaction, graceful exits, and crashes. Writes structured YAML to `~/.claude/handoffs/` with objective, decisions, blockers, and next steps. Auto-maintains `INDEX.md`.
 
 **Git Tracking**: Three hooks intercept git commands across any directory, capturing repos, branches, operations, and commit hashes. Builds a bidirectional session↔repo index. Query with `getSessionsForRepo()` / `getReposForSession()` or generate a dashboard with `/session-report`.
+
+**Plan Auto-Naming**: Renames randomly-named plan files (e.g. `tingly-humming-simon.md`) to dated slugs (e.g. `2026-02-17-auto-rename-plan-files-hook.md`) by extracting the H1 header. Creates forwarding symlinks for mid-session continuity; cleaned up on SessionEnd.
 
 ---
 
@@ -241,7 +245,7 @@ See [github.com/sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatuslin
 
 ---
 
-**Skills**: 42 | **Commands**: 30+ | **Hooks**: 10 | **CLI Tools**: 8
+**Skills**: 42 | **Commands**: 30+ | **Hooks**: 12 | **CLI Tools**: 8
 
 ---
 

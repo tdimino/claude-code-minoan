@@ -15,9 +15,13 @@ Claude responds ─────→ Stop ─────────────�
                                             → propagate-rename.py (sync /rename → caches)
                                             → stop-handoff.py (checkpoint every 5 min)
 
+Plan file written ──→ PostToolUse ─────────→ plan-rename.py (random→dated slug)
+  (Write/Edit/MultiEdit on ~/.claude/plans/)
+
 Context full ────────→ PreCompact ──────────→ precompact-handoff.py (full handoff)
 
 Session exits ───────→ SessionEnd ──────────→ precompact-handoff.py (full handoff)
+                                            → plan-cleanup-symlinks.py (remove forwarding symlinks)
 
 Every turn ──────────→ StatusLine ──────────→ statusline-monitor.sh (→ ccstatusline)
 ```
@@ -155,6 +159,32 @@ Features:
 
 ---
 
+### `plan-rename.py` — Auto-Rename Plan Files
+
+Renames randomly-named plan files (`tingly-humming-simon.md`) to dated slugs (`2026-02-17-auto-rename-plan-files-hook.md`). Extracts the H1 header for the slug, prepends today's date.
+
+**Fires on**: PostToolUse (Write, Edit, MultiEdit — only when file is in `~/.claude/plans/`)
+
+**Fast-path exits** (~1ms for non-plan files):
+1. Check `file_path` is in `~/.claude/plans/`
+2. Check filename matches random pattern (`adj-gerund-noun.md`)
+3. Extract H1 header — skip if none yet
+4. Slugify, rename, create forwarding symlink
+
+**Symlink strategy**: After rename, creates a relative symlink from old name → new name so Claude Code can still write to the old path mid-session. Agent files sharing the same base slug are also cascaded.
+
+**Locking**: `fcntl.flock(LOCK_NB)` prevents concurrent hook invocations from racing.
+
+---
+
+### `plan-cleanup-symlinks.py` — Remove Plan Forwarding Symlinks
+
+Removes all symlinks from `~/.claude/plans/` after a session ends. Safe because once the session is over, no further writes target the old random names.
+
+**Fires on**: SessionEnd
+
+---
+
 ### `on-thinking.sh` / `on-ready.sh` — Symlinks
 
 Both are symlinks to `terminal-title.sh`. The script detects which name it was called as (`$0`) and sets the appropriate state (🔴 or 🟢).
@@ -189,6 +219,8 @@ Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously 
 | Git command in any directory | PreToolUse/Bash (git-track) | Yes |
 | Git commit result (hash) | PostToolUse/Bash (git-track-post) | Yes |
 | Cross-repo session discovery | SessionEnd (git-track-rebuild) | Yes |
+| Plan file auto-naming | PostToolUse/Write,Edit,MultiEdit (plan-rename) | Yes |
+| Plan symlink cleanup | SessionEnd (plan-cleanup-symlinks) | Yes |
 | Idle session | Stop | Skipped (by design) |
 | SIGKILL / force quit | — | No (5-min max gap) |
 | System panic / OOM | — | No (5-min max gap) |
@@ -221,7 +253,8 @@ Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously 
         "matcher": "",
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/precompact-handoff.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/git-track-rebuild.py"}
+          {"type": "command", "command": "python3 ~/.claude/hooks/git-track-rebuild.py"},
+          {"type": "command", "command": "python3 ~/.claude/hooks/plan-cleanup-symlinks.py", "timeout": 5000}
         ]
       }
     ],
@@ -252,6 +285,24 @@ Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously 
         "matcher": "Bash",
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/git-track-post.sh"}
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py", "timeout": 5000}
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py", "timeout": 5000}
+        ]
+      },
+      {
+        "matcher": "MultiEdit",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py", "timeout": 5000}
         ]
       }
     ]
