@@ -58,6 +58,7 @@ To manually check/update:
 | `planner` | ExecPlan design documents | Multi-hour tasks, complex features, significant refactors |
 | `syseng` | Infrastructure, DevOps, CI/CD, monitoring | Deployment, containers, observability, production ops |
 | `builder` | Greenfield implementation, new features | Creating new code from specs, incremental feature development |
+| `researcher` | Read-only Q&A, codebase analysis | Questions, analysis, comparisons (no file changes) |
 
 ## Quick Execution
 
@@ -93,6 +94,12 @@ Examples:
 
 # Continue from previous builder session
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "continue"
+
+# Ask a question about the codebase (read-only, no file changes)
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "Explain the authentication flow in this project"
+
+# Research with Exa web search (falls back to built-in if Exa unavailable)
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "What are the latest React Server Component patterns?" --web-search
 ```
 
 ## Session Management
@@ -123,6 +130,7 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 ### Investigation Tasks
 - **debugger** for bug investigation
 - **architect** for understanding system behavior
+- **researcher** for questions and analysis (read-only, no changes)
 
 ### Creation Tasks
 - **architect** for design decisions
@@ -199,6 +207,18 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh syseng "Implement security recommendations from audit"
 ```
 
+### Researcher → Architect → Builder
+```bash
+# 1. Understand the problem space
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "How does the current caching work? What are its limitations?"
+
+# 2. Design the solution
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Design a new caching layer addressing the limitations"
+
+# 3. Implement
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Implement the caching layer from architect's design"
+```
+
 ## Script Options
 
 ### codex-exec.sh Options
@@ -208,14 +228,16 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 | `--model <model>` | Override model (uses ~/.codex/config.toml default if not set) |
 | `--sandbox <mode>` | read-only, workspace-write, danger-full-access |
 | `--full-auto` | Skip approval prompts |
+| `--web-search` | Enable Exa web search (built-in fallback if Exa unavailable) |
 
 ### Model Selection
 
 | Task Type | Recommended Model |
 |-----------|-------------------|
-| Quick checks | codex-mini or gpt-5-codex |
-| Detailed analysis | o4-mini |
-| Complex architecture | o3 |
+| Default (best quality) | gpt-5.3-codex |
+| Budget / quick checks | gpt-5.1-codex-mini |
+| Deep reasoning | gpt-5.1-codex-max |
+| Previous flagship | gpt-5.2-codex |
 
 ```bash
 # Use default model from your Codex config
@@ -264,7 +286,7 @@ export OPENAI_API_KEY=sk-...
 ```
 
 ### "Profile not found"
-Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder
+Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher
 
 Check profile exists:
 ```bash

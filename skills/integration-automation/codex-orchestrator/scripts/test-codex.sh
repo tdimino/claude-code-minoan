@@ -44,7 +44,7 @@ fi
 
 # Test 2: Check all agent profiles exist
 echo -e "\n${YELLOW}Test 2: Agent Profiles${NC}"
-for profile in reviewer debugger architect security refactor docs; do
+for profile in reviewer debugger architect security refactor docs planner syseng builder researcher; do
     if [ -f "$SKILL_DIR/agents/$profile.md" ]; then
         test_pass "Profile '$profile' exists"
     else
@@ -92,11 +92,37 @@ for ref in codex-cli.md agents-md-format.md subagent-patterns.md; do
     fi
 done
 
-# Test 7: Quick API test (optional, skipped in quick mode)
+# Test 7: Researcher profile specifics
+echo -e "\n${YELLOW}Test 7: Researcher Profile${NC}"
+# Verify researcher auto-config in codex-exec.sh
+if grep -q 'SANDBOX="read-only"' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "Researcher sets read-only sandbox"
+else
+    test_fail "Researcher missing read-only sandbox"
+fi
+if grep -q 'EPHEMERAL="--ephemeral"' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "Researcher sets ephemeral flag"
+else
+    test_fail "Researcher missing ephemeral flag"
+fi
+if grep -q 'full-auto.*read-only' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "Researcher guards against --full-auto"
+else
+    test_fail "Researcher missing --full-auto guard"
+fi
+# Verify Exa codex-agent-guide exists for web search
+EXA_GUIDE="$HOME/.claude/skills/exa-search/codex-agent-guide.md"
+if [ -f "$EXA_GUIDE" ]; then
+    test_pass "Exa codex-agent-guide.md exists"
+else
+    test_fail "Exa codex-agent-guide.md missing"
+fi
+
+# Test 8: Quick API test (optional, skipped in quick mode)
 if [ "$QUICK_MODE" = false ]; then
-    echo -e "\n${YELLOW}Test 7: API Connectivity${NC}"
+    echo -e "\n${YELLOW}Test 8: API Connectivity${NC}"
     if [ -n "$OPENAI_API_KEY" ]; then
-        if timeout 15 codex exec --model o3-mini "print('hello')" &> /dev/null; then
+        if timeout 15 codex exec --model gpt-5.1-codex-mini "print('hello')" &> /dev/null; then
             test_pass "Codex API connection works"
         else
             test_fail "Codex API connection failed"
@@ -105,7 +131,7 @@ if [ "$QUICK_MODE" = false ]; then
         echo -e "${YELLOW}⚠ SKIP${NC}: OPENAI_API_KEY not set"
     fi
 else
-    echo -e "\n${YELLOW}Test 7: API Connectivity${NC}"
+    echo -e "\n${YELLOW}Test 8: API Connectivity${NC}"
     echo -e "${YELLOW}⚠ SKIP${NC}: Quick mode enabled"
 fi
 

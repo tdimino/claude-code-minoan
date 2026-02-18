@@ -2,7 +2,7 @@
 
 This document provides detailed information about the Firecrawl API, specifically the Search endpoint and advanced scraping features.
 
-**Note**: This reference covers the Python/Node API. For simple single-page scraping, use the local CLI command `firecrawl URL` instead.
+**Note**: This reference covers the Python/Node API. For simple single-page scraping, use the local CLI command `firecrawl scrape URL` instead.
 
 ## Search Endpoint Overview
 
