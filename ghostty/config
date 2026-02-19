@@ -1,0 +1,91 @@
+# === Ghostty Config for Claude Code ===
+# Synthesized from Anthropic docs, Claude Code team recs, and community configs
+# 2026-02-17
+
+# --- Theme ---
+theme = dark:Catppuccin Mocha,light:Catppuccin Latte
+
+# --- Font ---
+font-family = JetBrains Mono
+font-size = 15
+font-thicken = true
+
+# --- macOS ---
+macos-option-as-alt = true
+macos-titlebar-style = transparent
+
+# --- Appearance ---
+background-opacity = 0.90
+background-blur = true
+window-padding-x = 12
+window-padding-y = 10
+window-padding-balance = true
+bold-is-bright = true
+
+# --- Session Persistence ---
+window-save-state = always
+quit-after-last-window-closed = false
+
+# --- Shell Integration ---
+shell-integration = detect
+shell-integration-features = cursor,sudo,title
+
+# --- Scrollback ---
+scrollback-limit = 100000
+
+# --- Cursor ---
+cursor-style = bar
+cursor-style-blink = false
+
+# --- Mouse ---
+mouse-hide-while-typing = true
+copy-on-select = clipboard
+clipboard-paste-protection = true
+
+# --- Line Navigation ---
+keybind = cmd+right=text:\x05
+keybind = cmd+left=text:\x01
+
+# --- Word Navigation ---
+keybind = alt+right=text:\x1bf
+keybind = alt+left=text:\x1bb
+keybind = alt+backspace=text:\x17
+
+# --- Prompt Navigation ---
+keybind = cmd+up=jump_to_prompt:-1
+keybind = cmd+down=jump_to_prompt:1
+
+# --- Tab Management ---
+keybind = cmd+t=new_tab
+keybind = cmd+w=close_surface
+keybind = cmd+shift+left_bracket=previous_tab
+keybind = cmd+shift+right_bracket=next_tab
+keybind = cmd+1=goto_tab:1
+keybind = cmd+2=goto_tab:2
+keybind = cmd+3=goto_tab:3
+keybind = cmd+4=goto_tab:4
+keybind = cmd+5=goto_tab:5
+
+# --- Split Panes (parallel Claude Code sessions) ---
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+keybind = cmd+alt+left=goto_split:left
+keybind = cmd+alt+right=goto_split:right
+keybind = cmd+alt+up=goto_split:top
+keybind = cmd+alt+down=goto_split:down
+keybind = cmd+alt+enter=toggle_split_zoom
+keybind = cmd+alt+equal=equalize_splits
+
+# --- Scrolling ---
+keybind = cmd+shift+up=scroll_page_up
+keybind = cmd+shift+down=scroll_page_down
+keybind = cmd+home=scroll_to_top
+keybind = cmd+end=scroll_to_bottom
+
+# --- Quick Actions ---
+keybind = cmd+k=clear_screen
+keybind = cmd+shift+comma=reload_config
+keybind = cmd+comma=open_config
+keybind = cmd+plus=increase_font_size:1
+keybind = cmd+minus=decrease_font_size:1
+keybind = cmd+zero=reset_font_size
