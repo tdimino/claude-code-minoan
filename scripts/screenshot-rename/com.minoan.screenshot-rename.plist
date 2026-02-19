@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.minoan.screenshot-rename</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/tomdimino/.claude/scripts/screenshot-rename/minoan-screenshot-rename</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/tomdimino/.claude/scripts/screenshot-rename</string>
+
+    <key>WatchPaths</key>
+    <array>
+        <string>/Users/tomdimino/Desktop/Screencaps &amp; Chats/Screenshots</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Users/tomdimino/.local/bin</string>
+        <key>HOME</key>
+        <string>/Users/tomdimino</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/tomdimino/.claude/scripts/screenshot-rename/logs/stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/tomdimino/.claude/scripts/screenshot-rename/logs/stderr.log</string>
+</dict>
+</plist>

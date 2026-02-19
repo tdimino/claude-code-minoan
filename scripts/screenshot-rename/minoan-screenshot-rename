@@ -1,0 +1,4 @@
+#!/bin/sh
+exec /Users/tomdimino/.local/bin/uv run \
+    --project /Users/tomdimino/.claude/scripts/screenshot-rename \
+    /Users/tomdimino/.claude/scripts/screenshot-rename/watcher.py "$@"
