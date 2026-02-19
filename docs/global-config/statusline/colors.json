@@ -1,0 +1,85 @@
+{
+  "_comment": "StatusLine color palette — current widgets, original backup, and brand reference",
+
+  "current": {
+    "line1": {
+      "_rendered_by": "statusline-monitor.sh (ANSI passthrough for gradient support)",
+      "widgets": {
+        "session-name":  { "hex": "#CC5C3A", "rgb": [204, 92, 58],  "ansi": "38;2;204;92;58",  "label": "Original session name color" },
+        "crab-model":    { "hex": "#C880BC", "rgb": [200, 128, 188], "ansi": "38;2;200;128;188", "label": "Pastel Byzantium" },
+        "context-bar":   {
+          "label": "Gradient green→red + token count",
+          "stops": [
+            { "pct": 0,   "hex": "#2ecc71", "rgb": [46, 204, 113],  "label": "green" },
+            { "pct": 40,  "hex": "#a2c350", "rgb": [162, 195, 80],  "label": "yellow-green" },
+            { "pct": 65,  "hex": "#f1c40f", "rgb": [241, 196, 15],  "label": "gold" },
+            { "pct": 80,  "hex": "#e67e22", "rgb": [230, 126, 34],  "label": "orange" },
+            { "pct": 100, "hex": "#e74c3c", "rgb": [231, 76, 60],   "label": "red" }
+          ],
+          "token-count": { "hex": "#b8b8b8", "rgb": [184, 184, 184], "ansi": "38;2;184;184;184", "label": "Muted grey (--color-text-muted)" }
+        },
+        "git-branch":    { "ansi": "94", "prefix": "⎇", "label": "Bright blue" }
+      }
+    },
+    "line2": {
+      "_rendered_by": "ccstatusline",
+      "widgets": {
+        "ensouled-indicator": { "ccstatusline_color": "brightBlue",   "label": "Bright blue" },
+        "soul-name":          { "ccstatusline_color": "brightYellow", "label": "Bright yellow" }
+      }
+    },
+    "line3": {
+      "_rendered_by": "ccstatusline",
+      "widgets": {
+        "session-clock": { "ccstatusline_color": "brightGreen", "label": "Bright green" },
+        "block-timer":   { "ccstatusline_color": "green",       "label": "Green" }
+      }
+    }
+  },
+
+  "original": {
+    "_note": "Exact ccstatusline settings.json before 2026-02-19 session modifications",
+    "version": 3,
+    "lines": [
+      [
+        { "id": "session-name-widget", "type": "custom-command", "commandPath": "/Users/tomdimino/.claude/hooks/session-name.sh", "color": "hex:CC5C3A", "timeout": 1000 },
+        { "id": "session-name-sep", "type": "separator" },
+        { "id": "1", "type": "custom-command", "commandPath": "/Users/tomdimino/.claude/hooks/crab-model.sh", "color": "brightMagenta", "timeout": 1000 },
+        { "id": "2", "type": "separator" },
+        { "id": "3", "type": "context-length", "color": "brightWhite" },
+        { "id": "4", "type": "separator" },
+        { "id": "5", "type": "git-branch", "color": "brightBlue" },
+        { "id": "6", "type": "separator" },
+        { "id": "7", "type": "git-changes", "color": "yellow" }
+      ],
+      [
+        { "id": "869b4d68-0c33-463e-9cc0-ce29f0df7da4", "type": "tokens-input", "color": "brightBlue" },
+        { "id": "e884653e-42c6-4a76-8547-d1e8bc41135b", "type": "separator" },
+        { "id": "2eed3811-0e3e-4ef7-b4aa-ae7e116e5518", "type": "tokens-output", "color": "brightYellow" }
+      ],
+      [
+        { "id": "8447355e-caf8-4c36-af1f-489e3a0e7414", "type": "session-clock", "color": "brightGreen" },
+        { "id": "1c162934-884a-43e0-bdbf-4bda8ab52042", "type": "separator" },
+        { "id": "9400c301-5b8a-4503-bb47-cd7bc546d9c5", "type": "block-timer", "color": "green" }
+      ]
+    ],
+    "flexMode": "full-minus-40",
+    "compactThreshold": 60,
+    "colorLevel": 3,
+    "inheritSeparatorColors": false,
+    "globalBold": false,
+    "powerline": {
+      "enabled": false,
+      "separators": [""],
+      "separatorInvertBackground": [false],
+      "startCaps": [],
+      "endCaps": []
+    }
+  },
+
+  "brand": {
+    "--color-primary-light": "#966a85",
+    "--color-primary-dark": "#c9a0b8",
+    "--color-primary-deep": "#5c1a5c"
+  }
+}

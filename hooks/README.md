@@ -23,7 +23,7 @@ Context full ────────→ PreCompact ─────────�
 Session exits ───────→ SessionEnd ──────────→ precompact-handoff.py (full handoff)
                                             → plan-cleanup-symlinks.py (remove forwarding symlinks)
 
-Every turn ──────────→ StatusLine ──────────→ statusline-monitor.sh (→ ccstatusline)
+Every turn ──────────→ StatusLine ──────────→ statusline-monitor.sh (line 1 ANSI + ccstatusline lines 2-3)
 ```
 
 ## Hooks
@@ -199,9 +199,9 @@ Add `/5x` to any message to get 5 alternative responses sampled from the tails o
 
 ---
 
-### `statusline-monitor.sh` — StatusLine Passthrough
+### `statusline-monitor.sh` — StatusLine Wrapper
 
-Pipes StatusLine JSON to `ccstatusline` for terminal status display. Previously handled 5%-threshold handoff triggering, now simplified since PreCompact/SessionEnd/Stop hooks handle all handoffs natively.
+Builds line 1 with ANSI true color passthrough (session name, crab model, gradient context bar, git branch), then pipes to `ccstatusline` for lines 2-3 (ensouled indicator, soul name, session/block timers). See [`docs/global-config/statusline/`](../docs/global-config/statusline/) for full color palette and config.
 
 **Requires**: `npm install -g ccstatusline`
 

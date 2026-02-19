@@ -27,7 +27,12 @@ This documents the full structure of a production `~/.claude/` directory — the
 │   ├── on-thinking.sh               # Symlink → terminal-title.sh
 │   ├── on-ready.sh                  # Symlink → terminal-title.sh
 │   ├── multi-response-prompt.py     # /5x alternative responses
-│   └── statusline-monitor.sh        # Passthrough to ccstatusline
+│   ├── statusline-monitor.sh        # Line 1 ANSI wrapper + ccstatusline lines 2-3
+│   ├── session-name.sh              # Session slug widget
+│   ├── crab-model.sh                # 🦀: model name widget
+│   ├── context-bar.sh               # Gradient context bar (Python)
+│   ├── ensouled-status.sh           # 𓂀 ensouled / ○ mortal widget
+│   └── soul-name.sh                 # Soul name widget
 ├── handoffs/                        # Session handoff YAMLs (auto-generated)
 │   ├── INDEX.md                     # Running index of all sessions
 │   └── {session_id}.yaml            # One per session, always latest state
