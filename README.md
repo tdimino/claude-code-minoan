@@ -33,6 +33,7 @@ claude-code-minoan/
 ├── tools/                       # Standalone tools (see github.com/tdimino/md-preview-and-annotate)
 ├── lib/                         # Shared libraries (tracker-utils.js)
 ├── extensions/                  # VS Code Claude Session Tracker extension
+├── ghostty/                     # Ghostty terminal config for Claude Code
 ├── sounds/                      # Notification audio
 └── docs/global-config/          # Full ~/.claude/ structure reference
 ```
@@ -204,18 +205,17 @@ Configured in `.mcp.json`: supabase, playwright, context7, shadcn, figma, arxiv,
 
 ---
 
-## Terminal & Editor Theme
+## [Ghostty Config](ghostty/README.md) — Terminal for Claude Code
 
-Recommended: **Victor Mono** font + **Catppuccin Mocha** theme + **ccstatusline**.
+Optimized [Ghostty](https://ghostty.org/) config: Catppuccin Mocha/Latte theme, JetBrains Mono, 100K scrollback, split panes for parallel sessions, prompt jumping, and session persistence.
 
 ```bash
-brew install --cask font-victor-mono    # Font
-npm install -g ccstatusline             # Claude Code statusline
+cp ghostty/config ~/Library/Application\ Support/com.mitchellh.ghostty/config
 ```
 
-Install [Catppuccin for VS Code](https://github.com/catppuccin/vscode), then set terminal colors — see `.vscode/settings.json` in this repo for the full color block.
+Key bindings: `Cmd+D` split right, `Cmd+Alt+Enter` zoom split, `Cmd+Up/Down` jump prompts. See [ghostty/README.md](ghostty/README.md) for full keybinding reference.
 
-See [github.com/sirmalloc/ccstatusline](https://github.com/sirmalloc/ccstatusline) for statusline configuration.
+Pair with **ccstatusline** (`npm install -g ccstatusline`) and **lazygit** (`brew install lazygit`) in a side split.
 
 ---
 
