@@ -50,8 +50,8 @@ Reload with `Cmd+Shift+Comma` or restart Ghostty.
 | `Cmd+D` | Split right (vertical) |
 | `Cmd+Shift+D` | Split down (horizontal) |
 | `Cmd+Alt+Arrows` | Navigate between splits |
-| `Cmd+Alt+Enter` | Toggle split zoom (focus one pane) |
-| `Cmd+Alt+=` | Equalize split sizes |
+| `Cmd+Alt+Enter` or `Cmd+Shift+F` | Toggle split zoom (focus one pane) |
+| `Cmd+Alt+=` or `Cmd+Shift+E` | Equalize split sizes |
 
 ### Quick Actions
 
@@ -61,6 +61,7 @@ Reload with `Cmd+Shift+Comma` or restart Ghostty.
 | `Cmd+Shift+Comma` | Reload config |
 | `Cmd+Comma` | Open config |
 | `Cmd++/-/0` | Font size adjust/reset |
+| `Cmd+Shift+P` | Command palette |
 
 ## Recommended Companion Tools
 
@@ -80,6 +81,7 @@ Ghostty 1.3+ fixes a memory leak triggered by Claude Code's heavy terminal outpu
 
 ## Sources
 
+- [Daniel San's SAND Keybindings](https://x.com/dani_avila7/status/2023151176758268349) — mnemonic: Split, Arrange, Navigate, Destroy
 - [Anthropic Terminal Config Docs](https://code.claude.com/docs/en/terminal-config)
 - [Claude Code Team Tips](https://paddo.dev/blog/claude-code-team-tips/) (Feb 2026)
 - [awwsillylife/ghostty-claude-code-setup](https://github.com/awwsillylife/ghostty-claude-code-setup) (987+ stars)
