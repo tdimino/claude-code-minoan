@@ -1,0 +1,41 @@
+{
+  "_comment": "Live ccstatusline config — copy to ~/.config/ccstatusline/settings.json to restore. Line 1 is rendered by statusline-monitor.sh (not ccstatusline) for ANSI gradient support.",
+
+  "ccstatusline": {
+    "version": 3,
+    "lines": [
+      [
+        { "id": "ensouled-widget", "type": "custom-command", "commandPath": "/Users/tomdimino/.claude/hooks/ensouled-status.sh", "color": "brightBlue", "timeout": 1000 },
+        { "id": "ensouled-sep", "type": "separator" },
+        { "id": "soul-name-widget", "type": "custom-command", "commandPath": "/Users/tomdimino/.claude/hooks/soul-name.sh", "color": "brightYellow", "timeout": 1000 }
+      ],
+      [
+        { "id": "8447355e-caf8-4c36-af1f-489e3a0e7414", "type": "session-clock", "color": "brightGreen" },
+        { "id": "1c162934-884a-43e0-bdbf-4bda8ab52042", "type": "separator" },
+        { "id": "9400c301-5b8a-4503-bb47-cd7bc546d9c5", "type": "block-timer", "color": "green" }
+      ]
+    ],
+    "flexMode": "full-minus-40",
+    "compactThreshold": 60,
+    "colorLevel": 3,
+    "inheritSeparatorColors": false,
+    "globalBold": false,
+    "powerline": {
+      "enabled": false,
+      "separators": [""],
+      "separatorInvertBackground": [false],
+      "startCaps": [],
+      "endCaps": []
+    }
+  },
+
+  "statusline-monitor-line1": {
+    "_comment": "Assembled in ~/.claude/hooks/statusline-monitor.sh with ANSI true color",
+    "widgets": [
+      { "name": "session-name", "script": "~/.claude/hooks/session-name.sh", "color": "#CC5C3A", "ansi": "38;2;204;92;58" },
+      { "name": "crab-model", "script": "~/.claude/hooks/crab-model.sh", "color": "#C880BC", "ansi": "38;2;200;128;188" },
+      { "name": "context-bar", "script": "~/.claude/hooks/context-bar.sh", "color": "gradient (green→red)" },
+      { "name": "git-branch", "source": "git branch --show-current", "prefix": "⎇", "color": "brightBlue", "ansi": "94" }
+    ]
+  }
+}
