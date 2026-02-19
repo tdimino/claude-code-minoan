@@ -49,7 +49,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 | `speak-response` | Local TTS via [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS) |
 | `classical-887` | WRHV 88.7 FM (Classical WMHT) — now playing, playlist history, Markdown reports, Spotify playlist creation via [NPR Composer API](https://classicalwmht.org/playlist) |
 | `slack` | [Slack](https://api.slack.com/) workspace integration — 7 on-demand scripts (post, read, search, react, upload, channels, users) + Session Bridge for connecting Claude Code sessions to Slack |
-| `slack-respond` | Process unhandled Slack messages as [Claudius](https://github.com/tdimino/claudius) with persistent memory, cognitive pipeline, and soul state |
+| `slack-respond` | Process unhandled Slack messages as [Claudicle](https://github.com/tdimino/claudicle) with persistent memory, cognitive pipeline, and soul state |
 | `linkedin-export` | Parse LinkedIn GDPR data exports — search messages, analyze connections, export Markdown, ingest into RLAMA |
 
 ### Design & Media (`design-media/`)

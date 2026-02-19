@@ -185,7 +185,7 @@ echo "$raw_response" | python3 ~/.claude/skills/slack/scripts/slack_format.py ex
 
 # Narrated format
 echo "$raw_response" | python3 ~/.claude/skills/slack/scripts/slack_format.py extract --narrate
-# → Claudius explained, "The BG3 port is at 93% parity."
+# → Claudicle explained, "The BG3 port is at 93% parity."
 ```
 
 ### Get Cognitive Step Instructions
@@ -225,7 +225,7 @@ When registered (see Installation step 5), the `slack_inbox_hook.py` hook runs a
 | `scripts/slack_check.py` | Read/ack/clear inbox messages |
 | `scripts/slack_inbox_hook.py` | UserPromptSubmit auto-check hook |
 | `scripts/slack_format.py` | Soul formatter: perception/extract/instructions |
-| `daemon/soul.md` | Claudius personality guidelines |
+| `daemon/soul.md` | Claudicle personality guidelines |
 
 ## Troubleshooting
 

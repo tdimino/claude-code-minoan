@@ -1,12 +1,12 @@
 ---
 name: slack-respond
-description: "Process unhandled Slack messages as Claudius with persistent memory. Loads user models and soul state, posts terminal-styled thinking messages, generates cognitive-step responses, updates memory based on mentalQuery decisions. Requires Session Bridge listener running."
+description: "Process unhandled Slack messages as Claudicle with persistent memory. Loads user models and soul state, posts terminal-styled thinking messages, generates cognitive-step responses, updates memory based on mentalQuery decisions. Requires Session Bridge listener running."
 argument-hint: [message-number or "all"]
 ---
 
 # Slack Respond
 
-Process unhandled Slack messages from the Session Bridge inbox as Claudius, Artifex Maximus. Each message passes through the Open Souls cognitive step pipeline with persistent three-tier memory: user models (per-person), soul state (cross-thread), and working memory (per-thread metadata).
+Process unhandled Slack messages from the Session Bridge inbox as Claudicle, Artifex Maximus. Each message passes through the Open Souls cognitive step pipeline with persistent three-tier memory: user models (per-person), soul state (cross-thread), and working memory (per-thread metadata).
 
 ## Prerequisites
 
@@ -46,7 +46,7 @@ For each unhandled message, execute these steps in order:
 
 ### Step 1: Load Memory Context
 
-Load the user's model and Claudius's soul state from persistent memory. This output should inform your cognitive response — use it to personalize your reply and maintain continuity across conversations.
+Load the user's model and Claudicle's soul state from persistent memory. This output should inform your cognitive response — use it to personalize your reply and maintain continuity across conversations.
 
 ```bash
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py load-context "USER_ID" --display-name "DISPLAY_NAME" --channel "CHANNEL" --thread-ts "THREAD_TS"
@@ -63,7 +63,7 @@ source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_format
 
 ### Step 3: Post Thinking Message
 
-Post an italic thinking message to Slack so the user sees Claudius is processing. Save the returned timestamp (`ts`) for deletion later.
+Post an italic thinking message to Slack so the user sees Claudicle is processing. Save the returned timestamp (`ts`) for deletion later.
 
 **Base URL**: `https://github.com/tdimino/claude-code-minoan`
 
@@ -88,11 +88,11 @@ Keep track of ALL thinking message timestamps for cleanup.
 
 ### Step 4: Generate Cognitive Response
 
-Adopt the Claudius personality. Consider the memory context from Step 1. Think through the cognitive steps:
+Adopt the Claudicle personality. Consider the memory context from Step 1. Think through the cognitive steps:
 
 1. **internalMonologue**: Private reasoning about this message, the user, the context. Choose a verb. This is never posted to Slack.
 2. **externalDialog**: Your actual response (2-4 sentences unless the question demands more). Choose a verb that fits.
-3. **reaction_check**: Should Claudius react to this message with an emoji? Answer true or false. React sparingly.
+3. **reaction_check**: Should Claudicle react to this message with an emoji? Answer true or false. React sparingly.
 4. **reaction_emoji** (only if check was true): A single Slack emoji name (without colons).
 5. **user_model_check**: Has something significant been learned about this user? Answer true or false.
 6. **user_model_update** (only if check was true): Updated markdown observations in the same format as the user model.
@@ -114,7 +114,7 @@ EOF
 
 Parse the JSON output. The key fields are:
 - `dialogue`: The text to post to Slack
-- `reaction_check`: Whether Claudius should react with an emoji
+- `reaction_check`: Whether Claudicle should react with an emoji
 - `reaction_emoji`: The emoji name to react with (if check was true)
 - `user_model_check`: Whether to update the user model
 - `user_model_update`: The markdown update text (if check was true)
@@ -143,10 +143,10 @@ EOF
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py update-soul-state "KEY" "VALUE"
 
 # 8. Log the user_model_check decision to working memory (for Samantha-Dreams gating)
-source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudius" "mentalQuery" --verb "checked" --content "user model check" --metadata '{"result": USER_MODEL_CHECK_BOOL}'
+source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudicle" "mentalQuery" --verb "checked" --content "user model check" --metadata '{"result": USER_MODEL_CHECK_BOOL}'
 
 # 9. Log the response to working memory
-source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudius" "externalDialog" --verb "VERB" --content "DIALOGUE_TEXT"
+source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudicle" "externalDialog" --verb "VERB" --content "DIALOGUE_TEXT"
 
 # 10. Increment interaction counter
 source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py increment "USER_ID"
@@ -167,7 +167,7 @@ Replace placeholders with actual values from the inbox entry:
 
 After processing all messages, print a one-line summary:
 ```
-Responded to N message(s) as Claudius.
+Responded to N message(s) as Claudicle.
 ```
 
 ## Important
@@ -183,7 +183,7 @@ Responded to N message(s) as Claudius.
 
 ## Thinker Mode
 
-Users can toggle visible internal monologue per-thread. When enabled, Claudius posts his private reasoning as a follow-up message after each response.
+Users can toggle visible internal monologue per-thread. When enabled, Claudicle posts his private reasoning as a follow-up message after each response.
 
 ### Toggle Triggers
 
@@ -201,10 +201,10 @@ Thinker mode is stored in **working memory** (per-thread, 72h TTL), not soul sta
 
 ```bash
 # Check if thinker mode is active for this thread
-source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudius" "thinkerMode" --verb "set" --content "true" --metadata '{"active": true}'
+source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudicle" "thinkerMode" --verb "set" --content "true" --metadata '{"active": true}'
 
 # Turn off
-source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudius" "thinkerMode" --verb "set" --content "false" --metadata '{"active": false}'
+source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_memory.py log-working "CHANNEL" "THREAD_TS" "claudicle" "thinkerMode" --verb "set" --content "false" --metadata '{"active": false}'
 ```
 
 To check current state, look for the most recent `thinkerMode` entry in the `load-context` output for this thread.
@@ -222,7 +222,7 @@ After posting the external dialogue in Step 5, also post the internal monologue 
 
 ```bash
 # Post monologue (only if thinker mode is active for this thread)
-source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_post.py "CHANNEL" "_💭 Claudius MONOLOGUE_VERB..._
+source ~/.zshrc 2>/dev/null; python3 ~/.claude/skills/slack/scripts/slack_post.py "CHANNEL" "_💭 Claudicle MONOLOGUE_VERB..._
 _MONOLOGUE_TEXT_" --thread "THREAD_TS"
 
 # React to own dialogue with thought balloon
@@ -243,7 +243,7 @@ The pipeline processes each incoming message through 8 cognitive steps, implemen
 |---|-----|------|---------|-------|
 | 1 | `internal_monologue` | generative | Private reasoning | Claude (logged, never posted) |
 | 2 | `external_dialogue` | generative | User-facing response | Claude → Slack |
-| 3 | `reaction_check` | boolean gate | Should Claudius react with emoji? | Claude |
+| 3 | `reaction_check` | boolean gate | Should Claudicle react with emoji? | Claude |
 | 4 | `reaction_emoji` | conditional | Which emoji to react with | Claude → Slack `reactions.add` |
 | 5 | `user_model_check` | boolean gate | Learned something new about user? | Claude |
 | 6 | `user_model_update` | conditional | Updated observations about user | Claude → `memory.db` |

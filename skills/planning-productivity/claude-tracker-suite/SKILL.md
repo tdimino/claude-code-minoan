@@ -217,7 +217,7 @@ The soul registry (`~/.claude/hooks/soul-registry.py`) tracks **live** sessions 
 
 To view the live registry: `python3 ~/.claude/hooks/soul-registry.py list --md`
 
-To activate Claudius identity in a session: `/ensoul` (opt-in per session). To bind a session to Slack: `/slack-sync #channel`.
+To activate Claudicle identity in a session: `/ensoul` (opt-in per session). To bind a session to Slack: `/slack-sync #channel`.
 
 ## References
 

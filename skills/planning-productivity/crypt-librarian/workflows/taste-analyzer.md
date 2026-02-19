@@ -62,7 +62,7 @@ Alternatively, analyze films.json directly:
 ### Lane Calibration
 | Lane | Strong | Weaker |
 |------|--------|--------|
-| Historical Epic | Alexander, I, Claudius | — |
+| Historical Epic | Alexander, I, Claudicle | — |
 | Cerebral Occult | The Ninth Gate, Devil Rides Out | Angel Heart (too dark) |
 | Neo-Noir | The Long Goodbye (laconic) | Klute (claustrophobic) |
 | American Regional | Lone Star | — |

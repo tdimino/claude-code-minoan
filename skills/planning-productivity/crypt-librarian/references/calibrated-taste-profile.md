@@ -6,7 +6,7 @@ Derived from actual ratings (Tom & Mary) in the Crypt Librarian archive.
 
 | Rating | Films | Pattern |
 |--------|-------|---------|
-| **5/5** | I, Claudius, Alexander, Devil Rides Out, The Long Goodbye, The Ninth Gate | Theatrical grandeur, cerebral occult, literary DNA |
+| **5/5** | I, Claudicle, Alexander, Devil Rides Out, The Long Goodbye, The Ninth Gate | Theatrical grandeur, cerebral occult, literary DNA |
 | **4/5** | Lone Star, Stir of Echoes, Short Cuts | Strong craft, regional/ensemble |
 | **3/5** | Klute, Angel Heart | Technically impressive but pacing/darkness issues |
 
@@ -29,7 +29,7 @@ Derived from actual ratings (Tom & Mary) in the Crypt Librarian archive.
 
 | Lane | Strong | Weaker |
 |------|--------|--------|
-| **Historical Epic** | Alexander, I, Claudius | — |
+| **Historical Epic** | Alexander, I, Claudicle | — |
 | **Cerebral Occult** | The Ninth Gate, Devil Rides Out | Angel Heart (too dark) |
 | **Neo-Noir** | The Long Goodbye (laconic, detached) | Klute (claustrophobic, interior) |
 | **American Regional** | Lone Star | — |

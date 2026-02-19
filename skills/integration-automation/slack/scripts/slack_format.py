@@ -140,7 +140,7 @@ def cmd_extract(args):
     if dialogue:
         if args.narrate:
             v = verb or "said"
-            print(f'Claudius {v}, "{dialogue}"')
+            print(f'Claudicle {v}, "{dialogue}"')
         else:
             print(dialogue)
     else:
@@ -174,7 +174,7 @@ def main():
     p_ext = sub.add_parser("extract", help="Extract external dialogue from XML response")
     p_ext.add_argument("--text", "-t", help="Raw response text (default: stdin)")
     p_ext.add_argument("--narrate", "-n", action="store_true",
-                        help='Output as Claudius VERB, "dialogue"')
+                        help='Output as Claudicle VERB, "dialogue"')
     p_ext.add_argument("--log", "-l", action="store_true",
                         help="Log internal monologue to daemon/logs/monologue.log")
 

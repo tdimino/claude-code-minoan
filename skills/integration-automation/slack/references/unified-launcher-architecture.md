@@ -1,6 +1,6 @@
-# Unified Launcher Architecture — Claudius, Artifex Maximus
+# Unified Launcher Architecture — Claudicle, Artifex Maximus
 
-The unified launcher (`claudius.py`) replaces the standalone `bot.py` daemon as the primary way to run Claudius. It starts an interactive terminal session alongside a Slack Socket Mode bot in a single process, with per-channel session isolation via the Claude Agent SDK.
+The unified launcher (`claudicle.py`) replaces the standalone `bot.py` daemon as the primary way to run Claudicle. It starts an interactive terminal session alongside a Slack Socket Mode bot in a single process, with per-channel session isolation via the Claude Agent SDK.
 
 ## What Makes This Novel
 
@@ -45,10 +45,10 @@ python3 -c "from claude_code_sdk import query; print('SDK OK')"
 ### 4. First Launch
 
 ```bash
-cd ~/.claude/skills/slack/daemon && python3 claudius.py --verbose
+cd ~/.claude/skills/slack/daemon && python3 claudicle.py --verbose
 ```
 
-On first launch, Claudius will:
+On first launch, Claudicle will:
 - Connect to Slack via Socket Mode
 - Initialize SQLite databases (`memory.db`, `sessions.db`) if not present
 - Display the terminal prompt (`You > `)
@@ -59,7 +59,7 @@ Test by sending a DM to the bot in Slack — you should see the message logged i
 ### 5. Terminal-Only Mode (No Slack)
 
 ```bash
-python3 claudius.py --no-slack
+python3 claudicle.py --no-slack
 ```
 
 Useful for testing the Agent SDK integration without Slack connectivity.
@@ -70,7 +70,7 @@ Useful for testing the Agent SDK integration without Slack connectivity.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                    claudius.py                         │
+│                    claudicle.py                         │
 │                                                        │
 │  ┌──────────────────┐      ┌────────────────────────┐ │
 │  │   Terminal UI      │      │   Slack Adapter         │ │
@@ -146,7 +146,7 @@ Each channel/thread maintains its own Claude Code session. The Agent SDK's `resu
 ## Data Flow: Slack Message
 
 ```
-1. User @mentions Claudius in #general thread:abc
+1. User @mentions Claudicle in #general thread:abc
 2. slack_adapter.py receives app_mention event
 3. _strip_mention() cleans text, _resolve_display_name() gets user name
 4. _dispatch() schedules async callback via run_coroutine_threadsafe()
@@ -266,7 +266,7 @@ soul_engine.parse_response(raw_response, user_id, channel, thread_ts)
 | Soul memory | Global | Yes | `memory.db` → `soul_memory` |
 
 All sessions (terminal + all Slack threads) read/write the same SQLite databases. This means:
-- Claudius's emotional state updates from a Slack conversation are visible in the terminal session's soul context
+- Claudicle's emotional state updates from a Slack conversation are visible in the terminal session's soul context
 - User model updates from a DM carry over to channel mentions
 - The Soul Monitor TUI shows activity from all channels
 
@@ -285,7 +285,7 @@ The Slack adapter runs Socket Mode in a daemon thread. When events arrive, `run_
 
 ## Comparison: Unified Launcher vs Legacy Daemon
 
-| Aspect | `claudius.py` (unified) | `bot.py` (legacy) |
+| Aspect | `claudicle.py` (unified) | `bot.py` (legacy) |
 |--------|------------------------|-------------------|
 | Transport | Claude Agent SDK `query()` | `subprocess.run(["claude", "-p"])` |
 | Terminal access | Yes — interactive input | No |
@@ -301,8 +301,8 @@ The Slack adapter runs Socket Mode in a daemon thread. When events arrive, `run_
 
 ```
 daemon/
-├── claudius.py          # Unified launcher — main entry point
-│   ├── Claudius class   #   async queue, process loop, lifecycle
+├── claudicle.py          # Unified launcher — main entry point
+│   ├── Claudicle class   #   async queue, process loop, lifecycle
 │   ├── _enqueue_slack() #   Slack → queue bridge
 │   ├── _enqueue_terminal() # terminal → queue bridge
 │   ├── _handle_slack_message() # process + post to Slack
@@ -359,13 +359,13 @@ daemon/
 
 ```bash
 # Unified launcher (terminal + Slack)
-cd ~/.claude/skills/slack/daemon && python3 claudius.py
+cd ~/.claude/skills/slack/daemon && python3 claudicle.py
 
 # With debug logging to console
-python3 claudius.py --verbose
+python3 claudicle.py --verbose
 
 # Terminal only (no Slack bot)
-python3 claudius.py --no-slack
+python3 claudicle.py --no-slack
 
 # Legacy daemon (Slack only, subprocess mode)
 python3 bot.py --verbose
@@ -381,4 +381,4 @@ uv run python monitor.py
 | mpociot/claude-code-slack-bot | Node.js SDK, per-message `query()` | No terminal, no soul engine |
 | sleepless-agent | Python daemon, task queue, subprocess | No terminal, no personality |
 | Anthropic Claude Code in Slack | Cloud-only, managed | No local control |
-| **Claudius unified launcher** | **SDK `query(resume=)`, multiplexed I/O, soul engine** | **Novel: no prior art** |
+| **Claudicle unified launcher** | **SDK `query(resume=)`, multiplexed I/O, soul engine** | **Novel: no prior art** |
