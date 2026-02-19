@@ -1,6 +1,6 @@
-# Daemon Architecture — Claudius, Artifex Maximus
+# Daemon Architecture — Claudicle, Artifex Maximus
 
-The daemon is a persistent Socket Mode bot with a **pseudo soul engine** that gives Claudius a personality, memory, and evolving awareness across conversations. Modeled after the Aldea Soul Engine's cognitive architecture, adapted for single-shot `claude -p` subprocess calls.
+The daemon is a persistent Socket Mode bot with a **pseudo soul engine** that gives Claudicle a personality, memory, and evolving awareness across conversations. Modeled after the Aldea Soul Engine's cognitive architecture, adapted for single-shot `claude -p` subprocess calls.
 
 ## Architecture Flow
 
@@ -115,7 +115,7 @@ conversationSummary: Working on synthetic training data from Kothar interactions
 
 | Key | Description | Example |
 |-----|-------------|---------|
-| `currentProject` | What Claudius is currently working on | `kothar-training-pipeline` |
+| `currentProject` | What Claudicle is currently working on | `kothar-training-pipeline` |
 | `currentTask` | Specific task within the project | `Implement LoRA fine-tuning script` |
 | `currentTopic` | What's being discussed right now | `training data generation` |
 | `emotionalState` | Current state from the emotional spectrum | `neutral`, `engaged`, `focused`, `frustrated`, `sardonic` |
@@ -128,14 +128,14 @@ All entries are stored with verbs intact in SQLite (metadata store, NOT injected
 | Type | Source | Example |
 |------|--------|---------|
 | `userMessage` | Slack user | `User said: "Help me with CI/CD"` |
-| `internalMonologue` | Claudius | `Claudius pondered: "This user seems experienced..."` |
-| `externalDialog` | Claudius | `Claudius suggested: "Try GitHub Actions..."` |
-| `mentalQuery` | Claudius | `Claudius evaluated: "Should update user model?" → true` |
-| `toolAction` | Claudius | `Claudius updated user model for U12345` |
+| `internalMonologue` | Claudicle | `Claudicle pondered: "This user seems experienced..."` |
+| `externalDialog` | Claudicle | `Claudicle suggested: "Try GitHub Actions..."` |
+| `mentalQuery` | Claudicle | `Claudicle evaluated: "Should update user model?" → true` |
+| `toolAction` | Claudicle | `Claudicle updated user model for U12345` |
 
 ## User Model Template
 
-New users get a blank profile that Claudius fills in over time:
+New users get a blank profile that Claudicle fills in over time:
 
 ```markdown
 # DisplayName
@@ -158,7 +158,7 @@ New users get a blank profile that Claudius fills in over time:
 
 ## Personality — soul.md
 
-Claudius's personality is defined in `daemon/soul.md`:
+Claudicle's personality is defined in `daemon/soul.md`:
 
 - **Persona**: Direct, substantive, technically precise co-creator
 - **Speaking style**: 2-4 sentences, no filler, sardonic wit when appropriate
@@ -230,7 +230,7 @@ daemon/
 ├── bot.py              # Socket Mode event handler + App Home (slack_bolt)
 ├── claude_handler.py   # Claude Code subprocess invocation + soul engine integration
 ├── soul_engine.py      # Cognitive prompt builder + XML response parser
-├── soul.md             # Claudius personality blueprint
+├── soul.md             # Claudicle personality blueprint
 ├── soul_memory.py      # Cross-thread persistent state (currentProject, emotionalState, etc.)
 ├── user_models.py      # Per-user markdown profile management
 ├── working_memory.py   # Per-thread cognitive entry storage (verbs, monologues, queries)

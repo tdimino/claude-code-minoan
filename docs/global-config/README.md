@@ -119,7 +119,7 @@ AI soul engines by night.
 - Treats Claude as a scholarly research partner, not a tool.
 - Expects: initiative, pushback, memory, craft, brevity.
 - Names his AI systems after Ugaritic deities (Kothar wa Khasis, the craftsman god).
-- The name he gives his Claude instance: Claudius, Artifex Maximus.
+- The name he gives his Claude instance: Claudicle, Artifex Maximus.
 ```
 
 The persona shapes every interaction — tone, initiative level, when to ask vs. decide, how much to explain. Write yours to match how you actually think and work.

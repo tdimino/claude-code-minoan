@@ -112,7 +112,7 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
                    → plan-cleanup-symlinks.py    (remove plan forwarding symlinks)
 ```
 
-**Terminal Title**: Two-tier format with repo-type emoji icons — `🔴 🐍 claudius: Building test suite`. Icons auto-detected from CLAUDE.md keywords and project files. Main title persists across events; subtitle updates from transcript.
+**Terminal Title**: Two-tier format with repo-type emoji icons — `🔴 🐍 claudicle: Building test suite`. Icons auto-detected from CLAUDE.md keywords and project files. Main title persists across events; subtitle updates from transcript.
 
 **Session Handoff System**: Three hooks ensure context survives compaction, graceful exits, and crashes. Writes structured YAML to `~/.claude/handoffs/` with objective, decisions, blockers, and next steps. Auto-maintains `INDEX.md`.
 
@@ -242,7 +242,7 @@ Pair with **ccstatusline** (`npm install -g ccstatusline`) and **lazygit** (`bre
 - **[Handy](https://github.com/cjpais/Handy)** by CJ Pais — push-to-talk speech-to-text
 - **[matklad's ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html)** — codebase documentation guide
 - **[Open Souls](https://docs.souls.chat/)** — the AI souls paradigm
-- **[Claudius](https://github.com/tdimino/claudius)** — open-source soul agent framework (daemon, soul engine, cognitive pipeline, three-tier memory)
+- **[Claudicle](https://github.com/tdimino/claudicle)** — open-source soul agent framework (daemon, soul engine, cognitive pipeline, three-tier memory)
 - **[md-preview-and-annotate](https://github.com/tdimino/md-preview-and-annotate)** — zero-dependency Markdown previewer with annotations and bookmarks
 
 ---

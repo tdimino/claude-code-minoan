@@ -182,7 +182,7 @@ ${activeProjectEntries || '<!-- Projects will be detected from your Claude Code 
 
 ---
 
-<p align="right"><em>— Claudius, Artifex Maximus of ${userName || 'the User'}</em></p>
+<p align="right"><em>— Claudicle, Artifex Maximus of ${userName || 'the User'}</em></p>
 `;
 }
 

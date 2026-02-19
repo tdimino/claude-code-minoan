@@ -1,6 +1,6 @@
 ---
 name: slack
-description: "Slack workspace integration: 7 on-demand scripts (post, read, search, react, upload, channels, users) + Session Bridge (connect any Claude Code session to Slack via background listener + inbox.jsonl). Daemon, soul engine, and memory system live in Claudius (github.com/tdimino/claudius)."
+description: "Slack workspace integration: 7 on-demand scripts (post, read, search, react, upload, channels, users) + Session Bridge (connect any Claude Code session to Slack via background listener + inbox.jsonl). Daemon, soul engine, and memory system live in Claudicle (github.com/tdimino/claudicle)."
 ---
 
 # Slack Skill
@@ -9,7 +9,7 @@ Slack workspace integration with two components:
 1. **Scripts** — 7 Python scripts for on-demand Slack operations (bundled here)
 2. **Session Bridge** — connect THIS Claude Code session to Slack (background listener + inbox file, no extra API costs)
 
-> **Daemon & Soul Engine**: The Claudius daemon (unified launcher, soul engine, cognitive pipeline, three-tier memory, Soul Monitor TUI) now lives in its own repo: **[github.com/tdimino/claudius](https://github.com/tdimino/claudius)**. Install Claudius separately for daemon features.
+> **Daemon & Soul Engine**: The Claudicle daemon (unified launcher, soul engine, cognitive pipeline, three-tier memory, Soul Monitor TUI) now lives in its own repo: **[github.com/tdimino/claudicle](https://github.com/tdimino/claudicle)**. Install Claudicle separately for daemon features.
 
 ## When to Use This Skill
 
@@ -27,7 +27,7 @@ Slack workspace integration with two components:
 - Responding to @mentions and DMs with full tool access (this session IS the brain)
 - No extra API costs — messages processed in the current session context
 - Auto-notification of new messages via UserPromptSubmit hook
-- Personality as Claudius via soul.md instructions (no XML machinery needed)
+- Personality as Claudicle via soul.md instructions (no XML machinery needed)
 
 ## Prerequisites
 
@@ -85,9 +85,9 @@ python3 ~/.claude/skills/slack/scripts/slack_read.py "#general" -n 10
 # Search the workspace
 python3 ~/.claude/skills/slack/scripts/slack_search.py "deployment status"
 
-# Connect this session to Slack via Claudius Session Bridge
-# (requires Claudius installed — see github.com/tdimino/claudius)
-cd ~/.claudius/daemon && python3 slack_listen.py --bg
+# Connect this session to Slack via Claudicle Session Bridge
+# (requires Claudicle installed — see github.com/tdimino/claudicle)
+cd ~/.claudicle/daemon && python3 slack_listen.py --bg
 python3 ~/.claude/skills/slack/scripts/slack_check.py
 ```
 
@@ -97,11 +97,11 @@ python3 ~/.claude/skills/slack/scripts/slack_check.py
 
 Connect any running Claude Code session to Slack. A background listener catches @mentions and DMs -> `inbox.jsonl`. This session reads the inbox, processes with full tool access, posts responses back. No extra API costs.
 
-Requires Claudius daemon installed — see [github.com/tdimino/claudius](https://github.com/tdimino/claudius).
+Requires Claudicle daemon installed — see [github.com/tdimino/claudicle](https://github.com/tdimino/claudicle).
 
 ```bash
 # Connect
-cd ~/.claudius/daemon && python3 slack_listen.py --bg
+cd ~/.claudicle/daemon && python3 slack_listen.py --bg
 
 # Check messages
 python3 ~/.claude/skills/slack/scripts/slack_check.py
@@ -112,7 +112,7 @@ python3 ~/.claude/skills/slack/scripts/slack_react.py "C12345" "TS" "hourglass_f
 python3 ~/.claude/skills/slack/scripts/slack_check.py --ack 1
 
 # Disconnect
-cd ~/.claudius/daemon && python3 slack_listen.py --stop
+cd ~/.claudicle/daemon && python3 slack_listen.py --stop
 ```
 
 **Soul Formatter** (optional): `scripts/slack_format.py` adds Open Souls cognitive step formatting — perception framing, dialogue extraction, monologue logging.
@@ -124,7 +124,7 @@ echo "$raw" | python3 slack_format.py extract --narrate --log   # -> narrated + 
 python3 slack_format.py instructions                            # -> cognitive step XML format
 ```
 
-**Automated Respond**: `/slack-respond` processes all pending messages as Claudius with full cognitive steps — perception, monologue, dialogue, post, ack — in a single invocation. See `~/.claude/skills/slack-respond/SKILL.md`.
+**Automated Respond**: `/slack-respond` processes all pending messages as Claudicle with full cognitive steps — perception, monologue, dialogue, post, ack — in a single invocation. See `~/.claude/skills/slack-respond/SKILL.md`.
 
 For full installation, architecture, inbox format, auto-notification hook, and troubleshooting, see `references/session-bridge.md`.
 
@@ -178,7 +178,7 @@ All scripts handle rate limits automatically via `_slack_utils.py` (local cooldo
 | No green presence dot | Add `users:write` scope -> reinstall app |
 | App Home tab blank | Subscribe to `app_home_opened` event |
 
-For daemon-specific troubleshooting (soul engine, memory, launcher), see [Claudius docs](https://github.com/tdimino/claudius).
+For daemon-specific troubleshooting (soul engine, memory, launcher), see [Claudicle docs](https://github.com/tdimino/claudicle).
 
 ---
 

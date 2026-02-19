@@ -107,7 +107,7 @@ Dynamic terminal tab title with repo-type emoji icons, two-tier naming (persiste
 **Title format**: `STATUS REPO_ICON MAIN_TITLE: SUBTITLE`
 
 ```
-🔴 🐍 claudius: Building test suite     ← thinking
+🔴 🐍 claudicle: Building test suite     ← thinking
 🟢 ⚛️ knossot: Ready                    ← ready
 🔴 🦀 bg3se-macos: Debugging init hooks
 🟢 📜 Thera-Paper: Reviewing cognates
