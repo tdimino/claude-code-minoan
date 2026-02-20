@@ -16,6 +16,16 @@ def main():
     if not transcript_path or not os.path.exists(transcript_path):
         return
 
+    # Soul registry heartbeat (lightweight, no LLM calls, no cooldown)
+    try:
+        subprocess.run(
+            ["python3", str(pathlib.Path.home() / ".claude/hooks/soul-registry.py"),
+             "heartbeat", session_id],
+            timeout=5, capture_output=True,
+        )
+    except Exception:
+        pass  # Non-critical
+
     # Guard 2: 5-minute cooldown per session
     state_dir = pathlib.Path.home() / ".claude" / "handoffs"
     state_dir.mkdir(parents=True, exist_ok=True)
@@ -56,6 +66,22 @@ def main():
         )
     except Exception:
         return  # Silent failure
+
+    # Run session tag inference (fire-and-forget via shell pipe)
+    tags_script = pathlib.Path.home() / ".claude" / "hooks" / "session-tags-infer.py"
+    try:
+        proc = subprocess.Popen(
+            ["python3", str(tags_script)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            text=True,
+        )
+        proc.stdin.write(input_json)
+        proc.stdin.close()  # Signal EOF so sys.stdin.read() returns
+    except Exception:
+        pass  # Non-critical
 
     # Update cooldown timestamp
     cooldown_file.write_text(json.dumps({
