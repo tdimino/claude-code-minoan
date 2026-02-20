@@ -258,7 +258,7 @@ kothar soul engine · dabarat live preview · session tag inference
 
 ### `dabarat-open.py` — Auto-Open Markdown in Live Preview
 
-Automatically opens newly created `.md` files in [dabarat](https://github.com/tdimino/md-preview-and-annotate) for live rendered preview. If dabarat is already running, adds a tab silently via the `/api/add` endpoint. If not running, launches a new window.
+Automatically opens newly created `.md` files in [Dabarat](https://github.com/tdimino/dabarat) for live rendered preview. If dabarat is already running, adds a tab silently via the `/api/add` endpoint. If not running, launches a new window.
 
 **Fires on**: PostToolUse/Write (only for new `.md` files)
 

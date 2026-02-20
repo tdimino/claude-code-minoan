@@ -56,7 +56,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 ### Design & Media (`design-media/`)
 | Skill | Description |
 |-------|-------------|
-| `frontend-design` | Production-grade UI creation with distinctive aesthetics |
+| `minoan-frontend-design` | Production-grade UI creation with distinctive aesthetics (customized fork) |
 | `gemini-claude-resonance` | Cross-model dialogue between Claude and [Gemini](https://deepmind.google/technologies/gemini/) |
 | `nano-banana-pro` | Image generation via [Gemini 3 Pro](https://deepmind.google/technologies/gemini/) |
 | `rocaille-shader` | Procedural shader generation for WebGL/GLSL |

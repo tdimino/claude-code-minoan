@@ -9,7 +9,7 @@ allowed-tools: Bash(python3*), Read, Glob, Write
 
 Catppuccin Mocha/Latte live-reloading Markdown viewer with multi-tab support and Google Docs-style margin annotations.
 
-> **Canonical repo**: [github.com/tdimino/md-preview-and-annotate](https://github.com/tdimino/md-preview-and-annotate). Clone it or ensure `md_preview_and_annotate` is on your PYTHONPATH.
+> **Canonical repo**: [github.com/tdimino/dabarat](https://github.com/tdimino/dabarat). Clone it or ensure `md_preview_and_annotate` is on your PYTHONPATH.
 
 ## Quick Start
 

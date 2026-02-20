@@ -31,6 +31,7 @@ mkdir -p ~/.claude/lib && cp lib/* ~/.claude/lib/
 - **codex-orchestrator** - Delegate to specialized Codex CLI subagents (reviewer, debugger, architect, security)
 - **super-ralph-wiggum** - Autonomous iteration loops (HITL/AFK modes)
 - **llama-cpp** / **rlama** / **parakeet** / **smolvlm** / **speak-response** - Local ML stack (inference, RAG, STT, vision, TTS)
+  - **RLAMA default**: Always use retrieve-only mode (`rlama_retrieve.py`)—Claude synthesizes from raw chunks. Never route through Qwen when Claude is in the loop. `rlama run` is fallback only.
 - **Firecrawl** / **exa-search** - Web scraping and search
 - **claude-md-manager** - Create and optimize CLAUDE.md files
 
