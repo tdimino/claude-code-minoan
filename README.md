@@ -227,9 +227,34 @@ Pair with **ccstatusline** (`npm install -g ccstatusline`) and **lazygit** (`bre
 
 ---
 
+## Companion Projects
+
+### [Claudicle](https://github.com/tdimino/claudicle) — Soul Agent Framework
+
+Open-source 4-layer soul architecture (Identity, Cognition, Memory, Channels) that gives Claude Code sessions persistent personality, memory, and behavioral continuity. The soul hooks in this repo (`soul-activate.py`, `soul-deregister.py`, `soul-registry.py`) register sessions with the Claudicle daemon. Souls like Kothar—the Ugaritic craftsman god—maintain identity across sessions, respond on Slack, and dream in the Daimon Chamber.
+
+```bash
+pip install claudicle
+claudicle daemon start        # launch soul daemon
+claudicle soul list           # see active souls
+```
+
+### [md-preview-and-annotate](https://github.com/tdimino/md-preview-and-annotate) — Live Markdown Preview
+
+Zero-dependency Markdown previewer with annotation, commenting, and bookmarking. The `dabarat-open.py` hook auto-opens new `.md` files in a browser tab as Claude writes them—plans, docs, and READMEs render live. Multi-tab support, margin annotations, and global bookmarks saved to `~/.claude/bookmarks/`.
+
+```bash
+pip install md-preview-and-annotate
+dabarat plan.md               # preview in browser
+dabarat --add spec.md         # add tab to running instance
+```
+
+---
+
 ## Credits & Inspiration
 
 - **[Claude Code](https://github.com/anthropics/claude-code)** by Anthropic — the terminal-first AI coding tool
+- **[Open Souls](https://github.com/opensouls/opensouls)** — the AI souls paradigm
 - **[compound-engineering](https://github.com/every-ai-labs/compound-engineering)** by Every AI Labs — multi-agent review workflows
 - **[feature-dev plugin](https://github.com/anthropics/claude-code)** by the Claude Code team — code-architect, code-explorer, code-reviewer
 - **[super-ralph-wiggum](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum)** by AI Hero — autonomous iteration loop pattern
@@ -241,13 +266,10 @@ Pair with **ccstatusline** (`npm install -g ccstatusline`) and **lazygit** (`bre
 - **[Exa](https://exa.ai/)** — neural web search API
 - **[Handy](https://github.com/cjpais/Handy)** by CJ Pais — push-to-talk speech-to-text
 - **[matklad's ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html)** — codebase documentation guide
-- **[Open Souls](https://docs.souls.chat/)** — the AI souls paradigm
-- **[Claudicle](https://github.com/tdimino/claudicle)** — open-source soul agent framework (daemon, soul engine, cognitive pipeline, three-tier memory)
-- **[md-preview-and-annotate](https://github.com/tdimino/md-preview-and-annotate)** — zero-dependency Markdown previewer with annotations and bookmarks
 
 ---
 
-**Skills**: 44 | **Commands**: 30+ | **Hooks**: 12 | **CLI Tools**: 8
+**Skills**: 45 | **Commands**: 43 | **Hooks**: 29 | **CLI Tools**: 8
 
 ---
 
