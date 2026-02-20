@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
-"""PostToolUse hook: auto-rename randomly-named plan files to dated slugs.
+"""Hook: rename randomly-named plan files to dated slugs.
 
-Matcher: Write, Edit — fires on plan file creation and updates.
-Fast-path exits (~1ms) when file is not in ~/.claude/plans/ or already dated.
+Fires on Stop (rename + symlink so Claude Code can still write) and
+SessionEnd (final cleanup of symlinks).
+
+Usage in settings.json:
+  Stop:       "python3 ~/.claude/hooks/plan-rename.py stop"
+  SessionEnd: "python3 ~/.claude/hooks/plan-rename.py session_end"
+
+On first rename, also opens the plan in dabarat for live preview.
 
 Naming convention: YYYY-MM-DD-descriptive-slug.md
 Agent variant:     YYYY-MM-DD-descriptive-slug-agent-HASH.md
@@ -13,7 +19,9 @@ import json
 import os
 import pathlib
 import re
+import subprocess
 import sys
+import time
 
 PLANS_DIR = pathlib.Path.home() / ".claude" / "plans"
 
@@ -31,21 +39,13 @@ H1_RE = re.compile(r"^#\s+([A-Z].+)", re.MULTILINE)
 
 def slugify(text, max_len=60):
     """Convert H1 header text to kebab-case slug."""
-    # Strip "Plan:" prefix
     text = re.sub(r"^Plan:\s*", "", text, flags=re.IGNORECASE)
-    # Strip backticks, quotes
     text = text.replace("`", "").replace('"', "").replace("'", "")
-    # Strip parenthetical suffixes
     text = re.sub(r"\s*\([^)]*\)\s*$", "", text)
-    # Strip trailing punctuation
     text = text.rstrip(" .:;,!?")
-    # Lowercase
     text = text.lower()
-    # Replace non-alphanumeric with hyphens
     text = re.sub(r"[^a-z0-9]+", "-", text)
-    # Collapse multiple hyphens and strip leading/trailing
     text = re.sub(r"-+", "-", text).strip("-")
-    # Truncate at word boundary
     if len(text) > max_len:
         text = text[:max_len].rsplit("-", 1)[0]
     return text
@@ -53,8 +53,10 @@ def slugify(text, max_len=60):
 
 def extract_h1(filepath):
     """Extract first H1 header from a markdown file. Reads only first 2KB."""
+    # Follow symlinks to read the actual content (POSIX symlink resolution)
+    real_path = filepath.resolve() if filepath.is_symlink() else filepath
     try:
-        with open(filepath, "r") as f:
+        with open(real_path, "r") as f:
             head = f.read(2048)
         m = H1_RE.search(head)
         return m.group(1).strip() if m else ""
@@ -62,93 +64,31 @@ def extract_h1(filepath):
         return ""
 
 
-def rename_agent_files(base_slug, date_prefix, topic_slug):
-    """Rename all agent files sharing the same base slug.
-
-    Called while parent lock is held, so no separate lock needed.
-    Re-checks existence before rename to guard against TOCTOU races.
-    """
-    agent_re = re.compile(
-        re.escape(base_slug) + r"(-agent-a[0-9a-f]{5,7})\.md$"
-    )
-    for entry in PLANS_DIR.iterdir():
-        if entry.is_symlink():
-            continue
-        m = agent_re.match(entry.name)
-        if m:
-            agent_suffix = m.group(1)
-            new_agent_name = f"{date_prefix}-{topic_slug}{agent_suffix}.md"
-            new_agent_path = PLANS_DIR / new_agent_name
-            if not new_agent_path.exists() and entry.exists() and not entry.is_symlink():
-                try:
-                    os.rename(entry, new_agent_path)
-                    os.symlink(new_agent_path.name, entry)
-                    print(f"plan-rename: {entry.name} -> {new_agent_name}", file=sys.stderr)
-                except OSError:
-                    pass
-
-
-def main():
-    # 1. Parse hook input
-    try:
-        hook_input = json.loads(sys.stdin.read())
-    except (json.JSONDecodeError, OSError):
-        return
-
-    # 2. Fast path: extract file_path
-    tool_input = hook_input.get("tool_input", {})
-    file_path = tool_input.get("file_path", "")
-    if not file_path:
-        return
-
-    filepath = pathlib.Path(file_path).resolve()
-
-    # 3. Fast path: is this in ~/.claude/plans/?
-    try:
-        filepath.relative_to(PLANS_DIR.resolve())
-    except ValueError:
-        return
-
-    # 4. Fast path: is the filename randomly named?
-    filename = filepath.name
-    m = RANDOM_NAME_RE.match(filename)
-    if not m:
-        return  # Already dated or doesn't match pattern
-
-    base_slug = m.group(1)            # e.g., "tingly-humming-simon"
-    agent_suffix = m.group(2) or ""   # e.g., "-agent-a86a410" or ""
-
-    # 5. File must exist and not be a symlink (already renamed)
-    if not filepath.exists() or filepath.is_symlink():
-        return
-
-    # 6. Extract H1 header
+def rename_file(filepath, base_slug, agent_suffix=""):
+    """Rename a random-named file to a dated slug. Creates symlink for Claude Code."""
     h1 = extract_h1(filepath)
     if not h1:
         # For agent files, try the parent plan's H1
         if agent_suffix:
             parent_path = PLANS_DIR / f"{base_slug}.md"
-            if parent_path.exists() and not parent_path.is_symlink():
+            if parent_path.exists():
                 h1 = extract_h1(parent_path)
-            elif parent_path.is_symlink():
-                h1 = extract_h1(parent_path.resolve())
         if not h1:
-            return  # No header yet — wait for next edit
+            return None  # No header — skip
 
-    # 7. Generate the new filename
     today = datetime.date.today().isoformat()
     slug = slugify(h1)
     if not slug:
-        return
+        return None
 
     new_name = f"{today}-{slug}{agent_suffix}.md"
     new_path = PLANS_DIR / new_name
 
-    # 8. Avoid no-op
+    # Avoid no-op
     if new_path.resolve() == filepath.resolve():
-        return
+        return None
 
-    # 9. Handle collision
+    # Handle collision
     if new_path.exists():
         for i in range(2, 10):
             candidate = PLANS_DIR / f"{today}-{slug}-{i}{agent_suffix}.md"
@@ -156,35 +96,136 @@ def main():
                 new_path = candidate
                 break
         else:
-            return  # Too many collisions, bail
+            return None  # Too many collisions
 
-    # 10. Acquire lock (non-blocking)
-    lock_path = pathlib.Path(f"/tmp/claude-plan-rename-{base_slug}.lock")
     try:
-        lock_fd = open(lock_path, "w")
-        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except (OSError, BlockingIOError):
+        os.rename(filepath, new_path)
+        print(f"plan-rename: {filepath.name} -> {new_path.name}", file=sys.stderr)
+    except OSError as e:
+        print(f"plan-rename: error renaming {filepath.name}: {e}", file=sys.stderr)
+        return None
+
+    # Create symlink: random-name.md → dated-name.md
+    # Claude Code's Write tool follows symlinks (confirmed: Node.js fs.writeFile),
+    # so subsequent plan writes reach the dated file via the symlink.
+    # The relative target (new_path.name) resolves against the symlink's directory (PLANS_DIR).
+    try:
+        os.symlink(new_path.name, filepath)
+        print(f"plan-rename: symlink {filepath.name} -> {new_path.name}", file=sys.stderr)
+    except OSError:
+        pass  # Non-critical — file is already renamed
+
+    return new_path
+
+
+def _dabarat_running(port=3031):
+    """Check if dabarat is listening."""
+    import urllib.request
+    try:
+        urllib.request.urlopen(f"http://127.0.0.1:{port}/api/tabs", timeout=1)
+        return True
+    except Exception:
+        return False
+
+
+def open_in_dabarat(filepath):
+    """Open a plan file in dabarat for live preview (non-blocking).
+
+    If dabarat is running: silently adds as tab via --add (no dialog, appropriate
+    for automated Stop hook). If not running: launches new window.
+    """
+    try:
+        if _dabarat_running():
+            subprocess.Popen(
+                ["dabarat", "--add", str(filepath)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            print(f"plan-rename: added {filepath.name} as dabarat tab", file=sys.stderr)
+        else:
+            subprocess.Popen(
+                ["dabarat", str(filepath)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            print(f"plan-rename: launched dabarat for {filepath.name}", file=sys.stderr)
+    except FileNotFoundError:
+        pass  # dabarat not installed
+
+
+def main():
+    # Determine trigger from CLI arg (not from stdin JSON — hook_event_name doesn't exist)
+    trigger = sys.argv[1] if len(sys.argv) > 1 else "session_end"
+
+    # Consume stdin (required by hook protocol)
+    try:
+        data = json.loads(sys.stdin.read())
+    except (json.JSONDecodeError, OSError):
+        data = {}
+
+    # Guard: don't rename during forced continuation (prevent mid-write interference)
+    if data.get("stop_hook_active", False):
         return
 
+    if not PLANS_DIR.exists():
+        return
+
+    # 1. Clean up broken symlinks (always safe)
+    for entry in PLANS_DIR.iterdir():
+        if entry.is_symlink() and not os.path.exists(str(entry)):
+            try:
+                entry.unlink()
+            except OSError:
+                pass
+
+    # 2. On session_end only: clean up all forwarding symlinks (session is over)
+    if trigger == "session_end":
+        symlink_count = 0
+        for entry in PLANS_DIR.iterdir():
+            if entry.is_symlink():
+                try:
+                    entry.unlink()
+                    symlink_count += 1
+                except OSError:
+                    pass
+        if symlink_count:
+            print(f"plan-rename: cleaned {symlink_count} symlink(s)", file=sys.stderr)
+
+    # 3. Acquire lock (short retry to handle Stop/SessionEnd overlap)
+    lock_path = pathlib.Path("/tmp/claude-plan-rename-session.lock")
+    lock_fd = None
+    for _ in range(5):
+        try:
+            lock_fd = open(lock_path, "w")
+            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except (OSError, BlockingIOError):
+            if lock_fd:
+                lock_fd.close()
+                lock_fd = None
+            time.sleep(0.2)
+
+    if lock_fd is None:
+        return  # Truly contended after 1s
+
     try:
-        # 11. Double-check (race guard)
-        if not filepath.exists() or filepath.is_symlink():
-            return
+        # 4. Scan for random-named files and rename them
+        # Collect first so we don't modify while iterating
+        to_rename = []
+        for entry in PLANS_DIR.iterdir():
+            if entry.is_symlink():
+                continue  # Already renamed — symlink points to dated file
+            m = RANDOM_NAME_RE.match(entry.name)
+            if m and entry.is_file():
+                to_rename.append((entry, m.group(1), m.group(2) or ""))
 
-        # 12. Atomic rename
-        os.rename(filepath, new_path)
+        for filepath, base_slug, agent_suffix in to_rename:
+            new_path = rename_file(filepath, base_slug, agent_suffix)
+            if new_path:
+                open_in_dabarat(new_path)
 
-        # 13. Create symlink: old name -> new name (forwarding pointer)
-        os.symlink(new_path.name, filepath)
-
-        # 14. Cascade: rename agent files sharing this base slug
-        if not agent_suffix:
-            rename_agent_files(base_slug, today, slug)
-
-        print(f"plan-rename: {filename} -> {new_path.name}", file=sys.stderr)
-
-    except OSError as e:
-        print(f"plan-rename: error: {e}", file=sys.stderr)
     finally:
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_UN)
