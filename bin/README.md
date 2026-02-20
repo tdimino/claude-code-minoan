@@ -78,6 +78,35 @@ Browse and select from running sessions with [fzf](https://github.com/junegunn/f
 
 **Requires**: `brew install fzf`
 
+### `ccnew` — New Session in Terminal
+
+Open a new Claude Code session in a Ghostty tab, VS Code terminal, or Cursor terminal.
+
+```bash
+ccnew ~/Desktop/my-project                    # Ghostty (default)
+ccnew ~/Desktop/my-project --vscode           # VS Code terminal
+ccnew ~/Desktop/my-project --cursor           # Cursor terminal
+ccnew ~/Desktop/my-project --model sonnet     # With model override
+```
+
+Wrapper for `skills/planning-productivity/claude-tracker-suite/scripts/new-session.sh`.
+
+**Requires**: macOS, Ghostty/VS Code/Cursor
+
+### `ccresume` — Resume Session in Terminal
+
+Open an existing session in a Ghostty tab, VS Code terminal, or Cursor terminal. Auto-detects the project directory.
+
+```bash
+ccresume <session-id>                         # Ghostty (default)
+ccresume <session-id> --vscode                # VS Code terminal
+ccresume <session-id> --project ~/myproject   # Override project dir
+```
+
+Wrapper for `skills/planning-productivity/claude-tracker-suite/scripts/resume-in-vscode.sh`.
+
+**Requires**: macOS, Ghostty/VS Code/Cursor
+
 ### `cckill` — Kill Sessions
 
 Kill Claude Code processes by name or PID.

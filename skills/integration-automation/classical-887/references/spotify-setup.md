@@ -86,6 +86,8 @@ Subsequent runs reuse the cached token automatically (auto-refreshes when expire
 
 ## Usage Examples
 
+### Playlist Creation
+
 ```bash
 # Add recent tracks to the default "Classical 88.7 FM" playlist
 python3 ~/.claude/skills/classical-887/scripts/classical_887.py --recent 10 --spotify-playlist
@@ -93,17 +95,37 @@ python3 ~/.claude/skills/classical-887/scripts/classical_887.py --recent 10 --sp
 # Add today's full playlist
 python3 ~/.claude/skills/classical-887/scripts/classical_887.py --period today --spotify-playlist
 
-# Add yesterday's tracks
-python3 ~/.claude/skills/classical-887/scripts/classical_887.py --period yesterday --spotify-playlist
-
 # Custom playlist name
 python3 ~/.claude/skills/classical-887/scripts/classical_887.py --period week --spotify-playlist "This Week on 88.7"
+```
 
-# Only Bach from the last week
-python3 ~/.claude/skills/classical-887/scripts/classical_887.py --period week --search bach --spotify-playlist "Bach on 88.7"
+### Audit & Cleanup
 
-# Specific date
-python3 ~/.claude/skills/classical-887/scripts/classical_887.py --date 2026-02-14 --spotify-playlist "Valentine's Classical"
+```bash
+# List all owned playlists
+python3 ~/.claude/skills/classical-887/scripts/classical_887.py --spotify-audit
+
+# Filter by name pattern (glob)
+python3 ~/.claude/skills/classical-887/scripts/classical_887.py --spotify-audit --search "Rediscover*"
+
+# Sort by track count
+python3 ~/.claude/skills/classical-887/scripts/classical_887.py --spotify-audit --sort tracks
+
+# Dry run cleanup (preview only)
+python3 ~/.claude/skills/classical-887/scripts/classical_887.py --spotify-cleanup "Rediscover*"
+
+# Execute with safety cap
+python3 ~/.claude/skills/classical-887/scripts/classical_887.py --spotify-cleanup "Rediscover*" --confirm --max 10
+```
+
+### Export
+
+```bash
+# Export matching playlists to JSON (track data preserved before cleanup)
+python3 ~/.claude/skills/classical-887/scripts/classical_887.py --spotify-export ~/Desktop/exports --search "Rediscover*"
+
+# Export all owned playlists
+python3 ~/.claude/skills/classical-887/scripts/classical_887.py --spotify-export ~/Desktop/all-playlists
 ```
 
 ## How It Works
@@ -130,6 +152,40 @@ The script uses `spotipy` for OAuth token management and search, but makes **dir
 | List playlists | `GET /users/{id}/playlists` | `GET /me/playlists` |
 | Create playlist | `POST /users/{id}/playlists` | `POST /me/playlists` |
 | Add tracks | `POST /playlists/{id}/tracks` | `POST /playlists/{id}/items` |
+| Read tracks | `GET /playlists/{id}/tracks` (403) | `GET /playlists/{id}/items` |
+| Unfollow playlist | — | `DELETE /me/library?uris=...` (max 40/call) |
+
+### Feb 2026 Pagination Workaround
+
+Dev Mode breaks manual offset parameter construction—`?limit=50&offset=N` returns empty `items` for offset > 0 despite correct `total`. The fix is to follow the `next` URL returned in each API response:
+
+```python
+# BROKEN: manual offset
+url = f"https://api.spotify.com/v1/me/playlists?limit=50&offset={offset}"
+
+# WORKING: follow next URL
+url = "https://api.spotify.com/v1/me/playlists?limit=50&offset=0"
+while url:
+    data = requests.get(url, headers=headers).json()
+    process(data["items"])
+    url = data.get("next")  # Spotify-provided cursor URL
+```
+
+This also applies to `GET /playlists/{id}/items` for fetching tracks.
+
+### Feb 2026 Response Structure Change
+
+Track data in playlist items is now nested under `"item"` (not `"track"`):
+
+```python
+# Feb 2026 structure
+entry["item"]["name"]     # track name
+entry["item"]["artists"]  # artists array
+entry["item"]["album"]    # album info
+
+# Legacy (may still work for some endpoints)
+entry["track"]["name"]
+```
 
 ### Required OAuth Scopes
 
@@ -138,6 +194,12 @@ The script uses `spotipy` for OAuth token management and search, but makes **dir
 | `playlist-read-private` | Find existing playlists by name |
 | `playlist-modify-public` | Create/modify public playlists |
 | `playlist-modify-private` | Create/modify private playlists |
+| `user-library-modify` | Unfollow (remove) playlists via `--spotify-cleanup` |
+
+> **Scope upgrade:** If you added `user-library-modify` after initial setup, delete the cached token and re-authorize:
+> ```bash
+> rm ~/.claude/skills/classical-887/.spotify-cache
+> ```
 
 ## Troubleshooting
 

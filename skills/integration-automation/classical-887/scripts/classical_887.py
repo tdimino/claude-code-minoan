@@ -249,8 +249,19 @@ def _parse_song(song: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+_LINK_LABELS = {
+    "youtube": "YouTube",
+    "spotify": "Spotify",
+    "apple_music": "Apple Music",
+    "imslp": "IMSLP",
+    "idagio": "IDAGIO",
+    "internet_archive": "Internet Archive",
+    "musopen": "Musopen",
+}
+
+
 def _build_search_urls(composer: str, track_name: str) -> Dict[str, str]:
-    """Build search URLs for YouTube, Spotify, Apple Music, and IMSLP."""
+    """Build search URLs for YouTube, Spotify, Apple Music, IMSLP, IDAGIO, Internet Archive, and Musopen."""
     if not composer and not track_name:
         return {}
 
@@ -262,6 +273,9 @@ def _build_search_urls(composer: str, track_name: str) -> Dict[str, str]:
         "spotify": f"https://open.spotify.com/search/{encoded}",
         "apple_music": f"https://music.apple.com/us/search?term={encoded}",
         "imslp": f"https://imslp.org/index.php?search={quote_plus(composer + ' ' + _extract_work_name(track_name))}",
+        "idagio": f"https://app.idagio.com/search?q={encoded}",
+        "internet_archive": f"https://archive.org/search?query={encoded}&and[]=mediatype:audio",
+        "musopen": f"https://musopen.org/music/?q={encoded}",
     }
 
 
@@ -280,8 +294,10 @@ def _extract_work_name(track_name: str) -> str:
 # ── Spotify Integration ───────────────────────────────────────────────────────
 
 SPOTIFY_REDIRECT_URI = "http://127.0.0.1:8888/callback"
-SPOTIFY_SCOPES = "playlist-read-private playlist-modify-public playlist-modify-private"
+SPOTIFY_SCOPES = "playlist-read-private playlist-modify-public playlist-modify-private user-library-modify"
 SPOTIFY_TOKEN_CACHE = os.path.expanduser("~/.claude/skills/classical-887/.spotify-cache")
+PLAYLIST_LOG_PATH = os.path.expanduser("~/.claude/skills/classical-887/playlist-log.jsonl")
+PLAYLIST_AUDIT_LOG_PATH = os.path.expanduser("~/.claude/skills/classical-887/playlist-audit.jsonl")
 
 
 def _get_spotify_client(client_id: str, client_secret: str) -> "spotipy.Spotify":
@@ -355,15 +371,14 @@ def _spotify_api_headers(sp: "spotipy.Spotify") -> Dict[str, str]:
 
 
 def _find_existing_playlist(sp: "spotipy.Spotify", user_id: str, name: str) -> Optional[Dict[str, Any]]:
-    """Find an existing playlist by name using GET /me/playlists."""
+    """Find an existing playlist by name using GET /me/playlists.
+
+    Uses ``next`` URL pagination (Feb 2026 Dev Mode compat).
+    """
     headers = _spotify_api_headers(sp)
-    offset = 0
-    while True:
-        r = requests.get(
-            "https://api.spotify.com/v1/me/playlists",
-            headers=headers,
-            params={"limit": 50, "offset": offset},
-        )
+    url: Optional[str] = "https://api.spotify.com/v1/me/playlists?limit=50&offset=0"
+    while url:
+        r = requests.get(url, headers=headers)
         r.raise_for_status()
         data = r.json()
         items = data.get("items", [])
@@ -372,9 +387,7 @@ def _find_existing_playlist(sp: "spotipy.Spotify", user_id: str, name: str) -> O
         for pl in items:
             if pl["name"] == name and pl["owner"]["id"] == user_id:
                 return pl
-        offset += 50
-        if offset >= data.get("total", 0):
-            break
+        url = data.get("next")
     return None
 
 
@@ -401,6 +414,219 @@ def _add_items_to_playlist(sp: "spotipy.Spotify", playlist_id: str, uris: List[s
             json={"uris": batch},
         )
         r.raise_for_status()
+
+
+def _rename_playlist(
+    sp: "spotipy.Spotify",
+    playlist_id: str,
+    new_name: str,
+    new_description: Optional[str] = None,
+) -> None:
+    """Rename a playlist via PUT /playlists/{id} (Feb 2026 safe endpoint)."""
+    headers = _spotify_api_headers(sp)
+    body: Dict[str, str] = {"name": new_name}
+    if new_description is not None:
+        body["description"] = new_description
+    r = requests.put(
+        f"https://api.spotify.com/v1/playlists/{playlist_id}",
+        headers=headers,
+        json=body,
+    )
+    r.raise_for_status()
+
+
+def rename_spotify_playlist(
+    current_name: str,
+    new_name: str,
+    client_id: str,
+    client_secret: str,
+    new_description: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Find a playlist by current name and rename it.
+
+    Returns a summary dict with old/new names and playlist URL.
+    """
+    sp = _get_spotify_client(client_id, client_secret)
+    user = sp.current_user()
+    user_id = user["id"]
+
+    print(f"Authenticated as: {user['display_name']} ({user_id})", file=sys.stderr)
+    print(f"Looking for playlist: {current_name}", file=sys.stderr)
+
+    existing = _find_existing_playlist(sp, user_id, current_name)
+    if not existing:
+        print(f"Error: No playlist found with name '{current_name}'.", file=sys.stderr)
+        return {"error": f"Playlist '{current_name}' not found", "renamed": False}
+
+    playlist_id = existing["id"]
+    playlist_url = existing["external_urls"]["spotify"]
+
+    _rename_playlist(sp, playlist_id, new_name, new_description)
+
+    print(f"Renamed: '{current_name}' → '{new_name}'", file=sys.stderr)
+    if new_description:
+        print(f"Description: {new_description}", file=sys.stderr)
+    print(f"Playlist URL: {playlist_url}", file=sys.stderr)
+
+    return {
+        "renamed": True,
+        "playlist_id": playlist_id,
+        "playlist_url": playlist_url,
+        "old_name": current_name,
+        "new_name": new_name,
+        "new_description": new_description,
+    }
+
+
+# ── Playlist Logging ─────────────────────────────────────────────────────────
+
+def _append_playlist_log(result: Dict[str, Any]) -> str:
+    """Append a JSONL entry to the playlist log after a --spotify-playlist operation.
+
+    Each entry records the date, playlist metadata, matched/unmatched tracks,
+    and total counts. Returns the log file path.
+    """
+    entry = {
+        "date": datetime.now().isoformat(),
+        "playlist_name": result.get("playlist_name", ""),
+        "playlist_url": result.get("playlist_url", ""),
+        "playlist_id": result.get("playlist_id", ""),
+        "action": result.get("action", ""),
+        "matched_count": result.get("matched", 0),
+        "unmatched_count": result.get("unmatched", 0),
+        "total_count": result.get("total", 0),
+        "tracks_added": [],
+        "tracks_not_found": [],
+    }
+
+    for m in result.get("matched_tracks", []):
+        radio = m.get("radio_track", {})
+        spotify = m.get("spotify", {})
+        entry["tracks_added"].append({
+            "composer": radio.get("composer", ""),
+            "piece": radio.get("track_name", ""),
+            "performers": radio.get("performers", ""),
+            "duration": radio.get("duration", ""),
+            "spotify_uri": spotify.get("uri", ""),
+            "spotify_name": spotify.get("name", ""),
+            "spotify_artists": spotify.get("artists", ""),
+        })
+
+    for t in result.get("unmatched_tracks", []):
+        entry["tracks_not_found"].append({
+            "composer": t.get("composer", ""),
+            "piece": t.get("track_name", ""),
+            "performers": t.get("performers", ""),
+            "duration": t.get("duration", ""),
+        })
+
+    with open(PLAYLIST_LOG_PATH, "a") as f:
+        f.write(json.dumps(entry, default=str) + "\n")
+
+    return PLAYLIST_LOG_PATH
+
+
+def _read_playlist_log() -> List[Dict[str, Any]]:
+    """Read all entries from the playlist log JSONL file."""
+    entries = []
+    if not os.path.exists(PLAYLIST_LOG_PATH):
+        return entries
+    with open(PLAYLIST_LOG_PATH, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    return entries
+
+
+def format_playlist_log_report() -> str:
+    """Render the playlist log as a Markdown report."""
+    entries = _read_playlist_log()
+    if not entries:
+        return "No playlist log entries found.\n\nLog file: " + PLAYLIST_LOG_PATH
+
+    lines = []
+    lines.append("# Classical 88.7 FM — Spotify Playlist Log")
+    lines.append(f"*{len(entries)} operations logged*\n")
+
+    total_matched = 0
+    total_unmatched = 0
+
+    for i, entry in enumerate(entries, 1):
+        date_str = entry.get("date", "")
+        # Parse ISO date for display
+        try:
+            dt = datetime.fromisoformat(date_str)
+            display_date = dt.strftime("%B %d, %Y at %I:%M %p")
+        except (ValueError, TypeError):
+            display_date = date_str
+
+        playlist_name = entry.get("playlist_name", "Unknown")
+        playlist_url = entry.get("playlist_url", "")
+        action = entry.get("action", "unknown")
+        matched = entry.get("matched_count", 0)
+        unmatched = entry.get("unmatched_count", 0)
+        total = entry.get("total_count", 0)
+
+        total_matched += matched
+        total_unmatched += unmatched
+
+        lines.append(f"## {i}. {display_date}")
+        lines.append("")
+        if playlist_url:
+            lines.append(f"**Playlist:** [{playlist_name}]({playlist_url}) ({action})")
+        else:
+            lines.append(f"**Playlist:** {playlist_name} ({action})")
+        lines.append(f"**Tracks:** {matched} matched, {unmatched} not found, {total} total")
+        lines.append("")
+
+        tracks_added = entry.get("tracks_added", [])
+        if tracks_added:
+            lines.append("### Tracks Added\n")
+            lines.append("| Composer | Piece | Performers | Duration | Spotify |")
+            lines.append("|----------|-------|------------|----------|---------|")
+            for t in tracks_added:
+                composer = t.get("composer", "").replace("|", "\\|")
+                piece = t.get("piece", "").replace("|", "\\|")
+                performers = t.get("performers", "").replace("|", "\\|")
+                duration = t.get("duration", "")
+                uri = t.get("spotify_uri", "")
+                sp_name = t.get("spotify_name", "").replace("|", "\\|")
+                if uri:
+                    # Convert URI to URL
+                    track_id = uri.replace("spotify:track:", "")
+                    sp_link = f"[{sp_name}](https://open.spotify.com/track/{track_id})"
+                else:
+                    sp_link = sp_name
+                lines.append(f"| {composer} | {piece} | {performers} | {duration} | {sp_link} |")
+            lines.append("")
+
+        not_found = entry.get("tracks_not_found", [])
+        if not_found:
+            lines.append("### Not Found on Spotify\n")
+            for t in not_found:
+                composer = t.get("composer", "?")
+                piece = t.get("piece", "?")
+                lines.append(f"- {composer} — {piece}")
+            lines.append("")
+
+        lines.append("---\n")
+
+    # Summary
+    lines.append("## Summary\n")
+    lines.append(f"| Metric | Value |")
+    lines.append(f"|--------|-------|")
+    lines.append(f"| Total operations | {len(entries)} |")
+    lines.append(f"| Total tracks matched | {total_matched} |")
+    lines.append(f"| Total tracks not found | {total_unmatched} |")
+    lines.append(f"| Match rate | {total_matched / max(total_matched + total_unmatched, 1) * 100:.1f}% |")
+    lines.append(f"| Log file | `{PLAYLIST_LOG_PATH}` |")
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def create_spotify_playlist(
@@ -494,7 +720,7 @@ def create_spotify_playlist(
         for t in unmatched:
             print(f"    - {t.get('composer', '?')} — {t.get('track_name', '?')}", file=sys.stderr)
 
-    return {
+    result = {
         "playlist_url": playlist_url,
         "playlist_id": playlist_id,
         "playlist_name": playlist_name,
@@ -506,6 +732,341 @@ def create_spotify_playlist(
         "matched_tracks": matched,
         "unmatched_tracks": unmatched,
     }
+
+    # Auto-log to JSONL
+    try:
+        log_path = _append_playlist_log(result)
+        print(f"  Logged to: {log_path}", file=sys.stderr)
+    except Exception as e:
+        print(f"  Warning: could not write playlist log ({e})", file=sys.stderr)
+
+    return result
+
+
+# ── Spotify Audit & Cleanup ──────────────────────────────────────────────────
+
+def _list_all_playlists(
+    sp: "spotipy.Spotify", user_id: str, search: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """Paginate GET /me/playlists, filter to owned, optional name match.
+
+    Uses Spotify's ``next`` URL for pagination—Feb 2026 Dev Mode breaks
+    manual offset construction but honours the cursor link returned in
+    each response.
+    """
+    import fnmatch
+
+    # Auto-wrap search in wildcards if it contains no glob characters,
+    # so --search "Rediscover" matches "Rediscover - Aug 30th".
+    pattern = search
+    if pattern and not any(c in pattern for c in "*?["):
+        pattern = f"*{pattern}*"
+
+    headers = _spotify_api_headers(sp)
+    playlists = []
+    url: Optional[str] = "https://api.spotify.com/v1/me/playlists?limit=50&offset=0"
+    retries = 0
+    while url:
+        r = requests.get(url, headers=headers)
+        if r.status_code == 429:
+            retries += 1
+            if retries > 3:
+                print("  Rate limit: max retries exceeded, returning partial results.", file=sys.stderr)
+                break
+            wait = min(int(r.headers.get("Retry-After", 5)), 30)
+            print(f"  Rate limited, waiting {wait}s (attempt {retries}/3)...", file=sys.stderr)
+            time.sleep(wait)
+            continue
+        r.raise_for_status()
+        retries = 0
+        data = r.json()
+        items = data.get("items", [])
+        if not items:
+            break
+        for pl in items:
+            if pl["owner"]["id"] != user_id:
+                continue
+            track_info = pl.get("items", pl.get("tracks", {}))
+            total = track_info.get("total", 0) if isinstance(track_info, dict) else 0
+            entry = {
+                "id": pl["id"],
+                "name": pl["name"],
+                "tracks": total,
+                "public": pl.get("public", False),
+                "url": pl.get("external_urls", {}).get("spotify", ""),
+                "description": pl.get("description", ""),
+            }
+            if pattern and not fnmatch.fnmatch(entry["name"].lower(), pattern.lower()):
+                continue
+            playlists.append(entry)
+        url = data.get("next")
+    return playlists
+
+
+def _get_playlist_age_proxy(sp: "spotipy.Spotify", playlist_id: str) -> Optional[str]:
+    """Fetch first track's added_at as a proxy for playlist creation date."""
+    headers = _spotify_api_headers(sp)
+    try:
+        r = requests.get(
+            f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks",
+            headers=headers,
+            params={"limit": 1, "fields": "items(added_at)"},
+        )
+        r.raise_for_status()
+        items = r.json().get("items", [])
+        if items and items[0].get("added_at"):
+            return items[0]["added_at"]
+    except Exception:
+        pass
+    return None
+
+
+def _unfollow_playlists_batch(sp: "spotipy.Spotify", playlist_ids: List[str]) -> int:
+    """Unfollow (delete) playlists via DELETE /me/following in batches."""
+    headers = _spotify_api_headers(sp)
+    removed = 0
+    # Spotify batch unfollow: DELETE /playlists/{id}/followers (one at a time)
+    # The Feb 2026 DELETE /me/library endpoint is for albums/tracks.
+    # For playlists, we must unfollow individually.
+    for pid in playlist_ids:
+        try:
+            r = requests.delete(
+                f"https://api.spotify.com/v1/playlists/{pid}/followers",
+                headers=headers,
+            )
+            r.raise_for_status()
+            removed += 1
+        except Exception as e:
+            print(f"  Warning: could not unfollow playlist {pid}: {e}", file=sys.stderr)
+    return removed
+
+
+def _append_audit_log(entry: Dict[str, Any]) -> str:
+    """Append a JSONL entry to the playlist audit log."""
+    entry["timestamp"] = datetime.now().isoformat()
+    with open(PLAYLIST_AUDIT_LOG_PATH, "a") as f:
+        f.write(json.dumps(entry, default=str) + "\n")
+    return PLAYLIST_AUDIT_LOG_PATH
+
+
+def _fetch_playlist_tracks(sp: "spotipy.Spotify", playlist_id: str) -> List[Dict[str, Any]]:
+    """Fetch all tracks from a playlist using ``next`` URL pagination.
+
+    Uses ``/playlists/{id}/items`` (Feb 2026 safe endpoint) with limit=50
+    to stay within Dev Mode caps.  The Feb 2026 API nests track data under
+    the ``item`` key (not ``track``), so we check both for compatibility.
+    """
+    headers = _spotify_api_headers(sp)
+    tracks = []
+    url: Optional[str] = (
+        f"https://api.spotify.com/v1/playlists/{playlist_id}/items"
+        f"?limit=50&offset=0"
+    )
+    retries = 0
+    while url:
+        r = requests.get(url, headers=headers)
+        if r.status_code == 429:
+            retries += 1
+            if retries > 3:
+                print("  Rate limit: max retries exceeded, returning partial results.", file=sys.stderr)
+                break
+            wait = min(int(r.headers.get("Retry-After", 5)), 30)
+            print(f"  Rate limited, waiting {wait}s (attempt {retries}/3)...", file=sys.stderr)
+            time.sleep(wait)
+            continue
+        r.raise_for_status()
+        retries = 0
+        data = r.json()
+        items = data.get("items", [])
+        if not items:
+            break
+        for entry in items:
+            # Feb 2026: track data under "item"; legacy: under "track"
+            t = entry.get("item") or entry.get("track")
+            if not t:
+                continue
+            tracks.append({
+                "name": t.get("name", ""),
+                "artists": ", ".join(a["name"] for a in t.get("artists", [])),
+                "album": t.get("album", {}).get("name", ""),
+                "uri": t.get("uri", ""),
+                "url": t.get("external_urls", {}).get("spotify", ""),
+                "duration_ms": t.get("duration_ms", 0),
+                "added_at": entry.get("added_at", ""),
+            })
+        url = data.get("next")
+    return tracks
+
+
+def export_spotify_playlists(
+    client_id: str,
+    client_secret: str,
+    search: Optional[str] = None,
+    output_dir: str = ".",
+) -> Dict[str, Any]:
+    """Export matching playlists' track data to JSON files in output_dir."""
+    sp = _get_spotify_client(client_id, client_secret)
+    user_id = sp.current_user()["id"]
+
+    print(f"Fetching playlists for {user_id}...", file=sys.stderr)
+    playlists = _list_all_playlists(sp, user_id, search)
+
+    if not playlists:
+        print("No matching playlists found.", file=sys.stderr)
+        return {"action": "export", "count": 0, "files": []}
+
+    os.makedirs(output_dir, exist_ok=True)
+    files = []
+    for i, pl in enumerate(playlists, 1):
+        print(f"  [{i}/{len(playlists)}] {pl['name']} ({pl['tracks']} tracks)...", file=sys.stderr)
+        tracks = _fetch_playlist_tracks(sp, pl["id"])
+        safe_name = "".join(c if c.isalnum() or c in " -_" else "_" for c in pl["name"]).strip()
+        filename = f"{safe_name}.json"
+        filepath = os.path.join(output_dir, filename)
+        export_data = {
+            "playlist_id": pl["id"],
+            "name": pl["name"],
+            "url": pl["url"],
+            "track_count": len(tracks),
+            "exported_at": datetime.now().isoformat(),
+            "tracks": tracks,
+        }
+        with open(filepath, "w") as f:
+            f.write(json.dumps(export_data, indent=2, default=str, ensure_ascii=False))
+        files.append(filepath)
+
+    result = {"action": "export", "count": len(files), "output_dir": output_dir, "files": files}
+    _append_audit_log({"action": "export", "user_id": user_id, "search": search, "count": len(files), "output_dir": output_dir})
+
+    print(f"\nExported {len(files)} playlist(s) to {output_dir}/", file=sys.stderr)
+    return result
+
+
+def _format_audit_table(playlists: List[Dict[str, Any]], show_age: bool = False) -> str:
+    """Render playlists as an ASCII table."""
+    if not playlists:
+        return "No playlists found."
+    lines = []
+    lines.append(f"Spotify Playlists ({len(playlists)} owned)")
+    lines.append("=" * 90)
+    if show_age:
+        header = f"{'#':>3}  {'Name':<40} {'Tracks':>6}  {'Age Proxy':<12} {'Public':>6}"
+    else:
+        header = f"{'#':>3}  {'Name':<40} {'Tracks':>6}  {'Public':>6}"
+    lines.append(header)
+    lines.append("-" * len(header))
+    for i, pl in enumerate(playlists, 1):
+        name = _truncate(pl["name"], 38)
+        pub = "Yes" if pl.get("public") else "No"
+        if show_age:
+            age = pl.get("age_proxy", "")[:10] if pl.get("age_proxy") else "—"
+            lines.append(f"{i:>3}  {name:<40} {pl['tracks']:>6}  {age:<12} {pub:>6}")
+        else:
+            lines.append(f"{i:>3}  {name:<40} {pl['tracks']:>6}  {pub:>6}")
+    return "\n".join(lines)
+
+
+def audit_spotify_playlists(
+    client_id: str,
+    client_secret: str,
+    search: Optional[str] = None,
+    sort_by: str = "name",
+    as_json: bool = False,
+) -> Dict[str, Any]:
+    """List all user-owned playlists with optional filtering and sorting."""
+    sp = _get_spotify_client(client_id, client_secret)
+    user_id = sp.current_user()["id"]
+
+    print(f"Fetching playlists for {user_id}...", file=sys.stderr)
+    playlists = _list_all_playlists(sp, user_id, search)
+
+    # Sort
+    if sort_by == "tracks":
+        playlists.sort(key=lambda p: p["tracks"], reverse=True)
+    elif sort_by == "name":
+        playlists.sort(key=lambda p: p["name"].lower())
+    elif sort_by == "age":
+        print("Fetching age proxies (this may take a moment)...", file=sys.stderr)
+        for pl in playlists:
+            pl["age_proxy"] = _get_playlist_age_proxy(sp, pl["id"])
+        playlists.sort(key=lambda p: p.get("age_proxy") or "9999", reverse=True)
+
+    result = {
+        "action": "audit",
+        "user_id": user_id,
+        "search": search,
+        "sort_by": sort_by,
+        "count": len(playlists),
+        "playlists": playlists,
+    }
+
+    _append_audit_log({"action": "audit", "user_id": user_id, "search": search, "count": len(playlists)})
+
+    if as_json:
+        print(json.dumps(result, indent=2, default=str))
+    else:
+        print(_format_audit_table(playlists, show_age=(sort_by == "age")))
+        print(f"\n{len(playlists)} playlist(s) found.", file=sys.stderr)
+
+    return result
+
+
+def cleanup_spotify_playlists(
+    pattern: str,
+    client_id: str,
+    client_secret: str,
+    confirm: bool = False,
+    max_remove: int = 0,
+    as_json: bool = False,
+) -> Dict[str, Any]:
+    """Preview or execute removal of playlists matching a glob pattern."""
+    sp = _get_spotify_client(client_id, client_secret)
+    user_id = sp.current_user()["id"]
+
+    print(f"Searching for playlists matching '{pattern}'...", file=sys.stderr)
+    matched = _list_all_playlists(sp, user_id, pattern)
+
+    if max_remove > 0:
+        matched = matched[:max_remove]
+
+    result = {
+        "action": "cleanup_preview" if not confirm else "cleanup_execute",
+        "user_id": user_id,
+        "pattern": pattern,
+        "matched": len(matched),
+        "max_remove": max_remove,
+        "playlists": matched,
+        "removed": 0,
+    }
+
+    if not matched:
+        print(f"No playlists matching '{pattern}'.", file=sys.stderr)
+        _append_audit_log(result)
+        return result
+
+    # Always preview first
+    print(f"\n{'WILL REMOVE' if confirm else 'DRY RUN — would remove'} {len(matched)} playlist(s):\n")
+    for i, pl in enumerate(matched, 1):
+        print(f"  {i}. {pl['name']} ({pl['tracks']} tracks)")
+
+    if not confirm:
+        print(f"\nTo execute, add --confirm (and optionally --max N for safety cap).", file=sys.stderr)
+        _append_audit_log(result)
+        return result
+
+    # Execute removal
+    print(f"\nRemoving {len(matched)} playlist(s)...", file=sys.stderr)
+    ids = [pl["id"] for pl in matched]
+    removed = _unfollow_playlists_batch(sp, ids)
+    result["removed"] = removed
+    print(f"  Removed {removed} of {len(matched)} playlist(s).", file=sys.stderr)
+
+    _append_audit_log(result)
+
+    if as_json:
+        print(json.dumps(result, indent=2, default=str))
+
+    return result
 
 
 # ── Output Formatting ─────────────────────────────────────────────────────────
@@ -548,13 +1109,19 @@ def format_now_playing(data: Dict[str, Any], verbose: bool = False) -> str:
         lines.append("")
         lines.append("Listen:")
         if links.get("youtube"):
-            lines.append(f"  YouTube:     {links['youtube']}")
+            lines.append(f"  YouTube:          {links['youtube']}")
         if links.get("spotify"):
-            lines.append(f"  Spotify:     {links['spotify']}")
+            lines.append(f"  Spotify:          {links['spotify']}")
         if links.get("apple_music"):
-            lines.append(f"  Apple Music: {links['apple_music']}")
+            lines.append(f"  Apple Music:      {links['apple_music']}")
         if links.get("imslp"):
-            lines.append(f"  IMSLP:       {links['imslp']}")
+            lines.append(f"  IMSLP:            {links['imslp']}")
+        if links.get("idagio"):
+            lines.append(f"  IDAGIO:           {links['idagio']}")
+        if links.get("internet_archive"):
+            lines.append(f"  Internet Archive: {links['internet_archive']}")
+        if links.get("musopen"):
+            lines.append(f"  Musopen:          {links['musopen']}")
 
     lines.append("")
     lines.append(f"Stream live: {WMHT_STREAM_URL}")
@@ -600,7 +1167,8 @@ def format_recent_tracks(tracks: List[Dict[str, Any]], verbose: bool = False) ->
             if links:
                 link_parts = []
                 for name, url in links.items():
-                    link_parts.append(f"{name}: {url}")
+                    label = _LINK_LABELS.get(name, name)
+                    link_parts.append(f"{label}: {url}")
                 lines.append(f"{'':>12} {' | '.join(link_parts)}")
             lines.append("")
         else:
@@ -643,6 +1211,12 @@ def format_markdown(tracks: List[Dict[str, Any]], now_playing: Optional[Dict] = 
                 link_parts.append(f"[Apple Music]({links['apple_music']})")
             if links.get("imslp"):
                 link_parts.append(f"[IMSLP]({links['imslp']})")
+            if links.get("idagio"):
+                link_parts.append(f"[IDAGIO]({links['idagio']})")
+            if links.get("internet_archive"):
+                link_parts.append(f"[Internet Archive]({links['internet_archive']})")
+            if links.get("musopen"):
+                link_parts.append(f"[Musopen]({links['musopen']})")
             lines.append(f"\n{' · '.join(link_parts)}")
         lines.append("")
 
@@ -671,6 +1245,12 @@ def format_markdown(tracks: List[Dict[str, Any]], now_playing: Optional[Dict] = 
                 link_parts.append(f"[AM]({links['apple_music']})")
             if links.get("imslp"):
                 link_parts.append(f"[IMSLP]({links['imslp']})")
+            if links.get("idagio"):
+                link_parts.append(f"[ID]({links['idagio']})")
+            if links.get("internet_archive"):
+                link_parts.append(f"[IA]({links['internet_archive']})")
+            if links.get("musopen"):
+                link_parts.append(f"[MO]({links['musopen']})")
 
             listen = " ".join(link_parts)
             lines.append(f"| {time_str}{now_mark} | {composer} | {piece} | {performers} | {duration} | {listen} |")
@@ -742,6 +1322,9 @@ def main():
   %(prog)s --date 2026-02-14               Valentine's Day playlist
   %(prog)s --verbose                       Full performer details
   %(prog)s --json                          Raw JSON output
+  %(prog)s --spotify-rename "New Name"     Rename default playlist
+  %(prog)s --spotify-playlist "Old" --spotify-rename "New"   Rename specific playlist
+  %(prog)s --spotify-log-report            View playlist operation history
 """,
     )
     parser.add_argument(
@@ -800,10 +1383,122 @@ def main():
         default=os.environ.get("SPOTIFY_CLIENT_SECRET", ""),
         help="Spotify app client secret (or set SPOTIFY_CLIENT_SECRET env var)",
     )
+    parser.add_argument(
+        "--spotify-rename", type=str, metavar="NEW_NAME", nargs="?", const=None,
+        help="Rename a Spotify playlist. Renames the default 'Classical 88.7 FM' unless --spotify-playlist specifies the current name.",
+    )
+    parser.add_argument(
+        "--spotify-description", type=str, metavar="DESC", default=None,
+        help="New description when renaming a playlist (used with --spotify-rename)",
+    )
+    parser.add_argument(
+        "--spotify-log-report", action="store_true",
+        help="View the playlist operation log as a Markdown report",
+    )
+
+    # Spotify audit & cleanup
+    parser.add_argument(
+        "--spotify-audit", action="store_true",
+        help="List all user-owned Spotify playlists (combine with --search, --sort, --json)",
+    )
+    parser.add_argument(
+        "--spotify-export", type=str, metavar="DIR", nargs="?", const="spotify-export",
+        help="Export matching playlists' tracks to JSON files in DIR (default: ./spotify-export/)",
+    )
+    parser.add_argument(
+        "--spotify-cleanup", type=str, metavar="PATTERN", default=None,
+        help="Preview removal of playlists matching glob pattern (dry run unless --confirm)",
+    )
+    parser.add_argument(
+        "--confirm", action="store_true",
+        help="Execute playlist removal (use with --spotify-cleanup)",
+    )
+    parser.add_argument(
+        "--max", type=int, metavar="N", default=0,
+        help="Safety cap: max playlists to remove per invocation (use with --spotify-cleanup)",
+    )
 
     args = parser.parse_args()
 
-    # Resolve date/period into a since/until range
+    # ── Standalone Spotify modes (exit early) ────────────────────────────────
+
+    # --spotify-log-report: render the JSONL log as Markdown and exit
+    if args.spotify_log_report:
+        report = format_playlist_log_report()
+        print(report)
+        return
+
+    # --spotify-rename: rename an existing playlist and exit
+    if args.spotify_rename is not None:
+        if not args.spotify_client_id or not args.spotify_client_secret:
+            print("Error: Spotify credentials required for --spotify-rename.", file=sys.stderr)
+            print("  Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET env vars.", file=sys.stderr)
+            sys.exit(1)
+        # The current name is either from --spotify-playlist or the default
+        current_name = args.spotify_playlist if args.spotify_playlist else "Classical 88.7 FM"
+        new_name = args.spotify_rename
+        if not new_name:
+            print("Error: --spotify-rename requires a new name.", file=sys.stderr)
+            print("  Usage: --spotify-rename \"New Playlist Name\"", file=sys.stderr)
+            sys.exit(1)
+        result = rename_spotify_playlist(
+            current_name=current_name,
+            new_name=new_name,
+            client_id=args.spotify_client_id,
+            client_secret=args.spotify_client_secret,
+            new_description=args.spotify_description,
+        )
+        if args.json:
+            print(json.dumps(result, indent=2, default=str))
+        return
+
+    # --spotify-export: export playlist tracks to JSON files and exit
+    if args.spotify_export is not None:
+        if not args.spotify_client_id or not args.spotify_client_secret:
+            print("Error: Spotify credentials required for --spotify-export.", file=sys.stderr)
+            print("  Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET env vars.", file=sys.stderr)
+            sys.exit(1)
+        export_spotify_playlists(
+            client_id=args.spotify_client_id,
+            client_secret=args.spotify_client_secret,
+            search=args.search,
+            output_dir=args.spotify_export,
+        )
+        return
+
+    # --spotify-audit: list all owned playlists and exit
+    if args.spotify_audit:
+        if not args.spotify_client_id or not args.spotify_client_secret:
+            print("Error: Spotify credentials required for --spotify-audit.", file=sys.stderr)
+            print("  Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET env vars.", file=sys.stderr)
+            sys.exit(1)
+        sort_field = args.sort if args.sort in ("name", "tracks", "age") else "name"
+        audit_spotify_playlists(
+            client_id=args.spotify_client_id,
+            client_secret=args.spotify_client_secret,
+            search=args.search,
+            sort_by=sort_field,
+            as_json=args.json,
+        )
+        return
+
+    # --spotify-cleanup: preview/execute playlist removal and exit
+    if args.spotify_cleanup is not None:
+        if not args.spotify_client_id or not args.spotify_client_secret:
+            print("Error: Spotify credentials required for --spotify-cleanup.", file=sys.stderr)
+            print("  Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET env vars.", file=sys.stderr)
+            sys.exit(1)
+        cleanup_spotify_playlists(
+            pattern=args.spotify_cleanup,
+            client_id=args.spotify_client_id,
+            client_secret=args.spotify_client_secret,
+            confirm=args.confirm,
+            max_remove=args.max,
+            as_json=args.json,
+        )
+        return
+
+    # ── Resolve date/period into a since/until range ─────────────────────────
     since = None
     until = None
     if args.date:

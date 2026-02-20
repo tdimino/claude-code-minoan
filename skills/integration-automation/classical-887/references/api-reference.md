@@ -117,12 +117,15 @@ https://api.composer.nprstations.org/v1
 
 For linking to performances and scores:
 
-| Service | URL Template |
-|---------|-------------|
-| YouTube | `https://www.youtube.com/results?search_query={composer}+{track}` |
-| Spotify | `https://open.spotify.com/search/{composer}+{track}` |
-| Apple Music | `https://music.apple.com/us/search?term={composer}+{track}` |
-| IMSLP | `https://imslp.org/index.php?search={composer}+{work_name}` |
+| Service | URL Template | Abbrev |
+|---------|-------------|--------|
+| YouTube | `https://www.youtube.com/results?search_query={composer}+{track}` | YT |
+| Spotify | `https://open.spotify.com/search/{composer}+{track}` | Sp |
+| Apple Music | `https://music.apple.com/us/search?term={composer}+{track}` | AM |
+| IMSLP | `https://imslp.org/index.php?search={composer}+{work_name}` | IMSLP |
+| IDAGIO | `https://app.idagio.com/search?q={composer}+{track}` | ID |
+| Internet Archive | `https://archive.org/search?query={composer}+{track}&and[]=mediatype:audio` | IA |
+| Musopen | `https://musopen.org/music/?q={composer}+{track}` | MO |
 
 All values should be URL-encoded via `urllib.parse.quote_plus()`.
 
