@@ -30,7 +30,7 @@ claude-code-minoan/
 ├── commands/                    # 43 slash commands (workflows, planning, code review)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
-├── tools/                       # Standalone tools (see github.com/tdimino/md-preview-and-annotate)
+├── tools/                       # Standalone tools (see github.com/tdimino/dabarat)
 ├── lib/                         # Shared libraries (tracker-utils.js)
 ├── extensions/                  # VS Code Claude Session Tracker extension
 ├── ghostty/                     # Ghostty terminal config for Claude Code
@@ -239,13 +239,13 @@ cd claudicle && ./setup.sh --personal
 # then in any Claude Code session: /ensoul
 ```
 
-### [md-preview-and-annotate](https://github.com/tdimino/md-preview-and-annotate) — Live Markdown Preview
+### [Dabarat](https://github.com/tdimino/dabarat) — Live Markdown Preview
 
-Zero-dependency Markdown previewer with annotation, commenting, and bookmarking. The `dabarat-open.py` hook auto-opens new `.md` files in a browser tab as Claude writes them—plans, docs, and READMEs render live. Multi-tab support, margin annotations, and global bookmarks saved to `~/.claude/bookmarks/`.
+AI-native markdown previewer with annotations, bookmarks, and live reload. Zero dependencies. The `dabarat-open.py` hook auto-opens new `.md` files in a browser tab as Claude writes them—plans, docs, and READMEs render live. Multi-tab support, margin annotations, and global bookmarks saved to `~/.claude/bookmarks/`.
 
 ```bash
-git clone https://github.com/tdimino/md-preview-and-annotate
-cd md-preview-and-annotate && pip install -e .
+git clone https://github.com/tdimino/dabarat
+cd dabarat && pip install -e .
 dabarat plan.md               # preview in browser
 dabarat --add spec.md         # add tab to running instance
 ```

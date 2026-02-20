@@ -2,7 +2,7 @@
 
 Catppuccin-themed live-reloading Markdown viewer with multi-tab support, annotations, bookmarks, and resizable TOC. Extends the idea behind [`mdserve`](https://github.com/jfernandez/mdserve) with a full editorial UI.
 
-> **Canonical source**: [github.com/tdimino/md-preview-and-annotate](https://github.com/tdimino/md-preview-and-annotate)
+> **Canonical source**: [github.com/tdimino/dabarat](https://github.com/tdimino/dabarat)
 
 ![mdpreview with annotations](screenshot.png)
 

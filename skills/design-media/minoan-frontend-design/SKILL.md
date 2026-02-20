@@ -1,5 +1,5 @@
 ---
-name: frontend-design
+name: minoan-frontend-design
 description: This skill should be used when building web components, pages, artifacts, posters, or applications (websites, landing pages, dashboards, React components, HTML/CSS layouts, or styling/beautifying any web UI). Creates distinctive, production-grade frontend interfaces with high design quality that avoids generic AI aesthetics.
 license: Complete terms in LICENSE.txt
 ---
