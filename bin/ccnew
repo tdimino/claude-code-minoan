@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# ccnew — Open a new Claude Code session in Ghostty/VS Code/Cursor
+# Wrapper for claude-tracker-suite/scripts/new-session.sh
+exec "$(dirname "$0")/../skills/planning-productivity/claude-tracker-suite/scripts/new-session.sh" "$@"
