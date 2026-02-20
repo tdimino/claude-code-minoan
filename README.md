@@ -234,9 +234,9 @@ Pair with **ccstatusline** (`npm install -g ccstatusline`) and **lazygit** (`bre
 Open-source 4-layer soul architecture (Identity, Cognition, Memory, Channels) that gives Claude Code sessions persistent personality, memory, and behavioral continuity. The soul hooks in this repo (`soul-activate.py`, `soul-deregister.py`, `soul-registry.py`) register sessions with the Claudicle daemon. Souls like Kothar—the Ugaritic craftsman god—maintain identity across sessions, respond on Slack, and dream in the Daimon Chamber.
 
 ```bash
-pip install claudicle
-claudicle daemon start        # launch soul daemon
-claudicle soul list           # see active souls
+git clone https://github.com/tdimino/claudicle
+cd claudicle && ./setup.sh --personal
+# then in any Claude Code session: /ensoul
 ```
 
 ### [md-preview-and-annotate](https://github.com/tdimino/md-preview-and-annotate) — Live Markdown Preview
@@ -244,7 +244,8 @@ claudicle soul list           # see active souls
 Zero-dependency Markdown previewer with annotation, commenting, and bookmarking. The `dabarat-open.py` hook auto-opens new `.md` files in a browser tab as Claude writes them—plans, docs, and READMEs render live. Multi-tab support, margin annotations, and global bookmarks saved to `~/.claude/bookmarks/`.
 
 ```bash
-pip install md-preview-and-annotate
+git clone https://github.com/tdimino/md-preview-and-annotate
+cd md-preview-and-annotate && pip install -e .
 dabarat plan.md               # preview in browser
 dabarat --add spec.md         # add tab to running instance
 ```
