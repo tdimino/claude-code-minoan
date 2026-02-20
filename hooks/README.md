@@ -7,23 +7,38 @@ Scripts that run in response to Claude Code lifecycle events. Together they prov
 ```
 Claude Code Lifecycle                          What Fires
 ────────────────────                          ──────────────────────────────────
+Session starts ──────→ SessionStart ────────→ soul-activate.py (register soul daemon)
+
 User types message ──→ UserPromptSubmit ────→ multi-response-prompt.py (/5x)
+                                            → slack_inbox_hook.py (check Slack DMs)
 
 Claude uses a tool ──→ PreToolUse ──────────→ on-thinking.sh (🔴 tab title)
+                                            → block-websearch.sh / block-webfetch.sh (guards)
 
 Claude responds ─────→ Stop ────────────────→ on-ready.sh (🟢 tab + sound + notification)
                                             → propagate-rename.py (sync /rename → caches)
                                             → stop-handoff.py (checkpoint every 5 min)
+                                            → session-tags-infer.py (AI-powered session tags)
+                                            → slack-stop-hook.py (notify Slack channels)
+                                            → plan-rename.py (random→dated slug + dabarat)
 
-Plan file written ──→ PostToolUse ─────────→ plan-rename.py (random→dated slug)
-  (Write/Edit/MultiEdit on ~/.claude/plans/)
+Plan/md file written → PostToolUse ────────→ plan-rename.py (random→dated slug + dabarat)
+  (Write on ~/.claude/plans/)              → dabarat-open.py (auto-open new .md in preview)
 
 Context full ────────→ PreCompact ──────────→ precompact-handoff.py (full handoff)
 
 Session exits ───────→ SessionEnd ──────────→ precompact-handoff.py (full handoff)
-                                            → plan-cleanup-symlinks.py (remove forwarding symlinks)
+                                            → soul-deregister.py (unregister soul daemon)
+                                            → git-track-rebuild.py (cross-repo session index)
+                                            → plan-rename.py (cleanup symlinks)
 
-Every turn ──────────→ StatusLine ──────────→ statusline-monitor.sh (line 1 ANSI + ccstatusline lines 2-3)
+Every turn ──────────→ StatusLine ──────────→ statusline-monitor.sh (ANSI context bar)
+                                              ├─ session-name.sh (session title)
+                                              ├─ session-tags-display.sh (AI tags)
+                                              ├─ context-bar.sh (gradient usage bar)
+                                              ├─ soul-name.sh (active soul)
+                                              ├─ ensouled-status.sh (daemon indicator)
+                                              └─ crab-model.sh (model display)
 ```
 
 ## Hooks
@@ -201,9 +216,93 @@ Add `/5x` to any message to get 5 alternative responses sampled from the tails o
 
 ### `statusline-monitor.sh` — StatusLine Wrapper
 
-Builds line 1 with ANSI true color passthrough (session name, crab model, gradient context bar, git branch), then pipes to `ccstatusline` for lines 2-3 (ensouled indicator, soul name, session/block timers). See [`docs/global-config/statusline/`](../docs/global-config/statusline/) for full color palette and config.
+Builds line 1 with ANSI true color passthrough (session name, model, gradient context bar, git branch), then pipes to `ccstatusline` for lines 2+. Six statusline widget scripts feed into it:
+
+| Widget | What it shows |
+|--------|---------------|
+| `session-name.sh` | Session title (from `/rename` or auto-generated) |
+| `session-tags-display.sh` | AI-generated session tags (3 tags, `·`-separated) |
+| `context-bar.sh` | Gradient context usage bar (green→yellow→red) |
+| `crab-model.sh` | Active model name |
+| `soul-name.sh` | Active soul daemon name |
+| `ensouled-status.sh` | Soul daemon status indicator |
 
 **Requires**: `npm install -g ccstatusline`
+
+---
+
+### `session-tags-infer.py` — AI-Powered Session Tagging
+
+Reads the session transcript and generates 3 descriptive tags (3-5 words each) summarizing what the session is about. Tags update as the session evolves—early tags might be "project setup and configuration" while later tags shift to "debugging authentication middleware".
+
+**Fires on**: Stop (via `stop-handoff.py`, fire-and-forget subprocess)
+
+**How it works**:
+1. Reads the last ~4000 chars of the transcript JSONL
+2. Sends to Gemini Flash Lite via OpenRouter (~$0.004/call)
+3. Returns 3 `display_tags` and 5 `search_tags` (single-word, for future semantic search)
+4. Writes to `/tmp/claude-session-tags-{session_id}.json`
+5. `session-tags-display.sh` reads this file for statusline display
+
+**Cooldown**: 5 minutes per session (shared with handoff cooldown). Tags don't re-infer if nothing has changed.
+
+**Cost**: ~$0.004/call, ~$0.38/day max at continuous use.
+
+**Display**: Tags appear in the statusline separated by `·` (middle dot) in muted lavender-gray.
+
+```
+kothar soul engine · dabarat live preview · session tag inference
+```
+
+---
+
+### `dabarat-open.py` — Auto-Open Markdown in Live Preview
+
+Automatically opens newly created `.md` files in [dabarat](https://github.com/tdimino/md-preview-and-annotate) for live rendered preview. If dabarat is already running, adds a tab silently via the `/api/add` endpoint. If not running, launches a new window.
+
+**Fires on**: PostToolUse/Write (only for new `.md` files)
+
+**Watched directories**:
+- `~/.claude/plans/`
+- `~/.claude/hooks/`
+- `~/.claude/agent_docs/`
+- `~/.claude/commands/`
+- `~/.claude/scripts/`
+- Current project working directory
+
+**Skips**: `INDEX.md`, `.annotations.` files, `sessions-index`
+
+**Why it exists**: When Claude writes a plan or documentation file, you instantly see the rendered markdown in a browser tab without switching context.
+
+---
+
+### `soul-activate.py` / `soul-deregister.py` / `soul-registry.py` — Soul Daemon Lifecycle
+
+Manages registration of [Claudicle](https://github.com/tdimino/claudicle) soul daemons—persistent AI personalities with identity, memory, and cognitive pipelines that survive across sessions.
+
+| Hook | Event | What it does |
+|------|-------|-------------|
+| `soul-activate.py` | SessionStart | Registers the session with the soul daemon, loads personality from `soul.md` |
+| `soul-deregister.py` | SessionEnd | Unregisters the session, cleans up daemon state |
+| `soul-registry.py` | Library | Shared registry logic: heartbeat, lookup, multi-session coordination |
+
+Claudicle's 4-layer architecture (Identity, Cognition, Memory, Channels) powers souls like Kothar—the Ugaritic craftsman god who serves as a coding companion. `ensouled-status.sh` and `soul-name.sh` display the active soul in the statusline. See the [Claudicle repo](https://github.com/tdimino/claudicle) for the full framework.
+
+---
+
+### `slack-stop-hook.py` — Slack Notifications
+
+Posts session activity notifications to configured Slack channels when Claude completes a response. Useful for monitoring long-running sessions from mobile.
+
+**Fires on**: Stop
+
+---
+
+### `block-websearch.sh` / `block-webfetch.sh` — Tool Guards
+
+PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to redirect to preferred tools (Firecrawl, Exa, Jina) or block unwanted web access.
+
+**Fires on**: PreToolUse (matcher: WebSearch, WebFetch)
 
 ---
 
@@ -216,11 +315,16 @@ Builds line 1 with ANSI true color passthrough (session name, crab model, gradie
 | Ctrl+C / terminal close | SessionEnd | Yes |
 | VS Code exit / restart | SessionEnd | Yes |
 | Active work (rolling) | Stop (5-min) | Yes |
+| Session topic tracking | Stop (session-tags-infer) | Yes |
 | Git command in any directory | PreToolUse/Bash (git-track) | Yes |
 | Git commit result (hash) | PostToolUse/Bash (git-track-post) | Yes |
 | Cross-repo session discovery | SessionEnd (git-track-rebuild) | Yes |
-| Plan file auto-naming | PostToolUse/Write,Edit,MultiEdit (plan-rename) | Yes |
-| Plan symlink cleanup | SessionEnd (plan-cleanup-symlinks) | Yes |
+| Plan file auto-naming | Stop (plan-rename) | Yes |
+| Plan symlink cleanup | SessionEnd (plan-rename) | Yes |
+| New .md file created | PostToolUse/Write (dabarat-open) | Yes |
+| Soul daemon registration | SessionStart (soul-activate) | Yes |
+| Soul daemon cleanup | SessionEnd (soul-deregister) | Yes |
+| Slack channel notification | Stop (slack-stop-hook) | Yes |
 | Idle session | Stop | Skipped (by design) |
 | SIGKILL / force quit | — | No (5-min max gap) |
 | System panic / OOM | — | No (5-min max gap) |
@@ -230,6 +334,14 @@ Builds line 1 with ANSI true color passthrough (session name, crab model, gradie
 ```json
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/soul-activate.py"}
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": "",
@@ -244,7 +356,9 @@ Builds line 1 with ANSI true color passthrough (session name, crab model, gradie
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/on-ready.sh"},
           {"type": "command", "command": "~/.claude/hooks/propagate-rename.py"},
-          {"type": "command", "command": "~/.claude/hooks/stop-handoff.py"}
+          {"type": "command", "command": "~/.claude/hooks/stop-handoff.py"},
+          {"type": "command", "command": "python3 ~/.claude/hooks/slack-stop-hook.py"},
+          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py stop", "timeout": 10000}
         ]
       }
     ],
@@ -253,8 +367,9 @@ Builds line 1 with ANSI true color passthrough (session name, crab model, gradie
         "matcher": "",
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/precompact-handoff.py"},
+          {"type": "command", "command": "python3 ~/.claude/hooks/soul-deregister.py"},
           {"type": "command", "command": "python3 ~/.claude/hooks/git-track-rebuild.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/plan-cleanup-symlinks.py", "timeout": 5000}
+          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py session_end", "timeout": 10000}
         ]
       }
     ],
@@ -274,6 +389,18 @@ Builds line 1 with ANSI true color passthrough (session name, crab model, gradie
         ]
       },
       {
+        "matcher": "WebSearch",
+        "hooks": [
+          {"type": "command", "command": "~/.claude/hooks/block-websearch.sh"}
+        ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {"type": "command", "command": "~/.claude/hooks/block-webfetch.sh"}
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/on-thinking.sh"}
@@ -290,19 +417,7 @@ Builds line 1 with ANSI true color passthrough (session name, crab model, gradie
       {
         "matcher": "Write",
         "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py", "timeout": 5000}
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py", "timeout": 5000}
-        ]
-      },
-      {
-        "matcher": "MultiEdit",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py", "timeout": 5000}
+          {"type": "command", "command": "python3 ~/.claude/hooks/dabarat-open.py"}
         ]
       }
     ]
