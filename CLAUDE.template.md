@@ -2,7 +2,7 @@
 
 ## Identity
 <!-- Replace with your own userModel or remove this section -->
-<!-- @userModels/yourname/model.md -->
+<!-- @userModels/{yourname}/{yourname}Model.md -->
 
 ## Principles
 - Assumptions are the enemy. Benchmark, don't estimate.
@@ -12,33 +12,16 @@
 - When user defines constraints ("never X", "always Y"), persist to project's CLAUDE.md.
 
 ## Tools
+<!-- Uncomment if you maintain your own agent_docs/tools.md -->
+<!-- @agent_docs/tools.md -->
 - Firecrawl or Jina for scraping (`jina` for Twitter/X). OSGrep over grep. Beads (`bd`) for tasks.
 - `beautiful-mermaid` for Mermaid diagrams: `node ~/.claude/skills/beautiful-mermaid/scripts/mermaid.mjs --help`
-- `nano-banana-pro` for image generation/editing (Gemini 3 Pro Image)
-- `gemini-claude-resonance` for cross-model visual dialogue
+- `nano-banana-pro` for image generation/editing (Gemini 3 Pro Image)—visual assets, colorization
+- `gemini-claude-resonance` for cross-model visual dialogue—Gemini dreams in light, Claude speaks in words; together they resonate
 - Python: use uv for everything (`uv run`, `uv pip`, `uv venv`)
-- `grip` for GitHub-flavored README preview—run `grip <file.md> [port]` to render markdown exactly as GitHub would
+- `dabarat` (`md_preview_and_annotate`) for Markdown preview, commenting, and annotation—run `dabarat <file.md>` (or `dbrt`, `mdpreview`, `mdp`). Supports comments, questions, suggestions, bookmarks, replies.
+- `grip` for GitHub-flavored README preview—run `grip <file.md> [port]` to render markdown exactly as GitHub would. Use before committing READMEs.
 - **RLAMA**: Always use retrieve-only mode (`rlama_retrieve.py`)—Claude synthesizes from raw chunks. Never route through Qwen when Claude is in the loop. `rlama run` is fallback only.
-
-### Web Scraping
-- **Firecrawl**: `firecrawl --help` for web scraping to Markdown
-- **Jina**: `jina --help` — use for Twitter/X (Firecrawl blocks Twitter)
-
-### Search
-- **OSGrep**: Semantic code search — prefer over traditional grep
-- **exa-search skill**: Web search and code examples
-
-### External Info
-- **MCP servers**: Use before guessing. context7 for library docs (resolve-library-id first)
-
-### Task Tracking
-- **Beads** (`bd`): Dependency-aware task tracking across sessions
-
-### API Keys & Billing
-- **Central store**: `~/.config/env/global.env` — management/billing keys for all providers
-- **OpenRouter usage**: `python3 ~/.claude/skills/openrouter-usage/scripts/openrouter_usage.py`
-- Keys in global.env: `OPENROUTER_MANAGEMENT_KEY`, `FIRECRAWL_API_KEY`, `EXA_API_KEY`
-- Per-skill `.env` files also checked as fallback
 
 ## Interaction
 - Clarify unclear requests, then proceed autonomously.
@@ -71,5 +54,5 @@
 ## Infrastructure
 - `~/.claude/` is a git repo. Commit notable changes periodically.
 - Hooks in `~/.claude/hooks/` (see `settings.json` for bindings)
-- Custom commands in `~/.claude/commands/`
+- Custom commands in `~/.claude/commands/` (tracker suite, workflows, review)
 - Model & agent config: see `~/.claude/agent_docs/claude-code-config.md`
