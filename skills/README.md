@@ -31,6 +31,7 @@ ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads
 | `claude-md-manager` | CLAUDE.md creation using WHAT/WHY/HOW framework |
 | `osgrep-reference` | [OSGrep](https://osgrep.app/) semantic code search reference |
 | `react-best-practices` | React/Next.js optimization from [Vercel Engineering](https://vercel.com/blog) |
+| `openrouter-usage` | Query OpenRouter API costs, credits, and usage by model/provider/date |
 | `skill-optimizer` | Meta-skill for creating and reviewing other skills |
 
 ### Integration & Automation (`integration-automation/`)
@@ -103,4 +104,4 @@ skill-name/
 - **[ccstatusline](https://github.com/sirmalloc/ccstatusline)** by sirmalloc — terminal statusline for Claude Code
 - **[beautiful-mermaid](https://github.com/nicepkg/beautiful-mermaid)** by Craft — Mermaid diagram rendering
 - **[matklad's ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html)** — the canonical guide for codebase documentation
-- **[Open Souls](https://docs.souls.chat/)** — the AI souls paradigm that shapes our agent architecture
+- **[Open Souls](https://github.com/opensouls/opensouls)** — the AI souls paradigm that shapes our agent architecture

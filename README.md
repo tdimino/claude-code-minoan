@@ -3,9 +3,9 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-44-green.svg" alt="Skills"></a>
-  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-30+-purple.svg" alt="Commands"></a>
-  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-12-orange.svg" alt="Hooks"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-45-green.svg" alt="Skills"></a>
+  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-43-purple.svg" alt="Commands"></a>
+  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-29-orange.svg" alt="Hooks"></a>
 </p>
 
 # Minoan Claude Code Configuration
@@ -20,14 +20,14 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 44 custom skills across 5 categories
+├── skills/                      # 45 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
 │   ├── research/                #   Academic, web search, scraping
 │   └── planning-productivity/   #   Session tracking, swarms, iteration loops
 ├── hooks/                       # Lifecycle hooks (handoffs, terminal UX, multi-response)
-├── commands/                    # 30+ slash commands (workflows, planning, code review)
+├── commands/                    # 43 slash commands (workflows, planning, code review)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
 ├── tools/                       # Standalone tools (see github.com/tdimino/md-preview-and-annotate)
@@ -75,7 +75,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 42 skills across 5 categories
+### [Skills](skills/README.md) — 45 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -122,7 +122,7 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
 
 ---
 
-### [Commands](commands/README.md) — 30+ slash commands
+### [Commands](commands/README.md) — 43 slash commands
 
 Markdown templates invoked as `/command-name`. Key workflows:
 
