@@ -232,9 +232,11 @@ cp CLAUDE.template.md ~/.claude/CLAUDE.md
 ```
 
 Then customize:
-- **Identity**: Add your own `@userModels/` reference or remove the section
+- **Identity**: Create `~/.claude/userModels/{yourname}/{yourname}Model.md` and uncomment the `@reference`
 - **Always Loaded**: Uncomment `@agent_docs/` references you want active in every session
 - **On-Demand References**: Add paths to docs Claude should read when relevant
+
+See [`docs/global-config/README.md`](docs/global-config/README.md) for the full `~/.claude/` structure reference, including userModel examples.
 
 The template includes: engineering principles, tool preferences (OSGrep, Firecrawl, uv, RLAMA retrieve-only default), interaction conventions, planning patterns, session continuity via handoffs, and infrastructure notes.
 
