@@ -83,8 +83,16 @@ Prefix: `Ctrl+A`. See `docs/tmux-claude-workflow.md` for keybindings.
 
 Core: playwright, chrome-devtools, figma, shadcn, supabase, context7, arxiv, perplexity
 
+## Teammate Quick Start
+
+Copy `CLAUDE.template.md` to `~/.claude/CLAUDE.md` and customize:
+- Add your `## Identity` section (or remove it)
+- Uncomment `## Always Loaded` references you want active
+- Add your own `## On-Demand References`
+
 ## Guides
 
+- `CLAUDE.template.md` - **Teammate-ready global CLAUDE.md** (no personal details)
 - `docs/tmux-claude-workflow.md` - tmux session management
 - `CONTRIBUTING.md` - Contribution guidelines
 - `README.md` - Full setup, all skills, all commands

@@ -47,22 +47,26 @@ Each folder has its own README with setup instructions, examples, and credits.
 git clone https://github.com/your-org/claude-code-minoan.git
 cd claude-code-minoan
 
-# 2. Install skills
+# 2. Start with the global CLAUDE.md template
+cp CLAUDE.template.md ~/.claude/CLAUDE.md
+# Edit ~/.claude/CLAUDE.md — add your Identity section, uncomment Always Loaded refs
+
+# 3. Install skills
 cp -r skills/*/* ~/.claude/skills/
 
-# 3. Install commands
+# 4. Install commands
 cp -r commands/* ~/.claude/commands/
 
-# 4. Install hooks + sounds
+# 5. Install hooks + sounds
 cp -r hooks/* ~/.claude/hooks/
 cp -r sounds ~/.claude/sounds/
 chmod +x ~/.claude/hooks/*.py ~/.claude/hooks/*.sh
 
-# 5. Install CLI tools
+# 6. Install CLI tools
 cp bin/* ~/.local/bin/
 mkdir -p ~/.claude/lib && cp lib/* ~/.claude/lib/
 
-# 6. Install VS Code extension
+# 7. Install VS Code extension
 cd extensions/claude-session-tracker
 npm install && npm run compile
 npx @vscode/vsce package --no-dependencies
@@ -216,6 +220,23 @@ cp ghostty/config ~/Library/Application\ Support/com.mitchellh.ghostty/config
 Key bindings: `Cmd+D` split right, `Cmd+Alt+Enter` zoom split, `Cmd+Up/Down` jump prompts. See [ghostty/README.md](ghostty/README.md) for full keybinding reference.
 
 Pair with **ccstatusline** (`npm install -g ccstatusline`) and **lazygit** (`brew install lazygit`) in a side split.
+
+---
+
+## Teammate Onboarding
+
+**[`CLAUDE.template.md`](CLAUDE.template.md)** — A teammate-ready global config with all tooling conventions and no personal details.
+
+```bash
+cp CLAUDE.template.md ~/.claude/CLAUDE.md
+```
+
+Then customize:
+- **Identity**: Add your own `@userModels/` reference or remove the section
+- **Always Loaded**: Uncomment `@agent_docs/` references you want active in every session
+- **On-Demand References**: Add paths to docs Claude should read when relevant
+
+The template includes: engineering principles, tool preferences (OSGrep, Firecrawl, uv, RLAMA retrieve-only default), interaction conventions, planning patterns, session continuity via handoffs, and infrastructure notes.
 
 ---
 
