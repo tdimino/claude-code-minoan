@@ -105,13 +105,20 @@ python3 ~/.claude/skills/claude-usage/scripts/claude_usage_report.py --since 7d 
 
 Prices are hardcoded in the `PRICING` dict at the top of `claude_usage.py`. Update when Anthropic changes rates. Keys are model name substrings matched most-specific-first.
 
-Current defaults (USD per million tokens):
+Current defaults (USD per million tokens, verified 2026-02-21):
 
-| Model | Input | Output | Cache Write | Cache Read |
-|-------|-------|--------|-------------|------------|
-| Opus 4 | $15.00 | $75.00 | $18.75 | $1.50 |
-| Sonnet 4 | $3.00 | $15.00 | $3.75 | $0.30 |
-| Haiku 4 | $0.80 | $4.00 | $1.00 | $0.08 |
+| Model | Input | Output | Cache Write (1h) | Cache Read |
+|-------|-------|--------|-------------------|------------|
+| Opus 4.5 / 4.6 | $5.00 | $25.00 | $10.00 | $0.50 |
+| Opus 4.0 / 4.1 | $15.00 | $75.00 | $30.00 | $1.50 |
+| Sonnet 4.x | $3.00 | $15.00 | $6.00 | $0.30 |
+| Haiku 4.5 | $1.00 | $5.00 | $2.00 | $0.10 |
+| Sonnet 3.7 / 3.5 | $3.00 | $15.00 | $6.00 | $0.30 |
+| Haiku 3.5 | $0.80 | $4.00 | $1.60 | $0.08 |
+| Opus 3 | $15.00 | $75.00 | $30.00 | $1.50 |
+| Haiku 3 | $0.25 | $1.25 | $0.50 | $0.03 |
+
+Cache write column shows the 1-hour rate (2x base input). Claude Code uses 1-hour prompt caching exclusively. The 5-minute rate (1.25x base input) is also supported when the JSONL `cache_creation` sub-object provides a TTL split.
 
 ---
 
@@ -142,8 +149,11 @@ Requires Playwright (`uv pip install --system playwright && playwright install c
 
 ## Caveats
 
+- **Estimated accuracy: ~95%.** The remaining gap comes from data residency multipliers (1.1x for US-only inference, not tracked) and potential edge cases in streaming chunk boundaries.
+- Streaming chunks are deduplicated by message ID using last-wins strategy—`output_tokens` monotonically increases across chunks, so only the final chunk per message ID has the correct value. Without dedup, costs were overcounted by 2-5x.
 - Cost is estimated from the pricing table. Anthropic billing may differ due to batch discounts or promotional pricing.
-- Cache write and cache read tokens are reported separately. Some accounting schemes may treat cache writes differently.
+- Cache write pricing uses the 1-hour rate by default (Claude Code's caching mode). When JSONL provides `cache_creation.ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens`, rates are split accordingly.
 - Synthetic entries (`model: "<synthetic>"`) and billing error entries (all-zero token counts) are automatically filtered.
+- Malformed JSON lines and duplicate streaming chunks are counted and reported in the output footer.
 - Requires Python 3.9+ for `zoneinfo` module.
-- PDF reports require Playwright with Chromium (`playwright install chromium`).
+- PDF reports require Playwright with Chromium (`playwright install chromium`). Includes a Pricing Methodology section with full rate table, formula, and confidence badge.

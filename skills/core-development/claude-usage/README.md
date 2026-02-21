@@ -4,7 +4,7 @@ Ground-truth token usage and cost reporting for Claude Code sessions.
 
 **Last updated:** 2026-02-21
 
-**Reflects:** Empirical accuracy investigation of ccusage v18.0.5 (10.6k stars) conducted on 2026-02-20, which revealed the community standard tool undercounts output tokens by 77-94% for heavy Agent Teams users. This skill was built as a direct replacement, parsing every JSONL file—parent sessions and subagent sidechains—to produce correct numbers.
+**Reflects:** Empirical accuracy investigation of ccusage v18.0.5 (10.6k stars) conducted on 2026-02-20, plus a streaming chunk deduplication overhaul on 2026-02-21. ccusage undercounts output tokens by 77-94% for heavy Agent Teams users. This skill parses every JSONL file—parent sessions and subagent sidechains—with last-wins message ID deduplication and generation-specific pricing to produce correct numbers.
 
 ---
 
@@ -93,6 +93,8 @@ Uses `Path.iterdir()` (not `rglob`) to avoid descending into unrelated `tool-res
 
 **Streaming parser** — Reads line-by-line with O(1) memory, handling files exceeding 300MB. Filters to `type == "assistant"` entries, skips synthetic models and all-zero billing errors.
 
+**Last-wins message deduplication** — Claude Code writes one JSONL entry per content block (thinking, text, tool_use), all sharing the same `message.id` with identical input/cache tokens but **monotonically increasing `output_tokens`**. The first chunk often has `output_tokens: 1`; only the final chunk has the correct value. The parser keeps the last entry per message ID, eliminating 2-5x overcounting while preserving accurate output token totals.
+
 **Timezone-correct filtering** — Converts UTC timestamps to local timezone (or `--tz` override) before applying date filters. Anchors `--since Nd` to midnight, not rolling 24h.
 
 **Project path decoding** — Claude Code encodes `/Users/tom/Desktop/Thera-Knossos` as `-Users-tom-Desktop-Thera-Knossos`. Reversal is ambiguous when directories contain hyphens. The script uses greedy filesystem matching (longest segment first) to decode correctly.
@@ -129,13 +131,18 @@ Uses `Path.iterdir()` (not `rglob`) to avoid descending into unrelated `tool-res
 
 Hardcoded in the `PRICING` dict at the top of `claude_usage.py`. Update when Anthropic changes rates. Keys are model name substrings matched most-specific-first.
 
-| Model | Input | Output | Cache Write | Cache Read |
-|-------|-------|--------|-------------|------------|
-| Opus 4 | $15.00 | $75.00 | $18.75 | $1.50 |
-| Sonnet 4 | $3.00 | $15.00 | $3.75 | $0.30 |
-| Haiku 4 | $0.80 | $4.00 | $1.00 | $0.08 |
+| Model | Input | Output | Cache Write (1h) | Cache Read |
+|-------|-------|--------|-------------------|------------|
+| Opus 4.5 / 4.6 | $5.00 | $25.00 | $10.00 | $0.50 |
+| Opus 4.0 / 4.1 | $15.00 | $75.00 | $30.00 | $1.50 |
+| Sonnet 4.x | $3.00 | $15.00 | $6.00 | $0.30 |
+| Haiku 4.5 | $1.00 | $5.00 | $2.00 | $0.10 |
+| Sonnet 3.7 / 3.5 | $3.00 | $15.00 | $6.00 | $0.30 |
+| Haiku 3.5 | $0.80 | $4.00 | $1.60 | $0.08 |
+| Opus 3 | $15.00 | $75.00 | $30.00 | $1.50 |
+| Haiku 3 | $0.25 | $1.25 | $0.50 | $0.03 |
 
-Unknown models fall back to Sonnet rates with a stderr warning.
+Cache write column shows the 1-hour rate (2x base input). Claude Code uses 1-hour prompt caching exclusively. Unknown models fall back to Sonnet 4 rates with a stderr warning.
 
 ---
 
@@ -175,8 +182,9 @@ Uses Playwright/Chromium for pixel-perfect CSS rendering—same engine as the Al
 
 ## Caveats
 
+- Streaming chunks are deduplicated by message ID using last-wins strategy—each API response is counted once, keeping the final chunk which has the correct `output_tokens` value.
 - Cost is estimated from the pricing table. Anthropic billing may differ due to batch discounts or promotional pricing.
-- Cache write and cache read tokens are reported separately. Some accounting schemes treat cache writes differently.
+- Cache write pricing uses the 1-hour rate by default (Claude Code's caching mode). When JSONL provides per-TTL breakdowns, rates are split accordingly.
 - Synthetic entries (`model: "<synthetic>"`) and billing error entries (all-zero token counts) are automatically filtered.
 - Session names resolve from `sessions-index.json`. Sessions not yet indexed show raw UUIDs.
 
