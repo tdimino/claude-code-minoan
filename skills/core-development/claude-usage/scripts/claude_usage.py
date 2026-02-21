@@ -2,9 +2,11 @@
 """
 Claude Usage Report — ground-truth token counts from JSONL session files.
 
-ccusage undercounts output tokens by 77-94% because it ignores subagent files
-and has timezone confusion. This script reads every JSONL file—parent sessions
-and sidechains—to produce accurate numbers.
+Reads every JSONL file—parent sessions and subagent sidechains—to produce
+accurate token counts and cost estimates. Deduplicates streaming chunks by
+message ID using last-wins strategy (Claude Code writes one JSONL entry per
+content block; output_tokens increases across chunks, so only the final
+chunk per message ID has the correct value).
 
 Data lives at ~/.claude/projects/{encoded-path}/{session-uuid}.jsonl (parent)
 and {session-uuid}/subagents/{agent-id}.jsonl (sidechains).
@@ -41,18 +43,32 @@ from zoneinfo import ZoneInfo
 # ─────────────────────────────────────────────
 # PRICING TABLE
 # Substring-matched against model name, most specific first.
-# (input_per_mtok, output_per_mtok, cache_write_per_mtok, cache_read_per_mtok)
-# Source: https://www.anthropic.com/pricing (Feb 2026)
+# (input, output, cache_write_5m, cache_write_1h, cache_read) per MTok
+# Source: docs.anthropic.com/en/docs/about-claude/pricing (Feb 2026)
+#
+# Multipliers: 5m cache write = 1.25x, 1h cache write = 2.0x, cache read = 0.1x
+# Claude Code uses 1-hour prompt caching exclusively.
 # ─────────────────────────────────────────────
 PRICING = {
-    "opus-4":   (15.00, 75.00, 18.75, 1.50),
-    "sonnet-4": ( 3.00, 15.00,  3.75, 0.30),
-    "haiku-4":  ( 0.80,  4.00,  1.00, 0.08),
-    "opus-3":   (15.00, 75.00, 18.75, 1.50),
-    "sonnet-3": ( 3.00, 15.00,  3.75, 0.30),
-    "haiku-3":  ( 0.25,  1.25,  0.30, 0.03),
+    # Claude 4.5/4.6 — most specific first to avoid fallback to 4.0 rates
+    "opus-4-6":   ( 5.00,  25.00,   6.25,  10.00,  0.50),
+    "opus-4-5":   ( 5.00,  25.00,   6.25,  10.00,  0.50),
+    "opus-4-1":   (15.00,  75.00,  18.75,  30.00,  1.50),
+    "opus-4":     (15.00,  75.00,  18.75,  30.00,  1.50),   # 4.0 fallback
+    "sonnet-4":   ( 3.00,  15.00,   3.75,   6.00,  0.30),   # all Sonnet 4.x
+    "haiku-4":    ( 1.00,   5.00,   1.25,   2.00,  0.10),   # 4.5
+    # Claude 3.x — match actual model ID substrings (claude-3-opus-*, etc.)
+    "sonnet-3-7": ( 3.00,  15.00,   3.75,   6.00,  0.30),
+    "haiku-3-5":  ( 0.80,   4.00,   1.00,   1.60,  0.08),
+    "sonnet-3-5": ( 3.00,  15.00,   3.75,   6.00,  0.30),
+    "3-opus":     (15.00,  75.00,  18.75,  30.00,  1.50),
+    "3-sonnet":   ( 3.00,  15.00,   3.75,   6.00,  0.30),
+    "3-haiku":    ( 0.25,   1.25,   0.30,   0.50,  0.03),
 }
-DEFAULT_PRICING = (3.00, 15.00, 3.75, 0.30)
+DEFAULT_PRICING = (3.00, 15.00, 3.75, 6.00, 0.30)  # Sonnet 4 fallback
+
+PRICING_SOURCE = "docs.anthropic.com/en/docs/about-claude/pricing"
+PRICING_VERIFIED = "2026-02-21"
 
 PROJECTS_DIR = pathlib.Path.home() / ".claude" / "projects"
 _warned_models = set()
@@ -63,7 +79,7 @@ _warned_models = set()
 # ─────────────────────────────────────────────
 
 def get_pricing(model: str) -> tuple:
-    """Match model name to pricing tier via substring."""
+    """Match model name to pricing tier via substring. Returns 5-tuple."""
     m = model.lower()
     for key, prices in PRICING.items():
         if key in m:
@@ -75,15 +91,50 @@ def get_pricing(model: str) -> tuple:
 
 
 def calc_cost(usage: dict, model: str) -> float:
-    """Calculate USD cost from a usage dict and model string."""
-    inp, out, cw, cr = get_pricing(model)
+    """Calculate USD cost from a usage dict and model string.
+
+    Splits cache write pricing by TTL when the cache_creation sub-object
+    is available (ephemeral_5m vs ephemeral_1h). Falls back to 1h rate
+    since Claude Code uses 1-hour prompt caching exclusively.
+    """
+    inp, out, cw5m, cw1h, cr = get_pricing(model)
     M = 1_000_000
+
+    # Split cache writes by TTL if sub-object available
+    cc = usage.get("cache_creation", {})
+    e5m = cc.get("ephemeral_5m_input_tokens", 0) or 0
+    e1h = cc.get("ephemeral_1h_input_tokens", 0) or 0
+
+    if e5m or e1h:
+        cache_write_cost = (e5m * cw5m + e1h * cw1h) / M
+    else:
+        # Fallback: no sub-object, assume 1h (Claude Code default)
+        cw_total = usage.get("cache_creation_input_tokens", 0) or 0
+        cache_write_cost = cw_total * cw1h / M
+
     return (
         (usage.get("input_tokens", 0) or 0) * inp / M
         + (usage.get("output_tokens", 0) or 0) * out / M
-        + (usage.get("cache_creation_input_tokens", 0) or 0) * cw / M
+        + cache_write_cost
         + (usage.get("cache_read_input_tokens", 0) or 0) * cr / M
     )
+
+
+def get_pricing_metadata() -> dict:
+    """Return pricing metadata for PDF report consumption."""
+    return {
+        "source": PRICING_SOURCE,
+        "verified_date": PRICING_VERIFIED,
+        "cache_note": "Claude Code uses 1-hour prompt caching exclusively (2x base input price)",
+        "caveats": [
+            "Output tokens deduplicated via last-wins strategy per message ID (streaming intermediates excluded)",
+            "Data residency (US-only inference) adds 1.1x multiplier — not tracked",
+            "Extended thinking tokens billed at output rates — included in output_tokens",
+        ],
+        "table": {k: {"input": v[0], "output": v[1], "cache_write_5m": v[2],
+                       "cache_write_1h": v[3], "cache_read": v[4]}
+                  for k, v in PRICING.items()},
+    }
 
 
 # ─────────────────────────────────────────────
@@ -160,12 +211,22 @@ def decode_project_path(encoded: str) -> str:
 def parse_jsonl(path, since_dt, until_dt, local_tz):
     """
     Stream-parse a JSONL file line by line (O(1) memory for 300MB+ files).
-    Returns list of token records from assistant entries only.
+    Returns (records, stats) where records is a list of token records from
+    assistant entries only and stats has parse metadata.
+
+    Deduplicates by message ID using last-wins strategy — Claude Code writes
+    one JSONL entry per content block (thinking, text, tool_use), all sharing
+    the same message.id. output_tokens monotonically increases across chunks
+    (first chunk often has output_tokens: 1, last chunk has the real value),
+    so we keep the LAST entry per message ID.
 
     Skips: non-assistant entries, synthetic models, all-zero usage, entries
     outside the date window.
     """
-    records = []
+    pending_by_msg_id = {}  # msg_id -> record dict (last-wins dedup)
+    non_dedup_records = []  # entries without a message ID
+    skipped_json = 0
+    skipped_dupes = 0
     is_sidechain = "subagents" in str(path)
 
     # Determine project from path structure
@@ -185,6 +246,7 @@ def parse_jsonl(path, since_dt, until_dt, local_tz):
                 try:
                     obj = json.loads(raw_line)
                 except json.JSONDecodeError:
+                    skipped_json += 1
                     continue
 
                 if obj.get("type") != "assistant":
@@ -220,7 +282,7 @@ def parse_jsonl(path, since_dt, until_dt, local_tz):
                 if until_dt and ts_local > until_dt:
                     continue
 
-                records.append({
+                record = {
                     "ts": ts_local,
                     "model": model,
                     "session_id": obj.get("sessionId", path.stem),
@@ -232,11 +294,24 @@ def parse_jsonl(path, since_dt, until_dt, local_tz):
                     "cache_creation_input_tokens": usage.get("cache_creation_input_tokens") or 0,
                     "cache_read_input_tokens": usage.get("cache_read_input_tokens") or 0,
                     "cost": calc_cost(usage, model),
-                })
+                }
+
+                # Last-wins dedup: output_tokens increases across streaming
+                # chunks — only the final chunk has the real value.
+                msg_id = msg.get("id")
+                if msg_id:
+                    if msg_id in pending_by_msg_id:
+                        skipped_dupes += 1
+                    pending_by_msg_id[msg_id] = record
+                else:
+                    non_dedup_records.append(record)
     except OSError as e:
         print(f"  WARNING: skipped {path.name}: {e}", file=sys.stderr)
 
-    return records
+    # Merge: deduped records (last-wins per msg_id) + non-dedup records
+    records = list(pending_by_msg_id.values()) + non_dedup_records
+    stats = {"skipped_json": skipped_json, "skipped_dupes": skipped_dupes}
+    return records, stats
 
 
 # ─────────────────────────────────────────────
@@ -592,11 +667,15 @@ def main():
     files_scanned = 0
     parent_files = 0
     subagent_files = 0
+    total_skipped_json = 0
+    total_skipped_dupes = 0
 
     for path in jsonl_files:
-        records = parse_jsonl(path, since_dt, until_dt, local_tz)
+        records, stats = parse_jsonl(path, since_dt, until_dt, local_tz)
         all_records.extend(records)
         files_scanned += 1
+        total_skipped_json += stats["skipped_json"]
+        total_skipped_dupes += stats["skipped_dupes"]
         if "subagents" in str(path):
             subagent_files += 1
         else:
@@ -622,7 +701,12 @@ def main():
         "parent_files": parent_files,
         "subagent_files": subagent_files,
         "total_entries": len(all_records),
+        "skipped_dupes": total_skipped_dupes,
+        "skipped_json_errors": total_skipped_json,
         "project_filter": args.project,
+        "pricing_source": PRICING_SOURCE,
+        "pricing_verified": PRICING_VERIFIED,
+        "unknown_models": sorted(_warned_models),
     }
 
     # Output
@@ -633,9 +717,14 @@ def main():
     else:
         print(format_table(groups, args.by, len(all_records), session_names))
         print(f"  {files_scanned} files scanned ({parent_files} parent, {subagent_files} subagent)")
+        if total_skipped_dupes:
+            print(f"  {total_skipped_dupes:,} duplicate streaming chunks deduplicated")
+        if total_skipped_json:
+            print(f"  {total_skipped_json:,} malformed JSON lines skipped")
         since_label = args.since or "today"
         print(f"  Range: {since_label} → {until_dt.strftime('%Y-%m-%d %H:%M')}")
         print(f"  Timezone: {local_tz}")
+        print(f"  Pricing: {PRICING_SOURCE} (verified {PRICING_VERIFIED})")
 
     # Optional ccusage comparison
     if args.compare:

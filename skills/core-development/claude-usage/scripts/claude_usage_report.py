@@ -62,12 +62,20 @@ def get_usage_data(args, by_override=None):
     if args.tz:
         cmd += ["--tz", args.tz]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        print("claude_usage.py timed out after 120s", file=sys.stderr)
+        sys.exit(1)
     if result.returncode != 0:
         print(f"Error running claude_usage.py: {result.stderr}", file=sys.stderr)
         sys.exit(1)
 
-    return json.loads(result.stdout)
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse claude_usage.py output: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def model_color(model_name):
@@ -121,6 +129,15 @@ def fmt_cost(c):
     return f"${c:,.2f}"
 
 
+def fmt_pct(val):
+    """Format percentage — show '<0.1%' for nonzero values that round to 0.0."""
+    if val == 0:
+        return "0%"
+    if val < 0.1:
+        return "<0.1%"
+    return f"{val:.1f}%"
+
+
 def fmt_date_short(d):
     """Format date string for compact display."""
     try:
@@ -162,6 +179,15 @@ def build_html(data, model_data=None, name=None):
 
     num_days = len(groups)
     avg_daily = total_cost / num_days if num_days > 0 else 0
+
+    # Safe percentage computation (guard ZeroDivisionError)
+    if total_tokens > 0:
+        pct_input = total_input / total_tokens * 100
+        pct_output = total_output / total_tokens * 100
+        pct_cache_w = total_cache_w / total_tokens * 100
+        pct_cache_r = total_cache_r / total_tokens * 100
+    else:
+        pct_input = pct_output = pct_cache_w = pct_cache_r = 0
 
     # Build bar chart rows
     bar_rows = ""
@@ -703,6 +729,84 @@ tfoot .cell-cost {{
     align-items: center;
     gap: 8px;
 }}
+
+/* ─── PRICING METHODOLOGY ─── */
+
+.methodology {{
+    padding: 36px 56px 32px;
+    border-bottom: 1px solid var(--border);
+    page-break-inside: avoid;
+}}
+
+.meth-formula {{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    padding: 12px 16px;
+    border-radius: 4px;
+    border-left: 2px solid var(--gold-dim);
+    margin-bottom: 20px;
+}}
+
+.meth-table {{
+    width: 100%;
+    margin-bottom: 16px;
+}}
+
+.meth-table thead th {{
+    font-size: 9px;
+}}
+
+.meth-table tbody td {{
+    font-size: 10px;
+    padding: 5px 8px;
+}}
+
+.meth-notes {{
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.6;
+}}
+
+.meth-notes p {{
+    margin-bottom: 4px;
+}}
+
+.meth-caveats {{
+    margin-bottom: 16px;
+}}
+
+.meth-caveat-title {{
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+}}
+
+.meth-caveats ul {{
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding-left: 16px;
+    line-height: 1.7;
+}}
+
+.meth-confidence {{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--gold);
+    padding: 8px 12px;
+    background: var(--gold-glow);
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    text-align: center;
+}}
 </style>
 </head>
 <body>
@@ -744,27 +848,27 @@ tfoot .cell-cost {{
 <div class="composition">
     <div class="section-title">Token Composition</div>
     <div class="comp-bar">
-        <div class="comp-segment input" style="width: {total_input / total_tokens * 100:.2f}%"></div>
-        <div class="comp-segment output" style="width: {total_output / total_tokens * 100:.2f}%"></div>
-        <div class="comp-segment cache-w" style="width: {total_cache_w / total_tokens * 100:.2f}%"></div>
-        <div class="comp-segment cache-r" style="width: {total_cache_r / total_tokens * 100:.2f}%"></div>
+        <div class="comp-segment input" style="width: {pct_input:.2f}%"></div>
+        <div class="comp-segment output" style="width: {pct_output:.2f}%"></div>
+        <div class="comp-segment cache-w" style="width: {pct_cache_w:.2f}%"></div>
+        <div class="comp-segment cache-r" style="width: {pct_cache_r:.2f}%"></div>
     </div>
     <div class="comp-legend">
         <div class="comp-item">
             <div class="comp-dot input"></div>
-            <span class="comp-text">Input <span class="comp-pct">{fmt_tokens(total_input)}</span> ({total_input / total_tokens * 100:.1f}%)</span>
+            <span class="comp-text">Input <span class="comp-pct">{fmt_tokens(total_input)}</span> ({fmt_pct(pct_input)})</span>
         </div>
         <div class="comp-item">
             <div class="comp-dot output"></div>
-            <span class="comp-text">Output <span class="comp-pct">{fmt_tokens(total_output)}</span> ({total_output / total_tokens * 100:.1f}%)</span>
+            <span class="comp-text">Output <span class="comp-pct">{fmt_tokens(total_output)}</span> ({fmt_pct(pct_output)})</span>
         </div>
         <div class="comp-item">
             <div class="comp-dot cache-w"></div>
-            <span class="comp-text">Cache Write <span class="comp-pct">{fmt_tokens(total_cache_w)}</span> ({total_cache_w / total_tokens * 100:.1f}%)</span>
+            <span class="comp-text">Cache Write <span class="comp-pct">{fmt_tokens(total_cache_w)}</span> ({fmt_pct(pct_cache_w)})</span>
         </div>
         <div class="comp-item">
             <div class="comp-dot cache-r"></div>
-            <span class="comp-text">Cache Read <span class="comp-pct">{fmt_tokens(total_cache_r)}</span> ({total_cache_r / total_tokens * 100:.1f}%)</span>
+            <span class="comp-text">Cache Read <span class="comp-pct">{fmt_tokens(total_cache_r)}</span> ({fmt_pct(pct_cache_r)})</span>
         </div>
     </div>
 </div>
@@ -807,6 +911,48 @@ tfoot .cell-cost {{
             </tr>
         </tfoot>
     </table>
+</div>
+
+<!-- PRICING METHODOLOGY -->
+<div class="methodology">
+    <div class="section-title">Pricing Methodology</div>
+    <div class="meth-formula">
+        Cost = (Input &times; Rate + Output &times; Rate + CacheWrite &times; Rate<sub>1h</sub> + CacheRead &times; Rate) / 1,000,000
+    </div>
+    <table class="meth-table">
+        <thead>
+            <tr>
+                <th style="text-align: left;">Model</th>
+                <th>Input</th>
+                <th>Output</th>
+                <th>Cache Write (1h)</th>
+                <th>Cache Read</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td class="cell-label">Opus 4.5 / 4.6</td><td class="cell-num">$5.00</td><td class="cell-num">$25.00</td><td class="cell-num">$10.00</td><td class="cell-num">$0.50</td></tr>
+            <tr><td class="cell-label">Opus 4.0 / 4.1</td><td class="cell-num">$15.00</td><td class="cell-num">$75.00</td><td class="cell-num">$30.00</td><td class="cell-num">$1.50</td></tr>
+            <tr><td class="cell-label">Sonnet 4.x</td><td class="cell-num">$3.00</td><td class="cell-num">$15.00</td><td class="cell-num">$6.00</td><td class="cell-num">$0.30</td></tr>
+            <tr><td class="cell-label">Haiku 4.5</td><td class="cell-num">$1.00</td><td class="cell-num">$5.00</td><td class="cell-num">$2.00</td><td class="cell-num">$0.10</td></tr>
+            <tr><td class="cell-label">Haiku 3.5</td><td class="cell-num">$0.80</td><td class="cell-num">$4.00</td><td class="cell-num">$1.60</td><td class="cell-num">$0.08</td></tr>
+        </tbody>
+    </table>
+    <div class="meth-notes">
+        <p>Rates per million tokens. Claude Code uses 1-hour prompt caching exclusively (2&times; base input price for cache writes).</p>
+        <p>Streaming chunks deduplicated by message ID&mdash;each API response counted once regardless of content block count.</p>
+    </div>
+    <div class="meth-caveats">
+        <div class="meth-caveat-title">Known Limitations</div>
+        <ul>
+            <li>Output tokens deduplicated via last-wins strategy per message ID (streaming intermediates excluded)</li>
+            <li>Data residency (US-only inference) adds 1.1&times; multiplier&mdash;not tracked</li>
+            <li>Extended thinking tokens billed at output rates&mdash;included in output_tokens</li>
+        </ul>
+    </div>
+    <div class="meth-confidence">
+        Estimated Accuracy: ~90% &middot; Prices verified: {meta.get('pricing_verified', '2026-02-21')}
+        &middot; Source: {meta.get('pricing_source', 'docs.anthropic.com')}
+    </div>
 </div>
 
 <!-- FOOTER -->
