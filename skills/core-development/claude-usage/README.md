@@ -38,7 +38,8 @@ claude-usage/
   SKILL.md                    # Skill definition (loaded by Claude Code)
   README.md                   # This file
   scripts/
-    claude_usage.py           # Single Python 3.9+ script, stdlib only
+    claude_usage.py           # Token usage CLI — Python 3.9+, stdlib only
+    claude_usage_report.py    # PDF report generator — requires Playwright
 ```
 
 ---
@@ -138,10 +139,37 @@ Unknown models fall back to Sonnet rates with a stderr warning.
 
 ---
 
+## PDF Reports
+
+`claude_usage_report.py` generates a dark editorial PDF with:
+- **Crimson Pro + JetBrains Mono + Inter** typography
+- **Gold Minoan accent** system on dark background
+- **5-metric header**: Total Tokens, Input, Output, Est. Cost, Files Scanned
+- **Model distribution**: Color-coded stacked bar showing token share per model (Opus = gold, Sonnet = steel, Haiku = sage)
+- **Daily cost chart**: Horizontal bar chart with per-day cost
+- **Token composition**: Input/Output/CacheW/CacheR stacked bars
+- **Detailed table**: Full breakdown with grand total row
+
+```bash
+# PDF report (default: last 30 days)
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage_report.py --since 30d
+
+# Custom output path
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage_report.py --since 30d -o ~/Desktop/feb-usage.pdf
+
+# HTML only (no Playwright needed)
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage_report.py --since 7d --html
+```
+
+Uses Playwright/Chromium for pixel-perfect CSS rendering—same engine as the Aldea Slide Deck skill. Migrated from weasyprint due to persistent `@page` margin bugs.
+
+---
+
 ## Requirements
 
 - Python 3.9+ (uses `zoneinfo` module)
-- No external dependencies—stdlib only
+- `claude_usage.py`: No external dependencies—stdlib only
+- `claude_usage_report.py`: Requires Playwright (`uv pip install --system playwright && playwright install chromium`)
 
 ---
 

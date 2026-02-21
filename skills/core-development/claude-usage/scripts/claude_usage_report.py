@@ -18,7 +18,7 @@ Usage:
     # Custom output path
     python3 claude_usage_report.py --since 30d -o ~/Desktop/february-usage.pdf
 
-Requires: weasyprint (pip install weasyprint)
+Requires: playwright (uv pip install playwright && playwright install chromium)
 """
 
 import argparse
@@ -33,10 +33,26 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent
 USAGE_SCRIPT = SCRIPT_DIR / "claude_usage.py"
 
+# Model display colors — palette-matched, no Tailwind defaults
+MODEL_COLORS = {
+    "opus-4-6":   "#c9a855",  # gold (primary)
+    "opus-4-5":   "#dfc07a",  # gold-light
+    "opus-4":     "#c9a855",  # gold fallback
+    "sonnet-4-6": "#4a7b9d",  # steel
+    "sonnet-4-5": "#6a9ab8",  # steel-light
+    "sonnet-4":   "#4a7b9d",  # steel fallback
+    "haiku-4-5":  "#7aad8a",  # sage
+    "haiku-4":    "#7aad8a",  # sage fallback
+}
 
-def get_usage_data(args):
+MODEL_COLOR_DEFAULT = "#8b9dc3"  # desaturated slate
+
+
+def get_usage_data(args, by_override=None):
     """Run claude_usage.py --json and return parsed data."""
     cmd = [sys.executable, str(USAGE_SCRIPT), "--json"]
+    if by_override:
+        cmd += ["--by", by_override]
     if args.since:
         cmd += ["--since", args.since]
     if args.until:
@@ -52,6 +68,37 @@ def get_usage_data(args):
         sys.exit(1)
 
     return json.loads(result.stdout)
+
+
+def model_color(model_name):
+    """Get the palette color for a model name."""
+    m = model_name.lower()
+    for key, color in MODEL_COLORS.items():
+        if key in m:
+            return color
+    return MODEL_COLOR_DEFAULT
+
+
+def model_short_name(model_name):
+    """Shorten model name for display."""
+    m = model_name.lower()
+    if "opus-4-6" in m:
+        return "Opus 4.6"
+    if "opus-4-5" in m:
+        return "Opus 4.5"
+    if "sonnet-4-6" in m:
+        return "Sonnet 4.6"
+    if "sonnet-4-5" in m:
+        return "Sonnet 4.5"
+    if "haiku-4-5" in m:
+        return "Haiku 4.5"
+    if "opus" in m:
+        return "Opus"
+    if "sonnet" in m:
+        return "Sonnet"
+    if "haiku" in m:
+        return "Haiku"
+    return model_name
 
 
 def fmt_tokens(n):
@@ -83,7 +130,7 @@ def fmt_date_short(d):
         return d
 
 
-def build_html(data, name=None):
+def build_html(data, model_data=None, name=None):
     """Build the full HTML report."""
     gt = data["grand_total"]
     groups = data["groups"]
@@ -105,8 +152,6 @@ def build_html(data, name=None):
     # Find max cost for bar chart scaling
     max_cost = max((g["cost"] for g in groups.values()), default=1)
 
-    # Compute model-level summary if we have "by day" data
-    # We'll show the top-level metrics regardless
     total_tokens = gt["total_tokens"]
     total_cost = gt["cost"]
     total_entries = gt["entries"]
@@ -156,6 +201,49 @@ def build_html(data, name=None):
     if meta.get("project_filter"):
         project_note = f'<div class="filter-badge">Filtered: {meta["project_filter"]}</div>'
 
+    # Model distribution section
+    model_section = ""
+    if model_data and model_data.get("groups"):
+        mg = model_data["groups"]
+        m_total = model_data["grand_total"]["total_tokens"]
+        # Sort by total tokens descending
+        sorted_models = sorted(mg.items(), key=lambda x: x[1]["total_tokens"], reverse=True)
+        # Primary model
+        primary_model = model_short_name(sorted_models[0][0]) if sorted_models else "Unknown"
+
+        # Build model bar segments
+        model_segments = ""
+        for m_name, m_data in sorted_models:
+            pct = m_data["total_tokens"] / m_total * 100 if m_total > 0 else 0
+            color = model_color(m_name)
+            model_segments += f'<div class="comp-segment" style="width: {pct:.2f}%; background: {color};"></div>'
+
+        # Build model legend items
+        model_legend = ""
+        for m_name, m_data in sorted_models:
+            short = model_short_name(m_name)
+            color = model_color(m_name)
+            pct = m_data["total_tokens"] / m_total * 100 if m_total > 0 else 0
+            cost = m_data["cost"]
+            model_legend += f"""
+            <div class="model-item">
+                <div class="comp-dot" style="background: {color};"></div>
+                <span class="comp-text">{short} <span class="comp-pct">{fmt_cost(cost)}</span> ({pct:.1f}%)</span>
+            </div>"""
+
+        model_section = f"""
+<!-- MODEL DISTRIBUTION -->
+<div class="composition model-dist">
+    <div class="section-title">Model Distribution</div>
+    <div class="model-primary">Primary: <span class="model-primary-name">{primary_model}</span></div>
+    <div class="comp-bar">
+        {model_segments}
+    </div>
+    <div class="model-legend">
+        {model_legend}
+    </div>
+</div>"""
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -191,12 +279,11 @@ def build_html(data, name=None):
     --gold-dim: #8a7338;
     --gold-glow: rgba(201, 168, 85, 0.22);
     --accent-steel: #4a7b9d;
+    --accent-input: #8b9dc3;
+    --accent-output: #7aad8a;
     --text-primary: #e8e6e1;
     --text-secondary: #9895a0;
     --text-tertiary: #5d5a66;
-    --accent-green: #4ade80;
-    --accent-red: #f87171;
-    --accent-blue: #60a5fa;
 }}
 
 body {{
@@ -205,6 +292,8 @@ body {{
     color: var(--text-primary);
     line-height: 1.5;
     border-left: 2px solid var(--gold-dim);
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
 }}
 
 /* ─── HEADER ─── */
@@ -224,7 +313,7 @@ body {{
     right: 40px;
     width: 200px;
     height: 200px;
-    background: radial-gradient(circle, var(--gold-glow) 0%, rgba(201, 168, 85, 0.08) 40%, transparent 70%);
+    background: radial-gradient(circle, rgba(201, 168, 85, 0.35) 0%, rgba(201, 168, 85, 0.12) 40%, transparent 70%);
     pointer-events: none;
 }}
 
@@ -245,7 +334,9 @@ body {{
     letter-spacing: -1px;
     line-height: 1.05;
     color: var(--text-primary);
-    margin-bottom: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--gold-dim);
 }}
 
 .header-name {{
@@ -280,7 +371,7 @@ body {{
 
 .metrics {{
     display: flex;
-    padding: 32px 40px;
+    padding: 32px 56px;
     gap: 0;
     border-bottom: 1px solid var(--border);
     background: var(--bg-surface);
@@ -309,11 +400,11 @@ body {{
 
 .metric-value {{
     font-family: 'JetBrains Mono', monospace;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -1.5px;
-    line-height: 1.2;
+    line-height: 1.15;
 }}
 
 .metric-value.gold {{
@@ -321,12 +412,13 @@ body {{
 }}
 
 .metric-label {{
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 1.5px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--text-tertiary);
-    margin-top: 4px;
+    margin-top: 6px;
 }}
 
 /* ─── BAR CHART ─── */
@@ -334,6 +426,7 @@ body {{
 .chart-section {{
     padding: 36px 56px;
     border-bottom: 1px solid var(--border);
+    page-break-before: always;
     page-break-inside: auto;
 }}
 
@@ -369,7 +462,7 @@ body {{
 .bar-track {{
     flex: 1;
     height: 16px;
-    background: var(--bg-elevated);
+    background: var(--bg-card);
     border-radius: 2px;
     overflow: hidden;
     position: relative;
@@ -472,21 +565,23 @@ td {{
 
 /* Total row */
 tfoot td {{
-    padding: 12px 8px 8px;
-    border-top: 2px solid var(--border);
+    padding: 14px 8px 10px;
+    border-top: 2px solid var(--gold-dim);
     font-weight: 600;
     color: var(--text-primary);
+    background: rgba(201, 168, 85, 0.04);
 }}
 
 tfoot .cell-cost {{
-    color: var(--gold);
-    font-size: 12px;
+    color: var(--gold-light);
+    font-size: 13px;
+    font-weight: 700;
 }}
 
 /* ─── FOOTER ─── */
 
 .footer {{
-    padding: 24px 56px 72px;
+    padding: 24px 56px 32px;
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
@@ -520,7 +615,7 @@ tfoot .cell-cost {{
 /* ─── TOKEN COMPOSITION STRIP ─── */
 
 .composition {{
-    padding: 28px 56px;
+    padding: 36px 56px 32px;
     border-bottom: 1px solid var(--border);
     background: var(--bg-surface);
 }}
@@ -539,8 +634,8 @@ tfoot .cell-cost {{
     min-width: 2px;
 }}
 
-.comp-segment.input {{ background: var(--accent-blue); }}
-.comp-segment.output {{ background: var(--accent-green); }}
+.comp-segment.input {{ background: var(--accent-input); }}
+.comp-segment.output {{ background: var(--accent-output); }}
 .comp-segment.cache-w {{ background: var(--gold); }}
 .comp-segment.cache-r {{ background: var(--accent-steel); }}
 
@@ -562,8 +657,8 @@ tfoot .cell-cost {{
     flex-shrink: 0;
 }}
 
-.comp-dot.input {{ background: var(--accent-blue); }}
-.comp-dot.output {{ background: var(--accent-green); }}
+.comp-dot.input {{ background: var(--accent-input); }}
+.comp-dot.output {{ background: var(--accent-output); }}
 .comp-dot.cache-w {{ background: var(--gold); }}
 .comp-dot.cache-r {{ background: var(--accent-steel); }}
 
@@ -576,6 +671,37 @@ tfoot .cell-cost {{
 .comp-pct {{
     font-weight: 600;
     color: var(--text-primary);
+}}
+
+/* ─── MODEL DISTRIBUTION ─── */
+
+.model-dist {{
+    page-break-inside: avoid;
+}}
+
+.model-primary {{
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}}
+
+.model-primary-name {{
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--text-primary);
+}}
+
+.model-legend {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}}
+
+.model-item {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }}
 </style>
 </head>
@@ -642,6 +768,8 @@ tfoot .cell-cost {{
         </div>
     </div>
 </div>
+
+{model_section}
 
 <!-- BAR CHART -->
 <div class="chart-section">
@@ -718,15 +846,16 @@ def main():
     p.add_argument("--html", action="store_true", help="Output HTML only, skip PDF conversion")
     args = p.parse_args()
 
-    # Get data
+    # Get data (daily breakdown + model breakdown)
     data = get_usage_data(args)
+    model_data = get_usage_data(args, by_override="model")
 
     if not data.get("groups"):
         print("No data found for the specified range.", file=sys.stderr)
         sys.exit(1)
 
     # Build HTML
-    html = build_html(data, name=args.name)
+    html = build_html(data, model_data=model_data, name=args.name)
 
     if args.html:
         if args.output:
@@ -736,11 +865,11 @@ def main():
             print(html)
         return
 
-    # Generate PDF via weasyprint
+    # Generate PDF via Playwright (Chromium)
     try:
-        import weasyprint
+        from playwright.sync_api import sync_playwright
     except ImportError:
-        print("weasyprint not installed. Install with: pip install weasyprint", file=sys.stderr)
+        print("playwright not installed. Install with: uv pip install playwright && playwright install chromium", file=sys.stderr)
         print("Falling back to HTML output.", file=sys.stderr)
         out = args.output or os.path.expanduser("~/Desktop/claude-usage-report.html")
         Path(out).write_text(html)
@@ -749,14 +878,25 @@ def main():
 
     output_path = args.output or os.path.expanduser("~/Desktop/claude-usage-report.pdf")
 
-    # Write HTML to temp file for weasyprint
+    # Write HTML to temp file for Chromium
     with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as f:
         f.write(html)
         tmp_html = f.name
 
     try:
-        doc = weasyprint.HTML(filename=tmp_html)
-        doc.write_pdf(output_path)
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page()
+            page.goto(f"file://{tmp_html}", wait_until="networkidle")
+            page.evaluate_handle("document.fonts.ready")
+            page.pdf(
+                path=output_path,
+                format="Letter",
+                print_background=True,
+                prefer_css_page_size=True,
+                margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
+            )
+            browser.close()
         print(f"PDF written to {output_path}")
     finally:
         os.unlink(tmp_html)
