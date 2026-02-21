@@ -95,14 +95,14 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
 
         if interactive:
             # Interactive mode - just launch codex with the profile
-            cmd = ["codex", "--model", "codex-mini"]
+            cmd = ["codex", "--model", "gpt-5.3-codex"]
             if prompt:
                 cmd.append(prompt)
         else:
             # Non-interactive exec mode
             cmd = [
                 "codex", "exec",
-                "--model", "codex-mini",
+                "--model", "gpt-5.3-codex",
                 "--sandbox", "workspace-write",
                 prompt
             ]

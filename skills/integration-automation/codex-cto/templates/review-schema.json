@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "required": ["phase", "verdict", "summary", "task_reviews"],
+  "properties": {
+    "phase": { "const": "review" },
+    "verdict": { "enum": ["approve", "revise", "abort"] },
+    "summary": { "type": "string" },
+    "task_reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "status"],
+        "properties": {
+          "task_id": { "type": "string" },
+          "status": { "enum": ["pass", "fail", "partial"] },
+          "feedback": { "type": "string" }
+        }
+      }
+    },
+    "revised_tasks": { "type": "array" },
+    "reason": { "type": "string" }
+  },
+  "additionalProperties": false
+}

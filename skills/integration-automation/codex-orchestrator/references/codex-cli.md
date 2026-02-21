@@ -37,7 +37,7 @@ Launches the interactive TUI with optional initial prompt.
 
 ```bash
 codex exec "<prompt>"
-codex exec --model o3-mini "Review this file"
+codex exec --model gpt-5.3-codex-spark "Review this file"
 codex e "Quick task"  # alias
 ```
 
@@ -73,9 +73,9 @@ codex debug                            # Internal debugging commands
 
 ```bash
 -m, --model <MODEL>                    # Select model
-    --model o3-mini                    # Fast, efficient
-    --model o3                         # More capable
-    --model codex-5.2                  # Latest Codex model
+    --model gpt-5.3-codex              # Latest, fastest, most capable
+    --model gpt-5.3-codex-spark        # Lighter, near-instant
+    --model gpt-5.2-codex              # Previous generation
 ```
 
 ### Sandbox Modes
@@ -99,7 +99,7 @@ codex debug                            # Internal debugging commands
 
 ```bash
 -c, --config <key=value>               # Override config
-    -c model="o3"                      # Set model
+    -c model="gpt-5.3-codex"            # Set model
     -c 'sandbox_permissions=["disk-full-read-access"]'
 ```
 
@@ -123,15 +123,15 @@ Located at `~/.codex/config.toml`:
 
 ```toml
 # Default settings
-model = "o3-mini"
+model = "gpt-5.3-codex"
 sandbox = "workspace-write"
 
 # Custom profiles
 [profile.reviewer]
-model = "o3"
+model = "gpt-5.3-codex"
 
 [profile.quick]
-model = "o3-mini"
+model = "gpt-5.3-codex-spark"
 sandbox = "read-only"
 ```
 
@@ -184,7 +184,7 @@ codex "Help me debug the login failure"
 codex exec --ask-for-approval on-failure "Fix all lint errors"
 
 # Use specific model
-codex --model o3 "Design a caching system"
+codex --model gpt-5.3-codex "Design a caching system"
 
 # Read-only analysis
 codex --sandbox read-only "Analyze the codebase architecture"

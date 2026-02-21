@@ -122,7 +122,7 @@ fi
 if [ "$QUICK_MODE" = false ]; then
     echo -e "\n${YELLOW}Test 8: API Connectivity${NC}"
     if [ -n "$OPENAI_API_KEY" ]; then
-        if timeout 15 codex exec --model gpt-5.1-codex-mini "print('hello')" &> /dev/null; then
+        if timeout 15 codex exec --model gpt-5.3-codex-spark "print('hello')" &> /dev/null; then
             test_pass "Codex API connection works"
         else
             test_fail "Codex API connection failed"
