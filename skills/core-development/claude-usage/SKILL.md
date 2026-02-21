@@ -69,7 +69,7 @@ python3 ~/.claude/skills/claude-usage/scripts/claude_usage_report.py --since 30d
 # PDF with custom output path
 python3 ~/.claude/skills/claude-usage/scripts/claude_usage_report.py --since 30d -o ~/Desktop/feb-usage.pdf
 
-# HTML only (no weasyprint needed)
+# HTML only (no Playwright needed)
 python3 ~/.claude/skills/claude-usage/scripts/claude_usage_report.py --since 7d --html
 ```
 
@@ -134,9 +134,9 @@ The script uses streaming line-by-line reads (O(1) memory) to handle files excee
 
 ## PDF Reports
 
-`claude_usage_report.py` generates a dark editorial PDF with Crimson Pro + JetBrains Mono typography, gold Minoan accents, bar charts, token composition breakdown, and detailed tables. Designed for executive sharing.
+`claude_usage_report.py` generates a dark editorial PDF with Crimson Pro + JetBrains Mono typography, gold Minoan accents, bar charts, model distribution with color-coded stacked bars, token composition breakdown, and detailed tables. Designed for executive sharing.
 
-Requires `weasyprint` (`uv pip install --system weasyprint`). Falls back to HTML output if unavailable.
+Requires Playwright (`uv pip install --system playwright && playwright install chromium`). Uses Chromium for pixel-perfect CSS rendering—same engine as the Aldea Slide Deck skill. Falls back to HTML output with `--html` flag.
 
 ---
 
@@ -146,3 +146,4 @@ Requires `weasyprint` (`uv pip install --system weasyprint`). Falls back to HTML
 - Cache write and cache read tokens are reported separately. Some accounting schemes may treat cache writes differently.
 - Synthetic entries (`model: "<synthetic>"`) and billing error entries (all-zero token counts) are automatically filtered.
 - Requires Python 3.9+ for `zoneinfo` module.
+- PDF reports require Playwright with Chromium (`playwright install chromium`).
