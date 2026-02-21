@@ -17,7 +17,7 @@ Reload with `Cmd+Shift+Comma` or restart Ghostty.
 | **Theme** | Catppuccin Mocha (dark) / Latte (light) — follows macOS appearance |
 | **Font** | JetBrains Mono 15pt, thickened |
 | **macOS** | Option-as-Alt (required for word nav), transparent titlebar |
-| **Appearance** | 0.90 opacity, blur, balanced padding, bold-is-bright |
+| **Appearance** | 0.90 opacity, blur, balanced padding, bold-is-bright, unfocused split dimming (0.85) |
 | **Persistence** | Tabs/splits restored on restart |
 | **Shell** | Auto-detected integration with prompt jumping, sudo, title |
 | **Scrollback** | 100K lines (default 10K fills fast with Claude Code output) |

@@ -252,18 +252,19 @@ Builds line 1 with ANSI true color passthrough (session name, model, gradient co
 
 ---
 
-### `session-tags-infer.py` — AI-Powered Session Tagging
+### `session-tags-infer.py` — AI-Powered Session Tagging & Summaries
 
-Reads the session transcript and generates 3 descriptive tags (3-5 words each) summarizing what the session is about. Tags update as the session evolves—early tags might be "project setup and configuration" while later tags shift to "debugging authentication middleware".
+Reads the session transcript and generates 3 descriptive tags (3-5 words each) plus a 2-4 sentence summary of what happened. Tags update as the session evolves—early tags might be "project setup and configuration" while later tags shift to "debugging authentication middleware".
 
 **Fires on**: Stop (via `stop-handoff.py`, fire-and-forget subprocess)
 
 **How it works**:
 1. Reads the last ~4000 chars of the transcript JSONL
 2. Sends to Gemini Flash Lite via OpenRouter (~$0.004/call)
-3. Returns 3 `display_tags` and 5 `search_tags` (single-word, for future semantic search)
-4. Writes to `/tmp/claude-session-tags-{session_id}.json`
+3. Returns 3 `display_tags`, up to 10 `tags`, a `title`, and a `summary`
+4. Writes to `~/.claude/session-tags/{session_id}.json`
 5. `session-tags-display.sh` reads this file for statusline display
+6. Pushes `topic` and `summary` to the soul registry via `soul-registry.py heartbeat`
 
 **Cooldown**: 5 minutes per session (shared with handoff cooldown). Tags don't re-infer if nothing has changed.
 
@@ -303,9 +304,9 @@ Manages registration of [Claudicle](https://github.com/tdimino/claudicle) soul d
 
 | Hook | Event | What it does |
 |------|-------|-------------|
-| `soul-activate.py` | SessionStart | Registers the session with the soul daemon, loads personality from `soul.md` |
+| `soul-activate.py` | SessionStart | Registers the session with the soul daemon, loads personality from `soul.md`. Checks for active marker file or `CLAUDICLE_SOUL`/`CLAUDIUS_SOUL` env vars. |
 | `soul-deregister.py` | SessionEnd | Unregisters the session, cleans up daemon state |
-| `soul-registry.py` | Library | Shared registry logic: heartbeat, lookup, multi-session coordination |
+| `soul-registry.py` | Library | Shared registry logic: heartbeat (with `--topic` and `--summary`), lookup, multi-session coordination. `list --md` renders session summaries below the table. |
 
 Claudicle's 4-layer architecture (Identity, Cognition, Memory, Channels) powers souls like Kothar—the Ugaritic craftsman god who serves as a coding companion. `ensouled-status.sh` and `soul-name.sh` display the active soul in the statusline. See the [Claudicle repo](https://github.com/tdimino/claudicle) for the full framework.
 

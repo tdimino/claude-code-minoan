@@ -21,6 +21,7 @@ window-padding-x = 12
 window-padding-y = 10
 window-padding-balance = true
 bold-is-bright = true
+unfocused-split-opacity = 0.85
 
 # --- Session Persistence ---
 window-save-state = always
