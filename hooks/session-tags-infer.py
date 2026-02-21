@@ -152,6 +152,19 @@ def main():
     if not session_id or not transcript_path or not os.path.exists(transcript_path):
         return
 
+    # Check for pending title from plan-session-rename.py BEFORE API key guard.
+    # These breadcrumbs are local-only and don't need an LLM call.
+    pending_path = TAGS_DIR / f"{session_id}.pending-title"
+    if pending_path.exists():
+        try:
+            pending_title = pending_path.read_text().strip()
+            if pending_title:
+                auto_rename_session(session_id, transcript_path, pending_title)
+                pending_path.unlink(missing_ok=True)
+                print(f"session-tags: applied pending plan title '{pending_title}'", file=sys.stderr)
+        except OSError:
+            pass
+
     api_key = get_api_key()
     if not api_key:
         return
@@ -203,7 +216,7 @@ def main():
 
     print(f"session-tags: {len(tags)} tags, display: {display_tags}", file=sys.stderr)
 
-    # Auto-rename session if no customTitle
+    # Auto-rename session if no customTitle (pending titles already handled above)
     auto_rename_session(session_id, transcript_path, title)
 
 

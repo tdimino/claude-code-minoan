@@ -5,7 +5,7 @@
 <p align="center">
   <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-45-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-43-purple.svg" alt="Commands"></a>
-  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-29-orange.svg" alt="Hooks"></a>
+  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-30-orange.svg" alt="Hooks"></a>
 </p>
 
 # Minoan Claude Code Configuration
@@ -109,6 +109,7 @@ PreToolUse ────────→ on-thinking.sh              (🔴 repo-ic
                    → git-track.sh               (Bash: log git commands to JSONL)
 PostToolUse ───────→ git-track-post.sh           (Bash: capture commit hashes)
                    → plan-rename.py              (Write/Edit/MultiEdit: random→dated slug)
+                   → plan-session-rename.py      (Write: auto-title session from plan H1)
 Stop ──────────────→ on-ready.sh + stop-handoff.py (🟢 title:subtitle + 5-min checkpoint)
 PreCompact ────────→ precompact-handoff.py       (full handoff before compaction)
 SessionEnd ────────→ precompact-handoff.py       (handoff on graceful exit)
@@ -123,6 +124,8 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
 **Git Tracking**: Three hooks intercept git commands across any directory, capturing repos, branches, operations, and commit hashes. Builds a bidirectional session↔repo index. Query with `getSessionsForRepo()` / `getReposForSession()` or generate a dashboard with `/session-report`.
 
 **Plan Auto-Naming**: Renames randomly-named plan files (e.g. `tingly-humming-simon.md`) to dated slugs (e.g. `2026-02-17-auto-rename-plan-files-hook.md`) by extracting the H1 header. Creates forwarding symlinks for mid-session continuity; cleaned up on SessionEnd.
+
+**Session Auto-Titling**: When a plan file is created, `plan-session-rename.py` immediately extracts the H1 header and sets the session's `customTitle` in `sessions-index.json`—no LLM call, pure local, ~10ms. If the session isn't yet in the index (Claude Code writes lazily), a `.pending-title` breadcrumb is saved for `session-tags-infer.py` to apply on next Stop.
 
 ---
 
