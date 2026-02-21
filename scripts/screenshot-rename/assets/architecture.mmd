@@ -1,0 +1,8 @@
+graph TD
+    A["📸 Screenshot taken"] --> B["launchd detects change"]
+    B --> C["Spawns watcher daemon"]
+    C --> D["Downscale to 1024px JPEG"]
+    D --> E["Vision API describes image"]
+    E --> F["Slugify + atomic rename"]
+    F --> G["Log to INDEX.md"]
+    G --> H["Exit — zero footprint"]

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screenshot Auto-Rename Daemon</title>
+<style>
+  :root {
+    --bg: #eff1f5;
+    --surface: #dce0e8;
+    --text: #4c4f69;
+    --subtext: #6c6f85;
+    --overlay: #9ca0b0;
+    --blue: #1e66f5;
+    --green: #40a02b;
+    --mauve: #8839ef;
+    --peach: #fe640b;
+    --red: #d20f39;
+    --border: #ccd0da;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 48px 56px;
+    line-height: 1.6;
+    max-width: 900px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--mauve);
+  }
+  h1 + p { color: var(--subtext); font-size: 16px; margin-bottom: 32px; }
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-top: 36px;
+    margin-bottom: 16px;
+    color: var(--blue);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  p { margin-bottom: 12px; }
+  code {
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    background: var(--surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--peach);
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0 20px;
+    overflow-x: auto;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .rename-example {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 16px 0 24px;
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+  }
+  .rename-example .before { color: var(--red); }
+  .rename-example .arrow { color: var(--overlay); margin: 8px 0; display: block; }
+  .rename-example .after { color: var(--green); }
+  ol {
+    padding-left: 24px;
+    margin-bottom: 16px;
+  }
+  ol li {
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  ol li strong { color: var(--mauve); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 24px;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    color: var(--blue);
+    font-weight: 600;
+  }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  td code { font-size: 13px; }
+  .badge {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 12px;
+    color: var(--subtext);
+    margin-right: 6px;
+  }
+  .badge.green { border-color: #40a02b; color: var(--green); }
+  .badge.mauve { border-color: #8839ef; color: var(--mauve); }
+</style>
+</head>
+<body>
+
+<h1>Screenshot Auto-Rename Daemon</h1>
+<p>A launchd daemon that watches for CleanShot and macOS screenshots, describes them with a vision model, and renames to <code>YYYY-MM-DD-slug[@Nx].ext</code>.</p>
+
+<h2>How It Works</h2>
+<ol>
+  <li><strong>launchd</strong> watches <code>~/Desktop/Screencaps &amp; Chats/Screenshots/</code> via <code>WatchPaths</code></li>
+  <li>When a new file appears, it spawns <code>minoan-screenshot-rename</code></li>
+  <li>The daemon scans for unprocessed files matching CleanShot/macOS screenshot patterns</li>
+  <li>Each image is downscaled to 1024px JPEG and sent to a vision model</li>
+  <li>The model returns a 3-8 word description, which is slugified into a filename</li>
+  <li>The file is atomically renamed and logged to <code>INDEX.md</code></li>
+</ol>
+
+<div class="rename-example">
+  <span class="before">CleanShot 2026-02-18 at 14.30.00@2x.png</span>
+  <span class="arrow">&nbsp;&nbsp;&nbsp;&nbsp;→</span>
+  <span class="after">2026-02-18-vscode-python-debugger-breakpoints@2x.png</span>
+</div>
+
+<h2>Vision Providers</h2>
+<table>
+  <thead>
+    <tr><th>Provider</th><th>Model</th><th>Cost/image</th><th>Setup</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>gemini-flash</code></td><td>Gemini 2.0 Flash</td><td>~$0.0001</td><td><code>GEMINI_API_KEY</code></td></tr>
+    <tr><td><code>gemini-pro</code></td><td>Gemini 2.5 Pro</td><td>~$0.001</td><td><code>GEMINI_API_KEY</code></td></tr>
+    <tr><td><code>openai</code></td><td>GPT-4o-mini</td><td>~$0.0003</td><td><code>OPENAI_API_KEY</code></td></tr>
+    <tr><td><code>anthropic</code></td><td>Claude Sonnet 4.6</td><td>~$0.001</td><td><code>ANTHROPIC_API_KEY</code></td></tr>
+    <tr><td><code>smolvlm</code></td><td>SmolVLM-2B (local)</td><td>Free</td><td><code>~/.claude/skills/smolvlm/</code></td></tr>
+    <tr><td><code>ollama</code></td><td>LLaVA (local)</td><td>Free</td><td>Ollama running on localhost</td></tr>
+  </tbody>
+</table>
+
+<h2>Architecture</h2>
+<p><span class="badge mauve">Trigger-and-exit</span> <span class="badge green">Zero CPU when idle</span></p>
+<ul style="padding-left: 24px; margin-top: 12px;">
+  <li style="margin-bottom: 8px;"><strong>No resident process.</strong> launchd spawns the daemon on filesystem changes, it processes all pending files, then exits.</li>
+  <li style="margin-bottom: 8px;"><strong>Atomic operations:</strong> <code>O_CREAT|O_EXCL</code> for collision-safe filenames, <code>os.replace()</code> for atomic renames, <code>fcntl.flock()</code> for INDEX.md writes.</li>
+  <li style="margin-bottom: 8px;"><strong>Fallback naming:</strong> If the vision API fails, files get <code>screenshot-NNN</code> names instead of being skipped.</li>
+  <li style="margin-bottom: 8px;"><strong>Image preprocessing:</strong> Retina PNGs (~5MB) are downscaled to 1024px JPEG (~150KB) before API calls.</li>
+</ul>
+
+</body>
+</html>

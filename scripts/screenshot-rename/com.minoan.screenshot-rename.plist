@@ -28,7 +28,7 @@
     </dict>
 
     <key>RunAtLoad</key>
-    <false/>
+    <true/>
 
     <key>KeepAlive</key>
     <dict>
