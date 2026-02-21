@@ -77,8 +77,10 @@ def _is_soul_active(session_id):
     if os.path.exists(os.path.join(marker_dir, session_id)):
         return True
 
-    # Mode 2: Explicit env var override
+    # Mode 2: Explicit env var override (both naming conventions)
     if os.environ.get("CLAUDICLE_SOUL", "").strip() == "1":
+        return True
+    if os.environ.get("CLAUDIUS_SOUL", "").strip() == "1":
         return True
 
     return False

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Stop hook subprocess: infer session tags from transcript via OpenRouter.
+"""Stop hook subprocess: infer session tags + summary from transcript via OpenRouter.
 
-Reads last 100 JSONL lines, calls Gemini Flash Lite to extract topic tags,
-writes to ~/.claude/session-tags/{session_id}.json. Also auto-sets customTitle
-in sessions-index.json if none exists.
+Reads last 100 JSONL lines, calls Gemini Flash Lite to extract topic tags and
+a 2-4 sentence summary. Writes to ~/.claude/session-tags/{session_id}.json,
+auto-sets customTitle in sessions-index.json, and updates the soul-session
+registry with topic + summary.
 """
 import datetime
 import fcntl
 import json
 import os
 import pathlib
+import subprocess
 import sys
 import urllib.request
 
@@ -55,15 +57,16 @@ def extract_json(text):
 
 def infer_tags(api_key, transcript_text):
     """Call OpenRouter to extract tags from transcript."""
-    prompt = f"""Analyze this Claude Code session transcript and extract topic tags.
+    prompt = f"""Analyze this Claude Code session transcript and extract topic tags and a summary.
 
 Output ONLY valid JSON with these fields:
 - "tags": array of up to 10 topic tags (4-5 words each) describing what this session covers
 - "display_tags": array of exactly 3 most relevant tags (3-5 words each, descriptive and specific)
 - "title": a short descriptive title for this session (5-8 words, no quotes)
+- "summary": a 2-4 sentence summary of what happened in this session (what was built, fixed, or discussed)
 
 Example output:
-{{"tags": ["statusline tags feature", "ccstatusline hook design", "plan rename fix"], "display_tags": ["statusline session tags display", "plan rename on creation", "stop hook architecture"], "title": "Session Tags and Plan Rename"}}
+{{"tags": ["statusline tags feature", "ccstatusline hook design", "plan rename fix"], "display_tags": ["statusline session tags display", "plan rename on creation", "stop hook architecture"], "title": "Session Tags and Plan Rename", "summary": "Extended the statusline with session tag display. Fixed plan rename hook to trigger on file creation. Refactored stop hook to use fire-and-forget pattern for tag inference."}}
 
 TRANSCRIPT:
 {transcript_text}"""
@@ -188,6 +191,7 @@ def main():
     tags = result.get("tags", [])[:10]
     display_tags = result.get("display_tags", tags[:3])[:3]
     title = result.get("title", "")
+    summary = result.get("summary", "")
 
     # Count turns (approximate: count user messages)
     try:
@@ -202,6 +206,7 @@ def main():
         "session_id": session_id,
         "tags": tags,
         "display_tags": display_tags,
+        "summary": summary,
         "updated": datetime.datetime.now().isoformat(timespec="seconds"),
         "turn_count": turn_count,
     }
@@ -218,6 +223,19 @@ def main():
 
     # Auto-rename session if no customTitle (pending titles already handled above)
     auto_rename_session(session_id, transcript_path, title)
+
+    # Update soul registry topic + summary if this session is registered
+    if title or summary:
+        cmd = ["python3", str(pathlib.Path.home() / ".claude/hooks/soul-registry.py"),
+               "heartbeat", session_id]
+        if title:
+            cmd += ["--topic", title]
+        if summary:
+            cmd += ["--summary", summary]
+        try:
+            subprocess.run(cmd, timeout=5, capture_output=True)
+        except Exception:
+            pass  # Non-critical
 
 
 if __name__ == "__main__":

@@ -109,6 +109,20 @@ def _write_sessions_md(data):
             if len(topic) > 40:
                 topic = topic[:37] + "..."
             lines.append(f"| `{short}` | {project} | {cwd} | {started} | {last} | {slack} | {topic} |")
+
+        # Append summaries below the table
+        summaries = []
+        for sid, info in sorted(sessions.items(), key=lambda x: x[1].get("started_at", "")):
+            summary = info.get("summary", "")
+            if summary:
+                short = info.get("short_id", sid[:8])
+                summaries.append(f"- **`{short}`**: {summary}")
+        if summaries:
+            lines.append("")
+            lines.append("### Summaries")
+            lines.append("")
+            lines.extend(summaries)
+
         md = "\n".join(lines) + "\n"
 
     with open(SESSIONS_MD, "w") as f:
@@ -146,6 +160,7 @@ def cmd_register(args):
         "slack_channel": existing.get("slack_channel"),
         "slack_channel_name": existing.get("slack_channel_name"),
         "topic": existing.get("topic", ""),
+        "summary": existing.get("summary", ""),
         "model": args.model or existing.get("model", ""),
     }
     data["sessions"][args.session_id] = entry
@@ -185,6 +200,8 @@ def cmd_heartbeat(args):
     data["sessions"][args.session_id]["last_active"] = now
     if args.topic:
         data["sessions"][args.session_id]["topic"] = args.topic
+    if args.summary:
+        data["sessions"][args.session_id]["summary"] = args.summary
     _save_registry(data)
 
 
@@ -225,7 +242,9 @@ def cmd_list(args):
                         duration_str = f", {mins}m"
                 except ValueError:
                     pass
-            print(f"- `{short}` in {cwd}{topic_str}{slack_str}{duration_str}")
+            summary = info.get("summary", "")
+            summary_str = f"\n  > {summary}" if summary else ""
+            print(f"- `{short}` in {cwd}{topic_str}{slack_str}{duration_str}{summary_str}")
         return
 
     # Default: compact text
@@ -303,6 +322,7 @@ def main():
     p_hb = sub.add_parser("heartbeat", help="Update last_active")
     p_hb.add_argument("session_id", help="Full session UUID")
     p_hb.add_argument("--topic", help="Update session topic")
+    p_hb.add_argument("--summary", help="Update session summary (2-4 sentences)")
 
     # list
     p_list = sub.add_parser("list", help="List active sessions")
