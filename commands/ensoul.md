@@ -10,10 +10,24 @@ Activate the Claudicle soul identity in this Claude Code session. After activati
 
 ## Instructions
 
-### Step 1: Create the marker file
+### Step 1: Resolve the current session ID and create the marker file
 
 ```bash
-mkdir -p ~/.claude/soul-sessions/active && touch ~/.claude/soul-sessions/active/e05a106c-9757-4240-8474-fc58ae8ffbfd
+SESSION_ID=$(python3 -c "
+import json, os
+reg = json.load(open(os.path.expanduser('~/.claude/soul-sessions/registry.json')))
+cwd = os.getcwd()
+# Find session matching current working directory, prefer most recently active
+matches = [(sid, s) for sid, s in reg.get('sessions', {}).items() if s.get('cwd', '').rstrip('/') == cwd.rstrip('/')]
+matches.sort(key=lambda x: x[1].get('last_active', ''), reverse=True)
+print(matches[0][0] if matches else '')
+" 2>/dev/null)
+```
+
+If `SESSION_ID` is empty, ask the user to check `~/.claude/soul-sessions/registry.json` — the session may not have been registered yet. Otherwise:
+
+```bash
+mkdir -p ~/.claude/soul-sessions/active && touch ~/.claude/soul-sessions/active/$SESSION_ID
 ```
 
 This marker tells the SessionStart hook to inject soul.md on future compaction/resume events.

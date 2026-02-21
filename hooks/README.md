@@ -24,6 +24,7 @@ Claude responds ─────→ Stop ─────────────�
 
 Plan/md file written → PostToolUse ────────→ plan-rename.py (random→dated slug + dabarat)
   (Write on ~/.claude/plans/)              → dabarat-open.py (auto-open new .md in preview)
+                                           → plan-session-rename.py (auto-title session from H1)
 
 Context full ────────→ PreCompact ──────────→ precompact-handoff.py (full handoff)
 
@@ -192,6 +193,26 @@ Renames randomly-named plan files (`tingly-humming-simon.md`) to dated slugs (`2
 
 ---
 
+### `plan-session-rename.py` — Auto-Rename Session from Plan Title
+
+When a plan file is written to `~/.claude/plans/`, extracts the H1 header and sets the session's `customTitle` in `sessions-index.json`. No LLM call—pure local, ~10ms.
+
+**Fires on**: PostToolUse/Write (only when file is in `~/.claude/plans/`)
+
+**How it works**:
+1. Guard: only acts if `file_path` is inside `~/.claude/plans/`
+2. Extract H1 from `tool_input.content`, strip "Plan: " prefix if present
+3. Derive `sessions-index.json` path from `cwd` using Claude Code's path convention
+4. Acquire shared file lock (`/tmp/claude-{uid}/sessions-index.lock`)
+5. Set `customTitle` if none exists; also propagate to `session-summaries.json`
+6. If session not yet in index (Claude Code writes lazily), writes a `.pending-title` breadcrumb to `~/.claude/session-tags/` for `session-tags-infer.py` to pick up on next Stop
+
+**Interplay with `session-tags-infer.py`**: Pending breadcrumbs are checked before the API key guard in the Stop hook, so sessions without OpenRouter API keys still get plan-derived titles.
+
+**Cost**: Zero. No LLM calls, no network.
+
+---
+
 ### `plan-cleanup-symlinks.py` — Remove Plan Forwarding Symlinks
 
 Removes all symlinks from `~/.claude/plans/` after a session ends. Safe because once the session is over, no further writes target the old random names.
@@ -322,6 +343,7 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
 | Plan file auto-naming | Stop (plan-rename) | Yes |
 | Plan symlink cleanup | SessionEnd (plan-rename) | Yes |
 | New .md file created | PostToolUse/Write (dabarat-open) | Yes |
+| Session auto-title from plan | PostToolUse/Write (plan-session-rename) | Yes |
 | Soul daemon registration | SessionStart (soul-activate) | Yes |
 | Soul daemon cleanup | SessionEnd (soul-deregister) | Yes |
 | Slack channel notification | Stop (slack-stop-hook) | Yes |
@@ -417,7 +439,8 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
       {
         "matcher": "Write",
         "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/dabarat-open.py"}
+          {"type": "command", "command": "python3 ~/.claude/hooks/dabarat-open.py"},
+          {"type": "command", "command": "python3 ~/.claude/hooks/plan-session-rename.py", "timeout": 5000}
         ]
       }
     ]
