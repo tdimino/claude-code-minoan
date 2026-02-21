@@ -246,8 +246,67 @@ class OllamaProvider:
         return response
 
 
+class OpenRouterProvider:
+    """OpenRouter API—routes to any vision model (default: Gemini Flash Lite)."""
+
+    def __init__(self, model: str = "google/gemini-2.0-flash-lite-001"):
+        self._model = model
+        self._api_key = self._resolve_key()
+
+    def _resolve_key(self) -> str:
+        key = os.environ.get("OPENROUTER_API_KEY", "")
+        if key:
+            return key
+        for env_file in [
+            Path.home() / ".config/env/global.env",
+            Path.home() / "Desktop/Aldea/Prompt development/Aldea-Soul-Engine/.env",
+            Path.home() / "Desktop/minoanmystery-astro/.env",
+        ]:
+            if env_file.exists():
+                for line in env_file.read_text().splitlines():
+                    if line.startswith("OPENROUTER_API_KEY="):
+                        return line.split("=", 1)[1].strip().strip('"').strip("'")
+        raise ValueError("No OPENROUTER_API_KEY found in env or .env files")
+
+    def describe(self, image_bytes: bytes) -> str:
+        import json
+        import urllib.request
+        b64 = base64.b64encode(image_bytes).decode()
+        payload = json.dumps({
+            "model": self._model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": [
+                    {"type": "image_url", "image_url": {
+                        "url": f"data:image/jpeg;base64,{b64}",
+                        "detail": "low",
+                    }},
+                    {"type": "text", "text": VISION_PROMPT},
+                ]},
+            ],
+            "max_tokens": 30,
+            "temperature": 0,
+        }).encode()
+        req = urllib.request.Request(
+            "https://openrouter.ai/api/v1/chat/completions",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self._api_key}",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+        text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        if not text:
+            raise ValueError(f"Empty response from OpenRouter: {data}")
+        return text.strip()
+
+
 # Provider registry
 PROVIDERS = {
+    "openrouter": lambda: OpenRouterProvider(),
+    "openrouter-flash": lambda: OpenRouterProvider("google/gemini-2.0-flash-001"),
     "gemini-flash": lambda: GeminiProvider("gemini-2.0-flash"),
     "gemini-pro": lambda: GeminiProvider("gemini-2.5-pro-preview-06-05"),
     "openai": lambda: OpenAIProvider(),

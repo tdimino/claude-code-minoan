@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 312.2 648" width="624" height="1296" style="background:#1e1e2e">
+<style>
+  text { font-family: system-ui, -apple-system, sans-serif; }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="4.8" refX="8" refY="2.4" orient="auto">
+    <polygon points="0 0, 8 2.4, 0 4.8" fill="#cba6f7" />
+  </marker>
+</defs>
+<polyline points="156.1,76 156.1,116" fill="none" stroke="#585b70" stroke-width="0.75" marker-end="url(#arrowhead)" />
+<polyline points="156.1,152 156.1,192" fill="none" stroke="#585b70" stroke-width="0.75" marker-end="url(#arrowhead)" />
+<polyline points="156.1,228 156.1,268" fill="none" stroke="#585b70" stroke-width="0.75" marker-end="url(#arrowhead)" />
+<polyline points="156.1,304 156.1,344" fill="none" stroke="#585b70" stroke-width="0.75" marker-end="url(#arrowhead)" />
+<polyline points="156.1,380 156.1,420" fill="none" stroke="#585b70" stroke-width="0.75" marker-end="url(#arrowhead)" />
+<polyline points="156.1,456 156.1,496" fill="none" stroke="#585b70" stroke-width="0.75" marker-end="url(#arrowhead)" />
+<polyline points="156.1,532 156.1,572" fill="none" stroke="#585b70" stroke-width="0.75" marker-end="url(#arrowhead)" />
+<rect x="65" y="40" width="182.2" height="36" rx="4" ry="4" fill="#313244" stroke="#45475a" stroke-width="0.75" />
+<rect x="54.3" y="116" width="203.6" height="36" rx="4" ry="4" fill="#313244" stroke="#45475a" stroke-width="0.75" />
+<rect x="57.9" y="192" width="196.5" height="36" rx="4" ry="4" fill="#313244" stroke="#45475a" stroke-width="0.75" />
+<rect x="47.2" y="268" width="217.9" height="36" rx="4" ry="4" fill="#313244" stroke="#45475a" stroke-width="0.75" />
+<rect x="40" y="344" width="232.2" height="36" rx="4" ry="4" fill="#313244" stroke="#45475a" stroke-width="0.75" />
+<rect x="50.7" y="420" width="210.8" height="36" rx="4" ry="4" fill="#313244" stroke="#45475a" stroke-width="0.75" />
+<rect x="79.3" y="496" width="153.6" height="36" rx="4" ry="4" fill="#313244" stroke="#45475a" stroke-width="0.75" />
+<rect x="57.9" y="572" width="196.5" height="36" rx="4" ry="4" fill="#313244" stroke="#45475a" stroke-width="0.75" />
+<text x="156.1" y="58" text-anchor="middle" dy="0.35em" font-size="13" font-weight="500" fill="#cdd6f4">📸 Screenshot taken</text>
+<text x="156.1" y="134" text-anchor="middle" dy="0.35em" font-size="13" font-weight="500" fill="#cdd6f4">launchd detects change</text>
+<text x="156.1" y="210" text-anchor="middle" dy="0.35em" font-size="13" font-weight="500" fill="#cdd6f4">Spawns watcher daemon</text>
+<text x="156.1" y="286" text-anchor="middle" dy="0.35em" font-size="13" font-weight="500" fill="#cdd6f4">Downscale to 1024px JPEG</text>
+<text x="156.1" y="362" text-anchor="middle" dy="0.35em" font-size="13" font-weight="500" fill="#cdd6f4">Vision API describes image</text>
+<text x="156.1" y="438" text-anchor="middle" dy="0.35em" font-size="13" font-weight="500" fill="#cdd6f4">Slugify + atomic rename</text>
+<text x="156.1" y="514" text-anchor="middle" dy="0.35em" font-size="13" font-weight="500" fill="#cdd6f4">Log to INDEX.md</text>
+<text x="156.1" y="590" text-anchor="middle" dy="0.35em" font-size="13" font-weight="500" fill="#cdd6f4">Exit — zero footprint</text>
+</svg>
