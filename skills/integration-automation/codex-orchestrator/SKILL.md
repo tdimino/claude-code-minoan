@@ -1,6 +1,6 @@
 ---
 name: codex-orchestrator
-description: Orchestrate OpenAI Codex CLI with specialized subagents for code review, debugging, architecture analysis, security audits, refactoring, and documentation. This skill should be used when delegating focused development tasks to Codex subagents (codex-mini, o3, o4-mini) via AGENTS.md persona injection.
+description: Orchestrate OpenAI Codex CLI with specialized subagents for code review, debugging, architecture analysis, security audits, refactoring, and documentation. This skill should be used when delegating focused development tasks to Codex subagents (gpt-5.3-codex, gpt-5.3-codex-spark, gpt-5.2-codex) via AGENTS.md persona injection.
 ---
 
 # Codex Orchestrator
@@ -235,16 +235,15 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 | Task Type | Recommended Model |
 |-----------|-------------------|
 | Default (best quality) | gpt-5.3-codex |
-| Budget / quick checks | gpt-5.1-codex-mini |
-| Deep reasoning | gpt-5.1-codex-max |
-| Previous flagship | gpt-5.2-codex |
+| Quick checks / fast iteration | gpt-5.3-codex-spark |
+| Previous generation | gpt-5.2-codex |
 
 ```bash
 # Use default model from your Codex config
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Style check"
 
 # Override with specific model
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Design distributed cache" --model o3
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.3-codex
 ```
 
 ## Testing
@@ -279,7 +278,7 @@ codex login
 ```
 
 ### "Model not supported with ChatGPT account"
-Models like `codex-mini`, `o3`, `o4-mini` require an OpenAI API account, not a ChatGPT login.
+Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2-codex`.
 Set an API key instead of using `codex login`:
 ```bash
 export OPENAI_API_KEY=sk-...
@@ -297,4 +296,4 @@ ls ~/.claude/skills/codex-orchestrator/agents/
 - Narrow the task scope
 - Provide more context in the prompt
 - Try a different profile
-- Use `--model o3` for complex tasks
+- Use `--model gpt-5.3-codex` for complex tasks

@@ -55,6 +55,9 @@ Billed at standard API rates.
 | `refactor` | Code cleanup, modernization | Reducing tech debt, improving structure |
 | `docs` | API docs, READMEs, comments | Documentation tasks |
 | `planner` | ExecPlan design documents | Multi-hour tasks, complex features |
+| `syseng` | Infrastructure, DevOps, CI/CD | Deployment, containers, observability |
+| `builder` | Greenfield implementation | Creating new code from specs |
+| `researcher` | Read-only Q&A, analysis | Questions, comparisons (no file changes) |
 
 ## Quick Start
 
@@ -106,27 +109,26 @@ python3 ./scripts/codex-session.py info security
 
 ## Model Selection
 
-### Available Models (Jan 2026)
+### Available Models (Feb 2026)
 
 | Model | Description | Speed | Capability |
 |-------|-------------|-------|------------|
-| `gpt-5.2-codex` | Most advanced (recommended) | Medium | Highest |
-| `gpt-5.1-codex-mini` | Cost-effective | Fast | Good |
-| `gpt-5.1-codex-max` | Long-horizon tasks | Slow | Very High |
-| `gpt-5.2` | General agentic | Medium | High |
+| `gpt-5.3-codex` | Most advanced (recommended) | Medium | Highest |
+| `gpt-5.3-codex-spark` | Quick checks / fast iteration | Fast | Good |
+| `gpt-5.2-codex` | Previous generation | Medium | High |
 
 ### Configure Default Model
 
 Edit `~/.codex/config.toml`:
 
 ```toml
-model = "gpt-5.2-codex"
+model = "gpt-5.3-codex"
 ```
 
 ### Override Per-Task
 
 ```bash
-./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.1-codex-max
+./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.3-codex
 ```
 
 ## Chaining Patterns
@@ -240,14 +242,14 @@ npm install -g @openai/codex
 
 ### "Model not supported with ChatGPT account"
 
-Some older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Use current models:
+Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2-codex`.
 
 ```bash
 # Recommended
-./scripts/codex-exec.sh reviewer "task" --model gpt-5.2-codex
+./scripts/codex-exec.sh reviewer "task" --model gpt-5.3-codex
 
 # Fast/cheap
-./scripts/codex-exec.sh reviewer "task" --model gpt-5.1-codex-mini
+./scripts/codex-exec.sh reviewer "task" --model gpt-5.3-codex-spark
 ```
 
 ### "Authentication error"
@@ -262,7 +264,7 @@ export OPENAI_API_KEY=sk-...
 
 ### "Profile not found"
 
-Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`
+Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`
 
 Check profiles exist:
 
@@ -275,7 +277,7 @@ ls ./agents/
 - Narrow the task scope
 - Provide more context in the prompt
 - Try a different profile
-- Use `--model gpt-5.1-codex-max` for complex tasks
+- Use `--model gpt-5.3-codex` for complex tasks
 
 ## Testing
 

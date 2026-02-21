@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "required": ["phase", "objective", "analysis", "strategy", "tasks"],
+  "properties": {
+    "phase": { "const": "plan" },
+    "objective": { "type": "string" },
+    "analysis": { "type": "string" },
+    "strategy": { "type": "string" },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "action", "target", "description", "acceptance_criteria"],
+        "properties": {
+          "id": { "type": "string" },
+          "action": { "enum": ["create_file", "modify_file", "delete_file", "run_command", "verify"] },
+          "target": { "type": "string" },
+          "description": { "type": "string" },
+          "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
+          "depends_on": { "type": "array", "items": { "type": "string" } },
+          "context": { "type": "string" }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "commands": { "type": "array", "items": { "type": "string" } },
+        "expected": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

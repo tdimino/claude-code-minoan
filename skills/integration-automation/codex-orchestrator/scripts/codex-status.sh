@@ -69,7 +69,7 @@ echo ""
 
 # Test Codex connectivity (quick check)
 echo -e "${BLUE}Testing Codex connectivity...${NC}"
-if timeout 10 codex exec --model o3-mini "echo 'test'" &> /dev/null; then
+if timeout 10 codex exec --model gpt-5.3-codex-spark "echo 'test'" &> /dev/null; then
     echo -e "${GREEN}✓ Codex API connection successful${NC}"
 else
     echo -e "${YELLOW}⚠ Could not verify Codex API connection${NC}"

@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-45-green.svg" alt="Skills"></a>
-  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-43-purple.svg" alt="Commands"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-47-green.svg" alt="Skills"></a>
+  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-47-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-30-orange.svg" alt="Hooks"></a>
 </p>
 
@@ -20,14 +20,14 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 45 custom skills across 5 categories
+├── skills/                      # 47 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
 │   ├── research/                #   Academic, web search, scraping
 │   └── planning-productivity/   #   Session tracking, swarms, iteration loops
 ├── hooks/                       # Lifecycle hooks (handoffs, terminal UX, multi-response)
-├── commands/                    # 43 slash commands (workflows, planning, code review)
+├── commands/                    # 47 slash commands (workflows, planning, code review)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
 ├── tools/                       # Standalone tools (see github.com/tdimino/dabarat)
@@ -79,7 +79,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 45 skills across 5 categories
+### [Skills](skills/README.md) — 47 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -87,11 +87,11 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
-| Core Development | 8 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk`, `skill-optimizer` |
-| Integration & Automation | 17 | `llama-cpp`, `rlama`, `classical-887`, `slack`, `Firecrawl`, `codex-orchestrator` |
+| Core Development | 10 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk`, `skill-optimizer`, `claude-usage` |
+| Integration & Automation | 18 | `llama-cpp`, `rlama`, `classical-887`, `slack`, `Firecrawl`, `codex-orchestrator`, `codex-cto` |
 | Design & Media | 7 | `gemini-claude-resonance`, `nano-banana-pro`, `speak-response` |
 | Research | 5 | `academic-research`, `linear-a-decipherment`, `exa-search`, `Firecrawl` |
-| Planning & Productivity | 5 | `minoan-swarm`, `super-ralph-wiggum`, `claude-tracker-suite` |
+| Planning & Productivity | 7 | `minoan-swarm`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
 
 Toggle skills on/off: `./skills/skill-toggle.sh`
 
@@ -129,7 +129,7 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
 
 ---
 
-### [Commands](commands/README.md) — 43 slash commands
+### [Commands](commands/README.md) — 47 slash commands
 
 Markdown templates invoked as `/command-name`. Key workflows:
 
@@ -161,10 +161,11 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 | `claude-tracker` | List recent sessions with summaries and status |
 | `claude-tracker-search` | Search sessions by topic, ID, project, date |
 | `claude-tracker-resume` | Find crashed sessions, auto-resume in tmux |
-| `resume-in-vscode.sh` | Resume a session in a new Ghostty/VS Code/Cursor terminal |
+| `claude-tmux-status` | Tmux statusline integration for session info |
 | `cc` / `cckill` / `ccls` / `ccpick` | Quick launchers and session management |
+| `ccnew` / `ccresume` | Start new sessions / resume existing ones |
 
-All CLIs share `lib/tracker-utils.js` for session parsing and status detection. The `resume-in-vscode.sh` script auto-detects the project directory from the session ID (via `decodeProjectPath`) and `cd`s there before resuming — no `--project` flag needed.
+All CLIs share `lib/tracker-utils.js` for session parsing and status detection.
 
 ---
 
@@ -296,7 +297,7 @@ dabarat --add spec.md         # add tab to running instance
 
 ---
 
-**Skills**: 45 | **Commands**: 43 | **Hooks**: 29 | **CLI Tools**: 8
+**Skills**: 47 | **Commands**: 47 | **Hooks**: 30 | **CLI Tools**: 10
 
 ---
 
