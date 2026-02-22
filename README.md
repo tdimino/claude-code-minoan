@@ -277,6 +277,21 @@ dabarat plan.md               # preview in browser
 dabarat --add spec.md         # add tab to running instance
 ```
 
+### [ClipLog](https://github.com/tdimino/cliplog) — Clipboard History Daemon
+
+Git-tracked clipboard history with source attribution for macOS. Polls `NSPasteboard` every 500ms, logs to daily JSONL files at `~/.clipboard-log/`, and tags each copy with the frontmost application. Distinguishes `claude` copies (Terminal, Ghostty, VS Code) from `user` copies (Safari, Finder). Auto-redacts API keys and secrets. Auto-commits on shutdown and midnight rollover.
+
+```bash
+git clone https://github.com/tdimino/cliplog
+cd cliplog && uv sync
+uv run python cliplog.py                           # run daemon
+uv run python cliplog_query.py today --source claude  # query Claude copies
+uv run python cliplog_query.py search "function"   # full-text search
+uv run python cliplog_query.py stats               # per-app breakdown
+```
+
+Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.minoan.cliplog.plist`
+
 ---
 
 ## Credits & Inspiration
