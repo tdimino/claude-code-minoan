@@ -34,6 +34,8 @@ cc-pick 30       # Show last 30 sessions
 | `ccls` | `ccls` | List sessions with status (🟢 claude / ⚪ idle) |
 | `ccpick` | `ccpick` | Interactive fzf picker with live preview |
 | `cckill` | `cckill` | Kill only idle sessions (preserves active Claude) |
+| `ccnew` | `ccnew <path> [--ghostty\|--vscode\|--cursor] [--model <m>]` | Open new Claude session in project dir |
+| `ccresume` | `ccresume <session-id> [--ghostty\|--vscode\|--cursor] [--project <path>]` | Resume session in Ghostty/VS Code/Cursor |
 
 ## Shell Aliases (`.zshrc`)
 
@@ -102,7 +104,12 @@ ta session-name # Direct attach
 ### Start new Claude session
 ```bash
 cd ~/my-project
-cc              # Creates session named "my-project" with Claude
+cc              # Creates session named "my-project" with Claude (tmux)
+
+# Or open directly in Ghostty/VS Code/Cursor:
+ccnew ~/my-project                      # Ghostty tab (default)
+ccnew ~/my-project --vscode             # VS Code terminal
+ccnew ~/my-project --model sonnet       # With model override
 ```
 
 ### Check what's running
@@ -129,8 +136,9 @@ Ctrl+A, s       # Opens fzf session picker popup
 - **tmux config:** `~/.tmux.conf`
 - **Claude hooks:** `~/.claude/settings.json`
 - **Terminal title hook:** `~/.claude/hooks/terminal-title.sh`
-- **CLI tools:** `~/.local/bin/cc`, `ccls`, `ccpick`, `cckill`
+- **CLI tools:** `~/.local/bin/cc`, `ccls`, `ccpick`, `cckill`, `ccnew`, `ccresume`
 - **Session scripts:** `~/.claude/scripts/cc-sessions-fzf.sh`, `cc-sessions.sh`
+- **New session launcher:** `~/.claude/skills/claude-tracker-suite/scripts/new-session.sh`
 
 ## Session History Scripts (`~/.claude/scripts/`)
 
