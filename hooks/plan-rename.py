@@ -29,7 +29,7 @@ PLANS_DIR = pathlib.Path.home() / ".claude" / "plans"
 # Examples: tingly-humming-simon, eager-twirling-storm, zesty-kindling-giraffe
 RANDOM_NAME_RE = re.compile(
     r"^([a-z]+-[a-z]+-[a-z]+)"          # base: adj-gerund-noun
-    r"(-agent-a[0-9a-f]{5,7})?"          # optional agent suffix
+    r"(-agent-a[0-9a-f]{5,19})?"         # optional agent suffix (5-19 hex chars)
     r"\.md$"
 )
 
