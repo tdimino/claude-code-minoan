@@ -280,9 +280,11 @@ kothar soul engine · dabarat live preview · session tag inference
 
 ### `dabarat-open.py` — Auto-Open Markdown in Live Preview
 
-Automatically opens newly created `.md` files in [Dabarat](https://github.com/tdimino/dabarat) for live rendered preview. If dabarat is already running, adds a tab silently via the `/api/add` endpoint. If not running, launches a new window.
+Companion hook for [Dabarat](https://github.com/tdimino/dabarat) (`md_preview_and_annotate`)—a zero-dependency Python markdown previewer with annotations, tagging, command palette, and 6 Catppuccin themes. This hook bridges Claude Code's file writes to Dabarat's live preview, so every `.md` file Claude touches appears instantly in the browser.
 
-**Fires on**: PostToolUse/Write (only for new `.md` files)
+Fires on every `.md` write (create or edit). If Dabarat is already running, adds a tab via `/api/add` and prints the result to stdout. If not running, launches a new window. Messages are printed to stdout so they appear as visible hook feedback in Claude Code.
+
+**Fires on**: PostToolUse/Write (all `.md` file writes)
 
 **Watched directories**:
 - `~/.claude/plans/`
@@ -294,7 +296,7 @@ Automatically opens newly created `.md` files in [Dabarat](https://github.com/td
 
 **Skips**: `INDEX.md`, `.annotations.` files, `sessions-index`
 
-**Why it exists**: When Claude writes a plan or documentation file, you instantly see the rendered markdown in a browser tab without switching context.
+**Why it exists**: When Claude writes or updates a plan, dossier, or documentation file, you instantly see the rendered markdown in a browser tab without switching context.
 
 ---
 
