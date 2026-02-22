@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-47-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-49-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-47-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-30-orange.svg" alt="Hooks"></a>
 </p>
@@ -20,7 +20,7 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 47 custom skills across 5 categories
+├── skills/                      # 49 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
@@ -79,7 +79,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 47 skills across 5 categories
+### [Skills](skills/README.md) — 49 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -89,11 +89,11 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 |----------|-------|---------------|
 | Core Development | 10 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk`, `skill-optimizer`, `claude-usage` |
 | Integration & Automation | 18 | `llama-cpp`, `rlama`, `classical-887`, `slack`, `Firecrawl`, `codex-orchestrator`, `codex-cto` |
-| Design & Media | 7 | `gemini-claude-resonance`, `nano-banana-pro`, `speak-response` |
+| Design & Media | 8 | `gemini-claude-resonance`, `image-forge`, `nano-banana-pro`, `speak-response` |
 | Research | 5 | `academic-research`, `linear-a-decipherment`, `exa-search`, `Firecrawl` |
-| Planning & Productivity | 7 | `minoan-swarm`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
+| Planning & Productivity | 8 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
 
-Toggle skills on/off: `./skills/skill-toggle.sh`
+Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
 
 > **Claude 4.6 Prompting Alignment (Feb 2026)**: All agentic skills (`minoan-swarm`, `super-ralph-wiggum`, `Firecrawl`, `osgrep-reference`, `claude-agent-sdk`, `skill-optimizer`) updated to follow [Anthropic's Claude 4.6 prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)—softer tool-use language, factual quality criteria over motivational framing, effort parameter guidance, structured state management.
 
@@ -297,7 +297,7 @@ dabarat --add spec.md         # add tab to running instance
 
 ---
 
-**Skills**: 47 | **Commands**: 47 | **Hooks**: 30 | **CLI Tools**: 10
+**Skills**: 49 | **Commands**: 47 | **Hooks**: 30 | **CLI Tools**: 10
 
 ---
 

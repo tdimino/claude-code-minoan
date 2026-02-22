@@ -3,7 +3,10 @@
 
 Matcher: Write
 When the written file is in ~/.claude/plans/, extracts the H1 header and sets
-customTitle in sessions-index.json if none exists. No LLM call, pure local, ~10ms.
+customTitle via two mechanisms (matching /rename behavior):
+  1. Appends a {"type": "custom-title"} event to the session JSONL (authoritative)
+  2. Sets customTitle in sessions-index.json (for immediate display)
+No LLM call, pure local, ~10ms.
 """
 import fcntl
 import json
@@ -105,6 +108,56 @@ def propagate_to_summary_cache(session_id, title):
         pass
 
 
+def append_custom_title_event(session_id, cwd, title):
+    """Append a custom-title JSONL event to the session file.
+
+    This is the authoritative mechanism — same event type that /rename writes.
+    Survives index rebuilds and context compaction (since v2.1.47).
+    """
+    project_dir_name = cwd.replace("/", "-")
+    if not project_dir_name.startswith("-"):
+        project_dir_name = "-" + project_dir_name
+    jsonl_path = (
+        pathlib.Path.home()
+        / ".claude"
+        / "projects"
+        / project_dir_name
+        / f"{session_id}.jsonl"
+    )
+    if not jsonl_path.exists():
+        return False
+
+    # Idempotency: skip if a custom-title event already exists
+    try:
+        with open(jsonl_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                    if obj.get("type") == "custom-title":
+                        return False  # Already titled
+                except (json.JSONDecodeError, ValueError):
+                    continue
+    except OSError:
+        pass
+
+    event = json.dumps(
+        {"type": "custom-title", "customTitle": title, "sessionId": session_id}
+    )
+    try:
+        with open(jsonl_path, "a") as f:
+            f.write(event + "\n")
+        print(
+            f"plan-session-rename: wrote custom-title event for {session_id[:8]}",
+            file=sys.stderr,
+        )
+        return True
+    except OSError:
+        return False
+
+
 def save_pending_title(session_id, title):
     """Write breadcrumb for session-tags-infer.py to pick up on next Stop."""
     PENDING_DIR.mkdir(parents=True, exist_ok=True)
@@ -152,12 +205,16 @@ def main():
 
     index_path = derive_index_path(cwd)
 
+    # Write the authoritative custom-title event to JSONL (matches /rename behavior)
+    jsonl_written = append_custom_title_event(session_id, cwd, title)
+
+    # Also update the index for immediate display
     result = set_session_title(session_id, index_path, title)
     if result is True:
         print(f"plan-session-rename: '{title}' for {session_id[:8]}", file=sys.stderr)
         propagate_to_summary_cache(session_id, title)
-    elif result is None:
-        # Session not in index yet or lock contended — save breadcrumb
+    elif result is None and not jsonl_written:
+        # Session not in index yet AND JSONL not found — save breadcrumb
         save_pending_title(session_id, title)
 
 
