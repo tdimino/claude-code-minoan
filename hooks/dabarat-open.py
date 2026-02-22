@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""PostToolUse hook: auto-open new markdown files in dabarat.
+"""PostToolUse hook: auto-open markdown files in dabarat.
 
 Matcher: Write
-Fires after Claude Code writes a file. If the file is .md and was just created
-(not an update to an existing file), opens it in dabarat as a new tab.
+Fires after Claude Code writes any .md file in watched dirs or the project dir.
 
-If dabarat is running: adds as tab silently (--add).
+If dabarat is running: adds as tab (or confirms already open).
 If dabarat is not running: launches new window.
 """
 import json
@@ -59,10 +58,10 @@ def _add_tab(filepath):
         result = json.loads(resp.read())
         existing = result.get("existing", False)
         status = "already open" if existing else "added"
-        print(f"dabarat-open: {status} {os.path.basename(filepath)}", file=sys.stderr)
+        print(f"dabarat-open: {status} {os.path.basename(filepath)}", file=sys.stdout)
         return not existing  # True if newly added
     except Exception as e:
-        print(f"dabarat-open: add failed: {e}", file=sys.stderr)
+        print(f"dabarat-open: add failed: {e}", file=sys.stdout)
         return False
 
 
@@ -75,7 +74,7 @@ def _launch_new(filepath):
             stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
-        print(f"dabarat-open: launched new window for {os.path.basename(filepath)}", file=sys.stderr)
+        print(f"dabarat-open: launched new window for {os.path.basename(filepath)}", file=sys.stdout)
     except FileNotFoundError:
         pass
 
@@ -112,12 +111,6 @@ def main():
     in_project = cwd and abs_path.startswith(cwd)
 
     if not in_watched and not in_project:
-        return
-
-    # Check if this was a new file creation (not an update)
-    # The Write tool's tool_response will mention "created" for new files
-    tool_response = data.get("tool_response", "")
-    if "created" not in tool_response.lower():
         return
 
     # File must exist
