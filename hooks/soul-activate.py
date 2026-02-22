@@ -22,8 +22,8 @@ import os
 import subprocess
 import sys
 
-SOUL_MD = os.path.expanduser("~/.claude/skills/slack/daemon/soul.md")
-SOUL_MEMORY_DIR = os.path.expanduser("~/.claude/skills/slack/daemon")
+SOUL_MD = os.path.expanduser("~/.claudicle/soul/soul.md")
+SOUL_MEMORY_DIR = os.path.expanduser("~/.claudicle/daemon")
 REGISTRY_SCRIPT = os.path.expanduser("~/.claude/hooks/soul-registry.py")
 
 
@@ -39,16 +39,59 @@ def _read_soul_md():
 def _get_soul_state():
     """Get formatted soul state from memory.db via soul_memory module."""
     try:
-        # Import soul_memory from the daemon directory
         sys.path.insert(0, SOUL_MEMORY_DIR)
-        import soul_memory
+        from memory import soul_memory
         state = soul_memory.format_for_prompt()
         soul_memory.close()
         return state
-    except Exception:
+    except ImportError:
+        return ""  # daemon not installed — expected during initial setup
+    except Exception as e:
+        print(f"soul-activate: soul state load failed: {e}", file=sys.stderr)
         return ""
     finally:
-        # Clean up sys.path
+        if SOUL_MEMORY_DIR in sys.path:
+            sys.path.remove(SOUL_MEMORY_DIR)
+
+
+def _get_working_memory(session_id):
+    """Get recent working memory entries for this terminal channel."""
+    try:
+        sys.path.insert(0, SOUL_MEMORY_DIR)
+        from memory import working_memory
+        channel = f"terminal:{session_id}"
+        entries = working_memory.get_recent(channel, session_id, limit=10)
+        if entries:
+            formatted = working_memory.format_for_prompt(entries)
+            working_memory.close()
+            return formatted
+        working_memory.close()
+        return ""
+    except ImportError:
+        return ""
+    except Exception as e:
+        print(f"soul-activate: working memory load failed: {e}", file=sys.stderr)
+        return ""
+    finally:
+        if SOUL_MEMORY_DIR in sys.path:
+            sys.path.remove(SOUL_MEMORY_DIR)
+
+
+def _get_user_model():
+    """Get the primary user's model from shared memory.db."""
+    try:
+        sys.path.insert(0, SOUL_MEMORY_DIR)
+        import config
+        from memory import user_models
+        model = user_models.get(config.PRIMARY_USER_ID)
+        user_models.close()
+        return model or ""
+    except ImportError:
+        return ""
+    except Exception as e:
+        print(f"soul-activate: user model load failed: {e}", file=sys.stderr)
+        return ""
+    finally:
         if SOUL_MEMORY_DIR in sys.path:
             sys.path.remove(SOUL_MEMORY_DIR)
 
@@ -60,7 +103,15 @@ def _registry_cmd(*args):
             ["python3", REGISTRY_SCRIPT] + list(args),
             capture_output=True, text=True, timeout=5
         )
+        if result.returncode != 0:
+            print(f"soul-activate: registry {args[0] if args else '?'} "
+                  f"failed (rc={result.returncode}): {result.stderr[:100]}",
+                  file=sys.stderr)
         return result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        print(f"soul-activate: registry {args[0] if args else '?'} timed out",
+              file=sys.stderr)
+        return ""
     except Exception:
         return ""
 
@@ -121,6 +172,16 @@ def main():
     soul_state = _get_soul_state()
     if soul_state:
         parts.append(soul_state)
+
+    # Working memory — recent cognitive entries from this terminal channel
+    terminal_memory = _get_working_memory(session_id)
+    if terminal_memory:
+        parts.append("## Recent Memory\n\n" + terminal_memory)
+
+    # User model — primary user's living model from shared memory.db
+    user_model = _get_user_model()
+    if user_model:
+        parts.append("## User Model\n\n" + user_model)
 
     # Sibling sessions
     siblings = _registry_cmd("list", "--md")

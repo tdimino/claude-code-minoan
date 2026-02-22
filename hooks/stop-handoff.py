@@ -83,6 +83,22 @@ def main():
     except Exception:
         pass  # Non-critical
 
+    # Run soul reflection (fire-and-forget — retrospective cognitive pipeline)
+    reflect_script = pathlib.Path.home() / ".claude" / "hooks" / "soul-reflect.py"
+    try:
+        proc = subprocess.Popen(
+            ["python3", str(reflect_script)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            text=True,
+        )
+        proc.stdin.write(input_json)
+        proc.stdin.close()
+    except Exception:
+        pass  # Non-critical
+
     # Update cooldown timestamp
     cooldown_file.write_text(json.dumps({
         "timestamp": now,
