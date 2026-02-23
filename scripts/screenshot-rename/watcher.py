@@ -30,7 +30,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR = Path(__file__).parent
-WATCH_DIR = Path.home() / "Desktop" / "Screencaps & Chats" / "Screenshots"
+SCAN_DIR = Path.home() / "Desktop" / "Screencaps & Chats"
+WATCH_DIR = SCAN_DIR / "Screenshots"  # renamed files land here
 INDEX_PATH = WATCH_DIR / "INDEX.md"
 LOG_PATH = SCRIPT_DIR / "logs" / "screenshot-rename.log"
 
@@ -257,11 +258,13 @@ class OpenRouterProvider:
         key = os.environ.get("OPENROUTER_API_KEY", "")
         if key:
             return key
-        for env_file in [
-            Path.home() / ".config/env/global.env",
-            Path.home() / "Desktop/Aldea/Prompt development/Aldea-Soul-Engine/.env",
-            Path.home() / "Desktop/minoanmystery-astro/.env",
-        ]:
+        # Check common locations for .env files with OPENROUTER_API_KEY
+        search_paths = [Path.home() / ".config/env/global.env"]
+        # Also check script-local .env
+        local_env = Path(__file__).parent / ".env"
+        if local_env.exists():
+            search_paths.insert(0, local_env)
+        for env_file in search_paths:
             if env_file.exists():
                 for line in env_file.read_text().splitlines():
                     if line.startswith("OPENROUTER_API_KEY="):
@@ -484,8 +487,9 @@ def process_file(path: Path, provider, dry_run: bool = False) -> bool:
         logger.info(f"[DRY RUN] {original_name} -> {new_name}")
         return True
 
-    # Atomically claim unique filename, then rename
-    new_path = resolve_collision(path.parent / new_name)
+    # Atomically claim unique filename in WATCH_DIR (Screenshots/), then rename
+    WATCH_DIR.mkdir(parents=True, exist_ok=True)
+    new_path = resolve_collision(WATCH_DIR / new_name)
     new_name = new_path.name
     try:
         os.replace(str(path), str(new_path))
@@ -546,7 +550,7 @@ def main():
         logger.warning(f"No .env file at {env_path}")
 
     # Determine provider
-    provider_name = args.provider or os.environ.get("PROVIDER", "gemini-flash")
+    provider_name = args.provider or os.environ.get("PROVIDER", "openrouter")
     try:
         provider = get_provider(provider_name)
     except Exception as e:
@@ -564,19 +568,22 @@ def main():
         success = process_file(test_path, provider, dry_run=args.dry_run)
         sys.exit(0 if success else 1)
 
-    # Normal mode: scan watch directory for unprocessed screenshots
-    if not WATCH_DIR.exists():
-        logger.error(f"Watch directory not found: {WATCH_DIR}")
+    # Normal mode: scan both parent and Screenshots/ for unprocessed screenshots
+    WATCH_DIR.mkdir(parents=True, exist_ok=True)
+    if not SCAN_DIR.exists():
+        logger.error(f"Scan directory not found: {SCAN_DIR}")
         sys.exit(1)
 
     # Brief cooldown to let launchd settle after WatchPaths trigger
     time.sleep(0.5)
 
     count = 0
-    for path in sorted(WATCH_DIR.iterdir()):
-        if path.is_file() and parse_screenshot(path.name):
-            if process_file(path, provider, dry_run=args.dry_run):
-                count += 1
+    # Scan both directories—parent (where CleanShot saves) and Screenshots/
+    for scan in (SCAN_DIR, WATCH_DIR):
+        for path in sorted(scan.iterdir()):
+            if path.is_file() and parse_screenshot(path.name):
+                if process_file(path, provider, dry_run=args.dry_run):
+                    count += 1
 
     if count:
         logger.info(f"Processed {count} screenshot(s)")
