@@ -180,7 +180,7 @@ Wait until an element appears on the page.
 Pass actions as a JSON string:
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape "https://example.com" \
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape "https://example.com" \
   --actions '[{"type": "click", "selector": "#load-more"}, {"type": "wait", "milliseconds": 2000}]'
 ```
 
