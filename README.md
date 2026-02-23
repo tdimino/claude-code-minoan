@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-49-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-50-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-47-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-30-orange.svg" alt="Hooks"></a>
 </p>
@@ -20,7 +20,7 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 49 custom skills across 5 categories
+├── skills/                      # 50 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
@@ -79,7 +79,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 49 skills across 5 categories
+### [Skills](skills/README.md) — 50 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -88,14 +88,14 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
 | Core Development | 10 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk`, `skill-optimizer`, `claude-usage` |
-| Integration & Automation | 18 | `llama-cpp`, `rlama`, `classical-887`, `slack`, `Firecrawl`, `codex-orchestrator`, `codex-cto` |
+| Integration & Automation | 18 | `llama-cpp`, `rlama`, `classical-887`, `slack`, `firecrawl`, `codex-orchestrator`, `codex-cto` |
 | Design & Media | 8 | `minoan-frontend-design` (70% win rate, eval-validated), `gemini-claude-resonance`, `image-forge`, `nano-banana-pro` |
-| Research | 5 | `academic-research`, `linear-a-decipherment`, `exa-search`, `Firecrawl` |
+| Research | 6 | `academic-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling` |
 | Planning & Productivity | 8 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
 
-> **Claude 4.6 Prompting Alignment (Feb 2026)**: All agentic skills (`minoan-swarm`, `super-ralph-wiggum`, `Firecrawl`, `osgrep-reference`, `claude-agent-sdk`, `skill-optimizer`) updated to follow [Anthropic's Claude 4.6 prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)—softer tool-use language, factual quality criteria over motivational framing, effort parameter guidance, structured state management.
+> **Claude 4.6 Prompting Alignment (Feb 2026)**: All agentic skills (`minoan-swarm`, `super-ralph-wiggum`, `firecrawl`, `osgrep-reference`, `claude-agent-sdk`, `skill-optimizer`) updated to follow [Anthropic's Claude 4.6 prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)—softer tool-use language, factual quality criteria over motivational framing, effort parameter guidance, structured state management.
 
 ---
 
@@ -242,7 +242,7 @@ Then customize:
 
 See [`docs/global-config/README.md`](docs/global-config/README.md) for the full `~/.claude/` structure reference, including userModel examples.
 
-The template includes: engineering principles, tool preferences (OSGrep, Firecrawl, uv, RLAMA retrieve-only default), interaction conventions, planning patterns, session continuity via handoffs, and infrastructure notes.
+The template includes: engineering principles, tool preferences (OSGrep, firecrawl, uv, RLAMA retrieve-only default), interaction conventions, planning patterns, session continuity via handoffs, and infrastructure notes.
 
 ---
 
@@ -306,13 +306,14 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 - **[llama.cpp](https://github.com/ggerganov/llama.cpp)** by Georgi Gerganov — local LLM inference
 - **[RLAMA](https://github.com/dontizi/rlama)** by dontizi — local RAG system
 - **[Firecrawl](https://firecrawl.dev/)** by Mendable — web scraping and content extraction
+- **[Scrapling](https://github.com/D4Vinci/Scrapling)** by D4Vinci — local stealth web scraping
 - **[Exa](https://exa.ai/)** — neural web search API
 - **[Handy](https://github.com/cjpais/Handy)** by CJ Pais — push-to-talk speech-to-text
 - **[matklad's ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html)** — codebase documentation guide
 
 ---
 
-**Skills**: 49 | **Commands**: 47 | **Hooks**: 30 | **CLI Tools**: 10
+**Skills**: 50 | **Commands**: 47 | **Hooks**: 30 | **CLI Tools**: 10
 
 ---
 

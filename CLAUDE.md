@@ -33,7 +33,7 @@ mkdir -p ~/.claude/lib && cp lib/* ~/.claude/lib/
 - **llama-cpp** / **rlama** / **parakeet** / **smolvlm** / **speak-response** - Local ML stack (inference, RAG, STT, vision, TTS)
   - **RLAMA default**: Always use retrieve-only mode (`rlama_retrieve.py`)—Claude synthesizes from raw chunks. Never route through Qwen when Claude is in the loop. `rlama run` is fallback only.
 - **image-forge** - Precision image editing via ImageMagick 7, sips, rembg, Pillow. Three-tier routing: deterministic (magick), AI semantic (Gemini/nano-banana-pro), vision analysis (Claude). JSON pipeline specs, batch ops, smart crop, montage builder.
-- **Firecrawl** / **exa-search** - Web scraping and search
+- **firecrawl** / **scrapling** / **exa-search** - Web scraping and search
 - **claude-md-manager** - Create and optimize CLAUDE.md files
 
 ## Key Commands
