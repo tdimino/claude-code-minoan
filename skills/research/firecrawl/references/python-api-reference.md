@@ -1,6 +1,6 @@
 # Firecrawl Python API Reference
 
-Complete reference for `python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py <command>`.
+Complete reference for `python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py <command>`.
 
 **Requires**: `FIRECRAWL_API_KEY` environment variable, `pip install firecrawl-py requests`
 
@@ -9,7 +9,7 @@ Complete reference for `python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api
 ## search — Web Search
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py search "query" [options]
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py search "query" [options]
 ```
 
 | Parameter | Description |
@@ -23,10 +23,10 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py search "query" [opti
 | `--json` | Output raw JSON |
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py search "web scraping best practices" -n 10
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py search "python web scraping" --categories github
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py search "AI news" --time qdr:d
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py search "firecrawl examples" --scrape
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py search "web scraping best practices" -n 10
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py search "python web scraping" --categories github
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py search "AI news" --time qdr:d
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py search "firecrawl examples" --scrape
 ```
 
 ---
@@ -34,7 +34,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py search "firecrawl ex
 ## scrape — Single URL Extraction
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape URL [options]
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape URL [options]
 ```
 
 | Parameter | Description |
@@ -60,10 +60,10 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape URL [options]
 ```
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --formats markdown html links summary
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --formats branding
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --country US --languages en-US es
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --max-age 3600
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --formats markdown html links summary
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --formats branding
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --country US --languages en-US es
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --max-age 3600
 ```
 
 ---
@@ -71,7 +71,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape "https://exam
 ## batch-scrape — Multiple URL Scraping
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py batch-scrape URL1 URL2 URL3 [options]
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py batch-scrape URL1 URL2 URL3 [options]
 ```
 
 | Parameter | Description |
@@ -82,9 +82,9 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py batch-scrape URL1 UR
 
 **Job Management:**
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py batch-status <job_id>
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py batch-cancel <job_id>
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py batch-errors <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py batch-status <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py batch-cancel <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py batch-errors <job_id>
 ```
 
 ---
@@ -92,7 +92,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py batch-errors <job_id
 ## crawl — Website Crawling
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl URL [options]
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py crawl URL [options]
 ```
 
 | Parameter | Description |
@@ -107,10 +107,10 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl URL [options]
 
 **Job Management:**
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl-status <job_id>
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl-cancel <job_id>
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl-errors <job_id>
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl-active
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py crawl-status <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py crawl-cancel <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py crawl-errors <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py crawl-active
 ```
 
 ---
@@ -118,7 +118,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py crawl-active
 ## map — URL Discovery
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py map URL [options]
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py map URL [options]
 ```
 
 | Parameter | Description |
@@ -134,7 +134,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py map URL [options]
 ## extract — LLM-Powered Extraction
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py extract URL [options]
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py extract URL [options]
 ```
 
 | Parameter | Description |
@@ -146,8 +146,8 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py extract URL [options
 | `--json` | Output raw JSON |
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py extract "https://example.com/*" --prompt "Find all pricing"
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py extract "https://example.com/pricing" \
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py extract "https://example.com/*" --prompt "Find all pricing"
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py extract "https://example.com/pricing" \
   --schema '{"type": "object", "properties": {"price": {"type": "string"}, "features": {"type": "array"}}}'
 ```
 
@@ -158,7 +158,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py extract "https://exa
 The most powerful feature. Describe what data you want—the agent searches, navigates, and extracts automatically. **URLs are optional.**
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "prompt" [options]
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent "prompt" [options]
 ```
 
 | Parameter | Description |
@@ -171,16 +171,16 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "prompt" [opti
 | `--json` | Output raw JSON |
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "Find YC W24 AI startups with funding"
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "What is Anthropic's main product?" --model spark-1-fast
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "Find detailed technical specs" --model spark-1-pro
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent "Find 50 AI startups" --max-credits 100 --async
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent "Find YC W24 AI startups with funding"
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent "What is Anthropic's main product?" --model spark-1-fast
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent "Find detailed technical specs" --model spark-1-pro
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent "Find 50 AI startups" --max-credits 100 --async
 ```
 
 **Job Management:**
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py status <job_id>
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent-cancel <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py status <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent-cancel <job_id>
 ```
 
 ---
@@ -188,7 +188,7 @@ python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent-cancel <job_id
 ## extract-status — Check Extract Job
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py extract-status <job_id>
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py extract-status <job_id>
 ```
 
 Polls an async extract job until completion and returns the results.
@@ -200,7 +200,7 @@ Polls an async extract job until completion and returns the results.
 Run multiple agent queries with Intelligent Waterfall routing.
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py parallel-agent "Q1" "Q2" "Q3" [options]
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py parallel-agent "Q1" "Q2" "Q3" [options]
 ```
 
 | Parameter | Description |

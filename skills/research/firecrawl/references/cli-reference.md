@@ -203,7 +203,7 @@ Alternative scraper. Use when Firecrawl fails or for Twitter/X URLs (Firecrawl b
 ## DeepWiki — GitHub Repo Documentation
 
 ```bash
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh <owner/repo> [section] [options]
+~/.claude/skills/firecrawl/scripts/deepwiki.sh <owner/repo> [section] [options]
 ```
 
 AI-generated wiki for any public GitHub repo via [DeepWiki](https://deepwiki.com).
@@ -217,14 +217,14 @@ AI-generated wiki for any public GitHub repo via [DeepWiki](https://deepwiki.com
 
 ```bash
 # Overview
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh karpathy/nanochat
+~/.claude/skills/firecrawl/scripts/deepwiki.sh karpathy/nanochat
 
 # Browse sections
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh langchain-ai/langchain --toc
+~/.claude/skills/firecrawl/scripts/deepwiki.sh langchain-ai/langchain --toc
 
 # Specific section
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh karpathy/nanochat 4.1-gpt-transformer-implementation
+~/.claude/skills/firecrawl/scripts/deepwiki.sh karpathy/nanochat 4.1-gpt-transformer-implementation
 
 # Full dump
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh openai/openai-python --all --save
+~/.claude/skills/firecrawl/scripts/deepwiki.sh openai/openai-python --all --save
 ```

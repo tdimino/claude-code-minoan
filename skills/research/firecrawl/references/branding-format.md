@@ -11,7 +11,7 @@ When you include `branding` in the formats array, Firecrawl analyzes the page's 
 ### CLI
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --formats branding
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape "https://example.com" --formats branding
 ```
 
 ### Python

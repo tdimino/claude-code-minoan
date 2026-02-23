@@ -1,5 +1,5 @@
 ---
-name: Firecrawl
+name: firecrawl
 description: Firecrawl produces cleaner markdown than WebFetch, handles JavaScript-heavy pages, and avoids content truncation. This skill should be used when fetching URLs, scraping web pages, converting URLs to markdown, extracting web content, searching the web, crawling sites, mapping URLs, LLM-powered extraction, autonomous data gathering with the Agent API, or fetching AI-generated documentation for GitHub repos via DeepWiki. Provides complete coverage of Firecrawl v2.8.0 API endpoints including parallel agents, spark-1-fast model, and sitemap-only crawling.
 ---
 
@@ -39,7 +39,7 @@ firecrawl search "query" --limit 20
 
 # Step 3: Scrape only those, filter to relevant sections
 firecrawl scrape URL1 --only-main-content | \
-  python3 ~/.claude/skills/Firecrawl/scripts/filter_web_results.py \
+  python3 ~/.claude/skills/firecrawl/scripts/filter_web_results.py \
   --sections "API,Authentication" --max-chars 5000
 ```
 
@@ -50,22 +50,22 @@ Pipe any Firecrawl or Exa output through this script to reduce context before re
 ```bash
 # Extract only matching sections from scraped page
 firecrawl scrape URL --only-main-content | \
-  python3 ~/.claude/skills/Firecrawl/scripts/filter_web_results.py --sections "Pricing,Plans"
+  python3 ~/.claude/skills/firecrawl/scripts/filter_web_results.py --sections "Pricing,Plans"
 
 # Keep only paragraphs with keywords
 firecrawl search "query" --scrape --pretty | \
-  python3 ~/.claude/skills/Firecrawl/scripts/filter_web_results.py --keywords "pricing,cost" --max-chars 5000
+  python3 ~/.claude/skills/firecrawl/scripts/filter_web_results.py --keywords "pricing,cost" --max-chars 5000
 
 # Extract specific JSON fields from API output
 python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --json | \
-  python3 ~/.claude/skills/Firecrawl/scripts/filter_web_results.py --fields "title,url,text" --max-chars 3000
+  python3 ~/.claude/skills/firecrawl/scripts/filter_web_results.py --fields "title,url,text" --max-chars 3000
 
 # Combine filters with stats
 firecrawl scrape URL --only-main-content | \
-  python3 ~/.claude/skills/Firecrawl/scripts/filter_web_results.py --sections "API" --keywords "endpoint" --compact --stats
+  python3 ~/.claude/skills/firecrawl/scripts/filter_web_results.py --sections "API" --keywords "endpoint" --compact --stats
 ```
 
-**Full path:** `python3 ~/.claude/skills/Firecrawl/scripts/filter_web_results.py`
+**Full path:** `python3 ~/.claude/skills/firecrawl/scripts/filter_web_results.py`
 **Flags:** `--sections`, `--keywords`, `--max-chars`, `--max-lines`, `--fields` (JSON), `--strip-links`, `--strip-images`, `--compact`, `--stats`
 
 ### Other Token-Saving Patterns
@@ -113,7 +113,7 @@ fc-save URL
 
 ### 3. Python API Script (`firecrawl_api.py`) — Advanced Features
 
-**Command:** `python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py <command>`
+**Command:** `python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py <command>`
 **Requires:** `FIRECRAWL_API_KEY` env var, `pip install firecrawl-py requests`
 
 | Command | Purpose | Quick Example |
@@ -134,23 +134,23 @@ fc-save URL
 ### 4. DeepWiki — GitHub Repo Documentation
 
 ```bash
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh <owner/repo> [section] [options]
+~/.claude/skills/firecrawl/scripts/deepwiki.sh <owner/repo> [section] [options]
 ```
 
 AI-generated wiki for any public GitHub repo. No API key required.
 
 ```bash
 # Overview
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh karpathy/nanochat
+~/.claude/skills/firecrawl/scripts/deepwiki.sh karpathy/nanochat
 
 # Browse sections
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh langchain-ai/langchain --toc
+~/.claude/skills/firecrawl/scripts/deepwiki.sh langchain-ai/langchain --toc
 
 # Specific section
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh karpathy/nanochat 4.1-gpt-transformer-implementation
+~/.claude/skills/firecrawl/scripts/deepwiki.sh karpathy/nanochat 4.1-gpt-transformer-implementation
 
 # Full dump for RAG
-~/.claude/skills/Firecrawl/scripts/deepwiki.sh openai/openai-python --all --save
+~/.claude/skills/firecrawl/scripts/deepwiki.sh openai/openai-python --all --save
 ```
 
 ### 5. Jina Reader (`jina`) — Fallback
@@ -178,6 +178,10 @@ jina https://x.com/username/status/123456
 | Claude API agent building | Native `web_search_20260209` | Built-in dynamic filtering |
 | Twitter/X content | `jina URL` | Only tool that works |
 | GitHub repo docs | `deepwiki.sh owner/repo` | AI-generated wiki |
+| Anti-bot / Cloudflare bypass | `scrapling` stealth fetch | Local Turnstile solver |
+| Element-level extraction | `scrapling` + CSS selectors | Precision targeting, adaptive tracking |
+| No API key scraping | `scrapling` HTTP fetch | 100% local, no credentials |
+| Site redesign resilience | `scrapling` adaptive mode | SQLite similarity matching |
 
 ---
 
@@ -204,7 +208,7 @@ firecrawl search "machine learning best practices 2026" --scrape --scrape-format
 
 ### Agent-Powered Research (No URLs Needed)
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/firecrawl_api.py agent \
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent \
   "Compare pricing tiers for Firecrawl, Apify, and ScrapingBee"
 ```
 
@@ -243,7 +247,7 @@ echo $FIRECRAWL_API_KEY
 ## Test Suite
 
 ```bash
-python3 ~/.claude/skills/Firecrawl/scripts/test_firecrawl.py --quick    # Quick validation
-python3 ~/.claude/skills/Firecrawl/scripts/test_firecrawl.py            # Full suite
-python3 ~/.claude/skills/Firecrawl/scripts/test_firecrawl.py --test scrape  # Specific test
+python3 ~/.claude/skills/firecrawl/scripts/test_firecrawl.py --quick    # Quick validation
+python3 ~/.claude/skills/firecrawl/scripts/test_firecrawl.py            # Full suite
+python3 ~/.claude/skills/firecrawl/scripts/test_firecrawl.py --test scrape  # Specific test
 ```
