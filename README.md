@@ -89,7 +89,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 |----------|-------|---------------|
 | Core Development | 10 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk`, `skill-optimizer`, `claude-usage` |
 | Integration & Automation | 18 | `llama-cpp`, `rlama`, `classical-887`, `slack`, `Firecrawl`, `codex-orchestrator`, `codex-cto` |
-| Design & Media | 8 | `gemini-claude-resonance`, `image-forge`, `nano-banana-pro`, `speak-response` |
+| Design & Media | 8 | `minoan-frontend-design` (70% win rate, eval-validated), `gemini-claude-resonance`, `image-forge`, `nano-banana-pro` |
 | Research | 5 | `academic-research`, `linear-a-decipherment`, `exa-search`, `Firecrawl` |
 | Planning & Productivity | 8 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
 

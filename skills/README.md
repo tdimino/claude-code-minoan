@@ -58,7 +58,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 ### Design & Media (`design-media/`)
 | Skill | Description |
 |-------|-------------|
-| `minoan-frontend-design` | Production-grade UI creation with distinctive aesthetics (customized fork) |
+| `minoan-frontend-design` | Eval-validated frontend design (70% vs baseline in blind A/B) — bold typography, committed palettes, unexpected layouts. 5 reference files, progressive disclosure. |
 | `gemini-claude-resonance` | Cross-model dialogue between Claude and [Gemini](https://deepmind.google/technologies/gemini/) |
 | `nano-banana-pro` | Image generation via [Gemini 3 Pro](https://deepmind.google/technologies/gemini/) |
 | `image-forge` | Precision image editing via [ImageMagick](https://imagemagick.org/) 7, sips, rembg, Pillow — JSON pipeline specs, batch ops, smart crop, montage builder |

@@ -4,90 +4,60 @@ description: This skill should be used when building web components, pages, arti
 license: Complete terms in LICENSE.txt
 ---
 
-Create distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
+<!-- Creative core: syncretic-v3 (eval/skills/syncretic-v3.md). See eval/skills/INDEX.md for lineage. -->
+<!-- Eval record: 70.0% vs wetch (14-6, p=0.058) across 20 blind A/B comparisons. -->
 
-Accept frontend requirements: a component, page, application, or interface to build. The request may include context about purpose, audience, or technical constraints.
+Build frontend interfaces that are unmistakably *designed*, not generated. Every interface should feel like a specific designer made specific choices for a specific context.
 
-## Design Thinking
+## Creative Direction
 
-Before coding, understand the context and commit to a BOLD aesthetic direction:
-- **Purpose**: What problem does this interface solve? Who uses it?
-- **Tone**: Commit to a distinct direction: brutally minimal, maximalist chaos, luxury/refined, lo-fi/zine, dark/moody, soft/pastel, editorial/magazine, brutalist/raw, retro-futuristic, handcrafted/artisanal, organic/natural, art deco/geometric, playful/whimsical, industrial/utilitarian, etc. There are infinite varieties to start from and surpass. Use these as inspiration, but the final design should feel singular, with every detail working in service of one cohesive direction.
-- **Constraints**: Technical requirements (framework, performance, accessibility).
-- **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
+Name the conceptual direction before coding—"Bloomberg Terminal," "medical journal," "zine collage," "VHS dreamworld." The name anchors every subsequent decision.
 
-Choose a clear conceptual direction and execute it with commitment. Bold maximalism and refined minimalism both work—the key is intentionality, not intensity.
+Root every aesthetic choice in the subject itself. A jazz club's website should feel like smoke and brass. A children's reading app should feel like opening a pop-up book. A fintech dashboard should feel like a control room, not a toy. The design should be so fitted to its context that transplanting the aesthetic to a different project would feel wrong.
 
-Then implement working code (HTML/CSS/JS, React, Vue, etc.) that is:
-- Production-grade, functional, and responsive
-- Visually striking and memorable
-- Cohesive with a clear aesthetic point-of-view
-- Meticulously refined in every detail
+Commit to a singular direction: brutally minimal, maximalist chaos, luxury/refined, lo-fi/zine, dark and moody, editorial/magazine, brutalist/raw, retro-futuristic, art deco/geometric, cinematic/widescreen, data-dense/scientific, or something entirely unnamed. The final design should feel like nothing else.
 
-## Frontend Aesthetics Guidelines
+Every design needs one element so distinctive someone would describe it to a friend. Find that element and let everything else serve it.
 
-Focus on:
-- **Typography**: Typography carries the design's singular voice. Choose fonts with interesting personality. Default fonts signal default thinking: skip Arial, Inter, Roboto, system stacks. Font choices should be inseparable from the aesthetic direction. Display type should be expressive, even risky. Body text should be legible, refined. Pair them like actors in a scene. Work the full typographic range: size, weight, case, spacing to establish hierarchy.
-- **Color & Theme**: Commit to a cohesive aesthetic. Palettes should take a clear position: bold and saturated, moody and restrained, or high-contrast and minimal. Lead with a dominant color, punctuate with sharp accents. Avoid timid, non-committal distributions. Use CSS variables for consistency.
-- **Motion**: Use animations for effects and micro-interactions. Prioritize CSS-only solutions for HTML. Use Motion library for React when available. Focus on high-impact moments: one well-orchestrated page load with staggered reveals (animation-delay) creates more delight than scattered micro-interactions. Use scroll-triggering and hover states that surprise.
-- **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap and z-depth. Diagonal flow. Grid-breaking elements. Dramatic scale jumps. Full-bleed moments. Generous negative space OR controlled density.
-- **Backgrounds & Visual Details**: Create atmosphere and depth rather than defaulting to solid colors. Add contextual effects and textures that match the overall aesthetic. Apply creative forms like gradient meshes, noise and grain overlays, geometric patterns, layered transparencies and glassmorphism, dramatic or soft shadows and glows, parallax depth, decorative borders and clip-path shapes, print-inspired textures (halftone, duotone, stipple), knockout typography, and custom cursors.
+## Typography
 
-Avoid generic AI-generated aesthetics: overused font families (Inter, Roboto, Arial, Space Grotesk, system fonts), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter designs that lack context-specific character.
-Prefer distinctive fonts, bold committed palettes, layouts that surprise, bespoke details. Root every choice in the specific context.
+Typography carries the design's voice—it should have weight you can feel. Default fonts signal default thinking: skip Arial, Inter, Roboto, Space Grotesk, system stacks. Display type should provoke. Body text should be legible and refined. Pair them like actors in a scene—tension creates character. Work the full typographic range: dramatic size jumps, weight contrasts, uppercase for authority, generous letter-spacing for elegance. Control hierarchy through weight and color, not just scale.
 
-Build creatively on the user's intent, and make unexpected choices that feel genuinely designed for the context. Every design should feel distinct. Actively explore the full range: light and dark themes, unexpected font pairings, substantially varied aesthetic directions. Let the specific context drive choices rather than familiar defaults.
+Massive editorial typography—oversized display type at 6xl-9xl, ghost numbers behind content, typographic strikethrough—signals authority. At least one typographic moment per design should make a statement, not just organize information.
 
-Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, elegance, and precision. All designs need careful attention to spacing, typography, and subtle details. Excellence comes from executing the vision well.
+## Color
 
-## Implementation Standards (2025-2026)
+Color sets the room's temperature. Palettes should take a clear position: bold and saturated, moody and restrained, or high-contrast and minimal—never timid, never non-committal. Lead with a dominant color, punctuate with sharp accents. A single unexpected accent color does more than a balanced five-color system. Never pure black—pure black creates harsh contrast that flattens depth. Use rich off-blacks (zinc-950, deep navy). Tint shadows to the background hue. Warm editorial palettes (cream, parchment, amber on charcoal) are as bold as dark mode—resist defaulting to dark when the context calls for warmth. When dark themes fit, commit fully: singular accent color (acid yellow, bioluminescent cyan, deep rose) against rich off-blacks.
 
-Distilled from the Vercel Web Interface Guidelines, Linear's quality-as-strategy, and Resend's code-first design. Full specification: `references/vercel-web-interface-guidelines.md`
-Also see: `references/design-system-checklist.md` for accessibility, responsive patterns, spacing, component states, animation timing, and design token structure.
+## Motion
 
-Core principles (consult reference for complete details):
+Prioritize CSS-only animations—content hidden behind JavaScript class toggles is invisible in screenshots and static renders. Start visible, animate from there. Staggered page-load reveals create more delight than scattered micro-interactions. Scroll-triggered animations and hover states should surprise.
 
-- **Interactions**: URL as state (deep-link everything), optimistic updates, `:focus-visible` over `:focus`, keyboard-navigable (WAI-ARIA), minimum hit targets (24px desktop / 44px mobile), confirm destructive actions, designed loading states (150-300ms show-delay, 300-500ms minimum visible)
-- **Animation**: CSS > Web Animations API > JS libraries. Compositor-friendly (`transform`, `opacity`). Honor `prefers-reduced-motion`. Interruptible and input-driven. Never `transition: all`.
-- **Design craft**: Layered shadows (2+ layers), semi-transparent borders, nested radii (child <= parent), APCA contrast over WCAG 2, optical alignment (+/-1px), interactions increase contrast on hover/active/focus
-- **Forms**: Allow submitting incomplete forms for validation feedback. Enter submits single-control forms. Error placement next to fields. Warn before navigation on unsaved changes.
-- **Performance**: Network latency < 500ms for mutations. Virtualize large lists. Mobile input font >= 16px.
-- **Copy**: Active voice, title case for headings/buttons, error messages that guide the exit path
+## Spatial Composition
 
-## Modern Color & Typography
+Unexpected layouts. Asymmetry. Overlap and z-depth. Diagonal flow. Grid-breaking elements. Dramatic scale jumps. Full-bleed moments. Split-screen compositions. Bento grids with varied tile sizes. Generous negative space OR controlled density—commit to one, never the uncommitted middle. Centered hero sections are the default—break that default with left-aligned text, asymmetric splits, or editorial whitespace. Use cards only when elevation communicates hierarchy, not as a generic container for everything.
 
-### Color
-- **OKLCH as default color space** — more vibrant, perceptually uniform than RGB/HSL. Use CSS `oklch()` function.
-- **P3 wide-gamut** where supported — use `color()` function with Display P3 space for richer colors
-- **Semantic 10-step color scales** (Geist pattern): backgrounds (1-3), borders (4-6), high-contrast backgrounds (7-8), text/icons (9-10). Two background colors (BG-1 for most surfaces, BG-2 sparingly).
-- **Accessible palette creation** — hand-pick vibrant colors that meet APCA contrast standards. Test across light and dark contexts.
-- **CSS variables drive theming** — all color tokens as custom properties. `color-scheme: dark` on `<html>` for proper scrollbar/form contrast.
+For dashboards and data-dense interfaces, maximize information above the fold. Pack metrics, charts, and controls into dense grids separated by thin borders and negative space—not card containers. Use monospace for all numbers. Treat the dashboard as a command center, not a gallery.
 
-### Typography
-- **Variable fonts** for interaction-responsive or context-adaptive weight/width
-- **Kinetic lettering** — scroll-triggered text animation as storytelling option
-- **Custom fonts as brand differentiator** — system fonts for UI performance, distinctive fonts for identity
-- **Full typographic scale** — separate scales for headings, buttons, labels (single-line, ample line-height for icon pairing), and copy (multi-line, higher line-height). Each supports Subtle and Strong modifiers.
-- **Tabular numbers** for data comparisons and tables. Typographic (curly) quotes in prose.
+## Atmosphere & Texture
 
-## Component Architecture
+Create depth and mood rather than defaulting to flat solid colors. The background is a canvas, not a wall. Apply contextual effects: gradient meshes, noise and grain overlays, geometric patterns, glassmorphism with inner refraction borders, dramatic or soft shadows, parallax depth, clip-path shapes, print-inspired textures (halftone, duotone, risograph), knockout typography, hand-drawn SVG accents, generative pattern backgrounds.
 
-### Open Code Model (shadcn/ui paradigm, 2025-2026)
-- Generate components inline in the codebase (not as `node_modules` dependencies). Favor composition over configuration with consistent, composable interfaces.
-- Apply beautiful defaults that work as a coherent system out of the box.
+Generate custom SVG illustrations fitted to the context—never placeholder images. A ramen shop gets a hand-drawn bowl. An ocean nonprofit gets bioluminescent particles. The illustration **is** the design, not decoration.
 
-### Accessible Foundations
-- **Radix UI primitives** for unstyled, accessible component foundations — built-in WAI-ARIA, keyboard navigation, focus management
-- **Accessibility is the foundation, not an afterthought** — using the components correctly AUTOMATICALLY produces accessible output
+## What to Reject
 
-### CSS-First Configuration (Tailwind v4)
-- **`@theme`** for design tokens as CSS custom properties — generates utility classes automatically
-- **`@utility`** for custom utility classes with full CSS
-- **`@variant`** for custom variant selectors (e.g., `@variant hocus (&:hover, &:focus)`)
-- **OKLCH colors by default** — Tailwind v4 ships with OKLCH
-- **Namespace overrides** — `--font-*: initial` disables all defaults, then define only yours
+Never use generic AI aesthetics: overused fonts (Inter, Roboto, Arial, Space Grotesk, system stacks), cliched color schemes (purple gradients on white, neon outer glows), predictable centered layouts, the generic three-equal-cards feature row, excessive gradient text, generic placeholder content (John Doe, 99.99%, "Elevate your workflow"), emoji or SVG-egg avatar placeholders, hero sections that push core content below the fold, or incomplete implementations.
+Instead: distinctive fonts that take a position. Bold, committed palettes. Asymmetric layouts that surprise. Bespoke details rooted in context. Realistic content with creative names and organic data (47.2%, not 50%). When photos are requested, use image services or generate meaningful visual content—never empty containers. Every feature requested, every choice deliberate.
 
-### Machine-Readable Design
-- **Semantic tokens** — use `button-primary-background` not `blue-500`. Machines and humans both need to understand INTENT.
-- **Component metadata describes intent** — what the component IS FOR, not just how it looks
-- **DTCG token format** — three-layer architecture: primitives (raw values), semantics (intent-based), components (element-specific)
+Resist the first satisfying idea. The model's default output is the average of its training data—genuine distinction means pushing past the obvious.
+
+## Craft
+
+Match implementation complexity to the aesthetic vision. Maximalist designs demand elaborate code. Minimalist designs demand obsessive restraint. Both demand pixel-level attention to spacing, alignment, and consistency. Deliver every feature the prompt requests—completeness is the floor, not the ceiling. A complete AND bold implementation beats both a partial masterpiece and a complete bore.
+
+Claude is capable of extraordinary, award-worthy creative work. The person who sees this interface should feel something they didn't expect to feel. Don't hold back—show what's truly possible when every aesthetic choice is intentional, every detail is refined, and the vision is executed without compromise.
+
+## References
+
+For engineering standards, consult `references/vercel-web-interface-guidelines.md` and `references/design-system-checklist.md`. For advanced techniques, consult `references/creative-arsenal.md` and `references/design-dials.md`. For editorial patterns from eval testing, consult `references/editorial-patterns.md`.
