@@ -4,9 +4,10 @@ A launchd daemon that watches for CleanShot and macOS screenshots, describes the
 
 ## How It Works
 
-1. **launchd** watches `~/Desktop/Screencaps & Chats/Screenshots/` via `WatchPaths`
+1. **launchd** watches `~/Desktop/Screencaps & Chats/` and its `Screenshots/` subfolder via `WatchPaths`
 2. When a new file appears, it spawns `minoan-screenshot-rename`
-3. The daemon scans for unprocessed files matching CleanShot/macOS screenshot patterns
+3. The daemon scans both directories for unprocessed files matching CleanShot/macOS screenshot patterns
+4. Renamed files are always moved into the `Screenshots/` subfolder
 4. Each image is downscaled to 1024px JPEG and sent to a vision model
 5. The model returns a 3-8 word description, which is slugified into a filename
 6. The file is atomically renamed and logged to `INDEX.md`
@@ -52,14 +53,14 @@ uv sync
 cp .env.example .env
 # Edit .env: set PROVIDER=openrouter (default)
 
-# Install launchd agent
-ln -sf ~/.claude/scripts/screenshot-rename/com.minoan.screenshot-rename.plist \
-    ~/Library/LaunchAgents/com.minoan.screenshot-rename.plist
+# Install launchd agent (replace __HOME__ with your home directory)
+sed "s|__HOME__|$HOME|g" com.minoan.screenshot-rename.plist \
+    > ~/Library/LaunchAgents/com.minoan.screenshot-rename.plist
 mkdir -p ~/.claude/scripts/screenshot-rename/logs
 launchctl load ~/Library/LaunchAgents/com.minoan.screenshot-rename.plist
 ```
 
-**CleanShot X**: Set save location in Preferences > General > "Save screenshots to" > `~/Desktop/Screencaps & Chats/Screenshots/`. This ensures all capture types (fullscreen, area, snippet, scrolling) land in the watched folder.
+**CleanShot X**: The daemon watches both `~/Desktop/Screencaps & Chats/` and its `Screenshots/` subfolder, so it works regardless of where CleanShot saves. Renamed files are always moved into `Screenshots/`.
 
 ## Usage
 
@@ -81,16 +82,29 @@ uv run python watcher.py --provider openrouter-flash
 uv run python watcher.py
 ```
 
-### Migrate existing screenshots
+### Batch rename existing screenshots
 
 ```bash
-# Preview what would happen
+# Preview what would be renamed (dry-run is default)
+python batch-rename.py
+
+# Actually rename all unrenamed screenshots
+python batch-rename.py --execute
+
+# Custom directory and provider
+python batch-rename.py --dir ~/Desktop/Screenshots --provider gemini-flash --execute
+
+# Rename in place (don't move to Screenshots/ subfolder)
+python batch-rename.py --execute --in-place
+
+# Parallel API calls (default: 3)
+python batch-rename.py --execute --concurrency 5
+```
+
+### Legacy migration (organize.py)
+
+```bash
 python organize.py --dry-run
-
-# Actually migrate (first 5)
-python organize.py --execute --limit 5
-
-# Migrate all
 python organize.py --execute
 ```
 
@@ -98,8 +112,9 @@ python organize.py --execute
 
 | File | Purpose |
 |------|---------|
-| `watcher.py` | Main daemon: 8 vision providers, slugify, atomic rename, locked INDEX.md |
-| `organize.py` | One-time migration of existing screenshots |
+| `watcher.py` | Main daemon: 6 vision providers, slugify, atomic rename, locked INDEX.md |
+| `batch-rename.py` | Batch rename unrenamed screenshots with concurrency and dry-run support |
+| `organize.py` | Legacy one-time migration of existing screenshots |
 | `status.sh` | Quick pulse check: daemon state, last rename, pending count, recent errors |
 | `minoan-screenshot-rename` | Shell wrapper (shows as process name in Activity Monitor) |
 | `com.minoan.screenshot-rename.plist` | launchd agent config (WatchPaths, RunAtLoad) |
