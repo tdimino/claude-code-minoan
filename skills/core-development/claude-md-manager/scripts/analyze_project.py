@@ -210,8 +210,8 @@ def detect_commands(project_path: Path) -> dict[str, str | None]:
                 # Detect package manager for prefix
                 pm = detect_package_manager(project_path)
                 prefix = pm["manager"] if pm["manager"] else "npm"
-                if prefix == "npm":
-                    prefix = "npm run"
+                if prefix in ("npm", "bun"):
+                    prefix = f"{prefix} run"
 
                 if "dev" in scripts:
                     commands["dev"] = f"{prefix} dev"
@@ -263,8 +263,19 @@ def detect_commands(project_path: Path) -> dict[str, str | None]:
 
 
 def check_existing_claude_md(project_path: Path) -> dict[str, Any]:
-    """Check for existing CLAUDE.md and analyze it."""
-    result = {"exists": False, "path": None, "line_count": 0, "has_agent_docs": False}
+    """Check for existing CLAUDE.md and related Claude Code infrastructure."""
+    result = {
+        "exists": False,
+        "path": None,
+        "line_count": 0,
+        "has_agent_docs": False,
+        "has_rules_dir": False,
+        "rules_count": 0,
+        "has_local_md": False,
+        "has_agents_dir": False,
+        "agents_count": 0,
+        "has_hooks": False,
+    }
 
     claude_md = project_path / "CLAUDE.md"
     if claude_md.exists():
@@ -278,6 +289,28 @@ def check_existing_claude_md(project_path: Path) -> dict[str, Any]:
 
     agent_docs = project_path / "agent_docs"
     result["has_agent_docs"] = agent_docs.exists() and agent_docs.is_dir()
+
+    # Check for CLAUDE.local.md (personal project overrides)
+    result["has_local_md"] = (project_path / "CLAUDE.local.md").exists()
+
+    # Check .claude/ infrastructure
+    claude_dir = project_path / ".claude"
+    if claude_dir.exists() and claude_dir.is_dir():
+        # Rules directory
+        rules_dir = claude_dir / "rules"
+        if rules_dir.exists() and rules_dir.is_dir():
+            result["has_rules_dir"] = True
+            result["rules_count"] = len(list(rules_dir.rglob("*.md")))
+
+        # Agents directory
+        agents_dir = claude_dir / "agents"
+        if agents_dir.exists() and agents_dir.is_dir():
+            result["has_agents_dir"] = True
+            result["agents_count"] = len(list(agents_dir.rglob("*.md")))
+
+        # Hooks directory
+        hooks_dir = claude_dir / "hooks"
+        result["has_hooks"] = hooks_dir.exists() and hooks_dir.is_dir()
 
     return result
 
