@@ -58,7 +58,7 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --context --co
 Pipe Exa JSON output through the Firecrawl filter script for additional reduction:
 ```bash
 python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --json | \
-  python3 ~/.claude/skills/Firecrawl/scripts/filter_web_results.py \
+  python3 ~/.claude/skills/firecrawl/scripts/filter_web_results.py \
   --fields "title,url,text" --max-chars 3000
 ```
 

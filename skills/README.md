@@ -45,7 +45,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `beautiful-mermaid` | Mermaid diagrams as ASCII art via [beautiful-mermaid](https://github.com/nicepkg/beautiful-mermaid) |
 | `parakeet` | Speech-to-text via [NVIDIA Parakeet](https://docs.nvidia.com/nemo/asr/models/parakeet.html) + [Handy](https://github.com/cjpais/Handy) |
 | `rlama` | Local RAG via [RLAMA](https://github.com/dontizi/rlama) with Ollama |
-| `Firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) CLI + Agent API |
+| `firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) CLI + Agent API |
 | `exa-search` | Neural search via [Exa AI](https://exa.ai/) API |
 | `twitter` | Twitter/X — search/research via x-search (official API v2), posting via OAuth 1.0a, reading via [bird CLI](https://github.com/steipete/bird) |
 | `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
@@ -69,7 +69,8 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 |-------|-------------|
 | `academic-research` | Paper search via Exa + [ArXiv](https://arxiv.org/) |
 | `exa-search` | Full [Exa AI](https://exa.ai/) API with 6 specialized scripts |
-| `Firecrawl` | [Firecrawl](https://firecrawl.dev/) official CLI + Agent API |
+| `firecrawl` | [Firecrawl](https://firecrawl.dev/) official CLI + Agent API |
+| `scrapling` | Local stealth web scraping: anti-bot bypass, Cloudflare solver, adaptive element tracking |
 | `linear-a-decipherment` | Computational [Linear A](https://en.wikipedia.org/wiki/Linear_A) analysis — [Gordon](https://en.wikipedia.org/wiki/Cyrus_H._Gordon) 5-step pipeline, cognate search, corpus statistics, sign analysis |
 
 ### Planning & Productivity (`planning-productivity/`)
@@ -103,6 +104,7 @@ skill-name/
 - **[llama.cpp](https://github.com/ggerganov/llama.cpp)** by Georgi Gerganov — local LLM inference engine
 - **[RLAMA](https://github.com/dontizi/rlama)** by dontizi — local RAG system
 - **[Firecrawl](https://firecrawl.dev/)** by Mendable — web scraping and content extraction
+- **[Scrapling](https://github.com/D4Vinci/Scrapling)** by D4Vinci — local stealth web scraping
 - **[Exa](https://exa.ai/)** — neural web search API
 - **[Handy](https://github.com/cjpais/Handy)** by CJ Pais — push-to-talk speech-to-text
 - **[ccstatusline](https://github.com/sirmalloc/ccstatusline)** by sirmalloc — terminal statusline for Claude Code
