@@ -451,6 +451,32 @@ Managed via `/plugin` commands. State stored in `~/.claude/plugins/`. Currently 
 
 ---
 
+## Memory Hierarchy
+
+Claude Code's configuration follows a 6-tier memory system, from broadest to most specific scope. More specific tiers take precedence.
+
+| Tier | Location | Scope | Shared With |
+|------|----------|-------|-------------|
+| **Managed policy** | `/Library/Application Support/ClaudeCode/CLAUDE.md` | Organization-wide | All org users |
+| **Project memory** | `./CLAUDE.md` | Project-wide | Team (via git) |
+| **Project rules** | `.claude/rules/*.md` | Path-scoped | Team (via git) |
+| **User memory** | `~/.claude/CLAUDE.md` | All projects | Personal only |
+| **Project local** | `./CLAUDE.local.md` | This project | Personal only |
+| **Auto memory** | `~/.claude/projects/<project>/memory/` | Per-project | Personal only |
+
+All 6 tiers are individually documented by [Anthropic](https://code.claude.com/docs/en/memory). The numbered hierarchy framing is synthesized from their table.
+
+**Key distinctions:**
+- **Advisory vs deterministic**: All CLAUDE.md tiers are advisory—the agent reads them as guidance but may deviate under context pressure. For deterministic enforcement, use hooks (`.claude/hooks/`).
+- **`.claude/rules/*.md`**: Path-scoped instructions with YAML frontmatter `paths:` globs. Load conditionally when matching files are in context. Alternative to monolithic CLAUDE.md for large codebases.
+- **`CLAUDE.local.md`**: Gitignored personal overrides. Placed alongside `CLAUDE.md`, discovered automatically.
+
+**Complementarity with Claudicle**: The 6-tier system provides the project instruction foundation — what to build, how to build it, what conventions to follow. [Claudicle](https://github.com/tdimino/claudicle) operates orthogonally as an identity superstructure — personality, memory, behavioral continuity. The soul injects via `soul-activate.py` hook into `additionalContext` after 6-tier loading. Soul state lives in `~/.claudicle/daemon/memory/memory.db` (SQLite), separate from auto-memory (tier 6). They compose without conflict: the 6 tiers tell Claude what to do, the soul tells Claude who it is.
+
+See `skills/core-development/claude-md-manager/references/memory-hierarchy.md` for the full reference.
+
+---
+
 ## Design Principles
 
 1. **Progressive disclosure** — CLAUDE.md links to agent_docs/. Base context stays small. Details loaded on demand.

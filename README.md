@@ -99,6 +99,10 @@ Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggl
 
 ---
 
+**Memory Hierarchy**: The `claude-md-manager` skill documents the full [6-tier memory system](skills/core-development/claude-md-manager/references/memory-hierarchy.md) — managed policy, project memory, project rules (`.claude/rules/`), user memory, project local, and auto memory. See also `docs/global-config/README.md` for how this complements the [Claudicle](https://github.com/tdimino/claudicle) soul architecture.
+
+---
+
 ### [Hooks](hooks/README.md) — Lifecycle event scripts
 
 Scripts that run in response to Claude Code events — terminal UX, crash-resilient session handoffs, cross-repo git tracking, and multi-response sampling.

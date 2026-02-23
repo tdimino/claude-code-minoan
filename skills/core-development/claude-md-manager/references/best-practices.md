@@ -1,6 +1,6 @@
 # CLAUDE.md Best Practices Deep Dive
 
-Comprehensive patterns for creating effective CLAUDE.md files based on research from Anthropic, HumanLayer, and production implementations.
+Comprehensive patterns for creating effective CLAUDE.md files based on research from Anthropic, HumanLayer, Abnormal Security, and production implementations across enterprise and open-source codebases.
 
 ## Table of Contents
 - [Context Window Economics](#context-window-economics)
@@ -15,7 +15,7 @@ Comprehensive patterns for creating effective CLAUDE.md files based on research 
 
 ### Why Every Line Matters
 
-Claude Code's system prompt contains ~50 baseline instructions. Frontier LLMs can reliably follow 150-200 instructions. This leaves ~100-150 instruction slots for your CLAUDE.md and conversation.
+Claude Code's system prompt contains ~50 baseline instructions. Frontier LLMs can reliably follow 150-200 instructions. This leaves ~100-150 instruction slots for CLAUDE.md content and conversation.
 
 **Token cost calculation:**
 - Average CLAUDE.md line: ~15 tokens
@@ -60,12 +60,12 @@ Document only what Claude cannot infer from the code itself:
 Explain the reasoning behind non-obvious decisions:
 
 ```markdown
-## Why We Use X
+## Why We Use Sessions Instead of JWT
 
-# Authentication uses sessions (not JWT) because:
-# - SSR requires server-readable auth state
-# - No mobile clients planned
-# - Simpler revocation
+Sessions (not JWT) because:
+- SSR requires server-readable auth state
+- No mobile clients planned
+- Simpler revocation
 ```
 
 ### HOW: Practical Workflows
@@ -90,7 +90,7 @@ Focus on commands and procedures Claude must execute correctly:
 
 **Split when:**
 - CLAUDE.md exceeds 100 lines
-- You have 3+ distinct workflow areas
+- The project has 3+ distinct workflow areas
 - Team members work on isolated areas
 - Instructions are highly task-specific
 
@@ -141,6 +141,35 @@ agent_docs/
 Claude reads these when the task requires it.
 ```
 
+### Beyond agent_docs/: Rules, Skills, and Agents
+
+The `agent_docs/` pattern is not the only progressive disclosure mechanism. Three additional systems complement it:
+
+**`.claude/rules/` — Path-Scoped Instructions**
+
+The `.claude/rules/` directory holds modular instructions that load conditionally based on which files are in context. Each `.md` file supports YAML frontmatter with `paths:` glob patterns:
+
+```yaml
+---
+paths:
+  - "src/api/**/*.ts"
+  - "src/routes/**"
+---
+# API Conventions
+- Return consistent error shapes: `{ error: string, code: number }`
+- Validate all inputs with Zod schemas
+```
+
+Rules without a `paths:` field load unconditionally. Use rules instead of CLAUDE.md for instructions that apply only to specific file paths. See `references/memory-hierarchy.md` for the full rules reference.
+
+**Skills — Domain Knowledge Overflow**
+
+CLAUDE.md loads every session, consuming context on every task. For domain knowledge that is only sometimes relevant, use skills (`.claude/skills/`) instead. Skills load on demand with zero context cost when inactive — only the skill name and description (~100 tokens) are present until triggered.
+
+**Custom Subagents (`.claude/agents/`)**
+
+Agent-specific instructions belong in agent definition files (`.claude/agents/*.md`), not in CLAUDE.md. Agent files support YAML frontmatter with tool restrictions and model selection. Reserve CLAUDE.md for project-wide instructions that apply regardless of which agent is active.
+
 ## File Import Patterns
 
 ### Basic Imports
@@ -176,30 +205,50 @@ Claude reads these when the task requires it.
 # Add your own: @~/.claude/my-project-prefs.md
 ```
 
+### Pitch Files, Not Just Reference Them
+
+A bare `@path/to/file` import often gets ignored — the agent has no reason to read it unless the current task clearly requires it. Explain **when** and **why** to consult each import.
+
+```markdown
+# Bad — bare references without context
+@agent_docs/testing.md
+@agent_docs/deployment.md
+@agent_docs/auth-architecture.md
+
+# Good — pitched imports that explain relevance
+- @agent_docs/testing.md — test conventions, coverage thresholds, and E2E patterns. Read when writing or modifying tests.
+- @agent_docs/deployment.md — Railway deploy checklist and rollback procedures. Read before any production deploy.
+- @agent_docs/auth-architecture.md — session-based auth flow and token lifecycle. Read when debugging auth issues or modifying login.
+```
+
+This pattern is especially valuable for large `agent_docs/` directories where the file names alone do not convey enough context. Even a short clause after the path ("Read when...") significantly increases the probability that the agent consults the right file at the right time.
+
+### Imported File Heading Levels
+
+Start imported files at `##` (not `#`) to avoid heading hierarchy conflicts with the main CLAUDE.md. The root CLAUDE.md owns the `#` level; imported files are subsections and should begin one level down. This prevents the table of contents from flattening into a confusing list of competing top-level headings.
+
 ## Measuring Effectiveness
 
-### Success Indicators
+### Signs of Effective CLAUDE.md
 
-Your CLAUDE.md is effective when:
 - Claude rarely asks for clarification on conventions
 - Code reviews show consistent style adherence
-- You stop repeating the same instructions
+- The same instructions stop being repeated across sessions
 - Claude catches violations proactively
-- New workflows are executed correctly first time
+- New workflows execute correctly on first attempt
 
 ### Red Flags
 
-Your CLAUDE.md needs work when:
-- Claude ignores documented conventions
-- You frequently add # instructions mid-conversation
-- Claude asks questions answered in the file
-- Generated code doesn't match project style
+- Claude ignores documented conventions (file may be too long, rule is getting lost)
+- `#` instructions are added mid-conversation frequently
+- Claude asks questions already answered in the file (phrasing may be ambiguous)
+- Generated code does not match project style
 - Build/test commands fail consistently
 
 ### Iteration Using #
 
-During conversations, press `#` to add instructions you're repeating:
-1. Note instructions you give more than twice
+Press `#` during conversations to append instructions being repeated:
+1. Note instructions given more than twice
 2. Add them via `#` (appends to CLAUDE.md)
 3. Review and organize quarterly
 4. Move task-specific items to agent_docs/
@@ -254,14 +303,36 @@ git commit -m "docs: update CLAUDE.md for React 19 upgrade"
 4. Update OpenAPI spec if public
 ```
 
-### Negative Instructions (Use Sparingly)
+### Negative Instructions: Pair with Alternatives
+
+Bare prohibitions ("never do X") cause the agent to get stuck when it encounters the prohibited situation with no fallback path. Every negative instruction should end with the preferred alternative.
 
 ```markdown
-# Do NOT
-- Create new utility files without checking /lib first
-- Add dependencies without checking existing ones
-- Modify migration files after merge to main
+# Bad — agent has no fallback when it needs to do the prohibited thing
+- Never modify migration files
+- Do not create utility files
+- Never use console.log
+
+# Good — every prohibition includes the alternative
+- Never modify migration files after merge to main — create a new migration instead
+- Do not create new utility files without first checking /lib for existing ones
+- Never use console.log — use the project logger at src/lib/logger.ts
 ```
+
+Rule of thumb: every "never X" ends with "— do Y instead."
+
+### Advisory vs Deterministic: CLAUDE.md vs Hooks
+
+CLAUDE.md instructions are **advisory** — the agent reads them as guidance but may deviate under context pressure. Hooks (`.claude/hooks/`) are **deterministic** — they execute automatically regardless of agent judgment.
+
+| Behavior Type | Place In | Reason |
+|---------------|----------|--------|
+| Linting, formatting, secret scanning | Hooks | Requires guaranteed execution |
+| Pre-commit checks, post-push notifications | Hooks | Side effects that must happen |
+| Architecture decisions, workflow preferences | CLAUDE.md | Guidance the agent should internalize |
+| "When working on X, follow Y pattern" | CLAUDE.md | Context-dependent instructions |
+
+If the agent repeatedly ignores a CLAUDE.md instruction, consider whether it should be a hook instead.
 
 ### Integration with Hooks
 
@@ -274,6 +345,25 @@ git commit -m "docs: update CLAUDE.md for React 19 upgrade"
 - Update affected tests
 - Check bundle size: `pnpm analyze`
 ```
+
+### Emphasis Tuning
+
+Use **bold markdown** and section headings to draw attention to critical instructions. Avoid ALL CAPS or stacking multiple emphasis markers — if everything is emphasized, nothing stands out.
+
+- Bold a key term within a sentence: "Use `pnpm` (**not** npm) for all package operations"
+- Use section headings to create visual hierarchy rather than inline capitalization
+- Reserve emphasis for instructions that would cause real damage if ignored
+- If emphasis is not working, the file may be too long — the instruction is getting lost in noise, not being under-emphasized
+
+### CLAUDE.md as Tooling Forcing Function
+
+If the CLAUDE.md section for an internal tool requires extensive explanation, the tool itself is too complex. Write a bash wrapper with a clear, intuitive API and document *that* instead. Keeping CLAUDE.md short forces tooling improvement.
+
+### PR-Driven CLAUDE.md Evolution
+
+When a PR changes project conventions, update CLAUDE.md in the same PR. Include CLAUDE.md in the PR review scope. This creates a feedback loop: real-world issues inform instructions, which prevent future issues.
+
+Add to PR templates: "If this PR changes conventions or workflow, update CLAUDE.md accordingly."
 
 ### Team Synchronization
 

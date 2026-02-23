@@ -2,9 +2,9 @@
 
 The configuration skill. Teaches Claude how to create, audit, and maintain the CLAUDE.md files that define how Claude Code behaves in every project.
 
-**Last updated:** 2026-02-21
+**Last updated:** 2026-02-23
 
-**Reflects:** Claude Code memory system (Feb 2026), Anthropic's CLAUDE.md best practices, HumanLayer's production patterns, and progressive disclosure architecture for monorepos and large codebases.
+**Reflects:** Claude Code 6-tier memory hierarchy (Feb 2026), Anthropic's CLAUDE.md best practices, HumanLayer's production patterns, Shrivu Shankar/Abnormal Security enterprise insights, and progressive disclosure architecture for monorepos and large codebases.
 
 ---
 
@@ -12,7 +12,7 @@ The configuration skill. Teaches Claude how to create, audit, and maintain the C
 
 CLAUDE.md is Claude Code's project memory—the file that tells Claude what the project is, how it works, and what conventions matter. Every project has one (or should). The difference between a 300-line dump and a 60-line surgical file is the difference between Claude following instructions and Claude ignoring them under context pressure.
 
-This skill encodes the craft: the WHAT/WHY/HOW framework for deciding what goes in, conciseness rules grounded in context window economics, progressive disclosure patterns for scaling to monorepos, file import syntax, anti-patterns to avoid, and OSGrep-powered validation to catch stale claims. It also includes templates for 7 project types and an automated project analyzer.
+This skill encodes the craft: the WHAT/WHY/HOW framework for deciding what goes in, conciseness rules grounded in context window economics, progressive disclosure patterns for scaling to monorepos (including `.claude/rules/` path-scoped instructions), file import syntax, anti-patterns to avoid, and OSGrep-powered validation to catch stale claims. It also includes templates for 9 project types and an automated project analyzer.
 
 ---
 
@@ -20,13 +20,14 @@ This skill encodes the craft: the WHAT/WHY/HOW framework for deciding what goes 
 
 ```
 claude-md-manager/
-  SKILL.md                              # Creation and maintenance guide (247 lines)
+  SKILL.md                              # Creation and maintenance guide
   README.md                             # This file
   scripts/
     analyze_project.py                  # Automated project analysis → JSON report
   references/
     best-practices.md                   # Deep dive: context economics, patterns, anti-patterns
-    templates.md                        # 7 ready-to-customize templates by project type
+    memory-hierarchy.md                 # 6-tier memory system, .claude/rules/, CLAUDE.local.md
+    templates.md                        # 9 ready-to-customize templates by project type
 ```
 
 ---
@@ -47,7 +48,7 @@ The key discipline: exclude anything Claude can infer by reading the code. If th
 
 ### Context Window Economics
 
-Claude Code's system prompt uses ~50 instruction slots. Frontier LLMs reliably follow 150–200. That leaves ~100–150 for your CLAUDE.md and conversation history combined. Every line competes.
+Claude Code's system prompt uses ~50 instruction slots. Frontier LLMs reliably follow 150–200. That leaves ~100–150 for CLAUDE.md content and conversation history combined. Every line competes.
 
 | Target | Lines | When |
 |--------|-------|------|
@@ -72,6 +73,23 @@ agent_docs/
 
 Reference in CLAUDE.md with `@agent_docs/testing.md`—Claude reads these on demand, not at startup.
 
+Beyond `agent_docs/`, three additional progressive disclosure mechanisms exist: `.claude/rules/*.md` (path-scoped instructions with YAML frontmatter globs), skills (`.claude/skills/`), and custom subagents (`.claude/agents/*.md`). See `references/memory-hierarchy.md` for the full 6-tier memory system.
+
+### Memory Hierarchy
+
+Claude Code has a 6-tier memory system, from broadest to most specific:
+
+| Tier | Location | Scope |
+|------|----------|-------|
+| Managed policy | `/Library/Application Support/ClaudeCode/CLAUDE.md` | Organization-wide |
+| Project memory | `./CLAUDE.md` | Project-wide (team, via git) |
+| Project rules | `.claude/rules/*.md` | Path-scoped (conditional loading) |
+| User memory | `~/.claude/CLAUDE.md` | All projects (personal) |
+| Project local | `./CLAUDE.local.md` | This project (personal, gitignored) |
+| Auto memory | `~/.claude/projects/<project>/memory/` | Per-project (personal) |
+
+More specific tiers take precedence. See `references/memory-hierarchy.md` for the full tier table, rules syntax, and composition sequence.
+
 ### File Import Syntax
 
 CLAUDE.md supports `@path/to/file` imports:
@@ -82,7 +100,15 @@ CLAUDE.md supports `@path/to/file` imports:
 | `@docs/guide.md` | Subdirectory |
 | `@~/.claude/personal.md` | Personal preferences (not committed) |
 
-Recursive to 5 levels. Not evaluated inside code blocks.
+Recursive to 5 levels. Not evaluated inside code blocks. Imported files should start at `##` heading level to avoid hierarchy conflicts.
+
+Pitch each import—explain when and why to read it. Bare `@path` references without context tend to be ignored:
+
+```markdown
+# Good — pitched imports
+- @agent_docs/testing.md — test conventions and coverage thresholds. Read when writing tests.
+- @agent_docs/deployment.md — deploy checklist and rollback procedures. Read before production deploys.
+```
 
 ### Hierarchical Files for Monorepos
 
@@ -135,7 +161,7 @@ Use the output to jumpstart CLAUDE.md creation with verified facts rather than g
 
 ## Templates
 
-`references/templates.md` includes ready-to-customize templates for 7 project types:
+`references/templates.md` includes ready-to-customize templates for 9 project types:
 
 | Template | Stack | Target Lines |
 |----------|-------|-------------|
@@ -147,6 +173,7 @@ Use the output to jumpstart CLAUDE.md creation with verified facts rather than g
 | Rust | Axum/Actix/Rocket | ~35 |
 | React/Next.js | App Router + TypeScript | ~35 |
 | Monorepo | Turborepo/pnpm workspaces | ~40 |
+| Monorepo with Rules | `.claude/rules/` pattern | ~25 |
 
 Each template follows the WHAT/WHY/HOW framework and stays well under the 100-line target.
 
@@ -164,6 +191,8 @@ Things that waste context or degrade instruction-following:
 | Inline code snippets | Go stale immediately | `file:line` references |
 | Secrets or credentials | Treated as public | Environment variables |
 | Task-specific instructions in root | Bloats the always-loaded file | `agent_docs/` with `@import` |
+| Negative-only constraints | Bare "never X" causes stuck agents | Pair with alternative: "never X — do Y instead" |
+| Bare file references | Naked `@path` imports get ignored | Pitch imports: explain when/why to read |
 
 ---
 
@@ -181,6 +210,9 @@ For quarterly CLAUDE.md review:
 - [ ] Architecture claims still accurate?
 - [ ] OSGrep validation run?
 - [ ] All `@import` file references still valid?
+- [ ] Negative instructions paired with alternatives?
+- [ ] File imports pitched (explain when/why to read)?
+- [ ] Path-specific instructions in `.claude/rules/` instead of root CLAUDE.md?
 
 ---
 
@@ -189,11 +221,11 @@ For quarterly CLAUDE.md review:
 `references/best-practices.md` covers:
 - Context window economics with token cost calculations
 - Right-sizing by project complexity (script → monorepo → enterprise)
-- Progressive disclosure mastery (when to split, directory patterns)
-- File import patterns (basic, conditional, team vs personal)
+- Progressive disclosure mastery (when to split, directory patterns, `.claude/rules/`, skills, subagents)
+- File import patterns (basic, conditional, pitched imports, heading levels)
 - Measuring effectiveness (success indicators, red flags)
 - Maintenance strategies (quarterly review, trigger-based updates)
-- Advanced patterns (context-aware instructions, negative instructions, hook integration)
+- Advanced patterns (negative instructions with alternatives, advisory vs deterministic, emphasis tuning, PR-driven evolution, tooling forcing function)
 
 ---
 

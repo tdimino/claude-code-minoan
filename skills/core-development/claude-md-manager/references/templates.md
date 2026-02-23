@@ -1,6 +1,6 @@
 # CLAUDE.md Templates by Project Type
 
-Ready-to-customize templates for common project types. Copy, adapt, and trim to your needs.
+Ready-to-customize templates for common project types. Copy, adapt, and trim to fit the project.
 
 ## Table of Contents
 - [Minimal Template](#minimal-template)
@@ -11,6 +11,7 @@ Ready-to-customize templates for common project types. Copy, adapt, and trim to 
 - [Rust](#rust)
 - [React/Next.js](#reactnextjs)
 - [Monorepo](#monorepo)
+- [Monorepo with Rules](#monorepo-with-rules)
 
 ## Minimal Template
 
@@ -61,7 +62,6 @@ Brief description.
 - Dev: `pnpm dev`
 - Test: `pnpm test`
 - Build: `pnpm build`
-- Lint: `pnpm lint` (pre-commit hook)
 - Types: `pnpm typecheck`
 
 ## Conventions
@@ -222,7 +222,6 @@ Brief description.
 - Doc: `cargo doc --open`
 
 ## Conventions
-- Run `cargo clippy` before commit
 - Prefer `thiserror` for errors
 - Use `#[must_use]` on important returns
 - Document public APIs
@@ -307,12 +306,68 @@ Brief description.
 - Filter to specific package for isolated work
 
 ## App-Specific Docs
-- Frontend: @apps/web/CLAUDE.md
-- Backend: @apps/api/CLAUDE.md
+- Frontend conventions and component patterns: @apps/web/CLAUDE.md
+- Backend API design and database conventions: @apps/api/CLAUDE.md
 
 ## Git
 - Feature branches
 - Required checks before merge
+- Conventional Commits with scope (e.g., `feat(web):`)
+```
+
+---
+
+## Monorepo with Rules
+
+Alternative monorepo pattern using `.claude/rules/` for path-specific instructions instead of nested CLAUDE.md files.
+
+```
+project/
+  CLAUDE.md                    # Universal conventions only
+  .claude/rules/
+    frontend.md                # paths: ["apps/web/**", "packages/ui/**"]
+    backend.md                 # paths: ["apps/api/**", "packages/db/**"]
+    testing.md                 # paths: ["**/*.test.*", "**/*.spec.*"]
+```
+
+Example rule file (`.claude/rules/frontend.md`):
+
+```yaml
+---
+paths:
+  - "apps/web/**"
+  - "packages/ui/**"
+---
+## Frontend Conventions
+- Server Components by default, `'use client'` only when needed
+- Colocation: page-specific components near routes
+- Tailwind for styling, no CSS modules
+- Component tests required in `__tests__/` alongside source
+```
+
+The root CLAUDE.md stays minimal — stack, commands, git conventions. Path-specific instructions live in rules files and load only when editing matching files.
+
+```markdown
+# Project Name
+
+[One-line description]
+
+## Stack
+- Turborepo with pnpm workspaces
+- See .claude/rules/ for app-specific conventions
+
+## Commands
+- Dev all: `pnpm dev`
+- Dev specific: `pnpm --filter web dev`
+- Build: `pnpm build`
+- Test: `pnpm test`
+
+## Conventions
+- Shared code in `packages/`
+- Apps import from packages, not each other
+
+## Git
+- Feature branches
 - Conventional Commits with scope (e.g., `feat(web):`)
 ```
 
@@ -330,7 +385,7 @@ Brief description.
 
 After copying a template:
 - [ ] Update project name and description
-- [ ] Verify tech stack matches your project
+- [ ] Verify tech stack matches the project
 - [ ] Confirm directory structure is accurate
 - [ ] Test all listed commands
 - [ ] Add project-specific conventions
