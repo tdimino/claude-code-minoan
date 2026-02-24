@@ -1,6 +1,6 @@
 # Commands Index
 
-*10 custom slash commands in `~/.claude/commands/`*
+*11 custom slash commands in `~/.claude/commands/`*
 
 ## Session Management
 
@@ -11,6 +11,7 @@
 | `claude-tracker-search.md` | `/claude-tracker-search` | Search across all sessions for keywords |
 | `claude-tracker-resume.md` | `/claude-tracker-resume` | Resume a session by number from tracker output |
 | `session-report.md` | `/session-report` | Generate Markdown dashboard of recent sessions with git activity |
+| `spawn.md` | `/spawn` | Start a new session (interactive, prompt-driven, or headless) |
 
 ## Soul & Identity
 

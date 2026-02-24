@@ -1,8 +1,8 @@
 ---
 name: claude-tracker-suite
-description: "Claude Code session management suite: search sessions by topic/ID, resume crashed sessions, monitor live sessions, detect projects, auto-summarize new sessions, and bootstrap new setups. This skill should be used when searching past sessions, checking running sessions, resuming work, or bootstrapping a new machine."
+description: "Claude Code session management suite: search sessions by topic/ID, resume crashed sessions, spawn new sessions (interactive or headless), monitor live sessions, detect projects, auto-summarize new sessions, and bootstrap new setups. This skill should be used when searching past sessions, checking running sessions, resuming work, spawning new sessions, or bootstrapping a new machine."
 argument-hint: [query or --id <prefix>]
-allowed-tools: Bash(claude-tracker*), Bash(node ~/.claude/skills/claude-tracker-suite/scripts/*), Bash(python3 ~/.claude/scripts/*), Read, Grep, Glob, Edit, Write, Skill
+allowed-tools: Bash(claude-tracker*), Bash(node ~/.claude/skills/claude-tracker-suite/scripts/*), Bash(~/.claude/skills/claude-tracker-suite/scripts/*.sh), Bash(python3 ~/.claude/scripts/*), Read, Grep, Glob, Edit, Write, Skill
 ---
 
 # Claude Session Management Suite
@@ -18,6 +18,7 @@ Search, browse, monitor, and manage Claude Code session history across all proje
 | `claude-tracker-alive` | Check which sessions have running processes |
 | `claude-tracker-watch` | Daemon: auto-summarize new sessions, update active-projects.md |
 | `claude-tracker` | List recent sessions with status badges (standalone script) |
+| `new-session.sh` | Start a new session in Ghostty/VSCode/Cursor, with optional prompt or headless mode |
 | `resume-in-vscode.sh` | Open a session in a new VS Code (or Cursor) terminal via AppleScript |
 | `detect-projects.js` | Scan sessions to find all projects, check CLAUDE.md coverage |
 | `bootstrap-claude-setup.js` | Generate complete ~/.claude/ config for new machine |
@@ -31,6 +32,7 @@ Commands delegate to standalone Node.js scripts (avoids shell escaping issues wi
 |--------|-----------|---------|
 | `scripts/search-sessions.js` | `/claude-tracker-search` | Keyword search across all sessions (8K lines/file, noise-filtered) |
 | `scripts/list-sessions.js` | `/claude-tracker` | List recent sessions with status badges |
+| `scripts/new-session.sh` | `/spawn` | Start new interactive or prompt-driven session in Ghostty/VSCode/Cursor or headless |
 | `scripts/resume-in-vscode.sh` | Direct invocation | Open session in new VS Code/Cursor terminal (macOS AppleScript) |
 | `scripts/detect-projects.js` | Direct invocation | Project discovery and CLAUDE.md scaffolding |
 | `scripts/bootstrap-claude-setup.js` | Direct invocation | New machine setup generator |
@@ -169,6 +171,32 @@ Open a session in a new Ghostty tab, VS Code terminal, or Cursor terminal (macOS
 ```
 
 System aliases: `code` → Cursor, `vscode` → VS Code. Ghostty is the default target.
+
+## New Session / Spawn
+
+Start a new Claude Code session in a terminal tab or headless:
+
+```bash
+# Interactive session in Ghostty (default)
+~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project
+
+# With a specific model
+~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --model opus
+
+# Prompt-driven session in Ghostty tab
+~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --prompt "fix the login bug"
+
+# Prompt-driven in VS Code terminal
+~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --vscode --prompt "fix the login bug"
+
+# Headless — runs in current terminal, returns JSON
+~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --headless --prompt "summarize the README"
+
+# Headless with specific model and output format
+~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --headless --prompt "fix tests" --model haiku --output-format text
+```
+
+Headless mode uses `claude -p --output-format json` and returns the result with `session_id` for later resumption. Terminal modes use the clipboard-paste AppleScript pattern for reliable command delivery (handles special characters in prompts).
 
 ## Workflow: Find and Resume
 
