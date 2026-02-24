@@ -134,7 +134,9 @@ fi
 # --- Build the command string for terminal modes ---
 CLAUDE_CMD="claude"
 if [[ -n "$PROMPT" ]]; then
-  CLAUDE_CMD="claude -p $(printf '%q' "$PROMPT")"
+  # Escape single quotes in prompt: replace ' with '\''
+  ESCAPED_PROMPT="${PROMPT//\'/\'\\\'\'}"
+  CLAUDE_CMD="claude -p '${ESCAPED_PROMPT}'"
 fi
 if [[ -n "$MODEL" ]]; then
   CLAUDE_CMD="$CLAUDE_CMD --model $MODEL"

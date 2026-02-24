@@ -196,7 +196,7 @@ Start a new Claude Code session in a terminal tab or headless:
 ~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --headless --prompt "fix tests" --model haiku --output-format text
 ```
 
-Headless mode uses `claude -p --output-format json` and returns the result with `session_id` for later resumption. Terminal modes use the clipboard-paste AppleScript pattern for reliable command delivery (handles special characters in prompts).
+Headless and prompt-driven modes use `claude -p` (the Agent SDK CLI). Note: `-p` is now officially part of the Claude Agent SDK—it uses SDK billing, not interactive session billing. Terminal modes use the clipboard-paste AppleScript pattern for reliable command delivery (handles special characters in prompts).
 
 ## Workflow: Find and Resume
 
