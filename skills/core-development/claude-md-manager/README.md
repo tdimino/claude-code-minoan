@@ -4,7 +4,7 @@ The configuration skill. Teaches Claude how to create, audit, and maintain the C
 
 **Last updated:** 2026-02-23
 
-**Reflects:** Claude Code 6-tier memory hierarchy (Feb 2026), Anthropic's CLAUDE.md best practices, HumanLayer's production patterns, Shrivu Shankar/Abnormal Security enterprise insights, and progressive disclosure architecture for monorepos and large codebases.
+**Reflects:** Anthropic's CLAUDE.md best practices (Feb 2026), HumanLayer's production patterns, Shrivu Shankar/Abnormal Security enterprise insights, and progressive disclosure architecture for monorepos and large codebases.
 
 ---
 
@@ -26,7 +26,7 @@ claude-md-manager/
     analyze_project.py                  # Automated project analysis → JSON report
   references/
     best-practices.md                   # Deep dive: context economics, patterns, anti-patterns
-    memory-hierarchy.md                 # 6-tier memory system, .claude/rules/, CLAUDE.local.md
+    memory-hierarchy.md                 # Instruction placement, .claude/rules/, CLAUDE.local.md
     templates.md                        # 9 ready-to-customize templates by project type
 ```
 
@@ -73,22 +73,21 @@ agent_docs/
 
 Reference in CLAUDE.md with `@agent_docs/testing.md`—Claude reads these on demand, not at startup.
 
-Beyond `agent_docs/`, three additional progressive disclosure mechanisms exist: `.claude/rules/*.md` (path-scoped instructions with YAML frontmatter globs), skills (`.claude/skills/`), and custom subagents (`.claude/agents/*.md`). See `references/memory-hierarchy.md` for the full 6-tier memory system.
+Beyond `agent_docs/`, three additional progressive disclosure mechanisms exist: `.claude/rules/*.md` (path-scoped instructions with YAML frontmatter globs), skills (`.claude/skills/`), and custom subagents (`.claude/agents/*.md`). See `references/memory-hierarchy.md` for instruction placement guidance and rules syntax.
 
-### Memory Hierarchy
+### Instruction Placement
 
-Claude Code has a 6-tier memory system, from broadest to most specific:
+Where an instruction lives determines who sees it and when it loads. A CLAUDE.md writer needs to know these tiers:
 
-| Tier | Location | Scope |
-|------|----------|-------|
-| Managed policy | `/Library/Application Support/ClaudeCode/CLAUDE.md` | Organization-wide |
-| Project memory | `./CLAUDE.md` | Project-wide (team, via git) |
-| Project rules | `.claude/rules/*.md` | Path-scoped (conditional loading) |
-| User memory | `~/.claude/CLAUDE.md` | All projects (personal) |
-| Project local | `./CLAUDE.local.md` | This project (personal, gitignored) |
-| Auto memory | `~/.claude/projects/<project>/memory/` | Per-project (personal) |
+| Instruction applies to... | Place it in... |
+|---------------------------|----------------|
+| All developers on this project | `./CLAUDE.md` |
+| Only when editing specific file paths | `.claude/rules/*.md` |
+| All sessions across all projects | `~/.claude/CLAUDE.md` |
+| Personal project preferences | `CLAUDE.local.md` (gitignored) |
+| Deterministic enforcement | Hooks, not CLAUDE.md |
 
-More specific tiers take precedence. See `references/memory-hierarchy.md` for the full tier table, rules syntax, and composition sequence.
+See `references/memory-hierarchy.md` for rules syntax, glob patterns, and `CLAUDE.local.md` details.
 
 ### File Import Syntax
 
