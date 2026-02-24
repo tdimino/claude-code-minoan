@@ -258,6 +258,6 @@ Each file is concise and scope-appropriate.
 ## Resources
 
 - `references/best-practices.md` - Deep dive on effectiveness patterns
-- `references/memory-hierarchy.md` - 6-tier memory system, `.claude/rules/`, `CLAUDE.local.md`
+- `references/memory-hierarchy.md` - Instruction placement, `.claude/rules/`, `CLAUDE.local.md`
 - `references/templates.md` - Project-type-specific templates (9 variants)
 - `scripts/analyze_project.py` - Automated project structure analysis

@@ -1,31 +1,20 @@
-# Claude Code Memory Hierarchy
+# Memory Hierarchy for CLAUDE.md Writers
 
-The full configuration stack for Claude Code instructions, from broadest to most specific scope. All 6 tiers are individually documented by Anthropic at [code.claude.com/docs/en/memory](https://code.claude.com/docs/en/memory); the numbered hierarchy and composition sequence below is this skill's synthesis of their table.
-
-## The 6 Tiers
-
-| Tier | Location | Scope | Shared With | Loaded When |
-|------|----------|-------|-------------|-------------|
-| **Managed policy** | `/Library/Application Support/ClaudeCode/CLAUDE.md` (macOS) | Organization-wide | All org users | Always |
-| **Project memory** | `./CLAUDE.md` or `./.claude/CLAUDE.md` | Project-wide | Team (via git) | Session start |
-| **Project rules** | `./.claude/rules/*.md` | Path-scoped | Team (via git) | When matching files are in context |
-| **User memory** | `~/.claude/CLAUDE.md` | All projects | Personal only | Always |
-| **Project local** | `./CLAUDE.local.md` | This project | Personal only (auto-gitignored) | Session start |
-| **Auto memory** | `~/.claude/projects/<project>/memory/` | Per-project | Personal only | First 200 lines of MEMORY.md at start; topic files on demand |
-
-More specific tiers take precedence over broader ones. Child-directory CLAUDE.md files load on demand when editing files in those directories.
+Where an instruction lives determines who sees it and when it loads. This reference covers the tiers a CLAUDE.md writer directly interacts with. For the complete system, see [Anthropic's memory docs](https://code.claude.com/docs/en/memory).
 
 ## Where to Put an Instruction
 
 | Instruction applies to... | Place it in... |
 |---------------------------|----------------|
-| All sessions across all projects | User memory (`~/.claude/CLAUDE.md`) |
 | All developers on this project | Project memory (`./CLAUDE.md`) |
 | Only when editing specific file paths | Project rules (`.claude/rules/`) |
+| All sessions across all projects | User memory (`~/.claude/CLAUDE.md`) |
 | Personal project preferences (not committed) | `CLAUDE.local.md` |
 | Deterministic enforcement (not advisory) | Hooks (`.claude/hooks/`), not memory |
 | Domain knowledge relevant only sometimes | Skills (`.claude/skills/`) |
 | Agent-specific behavior | Agent definitions (`.claude/agents/`) |
+
+All memory tiers are **advisory** — the agent reads them as guidance but may deviate under context pressure. For deterministic enforcement, use hooks.
 
 ## .claude/rules/ — Path-Scoped Instructions
 
@@ -83,14 +72,3 @@ A gitignored personal override file placed alongside `CLAUDE.md`. Discovered aut
 - Local environment paths and sandbox URLs
 - Preferred test data or fixtures
 - Workflow overrides that differ from team defaults
-
-## How Tiers Compose
-
-1. Managed policy loads first (org-wide baseline)
-2. User memory layers personal preferences
-3. Project memory adds team conventions
-4. Project rules add path-conditional instructions
-5. Project local overrides with personal project preferences
-6. Auto memory contributes learned patterns from prior sessions
-
-All tiers are **advisory** — the agent reads them as guidance but may deviate under context pressure. For deterministic enforcement, use hooks (`.claude/hooks/`).
