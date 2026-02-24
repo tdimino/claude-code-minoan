@@ -179,15 +179,16 @@ Features:
 
 Renames randomly-named plan files (`tingly-humming-simon.md`) to dated slugs (`2026-02-17-auto-rename-plan-files-hook.md`). Extracts the H1 header for the slug, prepends today's date.
 
-**Fires on**: PostToolUse (Write, Edit, MultiEdit — only when file is in `~/.claude/plans/`)
+**Fires on**: Stop (rename + symlink), SessionEnd (cleanup symlinks + prune stale origins)
 
-**Fast-path exits** (~1ms for non-plan files):
-1. Check `file_path` is in `~/.claude/plans/`
-2. Check filename matches random pattern (`adj-gerund-noun.md`)
-3. Extract H1 header — skip if none yet
-4. Slugify, rename, create forwarding symlink
+**Origin tracking**: `.plan-origins.json` in `~/.claude/plans/` maps random names to their dated counterparts, preventing duplicates when the same plan is reopened across sessions. Seeded from existing symlinks on first run.
 
-**Symlink strategy**: After rename, creates a relative symlink from old name → new name so Claude Code can still write to the old path mid-session. Agent files sharing the same base slug are also cascaded.
+**Three-phase rename** (`rename_file()`):
+1. **Phase A — Check origins**: If the random name was previously renamed, update the existing dated file (re-rename if H1 changed, merge if unchanged)
+2. **Phase B — Content identity**: If no origin exists but a collision occurs, compare MD5 and H1 to detect same-plan duplicates. Same plan → merge via `os.replace()`. Different plan → increment suffix (`-2`, `-3`)
+3. **Phase C — Execute**: `os.replace()` (atomic overwrite), create forwarding symlink, record origin
+
+**Symlink strategy**: After rename, creates a relative symlink from old name → new name so Claude Code can still write to the old path mid-session.
 
 **Locking**: `fcntl.flock(LOCK_NB)` prevents concurrent hook invocations from racing.
 

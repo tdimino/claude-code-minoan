@@ -22,7 +22,7 @@
 | `propagate-rename.py` | Sync `customTitle` from sessions-index.json to terminal title |
 | `stop-handoff.py` | Throttled handoff (5min cooldown, 10min idle gate) + session tag inference |
 | `slack-stop-hook.py` | Process pending Slack messages on stop |
-| `plan-rename.py stop` | Rename random-named plans to dated slugs, symlink for write-through, open in dabarat |
+| `plan-rename.py stop` | Rename random-named plans to dated slugs with origin-aware dedup, symlink for write-through, open in dabarat |
 
 ### SessionEnd
 | Hook | Description |
@@ -30,7 +30,7 @@
 | `precompact-handoff.py` | Generate handoff YAML via OpenRouter (Gemini Flash Lite) |
 | `soul-deregister.py` | Remove session from soul registry |
 | `git-track-rebuild.py` | Rebuild git tracking state from accumulated diffs |
-| `plan-rename.py session_end` | Final cleanup of forwarding symlinks in plans directory |
+| `plan-rename.py session_end` | Final cleanup of forwarding symlinks, prune stale origins |
 
 ### PreCompact
 | Hook | Description |

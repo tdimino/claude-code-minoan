@@ -12,9 +12,13 @@ On first rename, also opens the plan in dabarat for live preview.
 
 Naming convention: YYYY-MM-DD-descriptive-slug.md
 Agent variant:     YYYY-MM-DD-descriptive-slug-agent-HASH.md
+
+Origin tracking: .plan-origins.json maps random names to dated counterparts,
+preventing duplicates when the same plan is reopened across sessions.
 """
 import datetime
 import fcntl
+import hashlib
 import json
 import os
 import pathlib
@@ -24,6 +28,7 @@ import sys
 import time
 
 PLANS_DIR = pathlib.Path.home() / ".claude" / "plans"
+ORIGINS_FILE = PLANS_DIR / ".plan-origins.json"
 
 # Claude Code's random naming: adjective-gerund-noun (all lowercase alpha + hyphens)
 # Examples: tingly-humming-simon, eager-twirling-storm, zesty-kindling-giraffe
@@ -64,17 +69,68 @@ def extract_h1(filepath):
         return ""
 
 
-def rename_file(filepath, base_slug, agent_suffix=""):
-    """Rename a random-named file to a dated slug. Creates symlink for Claude Code."""
+def load_origins():
+    """Load the origin tracking map. Seeds from existing symlinks on first run."""
+    if ORIGINS_FILE.exists():
+        try:
+            return json.loads(ORIGINS_FILE.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+    # First run: seed from existing symlinks
+    origins = {}
+    if PLANS_DIR.exists():
+        for entry in PLANS_DIR.iterdir():
+            if entry.is_symlink():
+                target = os.readlink(entry)
+                key = entry.stem
+                origins[key] = target
+    return origins
+
+
+def save_origins(origins):
+    """Atomically write the origin tracking map."""
+    tmp = ORIGINS_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(origins, indent=2))
+    tmp.rename(ORIGINS_FILE)
+
+
+def file_md5(filepath):
+    """MD5 hash of file contents."""
+    try:
+        return hashlib.md5(filepath.read_bytes()).hexdigest()
+    except OSError:
+        return ""
+
+
+def _same_plan(a, b):
+    """Two files are the same plan if MD5 matches or H1 matches."""
+    if file_md5(a) == file_md5(b):
+        return True
+    h1_a, h1_b = extract_h1(a), extract_h1(b)
+    return h1_a and h1_b and h1_a == h1_b
+
+
+def rename_file(filepath, base_slug, agent_suffix="", origins=None):
+    """Rename a random-named file to a dated slug with origin-aware dedup.
+
+    Three-phase logic:
+      A) If origins knows this random name, update the existing dated file
+      B) If no origin but dated target exists, check content identity before colliding
+      C) Execute: atomic replace, symlink, record origin
+    """
+    if origins is None:
+        origins = {}
+
+    random_key = filepath.stem  # e.g. "fuzzy-crafting-axolotl"
+
     h1 = extract_h1(filepath)
     if not h1:
-        # For agent files, try the parent plan's H1
         if agent_suffix:
             parent_path = PLANS_DIR / f"{base_slug}.md"
             if parent_path.exists():
                 h1 = extract_h1(parent_path)
         if not h1:
-            return None  # No header — skip
+            return None
 
     today = datetime.date.today().isoformat()
     slug = slugify(h1)
@@ -88,32 +144,55 @@ def rename_file(filepath, base_slug, agent_suffix=""):
     if new_path.resolve() == filepath.resolve():
         return None
 
-    # Handle collision
-    if new_path.exists():
-        for i in range(2, 10):
-            candidate = PLANS_DIR / f"{today}-{slug}-{i}{agent_suffix}.md"
-            if not candidate.exists():
-                new_path = candidate
-                break
-        else:
-            return None  # Too many collisions
+    # --- Phase A: Check origins for prior rename ---
+    prior_target = origins.get(random_key)
+    if prior_target:
+        prior_path = PLANS_DIR / prior_target
+        if prior_path.exists() and prior_path != new_path:
+            # H1 changed — re-rename the prior dated file to the new slug
+            if not new_path.exists():
+                try:
+                    os.replace(prior_path, new_path)
+                    print(f"plan-rename: re-renamed {prior_path.name} -> {new_path.name} (H1 changed)", file=sys.stderr)
+                except OSError as e:
+                    print(f"plan-rename: error re-renaming {prior_path.name}: {e}", file=sys.stderr)
+            # else: new target already exists (e.g. date rolled), merge into it
+        elif prior_path.exists():
+            pass  # Same target — will merge below via os.replace
+        # If prior_path doesn't exist, treat as fresh rename (fall through to Phase C)
 
+    # --- Phase B: Handle collision when no origin exists ---
+    if new_path.exists() and not prior_target:
+        if _same_plan(filepath, new_path):
+            # Same plan content or H1 — merge (os.replace will overwrite)
+            print(f"plan-rename: merging {filepath.name} into existing {new_path.name} (same plan)", file=sys.stderr)
+        else:
+            # True collision — different plans with same slug on same day
+            for i in range(2, 10):
+                candidate = PLANS_DIR / f"{today}-{slug}-{i}{agent_suffix}.md"
+                if not candidate.exists():
+                    new_path = candidate
+                    break
+            else:
+                return None
+
+    # --- Phase C: Execute ---
     try:
-        os.rename(filepath, new_path)
+        os.replace(filepath, new_path)
         print(f"plan-rename: {filepath.name} -> {new_path.name}", file=sys.stderr)
     except OSError as e:
         print(f"plan-rename: error renaming {filepath.name}: {e}", file=sys.stderr)
         return None
 
     # Create symlink: random-name.md → dated-name.md
-    # Claude Code's Write tool follows symlinks (confirmed: Node.js fs.writeFile),
-    # so subsequent plan writes reach the dated file via the symlink.
-    # The relative target (new_path.name) resolves against the symlink's directory (PLANS_DIR).
     try:
         os.symlink(new_path.name, filepath)
         print(f"plan-rename: symlink {filepath.name} -> {new_path.name}", file=sys.stderr)
     except OSError:
-        pass  # Non-critical — file is already renamed
+        pass
+
+    # Record origin
+    origins[random_key] = new_path.name
 
     return new_path
 
@@ -211,20 +290,37 @@ def main():
         return  # Truly contended after 1s
 
     try:
-        # 4. Scan for random-named files and rename them
-        # Collect first so we don't modify while iterating
+        # 4. Load origin tracking
+        origins = load_origins()
+
+        # 5. On session_end: prune stale origins (target no longer exists)
+        stale = []
+        if trigger == "session_end":
+            stale = [k for k, v in origins.items() if not (PLANS_DIR / v).exists()]
+            for k in stale:
+                del origins[k]
+            if stale:
+                print(f"plan-rename: pruned {len(stale)} stale origin(s)", file=sys.stderr)
+
+        # 6. Scan for random-named files and rename them
         to_rename = []
         for entry in PLANS_DIR.iterdir():
             if entry.is_symlink():
-                continue  # Already renamed — symlink points to dated file
+                continue
             m = RANDOM_NAME_RE.match(entry.name)
             if m and entry.is_file():
                 to_rename.append((entry, m.group(1), m.group(2) or ""))
 
+        renamed_any = False
         for filepath, base_slug, agent_suffix in to_rename:
-            new_path = rename_file(filepath, base_slug, agent_suffix)
+            new_path = rename_file(filepath, base_slug, agent_suffix, origins=origins)
             if new_path:
+                renamed_any = True
                 open_in_dabarat(new_path)
+
+        # 7. Save origins if anything changed
+        if renamed_any or (trigger == "session_end" and stale):
+            save_origins(origins)
 
     finally:
         try:
