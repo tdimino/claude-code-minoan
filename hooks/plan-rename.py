@@ -39,7 +39,7 @@ RANDOM_NAME_RE = re.compile(
 )
 
 # H1 header extraction — first line starting with "# "
-H1_RE = re.compile(r"^#\s+([A-Z].+)", re.MULTILINE)
+H1_RE = re.compile(r"^#\s+(.+)", re.MULTILINE)
 
 
 def slugify(text, max_len=60):
@@ -149,19 +149,33 @@ def rename_file(filepath, base_slug, agent_suffix="", origins=None):
     if prior_target:
         prior_path = PLANS_DIR / prior_target
         if prior_path.exists() and prior_path != new_path:
-            # H1 changed — re-rename the prior dated file to the new slug
+            # H1 changed — move current content to new dated slug
             if not new_path.exists():
                 try:
-                    os.replace(prior_path, new_path)
-                    print(f"plan-rename: re-renamed {prior_path.name} -> {new_path.name} (H1 changed)", file=sys.stderr)
+                    # Remove stale prior dated file
+                    prior_path.unlink()
+                    # Move current random-named file (with new content) to dated slug
+                    os.replace(filepath, new_path)
+                    print(f"plan-rename: re-renamed {filepath.name} -> {new_path.name} (H1 changed, prior {prior_path.name} removed)", file=sys.stderr)
                 except OSError as e:
-                    print(f"plan-rename: error re-renaming {prior_path.name}: {e}", file=sys.stderr)
+                    print(f"plan-rename: error re-renaming {filepath.name}: {e}", file=sys.stderr)
+                    return None
+                # Create forwarding symlink from random name to new dated slug
+                try:
+                    os.symlink(new_path.name, filepath)
+                except OSError:
+                    pass
+                origins[random_key] = new_path.name
+                return new_path
             # else: new target already exists (e.g. date rolled), merge into it
         elif prior_path.exists():
-            pass  # Same target — will merge below via os.replace
-        # If prior_path doesn't exist, treat as fresh rename (fall through to Phase C)
+            return None  # Same target, same H1 — nothing to do
+        elif not prior_path.exists():
+            # Prior target is gone — clear stale origin, fall through to Phase C
+            del origins[random_key]
+            prior_target = None
 
-    # --- Phase B: Handle collision when no origin exists ---
+    # --- Phase B: Handle collision when no (valid) origin exists ---
     if new_path.exists() and not prior_target:
         if _same_plan(filepath, new_path):
             # Same plan content or H1 — merge (os.replace will overwrite)
@@ -251,28 +265,7 @@ def main():
     if not PLANS_DIR.exists():
         return
 
-    # 1. Clean up broken symlinks (always safe)
-    for entry in PLANS_DIR.iterdir():
-        if entry.is_symlink() and not os.path.exists(str(entry)):
-            try:
-                entry.unlink()
-            except OSError:
-                pass
-
-    # 2. On session_end only: clean up all forwarding symlinks (session is over)
-    if trigger == "session_end":
-        symlink_count = 0
-        for entry in PLANS_DIR.iterdir():
-            if entry.is_symlink():
-                try:
-                    entry.unlink()
-                    symlink_count += 1
-                except OSError:
-                    pass
-        if symlink_count:
-            print(f"plan-rename: cleaned {symlink_count} symlink(s)", file=sys.stderr)
-
-    # 3. Acquire lock (short retry to handle Stop/SessionEnd overlap)
+    # 1. Acquire lock (short retry to handle Stop/SessionEnd overlap)
     lock_path = pathlib.Path("/tmp/claude-plan-rename-session.lock")
     lock_fd = None
     for _ in range(5):
@@ -290,6 +283,27 @@ def main():
         return  # Truly contended after 1s
 
     try:
+        # 2. Clean up broken symlinks (inside lock to prevent TOCTOU race)
+        for entry in PLANS_DIR.iterdir():
+            if entry.is_symlink() and not os.path.exists(str(entry)):
+                try:
+                    entry.unlink()
+                except OSError:
+                    pass
+
+        # 3. On session_end only: clean up all forwarding symlinks (session is over)
+        if trigger == "session_end":
+            symlink_count = 0
+            for entry in PLANS_DIR.iterdir():
+                if entry.is_symlink():
+                    try:
+                        entry.unlink()
+                        symlink_count += 1
+                    except OSError:
+                        pass
+            if symlink_count:
+                print(f"plan-rename: cleaned {symlink_count} symlink(s)", file=sys.stderr)
+
         # 4. Load origin tracking
         origins = load_origins()
 
