@@ -77,10 +77,12 @@ def main():
     #    (Terminal title is handled by on-ready.sh which reads customTitle directly)
     update_script = pathlib.Path.home() / ".claude" / "scripts" / "update-active-projects.py"
     if update_script.exists():
+        tmpfile = None
         try:
             fd, tmpfile = tempfile.mkstemp(prefix="hook-rename-", suffix=".json")
             with os.fdopen(fd, "w") as f:
                 json.dump(hook_input, f)
+            # Fire-and-forget — update-active-projects.py unlinks tmpfile itself
             subprocess.Popen(
                 ["python3", str(update_script), tmpfile],
                 stdout=subprocess.DEVNULL,
@@ -88,7 +90,12 @@ def main():
                 start_new_session=True,
             )
         except OSError:
-            pass
+            # Popen failed — child won't clean up, so parent must
+            if tmpfile:
+                try:
+                    os.unlink(tmpfile)
+                except OSError:
+                    pass
 
 
 if __name__ == "__main__":
