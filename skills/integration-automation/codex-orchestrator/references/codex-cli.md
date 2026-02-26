@@ -75,7 +75,7 @@ codex debug                            # Internal debugging commands
 -m, --model <MODEL>                    # Select model
     --model gpt-5.3-codex              # Latest, fastest, most capable
     --model gpt-5.3-codex-spark        # Lighter, near-instant
-    --model gpt-5.2-codex              # Previous generation
+    --model gpt-5.2                    # Previous generation
 ```
 
 ### Sandbox Modes

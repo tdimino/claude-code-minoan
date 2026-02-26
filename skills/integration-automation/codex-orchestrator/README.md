@@ -116,7 +116,7 @@ Each profile has a default model and reasoning effort. User flags override these
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
 | **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.3-codex` | `xhigh` |
-| **Planning** | planner, architect, researcher | `gpt-5.2-codex` | `xhigh` |
+| **Planning** | planner, architect, researcher | `gpt-5.2` | `xhigh` |
 
 ### Available Models (Feb 2026)
 
@@ -124,7 +124,7 @@ Each profile has a default model and reasoning effort. User flags override these
 |-------|----|----------|-------|
 | **GPT-5.3-Codex** | `gpt-5.3-codex` | Feb 5, 2026 | Default for coding. 25% faster than 5.2. SOTA SWE-Bench Pro. |
 | **GPT-5.3-Codex Spark** | `gpt-5.3-codex-spark` | Feb 5, 2026 | Lighter, near-instant. Pro subscribers only. |
-| **GPT-5.2-Codex** | `gpt-5.2-codex` | Dec 2025 | Default for planning. Deeper single-pass reasoning. |
+| **GPT-5.2** | `gpt-5.2` | Dec 2025 | Default for planning. Deeper single-pass reasoning. |
 
 ### Reasoning Effort Levels
 

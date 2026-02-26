@@ -1,6 +1,6 @@
 ---
 name: codex-orchestrator
-description: Orchestrate OpenAI Codex CLI with specialized subagents for code review, debugging, architecture analysis, security audits, refactoring, and documentation. This skill should be used when delegating focused development tasks to Codex subagents (gpt-5.3-codex, gpt-5.3-codex-spark, gpt-5.2-codex) via AGENTS.md persona injection.
+description: Orchestrate OpenAI Codex CLI with specialized subagents for code review, debugging, architecture analysis, security audits, refactoring, and documentation. This skill should be used when delegating focused development tasks to Codex subagents (gpt-5.3-codex, gpt-5.3-codex-spark, gpt-5.2) via AGENTS.md persona injection.
 ---
 
 # Codex Orchestrator
@@ -238,7 +238,7 @@ Each profile has a default model and reasoning effort. User flags override these
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
 | **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.3-codex` | `xhigh` |
-| **Planning** | planner, architect, researcher | `gpt-5.2-codex` | `xhigh` |
+| **Planning** | planner, architect, researcher | `gpt-5.2` | `xhigh` |
 
 **Reasoning effort levels**: `minimal` < `low` < `medium` < `high` < `xhigh`
 
@@ -246,7 +246,7 @@ Each profile has a default model and reasoning effort. User flags override these
 # Uses profile defaults (builder → gpt-5.3-codex + xhigh)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Implement auth module"
 
-# Uses profile defaults (planner → gpt-5.2-codex + xhigh)
+# Uses profile defaults (planner → gpt-5.2 + xhigh)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Create ExecPlan for caching"
 
 # Override model only
@@ -291,7 +291,7 @@ codex login
 ```
 
 ### "Model not supported with ChatGPT account"
-Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2-codex`.
+Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`.
 Set an API key instead of using `codex login`:
 ```bash
 export OPENAI_API_KEY=sk-...
