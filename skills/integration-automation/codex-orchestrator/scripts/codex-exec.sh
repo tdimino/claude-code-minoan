@@ -40,10 +40,15 @@ show_usage() {
     echo "  researcher - Read-only Q&A and analysis (no file changes)"
     echo ""
     echo "Options:"
-    echo "  --model <model>     Override model (default from config)"
-    echo "  --sandbox <mode>    Sandbox mode: read-only, workspace-write, danger-full-access"
-    echo "  --full-auto         Run in full-auto mode (no approval needed)"
-    echo "  --web-search        Enable Exa web search for research questions"
+    echo "  --model <model>       Override model (default: per-profile, see below)"
+    echo "  --reasoning <level>   Override reasoning effort: minimal, low, medium, high, xhigh"
+    echo "  --sandbox <mode>      Sandbox mode: read-only, workspace-write, danger-full-access"
+    echo "  --full-auto           Run in full-auto mode (no approval needed)"
+    echo "  --web-search          Enable Exa web search for research questions"
+    echo ""
+    echo "Profile defaults:"
+    echo "  Coding  (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.3-codex + xhigh"
+    echo "  Planning (planner,architect,researcher):                           gpt-5.2-codex + xhigh"
     echo ""
     echo "Examples:"
     echo "  codex-exec.sh reviewer \"Review src/auth.ts for security issues\""
@@ -51,6 +56,27 @@ show_usage() {
     echo "  codex-exec.sh architect \"Design a caching layer for the API\""
     echo "  codex-exec.sh researcher \"Explain the authentication flow in this project\""
     echo "  codex-exec.sh researcher \"What are the latest React patterns?\" --web-search"
+}
+
+# Profile-specific defaults for model and reasoning effort
+get_profile_defaults() {
+    local profile="$1"
+    case "$profile" in
+        # Planning profiles: gpt-5.2-codex with xhigh reasoning
+        planner|architect|researcher)
+            DEFAULT_MODEL="gpt-5.2-codex"
+            DEFAULT_REASONING="xhigh"
+            ;;
+        # Coding profiles: gpt-5.3-codex with xhigh reasoning
+        builder|reviewer|debugger|refactor|syseng|security|docs)
+            DEFAULT_MODEL="gpt-5.3-codex"
+            DEFAULT_REASONING="xhigh"
+            ;;
+        *)
+            DEFAULT_MODEL=""
+            DEFAULT_REASONING=""
+            ;;
+    esac
 }
 
 if [ $# -lt 2 ]; then
@@ -70,8 +96,12 @@ if [ ! -f "$AGENTS_FILE" ]; then
     exit 1
 fi
 
-# Parse additional options
-MODEL=""  # Use Codex default (from ~/.codex/config.toml)
+# Get profile-specific defaults
+get_profile_defaults "$PROFILE"
+
+# Parse additional options (user overrides take precedence)
+MODEL=""
+REASONING=""
 SANDBOX="workspace-write"
 FULL_AUTO=""
 WEB_SEARCH=""
@@ -80,6 +110,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --model)
             MODEL="$2"
+            shift 2
+            ;;
+        --reasoning)
+            REASONING="$2"
             shift 2
             ;;
         --sandbox)
@@ -100,6 +134,14 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Apply profile defaults where user didn't override
+if [ -z "$MODEL" ] && [ -n "$DEFAULT_MODEL" ]; then
+    MODEL="$DEFAULT_MODEL"
+fi
+if [ -z "$REASONING" ] && [ -n "$DEFAULT_REASONING" ]; then
+    REASONING="$DEFAULT_REASONING"
+fi
 
 # Auto-configure read-only profiles
 EPHEMERAL=""
@@ -139,6 +181,9 @@ if [ -n "$MODEL" ]; then
 else
     echo -e "Model: (default from config)"
 fi
+if [ -n "$REASONING" ]; then
+    echo -e "Reasoning: $REASONING"
+fi
 echo -e "Sandbox: $SANDBOX"
 echo -e "Working directory: $WORK_DIR"
 echo -e "Prompt: $PROMPT"
@@ -159,29 +204,32 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Build codex command
+# Build codex command as array to preserve quoting
 # --skip-git-repo-check allows running in directories not in Codex's trusted list
-CODEX_CMD="codex exec --skip-git-repo-check --sandbox $SANDBOX"
+CODEX_ARGS=(exec --skip-git-repo-check --sandbox "$SANDBOX")
 if [ -n "$MODEL" ]; then
-    CODEX_CMD="$CODEX_CMD --model $MODEL"
+    CODEX_ARGS+=(--model "$MODEL")
+fi
+if [ -n "$REASONING" ]; then
+    CODEX_ARGS+=(-c "model_reasoning_effort=\"$REASONING\"")
 fi
 if [ -n "$FULL_AUTO" ]; then
-    CODEX_CMD="$CODEX_CMD $FULL_AUTO"
+    CODEX_ARGS+=(--full-auto)
 fi
 if [ -n "$EPHEMERAL" ]; then
-    CODEX_CMD="$CODEX_CMD $EPHEMERAL"
+    CODEX_ARGS+=(--ephemeral)
 fi
 if [ -n "$OUTPUT_FILE" ]; then
-    CODEX_CMD="$CODEX_CMD -o $OUTPUT_FILE"
+    CODEX_ARGS+=(-o "$OUTPUT_FILE")
 fi
 # Exa search is injected via AGENTS.md; built-in web search is fallback
 if [ -n "$WEB_SEARCH" ]; then
-    CODEX_CMD="$CODEX_CMD -c web_search=\"live\""
+    CODEX_ARGS+=(-c 'web_search="live"')
 fi
 
 # Run Codex with the agent profile
 # Codex reads AGENTS.md from the current directory
-$CODEX_CMD "$PROMPT"
+codex "${CODEX_ARGS[@]}" "$PROMPT"
 
 # Display captured response for researcher profile
 if [ -n "$OUTPUT_FILE" ] && [ -f "$OUTPUT_FILE" ] && [ -s "$OUTPUT_FILE" ]; then

@@ -56,8 +56,8 @@ Billed at standard API rates.
 | `docs` | API docs, READMEs, comments | Documentation tasks |
 | `planner` | ExecPlan design documents | Multi-hour tasks, complex features |
 | `syseng` | Infrastructure, DevOps, CI/CD | Deployment, containers, observability |
-| `builder` | Greenfield implementation | Creating new code from specs |
-| `researcher` | Read-only Q&A, analysis | Questions, comparisons (no file changes) |
+| `builder` | Greenfield implementation | New features from specs |
+| `researcher` | Read-only Q&A and analysis | Questions, comparisons (no file changes) |
 
 ## Quick Start
 
@@ -107,28 +107,42 @@ python3 ./scripts/codex-session.py interactive architect
 python3 ./scripts/codex-session.py info security
 ```
 
-## Model Selection
+## Model & Reasoning Configuration
+
+### Profile Defaults
+
+Each profile has a default model and reasoning effort. User flags override these.
+
+| Profile Type | Profiles | Model | Reasoning |
+|-------------|----------|-------|-----------|
+| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.3-codex` | `xhigh` |
+| **Planning** | planner, architect, researcher | `gpt-5.2-codex` | `xhigh` |
 
 ### Available Models (Feb 2026)
 
-| Model | Description | Speed | Capability |
-|-------|-------------|-------|------------|
-| `gpt-5.3-codex` | Most advanced (recommended) | Medium | Highest |
-| `gpt-5.3-codex-spark` | Quick checks / fast iteration | Fast | Good |
-| `gpt-5.2-codex` | Previous generation | Medium | High |
+| Model | ID | Released | Notes |
+|-------|----|----------|-------|
+| **GPT-5.3-Codex** | `gpt-5.3-codex` | Feb 5, 2026 | Default for coding. 25% faster than 5.2. SOTA SWE-Bench Pro. |
+| **GPT-5.3-Codex Spark** | `gpt-5.3-codex-spark` | Feb 5, 2026 | Lighter, near-instant. Pro subscribers only. |
+| **GPT-5.2-Codex** | `gpt-5.2-codex` | Dec 2025 | Default for planning. Deeper single-pass reasoning. |
 
-### Configure Default Model
+### Reasoning Effort Levels
 
-Edit `~/.codex/config.toml`:
+`minimal` < `low` < `medium` < `high` < `xhigh`
 
-```toml
-model = "gpt-5.3-codex"
-```
+See `references/codex-models.md` for full model history, capabilities, and reasoning reference.
 
 ### Override Per-Task
 
 ```bash
-./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.3-codex
+# Override model
+./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.3-codex-spark
+
+# Override reasoning effort
+./scripts/codex-exec.sh builder "Quick lint fix" --reasoning medium
+
+# Override both
+./scripts/codex-exec.sh planner "Complex design" --model gpt-5.3-codex --reasoning high
 ```
 
 ## Chaining Patterns
@@ -203,9 +217,11 @@ Every ExecPlan includes:
 
 | Option | Description |
 |--------|-------------|
-| `--model <model>` | Override model for this task |
+| `--model <model>` | Override model (default: per-profile) |
+| `--reasoning <level>` | Override reasoning effort: `minimal`, `low`, `medium`, `high`, `xhigh` |
 | `--sandbox <mode>` | `read-only`, `workspace-write`, `danger-full-access` |
 | `--full-auto` | Skip approval prompts |
+| `--web-search` | Enable Exa web search (built-in fallback if Exa unavailable) |
 
 ## Directory Structure
 
@@ -242,7 +258,7 @@ npm install -g @openai/codex
 
 ### "Model not supported with ChatGPT account"
 
-Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2-codex`.
+Some older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Use current models:
 
 ```bash
 # Recommended
@@ -264,7 +280,7 @@ export OPENAI_API_KEY=sk-...
 
 ### "Profile not found"
 
-Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`
+Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`
 
 Check profiles exist:
 
