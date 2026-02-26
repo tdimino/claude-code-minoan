@@ -233,11 +233,10 @@ def main():
     cache[basename] = dated_path
     save_context_cache(cache)
 
+    dated_name = pathlib.Path(dated_path).name
+
     output = {
-        "hookSpecificOutput": {
-            "hookEventName": "PostToolUse",
-            "additionalContext": dated_path,
-        }
+        "systemMessage": f"plan-session-rename: {basename} -> {dated_name}",
     }
     print(json.dumps(output))
 
