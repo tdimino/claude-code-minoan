@@ -225,25 +225,38 @@ python3 ~/.claude/skills/codex-orchestrator/scripts/codex-session.py info securi
 
 | Option | Description |
 |--------|-------------|
-| `--model <model>` | Override model (uses ~/.codex/config.toml default if not set) |
+| `--model <model>` | Override model (default: per-profile, see below) |
+| `--reasoning <level>` | Override reasoning effort: `minimal`, `low`, `medium`, `high`, `xhigh` |
 | `--sandbox <mode>` | read-only, workspace-write, danger-full-access |
 | `--full-auto` | Skip approval prompts |
 | `--web-search` | Enable Exa web search (built-in fallback if Exa unavailable) |
 
-### Model Selection
+### Model & Reasoning Defaults
 
-| Task Type | Recommended Model |
-|-----------|-------------------|
-| Default (best quality) | gpt-5.3-codex |
-| Quick checks / fast iteration | gpt-5.3-codex-spark |
-| Previous generation | gpt-5.2-codex |
+Each profile has a default model and reasoning effort. User flags override these.
+
+| Profile Type | Profiles | Model | Reasoning |
+|-------------|----------|-------|-----------|
+| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.3-codex` | `xhigh` |
+| **Planning** | planner, architect, researcher | `gpt-5.2-codex` | `xhigh` |
+
+**Reasoning effort levels**: `minimal` < `low` < `medium` < `high` < `xhigh`
 
 ```bash
-# Use default model from your Codex config
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Style check"
+# Uses profile defaults (builder → gpt-5.3-codex + xhigh)
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Implement auth module"
 
-# Override with specific model
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.3-codex
+# Uses profile defaults (planner → gpt-5.2-codex + xhigh)
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Create ExecPlan for caching"
+
+# Override model only
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Style check" --model gpt-5.3-codex-spark
+
+# Override reasoning only
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Quick lint fix" --reasoning medium
+
+# Override both
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Design distributed cache" --model gpt-5.3-codex --reasoning high
 ```
 
 ## Testing
