@@ -48,7 +48,7 @@ show_usage() {
     echo ""
     echo "Profile defaults:"
     echo "  Coding  (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.3-codex + xhigh"
-    echo "  Planning (planner,architect,researcher):                           gpt-5.2-codex + xhigh"
+    echo "  Planning (planner,architect,researcher):                           gpt-5.2 + xhigh"
     echo ""
     echo "Examples:"
     echo "  codex-exec.sh reviewer \"Review src/auth.ts for security issues\""
@@ -62,9 +62,9 @@ show_usage() {
 get_profile_defaults() {
     local profile="$1"
     case "$profile" in
-        # Planning profiles: gpt-5.2-codex with xhigh reasoning
+        # Planning profiles: gpt-5.2 with xhigh reasoning
         planner|architect|researcher)
-            DEFAULT_MODEL="gpt-5.2-codex"
+            DEFAULT_MODEL="gpt-5.2"
             DEFAULT_REASONING="xhigh"
             ;;
         # Coding profiles: gpt-5.3-codex with xhigh reasoning
