@@ -26,6 +26,11 @@ def main():
     parser.add_argument("prompt", help="Text prompt describing the image to generate")
     parser.add_argument("references", nargs="+", help="Reference image paths (up to 14)")
     parser.add_argument("--api-key", help="Gemini API key (or use GEMINI_API_KEY env var)")
+    parser.add_argument("--model", default="gemini-3-pro-image-preview",
+                       help="Model ID (default: gemini-3-pro-image-preview). "
+                            "Use gemini-3.1-flash-image-preview for faster generation")
+    parser.add_argument("--fast", action="store_true",
+                       help="Use Nano Banana 2 (gemini-3.1-flash-image-preview) for faster generation")
     parser.add_argument("--output", "-o", default="./output", help="Output directory")
     parser.add_argument("--filename", "-f", default="generated", help="Output filename (without extension)")
     parser.add_argument(
@@ -79,8 +84,9 @@ def main():
     # Configure client
     client = genai.Client(api_key=api_key)
 
+    model = "gemini-3.1-flash-image-preview" if args.fast else args.model
     print(f"🎨 Generating with {len(ref_paths)} reference images...")
-    print(f"   Model: gemini-3-pro-image-preview")
+    print(f"   Model: {model}")
     print(f"   Aspect Ratio: {args.aspect_ratio}")
     print(f"   Resolution: {args.resolution}")
     if args.verbose:
@@ -98,7 +104,7 @@ def main():
     # Generate
     try:
         response = client.models.generate_content(
-            model="gemini-3-pro-image-preview",
+            model=model,
             contents=contents,
             config=types.GenerateContentConfig(
                 response_modalities=['TEXT', 'IMAGE'],

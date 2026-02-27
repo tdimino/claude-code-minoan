@@ -50,13 +50,15 @@ class NanoBananaProClient:
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
     MODEL = "gemini-3-pro-image-preview"
+    FLASH_MODEL = "gemini-3.1-flash-image-preview"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         """
         Initialize the Nano Banana Pro client.
 
         Args:
             api_key: API key (defaults to GEMINI_API_KEY env var)
+            model: Model ID (defaults to MODEL / gemini-3-pro-image-preview)
 
         Raises:
             EnvironmentError: If no API key is provided
@@ -65,7 +67,8 @@ class NanoBananaProClient:
         if not self.api_key:
             raise EnvironmentError("API key required. Set GEMINI_API_KEY or pass api_key parameter")
 
-        self.endpoint = f"{self.BASE_URL}/{self.MODEL}:generateContent"
+        self.model = model or self.MODEL
+        self.endpoint = f"{self.BASE_URL}/{self.model}:generateContent"
 
     def _encode_image(self, image_path: Union[str, Path]) -> tuple:
         """
@@ -447,7 +450,7 @@ class ImageChat:
 
 # Convenience functions for quick usage
 
-def generate(prompt: str, output: str, api_key: Optional[str] = None, **kwargs):
+def generate(prompt: str, output: str, api_key: Optional[str] = None, model: Optional[str] = None, **kwargs):
     """
     Quick generation function.
 
@@ -455,14 +458,15 @@ def generate(prompt: str, output: str, api_key: Optional[str] = None, **kwargs):
         prompt: Text prompt
         output: Output file path
         api_key: Optional API key
+        model: Optional model ID (default: gemini-3-pro-image-preview)
         **kwargs: Additional arguments (aspect_ratio, temperature, etc.)
     """
-    client = NanoBananaProClient(api_key)
+    client = NanoBananaProClient(api_key, model=model)
     response = client.generate_image(prompt, **kwargs)
     return client.save_response(output, response)
 
 
-def edit(instruction: str, image: str, output: str, api_key: Optional[str] = None, **kwargs):
+def edit(instruction: str, image: str, output: str, api_key: Optional[str] = None, model: Optional[str] = None, **kwargs):
     """
     Quick editing function.
 
@@ -471,14 +475,15 @@ def edit(instruction: str, image: str, output: str, api_key: Optional[str] = Non
         image: Input image path
         output: Output file path
         api_key: Optional API key
+        model: Optional model ID (default: gemini-3-pro-image-preview)
         **kwargs: Additional arguments (aspect_ratio, temperature, etc.)
     """
-    client = NanoBananaProClient(api_key)
+    client = NanoBananaProClient(api_key, model=model)
     response = client.edit_image(instruction, image, **kwargs)
     return client.save_response(output, response)
 
 
-def compose(instruction: str, images: List[str], output: str, api_key: Optional[str] = None, **kwargs):
+def compose(instruction: str, images: List[str], output: str, api_key: Optional[str] = None, model: Optional[str] = None, **kwargs):
     """
     Quick composition function.
 
@@ -487,9 +492,10 @@ def compose(instruction: str, images: List[str], output: str, api_key: Optional[
         images: List of input image paths
         output: Output file path
         api_key: Optional API key
+        model: Optional model ID (default: gemini-3-pro-image-preview)
         **kwargs: Additional arguments (aspect_ratio, temperature, etc.)
     """
-    client = NanoBananaProClient(api_key)
+    client = NanoBananaProClient(api_key, model=model)
     response = client.compose_images(instruction, images, **kwargs)
     return client.save_response(output, response)
 

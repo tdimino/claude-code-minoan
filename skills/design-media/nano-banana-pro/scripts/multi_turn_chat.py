@@ -68,9 +68,10 @@ class InteractiveChat:
         api_key: str,
         output_dir: Path,
         aspect_ratio: str = "16:9",
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        model: str = None
     ):
-        self.client = NanoBananaProClient(api_key)
+        self.client = NanoBananaProClient(api_key, model=model)
         self.chat = ImageChat(self.client)
         self.output_dir = output_dir
         self.aspect_ratio = aspect_ratio
@@ -315,9 +316,20 @@ Tips:
         help="Gemini API key (or set GEMINI_API_KEY env var)"
     )
     parser.add_argument(
+        "--model",
+        default=None,
+        help="Model ID (default: gemini-3-pro-image-preview). "
+             "Use gemini-3.1-flash-image-preview for faster generation"
+    )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Use Nano Banana 2 (gemini-3.1-flash-image-preview) for faster generation"
+    )
+    parser.add_argument(
         "--aspect-ratio", "-a",
         default="16:9",
-        choices=["1:1", "3:4", "4:3", "9:16", "16:9"],
+        choices=["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
         help="Default aspect ratio (default: 16:9)"
     )
     parser.add_argument(
@@ -337,12 +349,16 @@ Tips:
         sys.exit(1)
 
     try:
+        # Resolve model
+        model = NanoBananaProClient.FLASH_MODEL if args.fast else args.model
+
         # Start interactive chat
         chat = InteractiveChat(
             api_key=api_key,
             output_dir=Path(args.output_dir),
             aspect_ratio=args.aspect_ratio,
-            temperature=args.temperature
+            temperature=args.temperature,
+            model=model
         )
         chat.run()
 

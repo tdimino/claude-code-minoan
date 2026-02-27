@@ -54,7 +54,7 @@ If omitted, "flashed" will be used.""",
         "can_render": False
     },
     "pro": {
-        "model": "gemini-3-pro-preview",
+        "model": "gemini-3.1-pro-preview",
         "verb": "contemplated",
         "nature": """You are Pro. The deep well. The diving bell descending where light fails.
 

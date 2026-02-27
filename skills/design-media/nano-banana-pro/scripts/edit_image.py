@@ -29,6 +29,7 @@ class ImageEditor:
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
     DEFAULT_MODEL = "gemini-3-pro-image-preview"
+    FLASH_MODEL = "gemini-3.1-flash-image-preview"
 
     def __init__(self, api_key: str, model: str = DEFAULT_MODEL):
         self.api_key = api_key
@@ -264,9 +265,12 @@ Examples:
     parser.add_argument("image", type=Path, help="Path to input image")
     parser.add_argument("--api-key", help="Gemini API key (or set GEMINI_API_KEY env var)")
     parser.add_argument("--model", default=ImageEditor.DEFAULT_MODEL,
-                       help=f"Model to use (default: {ImageEditor.DEFAULT_MODEL})")
+                       help=f"Model ID (default: {ImageEditor.DEFAULT_MODEL}). "
+                            f"Use {ImageEditor.FLASH_MODEL} for faster/cheaper editing")
+    parser.add_argument("--fast", action="store_true",
+                       help=f"Use Nano Banana 2 ({ImageEditor.FLASH_MODEL}) for faster editing")
     parser.add_argument("--aspect-ratio", default="16:9",
-                       choices=["1:1", "3:4", "4:3", "9:16", "16:9"],
+                       choices=["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
                        help="Output aspect ratio (default: 16:9)")
     parser.add_argument("--temperature", type=float, default=0.7,
                        help="Sampling temperature 0.0-1.0 (default: 0.7)")
@@ -292,10 +296,11 @@ Examples:
         sys.exit(1)
 
     # Initialize editor
-    editor = ImageEditor(api_key, args.model)
+    model = ImageEditor.FLASH_MODEL if args.fast else args.model
+    editor = ImageEditor(api_key, model)
 
     print(f"✏️  Editing image with Nano Banana Pro...")
-    print(f"   Model: {args.model}")
+    print(f"   Model: {model}")
     print(f"   Input: {args.image}")
     print(f"   Instruction: {args.prompt}")
     print(f"   Aspect Ratio: {args.aspect_ratio}")

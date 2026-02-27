@@ -7,6 +7,23 @@ description: Generate and edit high-quality images using Google's Nano Banana Pr
 
 Generate and edit professional-quality images using Google's state-of-the-art Gemini 3 Pro Image model.
 
+## Models
+
+| Model | ID | Use Case |
+|-------|----|----------|
+| **Nano Banana Pro** (default) | `gemini-3-pro-image-preview` | Best quality, pro-tier image generation |
+| **Nano Banana 2** (fast) | `gemini-3.1-flash-image-preview` | Faster, cheaper, 131K input tokens, extra aspect ratios |
+
+All scripts accept `--fast` to use Nano Banana 2, or `--model <id>` for explicit override. Default is always the pro model.
+
+```bash
+# Use fast model for quick iteration
+python scripts/generate_image.py "A sunset" --fast
+
+# Explicit model override
+python scripts/generate_image.py "A sunset" --model gemini-3.1-flash-image-preview
+```
+
 ## API Configuration
 
 Set your Gemini API key as an environment variable:
@@ -257,7 +274,9 @@ Generate images from text prompts.
 **Parameters**:
 - `prompt` (required): Text description of image
 - `--api-key`: API key (or use `GEMINI_API_KEY` env var)
-- `--aspect-ratio`: 1:1 | 3:4 | 4:3 | 9:16 | 16:9 (default: 16:9)
+- `--model`: Override model ID (default: gemini-3-pro-image-preview)
+- `--fast`: Use Nano Banana 2 (gemini-3.1-flash-image-preview) for faster generation
+- `--aspect-ratio`: 1:1 | 2:3 | 3:2 | 3:4 | 4:3 | 4:5 | 5:4 | 9:16 | 16:9 | 21:9 (default: 16:9)
 - `--temperature`: 0.0-1.0 (default: 0.7)
 - `--output`: Output directory (default: ./output)
 - `--filename`: Base filename (default: generated)
@@ -287,6 +306,8 @@ Edit existing images with natural language instructions.
 - `prompt` (required): Edit instruction
 - `image` (required): Path to input image
 - `--api-key`: API key (or use `GEMINI_API_KEY` env var)
+- `--model`: Override model ID
+- `--fast`: Use Nano Banana 2 for faster editing
 - `--aspect-ratio`: Output aspect ratio
 - `--temperature`: Creativity level
 - `--output`: Output directory (default: ./output)

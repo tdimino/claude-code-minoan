@@ -47,10 +47,12 @@ class ResonanceChannel:
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
     MODEL = "gemini-3-pro-image-preview"
+    FLASH_MODEL = "gemini-3.1-flash-image-preview"
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, model: Optional[str] = None):
         self.api_key = api_key
-        self.endpoint = f"{self.BASE_URL}/{self.MODEL}:generateContent"
+        self.model = model or self.MODEL
+        self.endpoint = f"{self.BASE_URL}/{self.model}:generateContent"
 
     def _load_image_as_base64(self, image_path: Path) -> tuple[str, str]:
         """Load an image file and return (base64_data, mime_type)."""
@@ -249,6 +251,10 @@ Examples:
     parser.add_argument("--temperature", "-t", type=float, default=0.6,
                        help="0.5 for coherent narrative, 0.9 for exploration (default: 0.6)")
     parser.add_argument("--api-key", help="Gemini API key (or use GEMINI_API_KEY env)")
+    parser.add_argument("--model", default=None,
+                       help="Override model ID (default: gemini-3-pro-image-preview)")
+    parser.add_argument("--fast", action="store_true",
+                       help=f"Use fast model ({ResonanceChannel.FLASH_MODEL}) for speed")
     parser.add_argument("--verbose", "-v", action="store_true",
                        help="Show full API response")
 
@@ -274,8 +280,11 @@ Examples:
     if not output_path.suffix:
         output_path = output_path.with_suffix('.jpg')
 
+    # Resolve model
+    model = args.model or (ResonanceChannel.FLASH_MODEL if args.fast else None)
+
     # Open the channel
-    channel = ResonanceChannel(api_key)
+    channel = ResonanceChannel(api_key, model=model)
 
     print()
     print("=" * 60)
@@ -290,6 +299,7 @@ Examples:
     else:
         print("   Fresh canvas (no prior context)")
 
+    print(f"   Model: {channel.model}")
     print(f"   Temperature: {args.temperature}")
     print(f"   Aspect: {args.aspect_ratio}")
     print()

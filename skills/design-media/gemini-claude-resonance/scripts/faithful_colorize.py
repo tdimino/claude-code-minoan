@@ -64,8 +64,9 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 # Models
-PRO_MODEL = "gemini-2.0-flash"  # For analysis (fast, accurate)
-DREAMER_MODEL = "gemini-2.0-flash-exp-image-generation"  # For image generation
+PRO_MODEL = "gemini-3-flash-preview"  # For analysis (fast, accurate)
+DREAMER_MODEL = "gemini-3-pro-image-preview"  # For image generation (pro quality)
+FLASH_DREAMER_MODEL = "gemini-3.1-flash-image-preview"  # For fast image generation
 
 # Default output directory
 SCRIPT_DIR = Path(__file__).parent.parent
@@ -519,6 +520,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
+    parser.add_argument("--fast", action="store_true",
+                       help=f"Use fast image model ({FLASH_DREAMER_MODEL}) for colorize/transform")
+    parser.add_argument("--model", default=None,
+                       help="Override image generation model ID (colorize/transform only)")
+
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     # describe command
@@ -552,6 +558,13 @@ def main():
     trans_parser.add_argument("--verbose", "-v", action="store_true", help="Show full description")
 
     args = parser.parse_args()
+
+    # Resolve image generation model
+    global DREAMER_MODEL
+    if args.model:
+        DREAMER_MODEL = args.model
+    elif args.fast:
+        DREAMER_MODEL = FLASH_DREAMER_MODEL
 
     if args.command == "describe":
         cmd_describe(args)
