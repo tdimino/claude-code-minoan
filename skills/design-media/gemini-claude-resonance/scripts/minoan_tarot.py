@@ -250,8 +250,78 @@ def to_roman(num: int) -> str:
 
 
 # ============================================================================
-# MINOAN STYLE SYSTEM PROMPT
+# MINOAN STYLE SYSTEM PROMPTS
 # ============================================================================
+
+# --- Classic Style (Jan 5, 2026) ---
+# The original prompt that generated the first Minoan Tarot cards.
+# Personality-driven, natural language instruction style with vivid saturated hues.
+# Uses a brighter palette (sky blue, vivid red, golden yellow) vs the forensic style's
+# muted archaeological palette (slate blue, terracotta, ochre).
+
+MINOAN_CLASSIC_COLORS = {
+    "sky_blue": "#87CEEB",              # Backgrounds, sky areas
+    "vivid_red": "#DC3545",             # Figures, accents
+    "golden_yellow": "#FFD700",         # Decorations, sun
+    "ochre_terracotta": "#CC7722",      # Earth, animals
+    "dark_blue": "#1E3A5F",             # Card border frame
+    "cream_white": "#FFFDD0",           # Highlights
+    "black": "#000000",                 # All outlines
+}
+
+MINOAN_CLASSIC_PROMPT = """You are creating a tarot card in the exact style of Ellen Lorenzi-Prince's Minoan Tarot deck, based on Bronze Age Cretan art from the Palace of Knossos.
+
+ABSOLUTE STYLE REQUIREMENTS - YOU MUST FOLLOW THESE EXACTLY:
+
+1. FLAT COLORS - No gradients, no shading, no 3D effects, no photorealism
+   - Colors should be solid blocks like ancient frescoes
+   - Use vivid, saturated hues
+
+2. BOLD BLACK OUTLINES - Every figure, object, and shape has thick black contours
+   - Like stained glass or ancient murals
+   - Outlines should be consistent weight throughout
+
+3. EGYPTIAN-STYLE POSES - Frontal torsos with profile faces
+   - This is the signature Minoan artistic convention
+   - Figures have stylized, elongated proportions
+
+4. COLOR PALETTE - Use these exact colors:
+   - Sky Blue (#87CEEB) - Backgrounds, sky areas
+   - Vivid Red (#DC3545) - Figures, accents
+   - Golden Yellow (#FFD700) - Decorations, sun
+   - Ochre/Terracotta (#CC7722) - Earth, animals
+   - Dark Blue (#1E3A5F) - Card border frame
+   - Cream/White (#FFFDD0) - Highlights
+   - Black (#000000) - All outlines
+
+5. CARD STRUCTURE:
+   - Dark blue border around entire card
+   - Decorative bands at top and bottom (rosettes, waves, or wheat patterns)
+   - Main imagery in center against sky blue or colored background
+   - Roman numeral and title at bottom in elegant serif font
+
+6. MINOAN ICONOGRAPHY - Include authentic Bronze Age Cretan symbols:
+   - Labrys (double-headed axe)
+   - Horns of Consecration
+   - Snake Goddess imagery
+   - Bull leaping
+   - Dolphins, octopi
+   - Griffins (lion-eagle hybrids)
+   - Swallows in spiral flight
+   - Sacred lilies, papyrus, olive branches
+
+7. COMPOSITION:
+   - Central figure or scene dominates
+   - Symmetrical or balanced layout
+   - Clear silhouettes against solid backgrounds
+   - No complex perspectives - mostly flat, frontal
+
+The card must look like it belongs in the original 78-card Minoan Tarot deck. Study the reference images carefully and match their style EXACTLY."""
+
+
+# --- Forensic Style (Jan 21, 2026) ---
+# Rewritten with forensic precision for Gemini 3 Pro. Muted archaeological palette,
+# structured format, paired with per-card KNOWN_CARD_PROMPTS.
 
 # Color palette - forensically extracted from reference cards
 MINOAN_COLORS = {
@@ -363,18 +433,75 @@ class MinoanTarotGenerator:
 
         return images
 
+    # Style names
+    STYLE_FORENSIC = "forensic"   # Jan 21 forensic precision (default)
+    STYLE_CLASSIC = "classic"     # Jan 5 original personality-driven prompt
+    VALID_STYLES = [STYLE_FORENSIC, STYLE_CLASSIC]
+
     def build_prompt(
+        self,
+        card_name: str,
+        number: Optional[str] = None,
+        description: Optional[str] = None,
+        is_back: bool = False,
+        style: str = STYLE_FORENSIC
+    ) -> str:
+        """Build the generation prompt for a specific card.
+
+        Styles:
+            forensic (default): Structured format with forensic per-card prompts,
+                muted archaeological palette. Best for reproducing specific reference cards.
+            classic: The original Jan 5 prompt—personality-driven natural language,
+                vivid saturated palette. Best for creative/freeform card generation.
+        """
+        if style == self.STYLE_CLASSIC:
+            return self._build_classic_prompt(card_name, number, description, is_back)
+        return self._build_forensic_prompt(card_name, number, description, is_back)
+
+    def _build_classic_prompt(
         self,
         card_name: str,
         number: Optional[str] = None,
         description: Optional[str] = None,
         is_back: bool = False
     ) -> str:
-        """Build the generation prompt for a specific card using Gemini 3 Pro formula.
+        """Build prompt using the original Jan 5 classic style."""
+        title_line = f"{number} {card_name.upper()}" if number else card_name.upper()
 
-        For known cards (analyzed from reference images), uses forensically precise prompts.
-        For new cards, generates structured prompts using the Gemini 3 Pro formula.
-        """
+        if is_back:
+            return f"""{MINOAN_CLASSIC_PROMPT}
+
+Generate the BACK of a Minoan Tarot card:
+A symmetrical sacred design with a central Labrys (double-headed axe) in golden yellow (#FFD700).
+Set against a dark blue (#1E3A5F) background. Surrounded by concentric bands of rosettes, spirals,
+and wave motifs. Dark blue border. This design appears on ALL card backs."""
+
+        if description:
+            return f"""{MINOAN_CLASSIC_PROMPT}
+
+Generate the following tarot card:
+{title_line}
+
+{description}
+
+Include the card number and title at the bottom."""
+
+        return f"""{MINOAN_CLASSIC_PROMPT}
+
+Generate the following tarot card:
+{title_line}
+
+Create a scene that embodies the meaning of "{card_name}" using authentic Minoan Bronze Age imagery.
+Include the card number and title at the bottom."""
+
+    def _build_forensic_prompt(
+        self,
+        card_name: str,
+        number: Optional[str] = None,
+        description: Optional[str] = None,
+        is_back: bool = False
+    ) -> str:
+        """Build prompt using the Jan 21 forensic precision style."""
 
         if is_back:
             return f"""{MINOAN_SYSTEM_PROMPT}
@@ -458,7 +585,8 @@ CRITICAL: Match the reference images exactly. This card must look like it belong
         description: Optional[str] = None,
         session_images: Optional[List[Path]] = None,
         is_back: bool = False,
-        temperature: float = 0.5
+        temperature: float = 0.5,
+        style: str = STYLE_FORENSIC
     ) -> Optional[Path]:
         """Generate a single tarot card."""
 
@@ -489,7 +617,7 @@ CRITICAL: Match the reference images exactly. This card must look like it belong
                     print(f"   Session memory: {img_path.name}")
 
         # Add the text prompt
-        prompt = self.build_prompt(card_name, number, description, is_back)
+        prompt = self.build_prompt(card_name, number, description, is_back, style=style)
         parts.append({"text": prompt})
 
         payload = {
@@ -643,13 +771,15 @@ def cmd_card(args, generator: MinoanTarotGenerator):
         print(f"   Number: {args.number}")
     if args.description:
         print(f"   Description: {args.description}")
+    print(f"   Style: {args.style}")
     print()
 
     card_path = generator.generate_card(
         card_name=args.name,
         number=args.number,
         description=args.description,
-        temperature=args.temperature
+        temperature=args.temperature,
+        style=args.style
     )
 
     if card_path:
@@ -678,13 +808,15 @@ def cmd_archetype(args, generator: MinoanTarotGenerator):
     print(f"   Archetype: {args.type}")
     print(f"   Card: {archetype['name']}")
     print(f"   Description: {archetype['desc']}")
+    print(f"   Style: {args.style}")
     print()
 
     card_path = generator.generate_card(
         card_name=archetype['name'],
         number=to_roman(archetype['number']),
         description=archetype['desc'],
-        temperature=args.temperature
+        temperature=args.temperature,
+        style=args.style
     )
 
     if card_path:
@@ -710,6 +842,7 @@ def cmd_session(args, generator: MinoanTarotGenerator):
     print(f"   Session: {args.name}")
     print(f"   Previous cards: {len(existing_cards)}")
     print(f"   New card: {args.card}")
+    print(f"   Style: {args.style}")
     print()
 
     card_path = generator.generate_card(
@@ -717,7 +850,8 @@ def cmd_session(args, generator: MinoanTarotGenerator):
         number=args.number,
         description=args.description,
         session_images=existing_cards[-3:],  # Use last 3 for context
-        temperature=args.temperature
+        temperature=args.temperature,
+        style=args.style
     )
 
     if card_path:
@@ -742,7 +876,8 @@ def cmd_back(args, generator: MinoanTarotGenerator):
     card_path = generator.generate_card(
         card_name="Card Back",
         is_back=True,
-        temperature=args.temperature
+        temperature=args.temperature,
+        style=args.style
     )
 
     if card_path:
@@ -795,17 +930,25 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
+    # Shared style argument for all generation commands
+    style_help = ("Style preset: 'forensic' (default, precise archaeological palette) "
+                  "or 'classic' (original Jan 5 vivid palette)")
+
     # card command
     card_parser = subparsers.add_parser("card", help="Generate a specific card")
     card_parser.add_argument("name", help="Card name (e.g., 'The Priestess')")
     card_parser.add_argument("--number", "-n", help="Roman numeral (e.g., II)")
     card_parser.add_argument("--description", "-d", help="Scene description")
+    card_parser.add_argument("--style", "-s", default="forensic",
+                            choices=["forensic", "classic"], help=style_help)
     card_parser.add_argument("--temperature", "-t", type=float, default=0.5,
                             help="Temperature (default: 0.5 for faithful style)")
 
     # archetype command
     arch_parser = subparsers.add_parser("archetype", help="Generate from archetype")
     arch_parser.add_argument("type", help=f"Archetype: {', '.join(ARCHETYPES.keys())}")
+    arch_parser.add_argument("--style", "-s", default="forensic",
+                            choices=["forensic", "classic"], help=style_help)
     arch_parser.add_argument("--temperature", "-t", type=float, default=0.5)
 
     # session command
@@ -814,10 +957,14 @@ def main():
     sess_parser.add_argument("--card", "-c", required=True, help="Card to generate")
     sess_parser.add_argument("--number", "-n", help="Roman numeral")
     sess_parser.add_argument("--description", "-d", help="Scene description")
+    sess_parser.add_argument("--style", "-s", default="forensic",
+                            choices=["forensic", "classic"], help=style_help)
     sess_parser.add_argument("--temperature", "-t", type=float, default=0.5)
 
     # back command
     back_parser = subparsers.add_parser("back", help="Generate card back design")
+    back_parser.add_argument("--style", "-s", default="forensic",
+                            choices=["forensic", "classic"], help=style_help)
     back_parser.add_argument("--temperature", "-t", type=float, default=0.5)
 
     # list command
