@@ -1,0 +1,65 @@
+{
+  "soul": {
+    "description": "Full subdaimone architecture, no compound-engineering",
+    "plugins": {
+      "compound-engineering@every-marketplace": false,
+      "agent-evaluation@context-engineering-marketplace": true,
+      "llm-application-dev@claude-code-workflows": true,
+      "feature-dev@claude-code-plugins": true,
+      "pr-review-toolkit@claude-code-plugins": true,
+      "model-trainer@huggingface-skills": true,
+      "exa-mcp-server@exa-mcp-server": false,
+      "frontend-mobile-development@claude-code-workflows": false,
+      "multi-platform-apps@claude-code-workflows": false,
+      "example-skills@anthropic-agent-skills": false,
+      "frontend-design@claude-code-plugins": false,
+      "osgrep@osgrep": false,
+      "dev-browser@dev-browser-marketplace": false,
+      "ralph-wiggum@claude-code-plugins": false,
+      "commit-commands@claude-code-plugins": false,
+      "agent-sdk-dev@claude-code-plugins": false
+    }
+  },
+  "compound": {
+    "description": "Compound Engineering workflows, others disabled",
+    "plugins": {
+      "compound-engineering@every-marketplace": true,
+      "agent-evaluation@context-engineering-marketplace": false,
+      "llm-application-dev@claude-code-workflows": false,
+      "feature-dev@claude-code-plugins": false,
+      "pr-review-toolkit@claude-code-plugins": false,
+      "model-trainer@huggingface-skills": true,
+      "exa-mcp-server@exa-mcp-server": false,
+      "frontend-mobile-development@claude-code-workflows": false,
+      "multi-platform-apps@claude-code-workflows": false,
+      "example-skills@anthropic-agent-skills": false,
+      "frontend-design@claude-code-plugins": false,
+      "osgrep@osgrep": false,
+      "dev-browser@dev-browser-marketplace": false,
+      "ralph-wiggum@claude-code-plugins": false,
+      "commit-commands@claude-code-plugins": false,
+      "agent-sdk-dev@claude-code-plugins": false
+    }
+  },
+  "lean": {
+    "description": "Maximum headroom, all heavy plugins disabled",
+    "plugins": {
+      "compound-engineering@every-marketplace": false,
+      "agent-evaluation@context-engineering-marketplace": false,
+      "llm-application-dev@claude-code-workflows": false,
+      "feature-dev@claude-code-plugins": false,
+      "pr-review-toolkit@claude-code-plugins": false,
+      "model-trainer@huggingface-skills": true,
+      "exa-mcp-server@exa-mcp-server": false,
+      "frontend-mobile-development@claude-code-workflows": false,
+      "multi-platform-apps@claude-code-workflows": false,
+      "example-skills@anthropic-agent-skills": false,
+      "frontend-design@claude-code-plugins": false,
+      "osgrep@osgrep": false,
+      "dev-browser@dev-browser-marketplace": false,
+      "ralph-wiggum@claude-code-plugins": false,
+      "commit-commands@claude-code-plugins": false,
+      "agent-sdk-dev@claude-code-plugins": false
+    }
+  }
+}

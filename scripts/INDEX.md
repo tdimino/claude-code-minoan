@@ -1,6 +1,13 @@
 # Scripts Index
 
-*7 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
+*9 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
+
+## Plugin Management
+
+| Script | Description |
+|--------|-------------|
+| `claude-plugins.py` | Plugin profile manager — switches between plugin sets to keep total agents under the ~40 limit |
+| `plugin-profiles.json` | Profile definitions (soul, compound, lean) |
 
 ## Session Browsing
 

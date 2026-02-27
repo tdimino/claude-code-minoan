@@ -173,6 +173,30 @@ All CLIs share `lib/tracker-utils.js` for session parsing and status detection.
 
 ---
 
+### [Plugin Profile Manager](scripts/claude-plugins.py) — `cplugins`
+
+Claude Code has an undocumented [~37-40 agent limit](https://github.com/anthropics/claude-code/issues/18993). When total agents (built-in + plugin + custom) exceed this, agents are silently dropped with no warning. This tool manages plugin profiles to keep the total under the limit.
+
+```bash
+cplugins status     # Show current profile, agent counts, over/under limit
+cplugins soul       # All custom subdaimones, no compound-engineering (34 agents)
+cplugins compound   # Compound Engineering workflows (45 agents)
+cplugins lean       # Maximum headroom, minimal plugins (17 agents)
+cplugins --only compound-engineering model-trainer  # Ad-hoc: enable only these
+```
+
+**Setup**:
+```bash
+cp scripts/claude-plugins.py ~/.claude/scripts/
+cp scripts/plugin-profiles.json ~/.claude/scripts/
+chmod +x ~/.claude/scripts/claude-plugins.py
+echo "alias cplugins='python3 ~/.claude/scripts/claude-plugins.py'" >> ~/.zshrc
+```
+
+Profiles are defined in `plugin-profiles.json`. Edit `AGENT_COUNTS` in the script when plugins change. Changes take effect on next session start.
+
+---
+
 ### [VS Code Extension](extensions/README.md) — Claude Session Tracker
 
 Track and resume Claude Code sessions across crashes, restarts, and multiple VS Code windows.
