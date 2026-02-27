@@ -29,6 +29,7 @@ class NanoBananaProClient:
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
     DEFAULT_MODEL = "gemini-3-pro-image-preview"
+    FLASH_MODEL = "gemini-3.1-flash-image-preview"
 
     def __init__(self, api_key: str, model: str = DEFAULT_MODEL):
         self.api_key = api_key
@@ -244,9 +245,12 @@ Examples:
     parser.add_argument("prompt", help="Text prompt describing the image to generate")
     parser.add_argument("--api-key", help="Gemini API key (or set GEMINI_API_KEY env var)")
     parser.add_argument("--model", default=NanoBananaProClient.DEFAULT_MODEL,
-                       help=f"Model to use (default: {NanoBananaProClient.DEFAULT_MODEL})")
+                       help=f"Model ID (default: {NanoBananaProClient.DEFAULT_MODEL}). "
+                            f"Use {NanoBananaProClient.FLASH_MODEL} for faster/cheaper generation")
+    parser.add_argument("--fast", action="store_true",
+                       help=f"Use Nano Banana 2 ({NanoBananaProClient.FLASH_MODEL}) for faster generation")
     parser.add_argument("--aspect-ratio", default="16:9",
-                       choices=["1:1", "3:4", "4:3", "9:16", "16:9"],
+                       choices=["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
                        help="Image aspect ratio (default: 16:9)")
     parser.add_argument("--temperature", type=float, default=0.7,
                        help="Sampling temperature 0.0-1.0 (default: 0.7)")
@@ -269,10 +273,11 @@ Examples:
         sys.exit(1)
 
     # Initialize client
-    client = NanoBananaProClient(api_key, args.model)
+    model = NanoBananaProClient.FLASH_MODEL if args.fast else args.model
+    client = NanoBananaProClient(api_key, model)
 
     print(f"🎨 Generating image with Nano Banana Pro...")
-    print(f"   Model: {args.model}")
+    print(f"   Model: {model}")
     print(f"   Prompt: {args.prompt}")
     print(f"   Aspect Ratio: {args.aspect_ratio}")
     print()

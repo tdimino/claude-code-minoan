@@ -52,7 +52,8 @@ def compose_images(
     api_key: str,
     aspect_ratio: str = "16:9",
     temperature: float = 0.7,
-    verbose: bool = False
+    verbose: bool = False,
+    model: str = None
 ):
     """
     Compose multiple images based on instructions.
@@ -65,6 +66,7 @@ def compose_images(
         aspect_ratio: Output aspect ratio
         temperature: Creativity level (0.0-1.0)
         verbose: Show full API response
+        model: Model ID (default: gemini-3-pro-image-preview)
 
     Returns:
         Dictionary with saved file paths
@@ -75,7 +77,7 @@ def compose_images(
             raise FileNotFoundError(f"Image not found: {img_path}")
 
     # Initialize client
-    client = NanoBananaProClient(api_key)
+    client = NanoBananaProClient(api_key, model=model) if model else NanoBananaProClient(api_key)
 
     print(f"🎨 Composing {len(image_paths)} images with Nano Banana Pro...")
     print(f"   Instruction: {instruction}")
@@ -157,9 +159,20 @@ Tips:
         help="Gemini API key (or set GEMINI_API_KEY env var)"
     )
     parser.add_argument(
+        "--model",
+        default=None,
+        help="Model ID (default: gemini-3-pro-image-preview). "
+             "Use gemini-3.1-flash-image-preview for faster/cheaper generation"
+    )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Use Nano Banana 2 (gemini-3.1-flash-image-preview) for faster generation"
+    )
+    parser.add_argument(
         "--aspect-ratio", "-a",
         default="16:9",
-        choices=["1:1", "3:4", "4:3", "9:16", "16:9"],
+        choices=["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
         help="Output aspect ratio (default: 16:9)"
     )
     parser.add_argument(
@@ -194,6 +207,7 @@ Tips:
 
     try:
         # Compose images
+        model = NanoBananaProClient.FLASH_MODEL if args.fast else args.model
         saved_paths = compose_images(
             instruction=args.instruction,
             image_paths=args.images,
@@ -201,7 +215,8 @@ Tips:
             api_key=api_key,
             aspect_ratio=args.aspect_ratio,
             temperature=args.temperature,
-            verbose=args.verbose
+            verbose=args.verbose,
+            model=model
         )
 
         print()

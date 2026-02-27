@@ -14,6 +14,18 @@ Cross-model dialogue between Claude and Gemini, with shared visual memory.
 
 > "Claude speaks in words. Gemini dreams in light. Together, we resonate."
 
+## Models
+
+| Role | Model ID | Notes |
+|------|----------|-------|
+| **Image generation** (default) | `gemini-3-pro-image-preview` | Pro quality, used by resonate/faithful_colorize |
+| **Image generation** (fast) | `gemini-3.1-flash-image-preview` | Faster/cheaper, use `--fast` flag |
+| **Text analysis** | `gemini-3-flash-preview` | Used by faithful_colorize for description |
+| **Text reasoning** | `gemini-3.1-pro-preview` | Used by Pro and Director daimones |
+| **Claude** | `claude-3-opus-20240229` | Opus daimon |
+
+Scripts that generate images (`resonate.py`, `faithful_colorize.py`) accept `--fast` to switch to the flash image model, or `--model <id>` for explicit override.
+
 ## Choose Your Tool
 
 | I want to... | Use |

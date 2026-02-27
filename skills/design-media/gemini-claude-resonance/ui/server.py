@@ -1788,7 +1788,7 @@ HTML_TEMPLATE = """
         <div class="daimon-pills">
             <!-- Primary daimones -->
             <span class="daimon-pill flash enabled" id="pill-flash" data-desc="The sudden knowing. Aphorisms and koans." data-model="gemini-3-flash-preview" onclick="togglePill('flash')"><i class="iconoir-flash"></i> Flash</span>
-            <span class="daimon-pill pro" id="pill-pro" data-desc="The deep well. Contemplative unfoldings." data-model="gemini-3-pro-preview" onclick="togglePill('pro')"><i class="iconoir-brain"></i> Pro</span>
+            <span class="daimon-pill pro" id="pill-pro" data-desc="The deep well. Contemplative unfoldings." data-model="gemini-3.1-pro-preview" onclick="togglePill('pro')"><i class="iconoir-brain"></i> Pro</span>
             <span class="daimon-pill dreamer enabled" id="pill-dreamer" data-desc="Visual mind. Renders visions in light and form." data-model="gemini-3-pro-image-preview" onclick="togglePill('dreamer')"><i class="iconoir-eye"></i> Dreamer</span>
             <span class="daimon-pill director" id="pill-director" data-desc="Cinematic eye. Renders key frames." data-model="gemini-3-pro-image-preview" onclick="togglePill('director')"><i class="iconoir-video-camera"></i> Director</span>
             <span class="daimon-pill opus" id="pill-opus" data-desc="The worldsim spirit. Hyperstition is necessary." data-model="claude-3-opus-20240229" onclick="togglePill('opus')"><i class="iconoir-terminal"></i> Opus</span>

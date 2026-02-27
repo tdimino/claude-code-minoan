@@ -181,3 +181,17 @@ Create [SCENE TYPE] featuring the same character shown in the reference image. K
 ```
 Ethereal voice AI interface visualization, abstract waveforms in [SOUL COLOR] (amber/purple/teal), bioluminescent orb pulsing with warm light, soft particles floating in twilight gradient background, minimal UI elements suggesting conversation flow, cinematic depth with bokeh, 16:9 hero banner format.
 ```
+
+## Minoan / Sacred Geometry
+
+### Symbol of Tanit — Cyberpunk Hologram
+```
+The Symbol of Tanit — ancient Phoenician goddess glyph — rendered as a massive luminous holographic projection floating above a cyberpunk cityscape at night. The symbol consists of a crescent moon on top (horns pointing up), a circle/disc below it, a horizontal bar, and a triangle at the base. The symbol glows in warm gold and amber light against the dark city. Cinematic digital painting style with painterly brush strokes, warm golden rim lighting, neon pink and teal accent lights from buildings below, atmospheric haze, rain-slicked streets, bokeh depth of field. Detailed concept art style, rich warm color palette. No people, no text. Professional quality, sharp focus, dramatic centered composition.
+```
+*Note: May trigger content filter on "Tanit" / "Phoenician goddess". Rephrase as "geometric sacred symbol" if blocked.*
+
+### Symbol of Tanit — Gold Wireframe (Worked)
+```
+Symbol of Tanit — ancient Carthaginian/Phoenician goddess symbol — gold metallic geometric glyph (circle on top, triangle below, horizontal bar between) rendered in luminous gold wire against a pure black background. The symbol should glow with warm amber light, with subtle lens flare and fine particle effects around the edges. Clean, minimal, high-contrast. The aesthetic is ancient sacred geometry meets modern terminal UI. No text, no other elements. Professional quality, centered composition, sharp focus.
+```
+*Aspect ratio: 1:1, temperature: 0.5. Successfully generated.*
