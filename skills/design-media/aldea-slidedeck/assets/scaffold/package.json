@@ -1,0 +1,32 @@
+{
+  "name": "aldea-slidedeck",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "build": "next build",
+    "export": "next build",
+    "pdf": "node scripts/export-pdf.js"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.12.0",
+    "lucide-react": "^0.468.0",
+    "@tabler/icons-react": "^3.24.0",
+    "@phosphor-icons/react": "^2.1.0",
+    "motion": "^11.15.0",
+    "@xyflow/react": "^12.3.0",
+    "mermaid": "^11.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "puppeteer": "^21.6.0",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.3.0"
+  }
+}
