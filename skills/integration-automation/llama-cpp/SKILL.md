@@ -51,6 +51,23 @@ curl http://localhost:8081/v1/chat/completions \
   -d '{"model":"default","messages":[{"role":"user","content":"Hello"}]}'
 ```
 
+### Serve Qwen3.5 (MoE-Optimized)
+
+Dedicated server for Qwen3.5 models with asymmetric KV cache, jinja templates, and thinking mode:
+
+```bash
+# Default: Qwen3.5-35B-A3B, thinking mode, 16K context
+~/.claude/skills/llama-cpp/scripts/llama_serve_qwen35.sh
+
+# Non-thinking mode, shorter context
+THINK=0 CTX=8192 ~/.claude/skills/llama-cpp/scripts/llama_serve_qwen35.sh
+
+# Different model
+~/.claude/skills/llama-cpp/scripts/llama_serve_qwen35.sh qwen3.5:27b
+```
+
+Memory-optimized for M4 Max 36GB: asymmetric KV cache (q8_0 keys + q4_0 values) saves ~60% KV memory vs FP16.
+
 ### Benchmark (llama.cpp vs Ollama)
 
 ```bash
@@ -116,3 +133,4 @@ When calling llama-cli from scripts or subprocesses:
 - **Use `--flash-attn on`** (not bare `--flash-attn`) — now takes argument
 - **Timing stats** appear in stdout as `[ Prompt: X t/s | Generation: Y t/s ]` (via `--show-timings`, default: on)
 - **Redirect stderr to file, not variable** — spinner output can overflow bash variables
+
