@@ -105,9 +105,46 @@ bun run ~/.claude/skills/twitter/x-search/x-search.ts thread 1234567890 --pages 
 bun run ~/.claude/skills/twitter/x-search/x-search.ts tweet 1234567890
 ```
 
+### Feed -- Daily Reading from Followed Accounts
+
+Pull the latest tweets from named account groups, filtered by time window. Uses batched OR-query search (cheap, ~$0.005/tweet).
+
+```bash
+# Read today's tweets from a feed group
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feed mygroup --since 1d
+
+# Last week from all groups
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feed all --since 7d
+
+# Custom accounts (comma-separated)
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feed user1,user2,user3 --since 1d
+
+# Free via bird CLI (no API cost)
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feed mygroup --since 1d --bird
+
+# Save as markdown research doc
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feed mygroup --since 7d --markdown --save
+```
+
+Feed options: `--since 1d|7d|1h|3h|12h`, `--limit N` (tweets per account, default 4), `--bird` (free), `--markdown`, `--save`, `--json`, `--no-cache`.
+
+### Feed Groups -- Named Account Collections
+
+```bash
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup                              # list all
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup show mygroup                  # show group
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup create tech "Tech follows"
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup add tech karpathy "AI research"
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup remove tech karpathy
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup delete tech
+bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup alias daily tech,news
+```
+
+Groups stored at `~/.claude/skills/twitter/x-search/data/feedgroups.json`. Ships empty — populate with your own accounts.
+
 ### Watchlist
 
-Monitor accounts with batch checking.
+Monitor accounts with batch checking (uses profile API, more expensive).
 
 ```bash
 bun run ~/.claude/skills/twitter/x-search/x-search.ts watchlist                    # show list
@@ -264,6 +301,7 @@ Wait for reset. x-search shows reset time. bird: wait a few minutes.
 |------|------|-----|
 | Search tweets by topic | x-search | Official API, cost-tracked, cached |
 | Research a topic deeply | x-search | Multi-page, markdown output, save |
+| Daily feed from followed accounts | x-search feed | Cheap batched OR-query, grouped output |
 | Monitor specific accounts | x-search watchlist | Batch check with cost tracking |
 | Post a tweet or reply | x-search post/reply | Official API, reliable, $0.01/post |
 | Post with media | bird | Free, media upload support |
