@@ -135,3 +135,68 @@ export function formatProfileTelegram(user: any, tweets: Tweet[]): string {
 
   return out;
 }
+
+// --- Feed group formatters ---
+
+export function formatFeedGroupTelegram(
+  groupedTweets: Map<string, { label?: string; tweets: Tweet[] }>,
+  opts: { limit?: number; window?: string } = {}
+): string {
+  const limit = opts.limit || 4;
+  let out = `Feed${opts.window ? ` (${opts.window})` : ""}\n`;
+  out += "\u2550".repeat(40) + "\n\n";
+
+  for (const [username, { label, tweets }] of groupedTweets) {
+    const labelStr = label ? ` \u2014 ${label}` : "";
+    out += `\u250C\u2500 @${username}${labelStr}\n`;
+
+    if (tweets.length === 0) {
+      out += `\u2502  (no tweets in window)\n`;
+    } else {
+      for (const t of tweets.slice(0, limit)) {
+        const time = timeAgo(t.created_at);
+        const engagement = `${compactNumber(t.metrics.likes)}L`;
+        const cleanText = t.text
+          .replace(/https:\/\/t\.co\/\S+/g, "")
+          .trim()
+          .slice(0, 200);
+        const indented = cleanText.replace(/\n/g, "\n\u2502    ");
+        out += `\u2502  ${time} \u00B7 ${engagement}\n`;
+        out += `\u2502    ${indented}\n`;
+        out += `\u2502    ${t.tweet_url}\n`;
+        out += `\u2502\n`;
+      }
+    }
+    out += `\u2514\u2500\n\n`;
+  }
+
+  return out;
+}
+
+export function formatFeedGroupMarkdown(
+  groupedTweets: Map<string, { label?: string; tweets: Tweet[] }>,
+  opts: { groupName?: string; window?: string; cost?: string } = {}
+): string {
+  const date = new Date().toISOString().split("T")[0];
+  let out = `# Feed: ${opts.groupName || "custom"}\n\n`;
+  out += `**Date:** ${date} | **Window:** ${opts.window || "7d"}\n\n`;
+
+  for (const [username, { label, tweets }] of groupedTweets) {
+    const labelStr = label ? ` \u2014 ${label}` : "";
+    out += `## @${username}${labelStr}\n\n`;
+
+    if (tweets.length === 0) {
+      out += `*No tweets in window.*\n\n`;
+    } else {
+      for (const t of tweets) {
+        out += formatTweetMarkdown(t) + "\n\n";
+      }
+    }
+  }
+
+  if (opts.cost) {
+    out += `---\n\n*Est. cost: ~$${opts.cost}*\n`;
+  }
+
+  return out;
+}
