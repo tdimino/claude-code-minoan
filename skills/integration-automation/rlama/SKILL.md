@@ -31,22 +31,42 @@ brew services start ollama  # macOS
 
 ## Quick Reference
 
-### Query a RAG (Most Common)
+### Query a RAG (Default: Retrieve-Only)
 
-Query an existing RAG system with a natural language question:
+**Always use retrieve-only mode by default.** Claude synthesizes far better answers than local 7B models. The raw chunks give Claude direct evidence to reason over and cite.
 
 ```bash
-# Non-interactive query (returns answer and exits)
+# DEFAULT: Retrieve top 10 chunks — Claude reads and synthesizes
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query"
+
+# More chunks for broad queries
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" -k 20
+
+# JSON output for programmatic use
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --json
+
+# Force rebuild embedding cache
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --rebuild-cache
+
+# List RAGs with cache status
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py --list
+```
+
+First run per collection builds an embedding cache (~60s for 4K chunks). Subsequent queries are <1s.
+
+### Local LLM Query (Fallback Only)
+
+Use `rlama run` only when Claude is not in the loop (e.g., standalone CLI usage, cron jobs, scripts):
+
+```bash
+# Local model generates the answer (weaker than Claude synthesis)
 rlama run <rag-name> --query "your question here"
 
-# With more context chunks for complex questions
+# With more context chunks
 rlama run <rag-name> --query "explain the authentication flow" --context-size 30
 
-# Show which documents contributed to the answer
+# Show source documents
 rlama run <rag-name> --query "what are the API endpoints?" --show-context
-
-# Use a different model for answering
-rlama run <rag-name> --query "summarize the architecture" -m deepseek-r1:8b
 ```
 
 **Script wrapper** for cleaner output:
@@ -54,36 +74,6 @@ rlama run <rag-name> --query "summarize the architecture" -m deepseek-r1:8b
 ```bash
 python3 ~/.claude/skills/rlama/scripts/rlama_query.py <rag-name> "your query"
 python3 ~/.claude/skills/rlama/scripts/rlama_query.py my-docs "what is the main idea?" --show-sources
-```
-
-### Retrieve-Only Mode (Claude Synthesizes)
-
-Get raw chunks without local LLM generation. Claude reads the chunks directly and synthesizes a stronger answer than local models can produce.
-
-**When to use retrieve vs standard query:**
-
-| Scenario | Use |
-|----------|-----|
-| Quick lookup, local model sufficient | `rlama_query.py` (standard) |
-| Complex synthesis, nuanced reasoning | `rlama_retrieve.py` (retrieve-only) |
-| Claude needs raw evidence to cite | `rlama_retrieve.py` (retrieve-only) |
-| Offline/no Ollama for generation | `rlama_retrieve.py` (retrieve-only) |
-
-```bash
-# Retrieve top 10 chunks (human-readable)
-python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query"
-
-# Retrieve as JSON for programmatic use
-python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --json
-
-# More chunks for broad queries
-python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" -k 20
-
-# Force rebuild embedding cache
-python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag-name> "your query" --rebuild-cache
-
-# List RAGs with cache status
-python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py --list
 ```
 
 **External LLM Synthesis** (optional—retrieve chunks AND synthesize via OpenRouter, TogetherAI, Ollama, or any OpenAI-compatible endpoint):
@@ -115,15 +105,16 @@ Provider auto-detection: model names with `/` → OpenRouter, otherwise → Toge
 
 **Quality tiers:**
 
-| Tier | Method | Quality | Latency |
-|------|--------|---------|---------|
-| Best | Retrieve-only → Claude synthesizes | Strongest synthesis | ~1s retrieve |
-| Good | `--synthesize --synth-model anthropic/claude-sonnet-4` | Strong, cited | ~3s |
-| Decent | `--synthesize --provider togetherai` (Llama 70B) | Solid for factual | ~2s |
-| Local | `--synthesize --provider ollama` (Qwen 7B) | Basic, may hedge | ~5s |
-| Baseline | `rlama_query.py` (RLAMA built-in) | Weakest, no prompt control | ~3s |
+| Tier | Method | Quality | Latency | Default? |
+|------|--------|---------|---------|----------|
+| **Best** | **Retrieve-only → Claude synthesizes** | **Strongest synthesis** | **~1s retrieve** | **YES** |
+| Good | `--synthesize --synth-model anthropic/claude-sonnet-4` | Strong, cited | ~3s | |
+| Decent | `--synthesize --provider togetherai` (Llama 70B) | Solid for factual | ~2s | |
+| Reasoning | `--synthesize --reasoning` (Qwen 3.5 9B) | Strong local, cited | ~8s | |
+| Local | `--synthesize --provider ollama` (Qwen 2.5 7B) | Basic, may hedge | ~5s | |
+| Baseline | `rlama_query.py` (RLAMA built-in) | Weakest, no prompt control | ~3s | |
 
-Small local models (7B) use a tuned prompt optimized for Qwen (structured output, anti-hedge, domain-keyword aware). Cloud providers use a strict research-grade prompt with mandatory citations.
+Small local models (7B) use a tuned prompt optimized for Qwen (structured output, anti-hedge, domain-keyword aware). Cloud providers use a strict research-grade prompt with mandatory citations. Reasoning mode (`--reasoning`) uses `qwen3.5:9b` with the strict prompt and 4096 max tokens—best local option for complex cross-document synthesis.
 
 First run builds an embedding cache (~30s for 3K chunks, ~10min for 25K chunks). Subsequent queries are <1s. Large RAGs use incremental checkpointing—if Ollama crashes mid-build, re-run to resume from the last checkpoint. Individual chunks are truncated to 5K chars to stay within nomic-embed-text's context window.
 
@@ -354,10 +345,32 @@ rlama run my-rag --query "question" -m deepseek-r1:8b
 **Recommended models:**
 | Model | Size | Best For |
 |-------|------|----------|
-| `qwen2.5:7b` | 7B | Default - better reasoning (recommended) |
+| `qwen2.5:7b` | 7B | Default—fast RAG queries (recommended) |
+| `qwen3.5:9b` | 9B | Reasoning mode—deeper synthesis, strict citations (`--reasoning`) |
 | `llama3.2` | 3B | Fast, legacy default (use `--legacy`) |
 | `deepseek-r1:8b` | 8B | Complex questions |
 | `llama3.3:70b` | 70B | Highest quality (slow) |
+
+**Reasoning mode** (`--reasoning` flag) uses `qwen3.5:9b` for local Ollama synthesis with the strict research-grade prompt (normally reserved for cloud providers). This gives research-quality cited answers without leaving the machine. Override the model via `RLAMA_REASONING_MODEL` env var.
+
+```bash
+# Reasoning mode — complex cross-document synthesis (think OFF, fast)
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag> "complex query" --synthesize --reasoning
+
+# Reasoning mode with thinking (chain-of-thought, slower but deeper)
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag> "complex query" --synthesize --reasoning --think
+
+# Equivalent explicit invocation
+python3 ~/.claude/skills/rlama/scripts/rlama_retrieve.py <rag> "query" --synthesize --provider ollama --synth-model qwen3.5:9b
+```
+
+| Flag | Model | Think | Prompt | Max Tokens | Timeout |
+|------|-------|-------|--------|------------|---------|
+| *(default)* | qwen2.5:7b | off | light (anti-hedge) | 2048 | 120s |
+| `--reasoning` | qwen3.5:9b | off | strict (cited) | 4096 | 300s |
+| `--reasoning --think` | qwen3.5:9b | on | strict (cited) | 4096 | 300s |
+
+Thinking mode produces internal chain-of-thought reasoning before the answer. The thinking text is included in JSON output (`synthesis.thinking` field) but not printed in plain text mode. Use for ambiguous cross-document analysis where you want to see the model's working.
 
 ## Supported File Types
 

@@ -17,6 +17,7 @@ Usage:
     python3 rlama_retrieve.py <rag-name> "your query" --synthesize --synth-model anthropic/claude-sonnet-4
     python3 rlama_retrieve.py <rag-name> "your query" --synthesize --provider togetherai
     python3 rlama_retrieve.py <rag-name> "your query" --synthesize --endpoint https://my-api.com/v1/chat/completions
+    python3 rlama_retrieve.py <rag-name> "your query" --synthesize --provider ollama --reasoning
     python3 rlama_retrieve.py <rag-name> "your query" --rebuild-cache
     python3 rlama_retrieve.py --list
 """
@@ -33,6 +34,8 @@ import urllib.error
 RLAMA_DIR = os.path.expanduser("~/.rlama")
 OLLAMA_URL = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 DEFAULT_EMBED_MODEL = "nomic-embed-text"
+DEFAULT_OLLAMA_MODEL = "qwen2.5:7b"
+REASONING_OLLAMA_MODEL = os.environ.get("RLAMA_REASONING_MODEL", "qwen3.5:9b")
 CACHE_FILENAME = "claude_cache.json"
 BATCH_SIZE = 50  # max chunks per embedding request
 MAX_BATCH_CHARS = 30000  # max total chars per batch (nomic-embed-text context limit)
@@ -400,7 +403,8 @@ def retrieve(
 
 
 def synthesize(query: str, chunks: list[dict], model: str = None,
-               provider: str = None, endpoint: str = None) -> dict:
+               provider: str = None, endpoint: str = None,
+               reasoning: bool = False, think: bool = False) -> dict:
     """Synthesize an answer from retrieved chunks using an external LLM provider.
 
     Providers: openrouter, togetherai, or a custom endpoint (any OpenAI-compatible API).
@@ -425,7 +429,7 @@ def synthesize(query: str, chunks: list[dict], model: str = None,
         "ollama": {
             "url": f"{OLLAMA_URL}/v1/chat/completions",
             "key_env": None,  # No API key needed for local Ollama
-            "default_model": "qwen2.5:7b",
+            "default_model": DEFAULT_OLLAMA_MODEL,
         },
     }
 
@@ -468,7 +472,10 @@ def synthesize(query: str, chunks: list[dict], model: str = None,
 
         url = cfg["url"]
         if not model:
-            model = cfg["default_model"]
+            if reasoning and provider == "ollama":
+                model = REASONING_OLLAMA_MODEL
+            else:
+                model = cfg["default_model"]
 
     # Build context from chunks with metadata
     context_parts = []
@@ -479,8 +486,9 @@ def synthesize(query: str, chunks: list[dict], model: str = None,
 
     # Use a lighter prompt for small local models (ollama) — strict grounding
     # rules cause 7B models to over-hedge rather than synthesize.
+    # Exception: reasoning mode uses the stricter prompt since qwen3.5:9b handles it well.
     # Prompt V3: structured output + anti-hedge + category awareness
-    if provider == "ollama":
+    if provider == "ollama" and not reasoning:
         system_prompt = (
             "You are a research assistant. Answer questions using ONLY the CONTEXT documents below.\n\n"
             "FORMAT:\n"
@@ -513,7 +521,52 @@ def synthesize(query: str, chunks: list[dict], model: str = None,
 
     user_message = f"Question: {query}\n\nCONTEXT:\n\n{context}"
 
-    # All providers use OpenAI-compatible format
+    # Reasoning mode with Ollama: use native /api/chat for proper think control.
+    # The OpenAI-compatible endpoint doesn't support think: true/false.
+    api_timeout = 300 if reasoning else 120
+
+    if provider == "ollama":
+        max_gen = 4096 if reasoning else 2048
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "stream": False,
+            "think": think,
+            "options": {
+                "temperature": 0.2,
+                "num_predict": max_gen,
+            },
+        }
+        native_url = f"{OLLAMA_URL}/api/chat"
+
+        try:
+            req = urllib.request.Request(
+                native_url,
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=api_timeout) as resp:
+                result = json.loads(resp.read())
+
+            msg = result.get("message", {})
+            answer = msg.get("content", "")
+            thinking_text = msg.get("thinking", "")
+
+            return {
+                "answer": answer,
+                "model": model,
+                "provider": provider,
+                "thinking": thinking_text if think else None,
+                "error": None,
+            }
+
+        except Exception as e:
+            return {"error": str(e), "answer": None}
+
+    # Non-Ollama providers: OpenAI-compatible format
     payload = {
         "model": model,
         "messages": [
@@ -521,7 +574,7 @@ def synthesize(query: str, chunks: list[dict], model: str = None,
             {"role": "user", "content": user_message},
         ],
         "temperature": 0.2,
-        "max_tokens": 2048,
+        "max_tokens": 4096 if reasoning else 2048,
     }
     headers = {
         "Content-Type": "application/json",
@@ -536,7 +589,7 @@ def synthesize(query: str, chunks: list[dict], model: str = None,
             data=json.dumps(payload).encode(),
             headers=headers,
         )
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=api_timeout) as resp:
             result = json.loads(resp.read())
 
         answer = result["choices"][0]["message"]["content"]
@@ -643,6 +696,17 @@ Examples:
         "--endpoint", default=None,
         help="Custom OpenAI-compatible endpoint URL (requires SYNTH_API_KEY env var)",
     )
+    parser.add_argument(
+        "--reasoning", action="store_true",
+        help=f"Use reasoning model ({REASONING_OLLAMA_MODEL}) for deeper synthesis. "
+             "Uses stricter grounding prompt and 4096 max tokens. Override model via RLAMA_REASONING_MODEL env var.",
+    )
+    parser.add_argument(
+        "--think", action="store_true",
+        help="Enable thinking/chain-of-thought (requires --reasoning). "
+             "Model generates internal reasoning before answering. Slower but deeper analysis. "
+             "Thinking text included in JSON output.",
+    )
 
     args = parser.parse_args()
 
@@ -685,12 +749,21 @@ Examples:
     # Synthesize if requested
     if args.synthesize:
         print(f"Synthesizing via external LLM...", file=sys.stderr)
+        # Reasoning mode implies --provider ollama if not explicitly set
+        synth_provider = args.provider
+        if args.reasoning and not synth_provider:
+            synth_provider = "ollama"
+        # --think implies --reasoning
+        use_think = args.think
+        use_reasoning = args.reasoning or use_think
         synth_result = synthesize(
             query=args.query,
             chunks=result["results"],
             model=args.synth_model,
-            provider=args.provider,
+            provider=synth_provider,
             endpoint=args.endpoint,
+            reasoning=use_reasoning,
+            think=use_think,
         )
         result["synthesis"] = synth_result
         if synth_result.get("error"):
