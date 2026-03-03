@@ -15,7 +15,7 @@ Audit against these five reference points:
 |---------|------------|
 | **Linear** | Quality-as-strategy, keyboard-first, performance IS design, opinionated software, zero-bugs policy |
 | **Vercel** | Web Interface Guidelines (read via `minoan-frontend-design` skill's `references/vercel-web-interface-guidelines.md`), Geist design system, design engineering |
-| **Stripe** | Accessible color systems, light-mode-first premium, documentation-as-design, signature visual elements |
+| **Stripe** | Accessible color systems, light-mode-first premium, documentation-as-design, signature visual elements. Deep references: `references/stripe-design-tokens.md`, `references/stripe-component-patterns.md`, `references/stripe-signature-techniques.md` |
 | **Raycast** | Progressive disclosure via action bar, search-centered architecture, Fast > Simple > Delightful priority |
 | **Resend** | Code-first design (codebase IS the source of truth, not Figma), polish IN code, design as discipline anyone exercises |
 

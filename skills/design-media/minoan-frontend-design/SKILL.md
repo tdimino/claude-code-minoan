@@ -60,4 +60,4 @@ Claude is capable of extraordinary, award-worthy creative work. The person who s
 
 ## References
 
-For engineering standards, consult `references/vercel-web-interface-guidelines.md` and `references/design-system-checklist.md`. For advanced techniques, consult `references/creative-arsenal.md` and `references/design-dials.md`. For editorial patterns from eval testing, consult `references/editorial-patterns.md`.
+For engineering standards, consult `references/vercel-web-interface-guidelines.md` and `references/design-system-checklist.md`. For advanced techniques, consult `references/creative-arsenal.md` and `references/design-dials.md`. For editorial patterns from eval testing, consult `references/editorial-patterns.md`. For Stripe's premium light-mode aesthetic, consult `references/stripe-design-tokens.md`, `references/stripe-component-patterns.md`, and `references/stripe-signature-techniques.md`.
