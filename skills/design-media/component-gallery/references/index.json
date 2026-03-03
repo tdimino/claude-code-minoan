@@ -1,0 +1,1084 @@
+{
+  "url_formula": "https://component.gallery/components/{slug}/",
+  "scraped_date": "2026-03-02",
+  "source": "https://component.gallery/",
+  "components": [
+    {
+      "slug": "accordion",
+      "name": "Accordion",
+      "url": "https://component.gallery/components/accordion/",
+      "alt_names": [
+        "Arrow toggle",
+        "Collapse",
+        "Collapsible sections",
+        "Collapsible",
+        "Details",
+        "Disclosure",
+        "Expandable",
+        "Expander",
+        "ShowyHideyThing"
+      ],
+      "example_count": 101,
+      "description": "An accordion is a vertical stack of interactive headings used to toggle the display of further information; each item can be 'collapsed' with just a short label visible or 'expanded' to show the full "
+    },
+    {
+      "slug": "alert",
+      "name": "Alert",
+      "url": "https://component.gallery/components/alert/",
+      "alt_names": [
+        "Notification",
+        "Feedback",
+        "Message",
+        "Banner",
+        "Callout"
+      ],
+      "example_count": 108,
+      "description": "A way of informing the user of important changes in a prominent way."
+    },
+    {
+      "slug": "avatar",
+      "name": "Avatar",
+      "url": "https://component.gallery/components/avatar/",
+      "alt_names": [],
+      "example_count": 37,
+      "description": "A graphical representation of a user: usually a photo, illustration, or initial."
+    },
+    {
+      "slug": "badge",
+      "name": "Badge",
+      "url": "https://component.gallery/components/badge/",
+      "alt_names": [
+        "Tag",
+        "Label",
+        "Chip"
+      ],
+      "example_count": 122,
+      "description": "A small label, generally appearing inside or in close proximity to another larger interface component, representing a status, property, or some other metadata."
+    },
+    {
+      "slug": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "url": "https://component.gallery/components/breadcrumbs/",
+      "alt_names": [
+        "Breadcrumb trail"
+      ],
+      "example_count": 55,
+      "description": "A list of links showing the location of the current page in the navigational hierarchy."
+    },
+    {
+      "slug": "button",
+      "name": "Button",
+      "url": "https://component.gallery/components/button/",
+      "alt_names": [],
+      "example_count": 118,
+      "description": "Buttons trigger an action such as submitting a form or showing/hiding an interface component."
+    },
+    {
+      "slug": "button-group",
+      "name": "Button group",
+      "url": "https://component.gallery/components/button-group/",
+      "alt_names": [
+        "Toolbar"
+      ],
+      "example_count": 36,
+      "description": "A wrapper for multiple, related buttons."
+    },
+    {
+      "slug": "card",
+      "name": "Card",
+      "url": "https://component.gallery/components/card/",
+      "alt_names": [
+        "Tile"
+      ],
+      "example_count": 79,
+      "description": "A container for content representing a single entity. e.g. a contact, article, or task."
+    },
+    {
+      "slug": "carousel",
+      "name": "Carousel",
+      "url": "https://component.gallery/components/carousel/",
+      "alt_names": [
+        "Content slider"
+      ],
+      "example_count": 22,
+      "description": "A means of displaying multiple slides of content, one or more at a time. Navigation between slides can be controlled via swiping, scrolling, or buttons."
+    },
+    {
+      "slug": "checkbox",
+      "name": "Checkbox",
+      "url": "https://component.gallery/components/checkbox/",
+      "alt_names": [],
+      "example_count": 84,
+      "description": "An input for choosing from predefined options:"
+    },
+    {
+      "slug": "color-picker",
+      "name": "Color picker",
+      "url": "https://component.gallery/components/color-picker/",
+      "alt_names": [],
+      "example_count": 16,
+      "description": "An input for choosing a color."
+    },
+    {
+      "slug": "combobox",
+      "name": "Combobox",
+      "url": "https://component.gallery/components/combobox/",
+      "alt_names": [
+        "Autocomplete",
+        "Autosuggest"
+      ],
+      "example_count": 37,
+      "description": "An input that behaves similarly to a select, with the addition of a free text input to filter options."
+    },
+    {
+      "slug": "date-input",
+      "name": "Date input",
+      "url": "https://component.gallery/components/date-input/",
+      "alt_names": [],
+      "example_count": 17,
+      "description": "A means of inputting a date \u2013 often separated into multiple individual fields for day/month/year."
+    },
+    {
+      "slug": "datepicker",
+      "name": "Datepicker",
+      "url": "https://component.gallery/components/datepicker/",
+      "alt_names": [
+        "Calendar",
+        "Datetime picker"
+      ],
+      "example_count": 43,
+      "description": "A visual way to choose a date using a calendar view."
+    },
+    {
+      "slug": "drawer",
+      "name": "Drawer",
+      "url": "https://component.gallery/components/drawer/",
+      "alt_names": [
+        "Tray",
+        "Flyout",
+        "Sheet"
+      ],
+      "example_count": 38,
+      "description": "A panel which slides out from the edge of the screen."
+    },
+    {
+      "slug": "dropdown-menu",
+      "name": "Dropdown menu",
+      "url": "https://component.gallery/components/dropdown-menu/",
+      "alt_names": [
+        "Select menu"
+      ],
+      "example_count": 48,
+      "description": "A menu in which options are hidden by default but can be shown by interacting with a button; it differs from a select in that it shows actions or navigation options and is not a form input."
+    },
+    {
+      "slug": "empty-state",
+      "name": "Empty state",
+      "url": "https://component.gallery/components/empty-state/",
+      "alt_names": [],
+      "example_count": 16,
+      "description": "An indication to the user that there is no data to display in the current view; it often includes an alternative action (e.g. try a different search term)."
+    },
+    {
+      "slug": "fieldset",
+      "name": "Fieldset",
+      "url": "https://component.gallery/components/fieldset/",
+      "alt_names": [],
+      "example_count": 31,
+      "description": "A wrapper for related form fields."
+    },
+    {
+      "slug": "file",
+      "name": "File",
+      "url": "https://component.gallery/components/file/",
+      "alt_names": [
+        "Attachment",
+        "Download"
+      ],
+      "example_count": 6,
+      "description": "A representation of a file such as an uploaded attachment or a downloadable PDF."
+    },
+    {
+      "slug": "file-upload",
+      "name": "File upload",
+      "url": "https://component.gallery/components/file-upload/",
+      "alt_names": [
+        "File input",
+        "File uploader",
+        "Dropzone"
+      ],
+      "example_count": 32,
+      "description": "An input which allows users to upload a file from their device."
+    },
+    {
+      "slug": "footer",
+      "name": "Footer",
+      "url": "https://component.gallery/components/footer/",
+      "alt_names": [],
+      "example_count": 19,
+      "description": "Commonly appearing at the bottom of a page or section, a footer is used to display copyright and legal information or links to related content."
+    },
+    {
+      "slug": "form",
+      "name": "Form",
+      "url": "https://component.gallery/components/form/",
+      "alt_names": [],
+      "example_count": 22,
+      "description": "A grouping of input controls that allow a user to submit information to a server."
+    },
+    {
+      "slug": "header",
+      "name": "Header",
+      "url": "https://component.gallery/components/header/",
+      "alt_names": [],
+      "example_count": 41,
+      "description": "An element that appears across the top of all pages on a website or application; it usually contains the site name and main navigation."
+    },
+    {
+      "slug": "hero",
+      "name": "Hero",
+      "url": "https://component.gallery/components/hero/",
+      "alt_names": [
+        "Jumbotron",
+        "Banner"
+      ],
+      "example_count": 9,
+      "description": "A large banner, usually appearing as one of the first items on a page; it often contains a full-width image."
+    },
+    {
+      "slug": "icon",
+      "name": "Icon",
+      "url": "https://component.gallery/components/icon/",
+      "alt_names": [],
+      "example_count": 45,
+      "description": "An icon is a graphic symbol designed to visually indicate the purpose of an interface element."
+    },
+    {
+      "slug": "image",
+      "name": "Image",
+      "url": "https://component.gallery/components/image/",
+      "alt_names": [
+        "Picture"
+      ],
+      "example_count": 27,
+      "description": "An element for embedding images."
+    },
+    {
+      "slug": "label",
+      "name": "Label",
+      "url": "https://component.gallery/components/label/",
+      "alt_names": [
+        "Form label"
+      ],
+      "example_count": 15,
+      "description": "A text label for form inputs."
+    },
+    {
+      "slug": "link",
+      "name": "Link",
+      "url": "https://component.gallery/components/link/",
+      "alt_names": [
+        "Anchor",
+        "Hyperlink"
+      ],
+      "example_count": 64,
+      "description": "A link is a reference to a resource. This can be external (e.g. a different web page) or internal (e.g. a specific element in the current document)."
+    },
+    {
+      "slug": "list",
+      "name": "List",
+      "url": "https://component.gallery/components/list/",
+      "alt_names": [],
+      "example_count": 69,
+      "description": "Lists are used for grouping a collection of related items. In HTML there are three types:"
+    },
+    {
+      "slug": "modal",
+      "name": "Modal",
+      "url": "https://component.gallery/components/modal/",
+      "alt_names": [
+        "Dialog",
+        "Popup",
+        "Modal window"
+      ],
+      "example_count": 82,
+      "description": "A modal is an interface element that appears over other content. It requires an interaction from the user before they can return to whatever is underneath."
+    },
+    {
+      "slug": "navigation",
+      "name": "Navigation",
+      "url": "https://component.gallery/components/navigation/",
+      "alt_names": [
+        "Nav",
+        "Menu"
+      ],
+      "example_count": 63,
+      "description": "A container for navigation links; these can be to other pages (e.g. main site navigation) or to elements within the current page (e.g. a table of contents)."
+    },
+    {
+      "slug": "pagination",
+      "name": "Pagination",
+      "url": "https://component.gallery/components/pagination/",
+      "alt_names": [],
+      "example_count": 49,
+      "description": "Pagination is the process of splitting information over multiple pages instead of showing it all on a single page; also the name for the interface component used for navigating between these pages."
+    },
+    {
+      "slug": "popover",
+      "name": "Popover",
+      "url": "https://component.gallery/components/popover/",
+      "alt_names": [],
+      "example_count": 50,
+      "description": "An element that pops up from another element over other content; it differs from a tooltip in that it is usually triggered via click instead of hover and can contain interactive elements."
+    },
+    {
+      "slug": "progress-bar",
+      "name": "Progress bar",
+      "url": "https://component.gallery/components/progress-bar/",
+      "alt_names": [
+        "Progress"
+      ],
+      "example_count": 41,
+      "description": "A horizontal bar indicating the current completion status of a long-running task, usually updated continuously as the task progresses, instead of in discrete steps."
+    },
+    {
+      "slug": "progress-indicator",
+      "name": "Progress indicator",
+      "url": "https://component.gallery/components/progress-indicator/",
+      "alt_names": [
+        "Progress tracker",
+        "Stepper",
+        "Steps",
+        "Timeline",
+        "Meter"
+      ],
+      "example_count": 38,
+      "description": "A representation of a user\u2019s progress through a series of discrete steps."
+    },
+    {
+      "slug": "quote",
+      "name": "Quote",
+      "url": "https://component.gallery/components/quote/",
+      "alt_names": [
+        "Pull quote",
+        "Block quote"
+      ],
+      "example_count": 11,
+      "description": "Quotes are used to display a quotation: either from a person or another outside source or to highlight a passage of the current document (a pull quote)."
+    },
+    {
+      "slug": "radio-button",
+      "name": "Radio button",
+      "url": "https://component.gallery/components/radio-button/",
+      "alt_names": [
+        "Radio",
+        "Radio group"
+      ],
+      "example_count": 86,
+      "description": "Radio buttons allow a user to select a single option from a list of predefined options."
+    },
+    {
+      "slug": "rating",
+      "name": "Rating",
+      "url": "https://component.gallery/components/rating/",
+      "alt_names": [],
+      "example_count": 19,
+      "description": "Ratings let users see and/or set a star rating for a product or other item."
+    },
+    {
+      "slug": "rich-text-editor",
+      "name": "Rich text editor",
+      "url": "https://component.gallery/components/rich-text-editor/",
+      "alt_names": [
+        "RTE",
+        "wysiwyg editor"
+      ],
+      "example_count": 5,
+      "description": "An interface for editing \u201crich text\u201d content (i.e. with formatting), usually through a WYSIWYG interface."
+    },
+    {
+      "slug": "search-input",
+      "name": "Search input",
+      "url": "https://component.gallery/components/search-input/",
+      "alt_names": [
+        "Search"
+      ],
+      "example_count": 29,
+      "description": "Search inputs allow users to find content by entering a search term."
+    },
+    {
+      "slug": "segmented-control",
+      "name": "Segmented control",
+      "url": "https://component.gallery/components/segmented-control/",
+      "alt_names": [
+        "Toggle button group"
+      ],
+      "example_count": 28,
+      "description": "A hybrid somewhere between a button group, radio buttons, and tabs; segmented controls are used to switch between different options or views."
+    },
+    {
+      "slug": "select",
+      "name": "Select",
+      "url": "https://component.gallery/components/select/",
+      "alt_names": [
+        "Dropdown",
+        "Select input"
+      ],
+      "example_count": 82,
+      "description": "A form input used for selecting a value: when collapsed it shows the currently selected option and when expanded, it shows a scrollable list of predefined options for the user to choose from."
+    },
+    {
+      "slug": "separator",
+      "name": "Separator",
+      "url": "https://component.gallery/components/separator/",
+      "alt_names": [
+        "Divider",
+        "Horizontal rule",
+        "Vertical rule"
+      ],
+      "example_count": 33,
+      "description": "A separator between two elements, usually consisting of a horizontal line."
+    },
+    {
+      "slug": "skeleton",
+      "name": "Skeleton",
+      "url": "https://component.gallery/components/skeleton/",
+      "alt_names": [
+        "Skeleton loader"
+      ],
+      "example_count": 35,
+      "description": "A placeholder layout for content which hasn't yet loaded, usually built up of grey boxes."
+    },
+    {
+      "slug": "skip-link",
+      "name": "Skip link",
+      "url": "https://component.gallery/components/skip-link/",
+      "alt_names": [],
+      "example_count": 14,
+      "description": "Links within a page for skipping to another section, primarily for users who navigate using a keyboard."
+    },
+    {
+      "slug": "slider",
+      "name": "Slider",
+      "url": "https://component.gallery/components/slider/",
+      "alt_names": [
+        "Range input"
+      ],
+      "example_count": 39,
+      "description": "A form control for choosing a value within a preset range of values."
+    },
+    {
+      "slug": "spinner",
+      "name": "Spinner",
+      "url": "https://component.gallery/components/spinner/",
+      "alt_names": [
+        "Loader",
+        "Loading"
+      ],
+      "example_count": 66,
+      "description": "A visual indicator that a process is happening in the background but the interface is not yet ready for interaction."
+    },
+    {
+      "slug": "stack",
+      "name": "Stack",
+      "url": "https://component.gallery/components/stack/",
+      "alt_names": [],
+      "example_count": 9,
+      "description": "A wrapper component for adding a consistent margin between components."
+    },
+    {
+      "slug": "stepper",
+      "name": "Stepper",
+      "url": "https://component.gallery/components/stepper/",
+      "alt_names": [
+        "Nudger",
+        "Quantity",
+        "Counter"
+      ],
+      "example_count": 19,
+      "description": "A control for editing a numeric value with buttons for decrementing / incrementing."
+    },
+    {
+      "slug": "table",
+      "name": "Table",
+      "url": "https://component.gallery/components/table/",
+      "alt_names": [],
+      "example_count": 74,
+      "description": "A component for displaying large amounts of data in rows and columns; commonly referred to as a 'Data Table' when it includes sorting and/ or filtering functionality."
+    },
+    {
+      "slug": "tabs",
+      "name": "Tabs",
+      "url": "https://component.gallery/components/tabs/",
+      "alt_names": [
+        "Tabbed interface"
+      ],
+      "example_count": 81,
+      "description": "Tabbed interfaces are a way of navigating between multiple panels, reducing clutter and fitting more into a smaller space."
+    },
+    {
+      "slug": "text-input",
+      "name": "Text input",
+      "url": "https://component.gallery/components/text-input/",
+      "alt_names": [],
+      "example_count": 72,
+      "description": "A form control that accepts a single line of text."
+    },
+    {
+      "slug": "textarea",
+      "name": "Textarea",
+      "url": "https://component.gallery/components/textarea/",
+      "alt_names": [
+        "Textbox",
+        "Text box"
+      ],
+      "example_count": 51,
+      "description": "A form control for editing multi-line text."
+    },
+    {
+      "slug": "toast",
+      "name": "Toast",
+      "url": "https://component.gallery/components/toast/",
+      "alt_names": [
+        "Snackbar"
+      ],
+      "example_count": 42,
+      "description": "A type of alert which appears in a layer above other content, visually similar to a mobile or desktop push notification."
+    },
+    {
+      "slug": "toggle",
+      "name": "Toggle",
+      "url": "https://component.gallery/components/toggle/",
+      "alt_names": [
+        "Switch",
+        "Lightswitch",
+        "Toggle button"
+      ],
+      "example_count": 59,
+      "description": "A control used to switch between two states: often on or off."
+    },
+    {
+      "slug": "tooltip",
+      "name": "Tooltip",
+      "url": "https://component.gallery/components/tooltip/",
+      "alt_names": [
+        "Toggletip"
+      ],
+      "example_count": 74,
+      "description": "A means of displaying a description or extra information about an element, usually on hover, but can also be on click or tap."
+    },
+    {
+      "slug": "tree-view",
+      "name": "Tree view",
+      "url": "https://component.gallery/components/tree-view/",
+      "alt_names": [],
+      "example_count": 14,
+      "description": "A component for displaying nested hierarchical information, such as a table of contents or directory structure."
+    },
+    {
+      "slug": "heading",
+      "name": "Heading",
+      "url": "https://component.gallery/components/heading/",
+      "alt_names": [],
+      "example_count": 28,
+      "description": "A title or caption used to introduce a new section."
+    },
+    {
+      "slug": "video",
+      "name": "Video",
+      "url": "https://component.gallery/components/video/",
+      "alt_names": [
+        "Video player"
+      ],
+      "example_count": 15,
+      "description": "Video players are used for displaying video content; they often include controls to control playback."
+    },
+    {
+      "slug": "visually-hidden",
+      "name": "Visually hidden",
+      "url": "https://component.gallery/components/visually-hidden/",
+      "alt_names": [
+        "Screenreader only"
+      ],
+      "example_count": 11,
+      "description": "Invisible text used to provide extra context for users of assistive technology."
+    }
+  ],
+  "design_systems": [
+    {
+      "name": "98.css",
+      "url": "https://jdan.github.io/98.css/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "A11Y Style Guide",
+      "url": "https://a11y-style-guide.com/style-guide/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Ant Design",
+      "url": "https://ant.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Ariakit",
+      "url": "https://ariakit.org/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Atlassian Design System",
+      "url": "https://atlassian.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Auro",
+      "url": "https://auro.alaskaair.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Aurora",
+      "url": "https://design.gccollab.ca/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Backpack",
+      "url": "https://www.skyscanner.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Base Web",
+      "url": "https://baseweb.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "BBC Global Experience Language",
+      "url": "https://www.bbc.co.uk/gel/guidelines/category/design-patterns",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Blueprint",
+      "url": "https://blueprintjs.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Bolt Design System",
+      "url": "https://boltdesignsystem.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Bootstrap",
+      "url": "https://getbootstrap.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Brighton & Hove City Council Website pattern library",
+      "url": "http://design.brighton-hove.gov.uk/website-pattern-library.php?p=service-icons",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Bulma",
+      "url": "https://bulma.io/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Carbon Design System",
+      "url": "https://www.carbondesignsystem.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Cauldron",
+      "url": "https://cauldron.dequelabs.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Cedar",
+      "url": "https://cedar.rei.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Chakra UI",
+      "url": "https://chakra-ui.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Clarity Design System",
+      "url": "https://clarity.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Coral",
+      "url": "https://design.talend.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Crayons",
+      "url": "https://crayons.freshworks.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Decathlon Design System",
+      "url": "https://www.decathlon.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Dell Design System",
+      "url": "https://www.delldesignsystem.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Duet Design System",
+      "url": "https://www.duetds.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "eBay MIND Patterns",
+      "url": "https://ebay.gitbook.io/mindpatterns/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "eBay Playbook",
+      "url": "https://playbook.ebay.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Elastic UI framework",
+      "url": "https://eui.elastic.co/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Elisa Design System",
+      "url": "https://designsystem.elisa.fi/9b207b2c3/p/155e65-elisa-design-system",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Evergreen",
+      "url": "https://evergreen.segment.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Flowbite",
+      "url": "https://flowbite.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Fluent UI",
+      "url": "https://developer.microsoft.com/en-us/fluentui\\#/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Forma 36",
+      "url": "https://f36.contentful.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "FutureLearn design system",
+      "url": "https://design-system.futurelearn.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Geist Design System",
+      "url": "https://vercel.com/geist",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "generic-components",
+      "url": "https://genericcomponents.netlify.app/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Gestalt",
+      "url": "https://gestalt.pinterest.systems/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "giffgaff design system",
+      "url": "https://www.giffgaff.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "GOLD Design System",
+      "url": "https://gold.designsystemau.org/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "GOV.UK Design System",
+      "url": "https://design-system.service.gov.uk/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Grommet",
+      "url": "https://v2.grommet.io/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Headless UI",
+      "url": "https://headlessui.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Helios",
+      "url": "https://helios.hashicorp.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Helsinki Design System",
+      "url": "https://hds.hel.fi/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "HeroUI",
+      "url": "https://www.heroui.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Inclusive Components",
+      "url": "https://inclusive-components.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Instructure-UI",
+      "url": "https://instructure.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "J\u00f8kul Designsystem",
+      "url": "https://jokul.fremtind.no/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Lightning Design System",
+      "url": "https://www.lightningdesignsystem.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Material Design",
+      "url": "https://m3.material.io/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Momentum Design",
+      "url": "https://momentum.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Morningstar Product System",
+      "url": "https://design.morningstar.com/systems/product",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Mozilla Protocol",
+      "url": "https://protocol.mozilla.org/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Nessie",
+      "url": "https://design.ns.nl/4a05a30ad/p/04b3ac-nessie--ns-design-system",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "NewsKit",
+      "url": "https://www.newskit.co.uk/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "NHS Digital service manual",
+      "url": "https://service-manual.nhs.uk/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "No Style Design System",
+      "url": "https://nostyle.onrender.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Nord Design System",
+      "url": "https://nordhealth.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Nucleus Design System",
+      "url": "https://britishgas.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "ONS Design System",
+      "url": "https://ons-design-system.netlify.app/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Ontario Design System",
+      "url": "https://designsystem.ontario.ca/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Orbit",
+      "url": "https://orbit.kiwi/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Pajamas",
+      "url": "https://design.gitlab.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Paste",
+      "url": "https://paste.twilio.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "PatternFly",
+      "url": "https://www.patternfly.org/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Pharos",
+      "url": "https://pharos.jstor.org/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Polaris",
+      "url": "https://polaris.shopify.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Porsche Design System",
+      "url": "https://designsystem.porsche.com/v3/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Primer",
+      "url": "https://primer.style/design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Purple3",
+      "url": "https://design.herokai.com/purple3",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Quasar Framework",
+      "url": "https://quasar.dev/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Radix Primitives",
+      "url": "https://radix-ui.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Reach UI",
+      "url": "https://reach.tech/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Red Hat design system",
+      "url": "https://ux.redhat.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Ruter Components",
+      "url": "https://components.ruter.as/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Sainsbury's Design System",
+      "url": "https://design-systems.sainsburys.co.uk/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "SEB Design Library",
+      "url": "https://designlibrary.sebgroup.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Seeds",
+      "url": "https://sproutsocial.com/seeds/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Seek style guide",
+      "url": "https://seek-oss.github.io/seek-style-guide/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "shadcn/ui",
+      "url": "https://ui.shadcn.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Shoelace",
+      "url": "https://shoelace.style/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Source",
+      "url": "https://theguardian.design/2a1e5182b/p/300696-",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Spectrum",
+      "url": "https://spectrum.adobe.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Stacks",
+      "url": "https://stackoverflow.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "SubZero",
+      "url": "https://www.subzero.axis.bank.in/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Thumbprint",
+      "url": "https://thumbprint.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "United States Web Design System",
+      "url": "https://designsystem.digital.gov/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "uStyle",
+      "url": "https://ustyle.guide/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Visa Product Design System",
+      "url": "https://design.visa.com/welcome/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "W3C design system",
+      "url": "https://design-system.w3.org/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Wanda",
+      "url": "https://design.wonderflow.ai/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Web Awesome",
+      "url": "https://webawesome.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "West Midlands Network Design System",
+      "url": "https://designsystem.tfwm.org.uk/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Wise Design",
+      "url": "https://wise.design/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    },
+    {
+      "name": "Workday Canvas Design System",
+      "url": "https://design.workday.com/",
+      "gallery_url": "https://component.gallery/design-systems/"
+    }
+  ]
+}

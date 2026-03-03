@@ -4,6 +4,7 @@ Frontend design, image generation/editing, vision models, TTS, and visual effect
 
 | Skill | Description |
 |-------|-------------|
+| `component-gallery` | Encyclopedic UI pattern research: 60 components, 95 design systems, 8,692 RAG chunks. Pairs with `minoan-frontend-design` |
 | `gemini-claude-resonance` | Cross-model dialogue between Claude and Gemini with shared visual memory |
 | `image-forge` | Precision image editing: ImageMagick 7, rembg, sips, JSON pipelines |
 | `minoan-frontend-design` | Frontend design with eval infrastructure (70% win rate) |
