@@ -35,7 +35,7 @@ claude-code-minoan/
 ├── extensions/                  # VS Code Claude Session Tracker extension
 ├── ghostty/                     # Ghostty terminal config for Claude Code
 ├── sounds/                      # Notification audio
-└── docs/global-config/          # Full ~/.claude/ structure reference
+└── docs/global-setup/          # Full ~/.claude/ structure reference
 ```
 
 Each folder has its own README with setup instructions, examples, and credits.
@@ -99,7 +99,7 @@ Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggl
 
 ---
 
-**Memory Hierarchy**: The `claude-md-manager` skill documents the full [6-tier memory system](skills/core-development/claude-md-manager/references/memory-hierarchy.md) — managed policy, project memory, project rules (`.claude/rules/`), user memory, project local, and auto memory. See also `docs/global-config/README.md` for how this complements the [Claudicle](https://github.com/tdimino/claudicle) soul architecture.
+**Memory Hierarchy**: The `claude-md-manager` skill documents the full [6-tier memory system](skills/core-development/claude-md-manager/references/memory-hierarchy.md) — managed policy, project memory, project rules (`.claude/rules/`), user memory, project local, and auto memory. See also `docs/global-setup/README.md` for how this complements the [Claudicle](https://github.com/tdimino/claudicle) soul architecture.
 
 ---
 
@@ -208,7 +208,7 @@ Track and resume Claude Code sessions across crashes, restarts, and multiple VS 
 
 ---
 
-### [Global Config Reference](docs/global-config/README.md) — Full `~/.claude/` structure
+### [Global Config Reference](docs/global-setup/README.md) — Full `~/.claude/` structure
 
 Complete reference for the `~/.claude/` directory: CLAUDE.md patterns, user persona models, progressive disclosure with `agent_docs/`, settings.json hooks/MCP/plugins, session handoff system, plans, and design principles.
 
@@ -268,7 +268,7 @@ Then customize:
 - **Always Loaded**: Uncomment `@agent_docs/` references you want active in every session
 - **On-Demand References**: Add paths to docs Claude should read when relevant
 
-See [`docs/global-config/README.md`](docs/global-config/README.md) for the full `~/.claude/` structure reference, including userModel examples.
+See [`docs/global-setup/README.md`](docs/global-setup/README.md) for the full `~/.claude/` structure reference, including userModel examples.
 
 The template includes: engineering principles, tool preferences (OSGrep, firecrawl, uv, RLAMA retrieve-only default), interaction conventions, planning patterns, session continuity via handoffs, and infrastructure notes.
 

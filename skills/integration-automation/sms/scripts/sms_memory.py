@@ -8,16 +8,30 @@ Tier 1: Working memory — per-conversation message history + cognitive outputs
 Tier 2: User models — per-phone-number personality profiles
 Tier 3: Soul memory — cross-conversation soul state (emotional state, topic, etc.)
 
+Soul-aware routing: if ~/.claudicle/soul/soul.md exists, cognitive memory
+(working memory, user models, soul memory) routes through the canonical
+Claudicle daemon module. Channel-specific tables (replied_messages, sms_sessions)
+always stay local.
+
 Thread-safe via threading.local() for SQLite connections.
 """
 
 import json
 import os
 import sqlite3
+import sys
 import threading
 import time
 from pathlib import Path
 from typing import Optional
+
+# Add shared skills directory to path for imports
+_SHARED_DIR = str(Path(__file__).parent.parent.parent / "shared")
+if _SHARED_DIR not in sys.path:
+    sys.path.insert(0, _SHARED_DIR)
+
+import claudicle_memory as _cm
+import usermodel_resolver as _ur
 
 DB_PATH = Path(__file__).parent.parent / "data" / "sms_memory.db"
 
@@ -119,6 +133,20 @@ def add_working_memory(
     verb: Optional[str] = None,
     metadata: Optional[dict] = None,
 ) -> None:
+    # Try canonical daemon first
+    display_name = _ur.get_display_name_for_phone(phone_number)
+    if _cm.log_memory(
+        channel=_cm.sms_channel(phone_number),
+        thread_ts=phone_number,
+        user_id=phone_number,
+        entry_type=entry_type,
+        content=content,
+        verb=verb,
+        metadata=metadata,
+        display_name=display_name,
+    ):
+        return
+    # Fallback to local DB
     conn = _get_conn()
     conn.execute(
         """INSERT INTO working_memory
@@ -131,6 +159,15 @@ def add_working_memory(
 
 
 def get_recent_memory(phone_number: str, limit: int = 20) -> list[dict]:
+    # Try canonical daemon first
+    canonical = _cm.get_recent(
+        channel=_cm.sms_channel(phone_number),
+        thread_ts=phone_number,
+        limit=limit,
+    )
+    if canonical is not None:
+        return canonical
+    # Fallback to local DB
     conn = _get_conn()
     rows = conn.execute(
         """SELECT entry_type, verb, content, metadata, created_at
@@ -185,6 +222,15 @@ def cleanup_working_memory(max_age_hours: Optional[int] = None) -> int:
 # ── User Models ──────────────────────────────────────────────────────────
 
 def get_user_model(phone_number: str) -> Optional[str]:
+    # 1. Rich userModel from ~/.claude/userModels/ (by phone)
+    rich = _ur.resolve_by_phone(phone_number)
+    if rich is not None:
+        return rich
+    # 2. Canonical daemon DB (if soul active)
+    canonical = _cm.get_user_model(phone_number)
+    if canonical is not None:
+        return canonical
+    # 3. Local DB fallback
     conn = _get_conn()
     row = conn.execute(
         "SELECT model_md FROM user_models WHERE phone_number = ?", (phone_number,)
@@ -193,6 +239,11 @@ def get_user_model(phone_number: str) -> Optional[str]:
 
 
 def get_display_name(phone_number: str) -> Optional[str]:
+    # Try rich userModel first
+    name = _ur.get_display_name_for_phone(phone_number)
+    if name is not None:
+        return name
+    # Then local DB
     conn = _get_conn()
     row = conn.execute(
         "SELECT display_name FROM user_models WHERE phone_number = ?", (phone_number,)
@@ -211,6 +262,10 @@ def ensure_user_model(phone_number: str, display_name: Optional[str] = None) -> 
 
 
 def save_user_model(phone_number: str, model_md: str, display_name: Optional[str] = None) -> None:
+    # Try canonical daemon first
+    if _cm.save_user_model(phone_number, model_md, display_name):
+        return
+    # Fallback to local DB
     conn = _get_conn()
     now = time.time()
     conn.execute(
@@ -227,15 +282,32 @@ def save_user_model(phone_number: str, model_md: str, display_name: Optional[str
 
 
 def increment_interaction(phone_number: str) -> None:
+    # Try canonical daemon first
+    if _cm.increment_interaction(phone_number):
+        return
+    # Fallback to local DB
     conn = _get_conn()
+    now = time.time()
+    # Ensure row exists (INSERT OR IGNORE), then increment
+    conn.execute(
+        """INSERT OR IGNORE INTO user_models
+           (phone_number, model_md, interaction_count, created_at, updated_at)
+           VALUES (?, '', 0, ?, ?)""",
+        (phone_number, now, now),
+    )
     conn.execute(
         "UPDATE user_models SET interaction_count = interaction_count + 1, updated_at = ? WHERE phone_number = ?",
-        (time.time(), phone_number),
+        (now, phone_number),
     )
     conn.commit()
 
 
 def should_check_user_model(phone_number: str) -> bool:
+    # Try canonical daemon first
+    result = _cm.should_check_user_model(phone_number)
+    if result is not None:
+        return result
+    # Fallback to local DB
     conn = _get_conn()
     row = conn.execute(
         "SELECT interaction_count FROM user_models WHERE phone_number = ?", (phone_number,)
@@ -248,12 +320,24 @@ def should_check_user_model(phone_number: str) -> bool:
 # ── Soul Memory ──────────────────────────────────────────────────────────
 
 def get_soul(key: str) -> Optional[str]:
+    # Try canonical daemon first
+    canonical = _cm.get_soul(key)
+    if canonical is not None:
+        return canonical
+    if _cm.is_soul_active():
+        # Soul is active but key not found — return default
+        return SOUL_MEMORY_DEFAULTS.get(key)
+    # Fallback to local DB
     conn = _get_conn()
     row = conn.execute("SELECT value FROM soul_memory WHERE key = ?", (key,)).fetchone()
     return row["value"] if row else SOUL_MEMORY_DEFAULTS.get(key)
 
 
 def set_soul(key: str, value: str) -> None:
+    # Try canonical daemon first
+    if _cm.set_soul(key, value):
+        return
+    # Fallback to local DB
     conn = _get_conn()
     conn.execute(
         """INSERT INTO soul_memory (key, value, updated_at)
@@ -266,6 +350,13 @@ def set_soul(key: str, value: str) -> None:
 
 
 def get_all_soul() -> dict[str, str]:
+    # Try canonical daemon first
+    canonical = _cm.get_all_soul()
+    if canonical is not None:
+        result = dict(SOUL_MEMORY_DEFAULTS)
+        result.update(canonical)
+        return result
+    # Fallback to local DB
     conn = _get_conn()
     rows = conn.execute("SELECT key, value FROM soul_memory").fetchall()
     result = dict(SOUL_MEMORY_DEFAULTS)
