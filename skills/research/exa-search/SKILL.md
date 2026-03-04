@@ -64,12 +64,28 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --json | \
 
 ### Cost Tiers — Match to Task
 
-| Type | Latency | Cost | When |
-|------|---------|------|------|
+| Type | Latency | Cost/1k | When |
+|------|---------|---------|------|
 | `--instant` | <150ms | Cheapest | Real-time lookups, autocomplete |
 | `--fast` | ~500ms | Low | Quick checks, confirmations |
-| `auto` (default) | — | Medium | General search |
-| `--deep` | Slowest | Highest | Comprehensive research |
+| `auto` (default) | -- | Medium | General search |
+| `--deep` | 4-12s | $12 | Comprehensive research |
+| `--deep-reasoning` | 12-50s | $15 | Maximum depth + synthesis |
+
+### Structured Deep Search (Exa Deep)
+
+Deep and deep-reasoning searches support structured JSON output via `outputSchema`. The API returns parsed content in `output.content` with per-field grounding citations and confidence scores.
+
+| Quick Example | Purpose |
+|---------------|---------|
+| `... --deep --text-output "Short answer"` | Simple text answer |
+| `... --deep-reasoning --schema-preset company` | Structured company research |
+| `... --deep --output-schema '{"type":"object","properties":{"answer":{"type":"string"}}}'` | Custom schema |
+| `... --deep --schema-file ~/schemas/analysis.json` | Schema from file |
+
+Presets: `company`, `paper-survey`, `competitor-analysis`, `person`, `news-digest`
+
+Output includes field-level grounding: per-field citations with [H]igh/[M]edium/[L]ow confidence.
 
 ---
 
@@ -90,6 +106,8 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" [options]
 | `... exa_search.py "query" --after 2025-01-01 --category news` | Recent news |
 | `... exa_search.py "query" --context --context-chars 10000` | RAG context |
 | `... exa_search.py "query" --instant -n 5` | Sub-150ms lookup |
+| `... exa_search.py "Top AI startups" --deep-reasoning --schema-preset company` | Structured company research |
+| `... exa_search.py "Who is CEO of Stripe?" --deep --text-output "Short answer"` | Quick factual answer |
 
 **Categories:** company, research paper, news, pdf, github, tweet, personal site, people, financial report
 
@@ -162,6 +180,8 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "question" [op
 | Complex structured research | `exa_research_async.py --pro` |
 | Real-time search | `exa_search.py --instant` |
 | RAG context building | `exa_search.py --context` |
+| Structured research with grounding | `exa_search.py --deep-reasoning --schema-preset company` |
+| Quick factual answer | `exa_search.py --deep --text-output "Short answer"` |
 
 ## Exa vs Firecrawl vs Native Claude Tools
 

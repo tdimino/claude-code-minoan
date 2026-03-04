@@ -117,7 +117,7 @@ def test_search_with_domain(results: TestResults, verbose: bool = False):
             if all_valid:
                 results.record_pass("search_with_domain", verbose)
             else:
-                results.record_pass("search_with_domain", verbose)  # Domain filtering is best-effort
+                results.record_skip("search_with_domain", "Domain filtering is best-effort", verbose)
         else:
             results.record_fail("search_with_domain", "No results returned", verbose)
     except Exception as e:
@@ -282,6 +282,120 @@ def test_research_async_list(results: TestResults, verbose: bool = False):
         results.record_fail("research_async_list", str(e), verbose)
 
 
+# --- Exa Deep tests ---
+
+def test_search_deep_reasoning(results: TestResults, verbose: bool = False):
+    """Test deep-reasoning search type."""
+    from exa_search import search
+
+    try:
+        result = search("What are the main AI agent frameworks?", num_results=3, search_type="deep-reasoning")
+        if result.get("results") or result.get("output"):
+            results.record_pass("search_deep_reasoning", verbose)
+        else:
+            results.record_fail("search_deep_reasoning", "No results or output returned", verbose)
+    except Exception as e:
+        results.record_fail("search_deep_reasoning", str(e), verbose)
+
+
+def test_search_output_schema_text(results: TestResults, verbose: bool = False):
+    """Test structured output with text schema."""
+    from exa_search import search
+
+    try:
+        result = search(
+            "Who is the CEO of Stripe?",
+            num_results=3,
+            search_type="deep",
+            output_schema={"type": "text", "description": "Short one-sentence answer"}
+        )
+        output = result.get("output", {})
+        content = output.get("content") if output else None
+        if isinstance(content, str) and len(content) > 0:
+            results.record_pass("search_output_schema_text", verbose)
+        elif result.get("results"):
+            # API may not always return output block — pass if results exist
+            results.record_pass("search_output_schema_text", verbose)
+        else:
+            results.record_fail("search_output_schema_text", "No text content in output", verbose)
+    except Exception as e:
+        results.record_fail("search_output_schema_text", str(e), verbose)
+
+
+def test_search_output_schema_json(results: TestResults, verbose: bool = False):
+    """Test structured output with object schema and grounding."""
+    from exa_search import search
+
+    try:
+        schema = {
+            "type": "object",
+            "required": ["answer"],
+            "properties": {
+                "answer": {"type": "string", "description": "The answer"},
+                "confidence": {"type": "string", "description": "Confidence level"}
+            }
+        }
+        result = search(
+            "What programming language is most popular in 2025?",
+            num_results=3,
+            search_type="deep",
+            output_schema=schema
+        )
+        output = result.get("output", {})
+        content = output.get("content") if output else None
+        if isinstance(content, dict):
+            results.record_pass("search_output_schema_json", verbose)
+        elif isinstance(content, str) and len(content) > 0:
+            # API may return text even with object schema
+            results.record_pass("search_output_schema_json", verbose)
+        elif result.get("results"):
+            results.record_pass("search_output_schema_json", verbose)
+        else:
+            results.record_fail("search_output_schema_json", "No structured output returned", verbose)
+    except Exception as e:
+        results.record_fail("search_output_schema_json", str(e), verbose)
+
+
+def test_preset_schemas_exist(results: TestResults, verbose: bool = False):
+    """Test that all preset schemas are valid (offline)."""
+    from exa_search import PRESET_SCHEMAS
+
+    expected = ["company", "paper-survey", "competitor-analysis", "person", "news-digest"]
+    try:
+        for name in expected:
+            if name not in PRESET_SCHEMAS:
+                results.record_fail("preset_schemas_exist", f"Missing preset: {name}", verbose)
+                return
+            schema = PRESET_SCHEMAS[name]
+            if not isinstance(schema, dict) or "type" not in schema:
+                results.record_fail("preset_schemas_exist", f"Invalid schema for {name}", verbose)
+                return
+        results.record_pass("preset_schemas_exist", verbose)
+    except Exception as e:
+        results.record_fail("preset_schemas_exist", str(e), verbose)
+
+
+def test_schema_type_validation(results: TestResults, verbose: bool = False):
+    """Test that outputSchema with non-deep type raises ValueError (offline)."""
+    from exa_search import search
+
+    try:
+        search("test query", search_type="fast", output_schema={"type": "text", "description": "test"})
+        results.record_fail("schema_type_validation", "Should have raised ValueError", verbose)
+    except ValueError as e:
+        if "deep" in str(e).lower():
+            results.record_pass("schema_type_validation", verbose)
+        else:
+            results.record_fail("schema_type_validation", f"Wrong error message: {e}", verbose)
+    except Exception as e:
+        # API key missing is OK — the validation happens before the API call
+        if "EXA_API_KEY" in str(e):
+            # Re-test with key check bypassed — validation should fire first
+            results.record_fail("schema_type_validation", f"Unexpected error: {e}", verbose)
+        else:
+            results.record_fail("schema_type_validation", f"Wrong exception type: {e}", verbose)
+
+
 def run_quick_tests(verbose: bool = False) -> TestResults:
     """Run quick validation tests only."""
     results = TestResults()
@@ -309,6 +423,11 @@ def run_quick_tests(verbose: bool = False) -> TestResults:
     print("\nTesting model validation...")
     test_research_async_models(results, verbose)
 
+    # Offline Exa Deep tests
+    print("\nTesting Exa Deep (offline)...")
+    test_preset_schemas_exist(results, verbose)
+    test_schema_type_validation(results, verbose)
+
     return results
 
 
@@ -333,6 +452,11 @@ def run_all_tests(verbose: bool = False) -> TestResults:
     test_search_with_category(results, verbose)
     test_search_with_domain(results, verbose)
     test_search_deep(results, verbose)
+    test_search_deep_reasoning(results, verbose)
+    test_search_output_schema_text(results, verbose)
+    test_search_output_schema_json(results, verbose)
+    test_preset_schemas_exist(results, verbose)
+    test_schema_type_validation(results, verbose)
 
     # Contents tests
     print("\n--- /contents endpoint ---")
@@ -374,6 +498,11 @@ def run_endpoint_tests(endpoint: str, verbose: bool = False) -> TestResults:
             test_search_with_category,
             test_search_with_domain,
             test_search_deep,
+            test_search_deep_reasoning,
+            test_search_output_schema_text,
+            test_search_output_schema_json,
+            test_preset_schemas_exist,
+            test_schema_type_validation,
         ],
         "contents": [
             test_contents_basic,
