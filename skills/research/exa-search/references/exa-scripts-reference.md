@@ -16,7 +16,12 @@ Detailed parameter reference for all 5 Exa search scripts.
 | `--neural` | Pure embeddings-based semantic search |
 | `--instant` | Sub-150ms latency (Feb 2026) |
 | `--fast` | ~500ms latency, balanced |
-| `--deep` | Comprehensive with query expansion |
+| `--deep` | Comprehensive with query expansion (4-12s) |
+| `--deep-reasoning` | Maximum depth with LLM reasoning (12-50s) |
+| `--output-schema` | JSON schema string for structured output (deep/deep-reasoning only) |
+| `--schema-file` | Path to JSON file containing output schema |
+| `--schema-preset` | Preset schema: company, paper-survey, competitor-analysis, person, news-digest |
+| `--text-output` | Simple text output with description string |
 | `--category, -c` | Filter: company, research paper, news, pdf, github, tweet, personal site, people, financial report |
 | `--domains` | Only include these domains |
 | `--exclude-domains` | Exclude these domains |
@@ -66,6 +71,20 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "machine learning engi
 
 # With subpage crawling
 python3 ~/.claude/skills/exa-search/scripts/exa_search.py "React documentation" --subpages 3 --domains react.dev
+
+# Deep reasoning with structured output
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Top AI startups 2025" --deep-reasoning --schema-preset company --cost
+
+# Quick factual answer
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Who is the CEO of Stripe?" --deep --text-output "Short one-sentence answer"
+
+# Custom schema
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "SEC filings Tesla Q4 2025" --deep-reasoning \
+  --output-schema '{"filings": [{"date": "string", "type": "string", "key_findings": "string"}]}' \
+  --category "financial report"
+
+# Schema from file
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Compare cloud providers" --deep --schema-file ~/schemas/cloud-comparison.json
 ```
 
 ---
@@ -243,8 +262,10 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py list --limit 2
 |-----------|-----------------|
 | Neural search (1-25 results) | $0.005 |
 | Neural search (26-100 results) | $0.025 |
-| Deep search (1-25 results) | $0.015 |
-| Deep search (26-100 results) | $0.075 |
+| Deep search (1-25 results) | $0.012 |
+| Deep search (26-100 results) | $0.060 |
+| Deep-reasoning search (1-25 results) | $0.015 |
+| Deep-reasoning search (26-100 results) | $0.075 |
 | Content text per page | $0.001 |
 | Highlights per page | $0.001 |
 | Summary per page | $0.001 |
@@ -269,13 +290,14 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py list --limit 2
 | Quick Answer | N/A | `exa_research.py` |
 | Async Research | N/A | `exa_research_async.py` |
 | Deep Search | N/A | `exa_search.py --deep` |
+| Deep Reasoning | N/A | `exa_search.py --deep-reasoning` |
+| Structured Output | N/A | `exa_search.py --schema-preset company` |
 | Instant Search | N/A | `exa_search.py --instant` |
 | 9 Categories | Limited | Full support |
 | Date Filtering | Limited | Full support |
 | Domain Filtering | Limited | Full support |
 | Subpage Crawling | N/A | Full support |
 | Livecrawling | N/A | Full support |
-| Structured Output | N/A | Full support |
 
 ---
 

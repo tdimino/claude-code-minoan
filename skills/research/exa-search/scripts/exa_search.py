@@ -3,10 +3,13 @@
 Exa Neural Search - Advanced web search with AI-powered embeddings.
 
 This script provides comprehensive access to Exa's /search endpoint with all
-available parameters for neural, fast, auto, and deep search modes.
+available parameters for neural, fast, auto, deep, and deep-reasoning search modes.
 
 Features:
-- 5 search types: auto, neural, fast, deep, instant
+- 6 search types: auto, neural, fast, deep, deep-reasoning, instant
+- Structured output with outputSchema (deep/deep-reasoning only)
+- Field-level grounding with citations and confidence scores
+- 5 preset schemas: company, paper-survey, competitor-analysis, person, news-digest
 - 9 category filters: company, research paper, news, pdf, github, tweet, personal site, people, financial report
 - Domain inclusion/exclusion filtering
 - Date filtering (crawl date and published date)
@@ -19,7 +22,8 @@ Features:
 Usage:
     exa_search.py "AI agent frameworks" -n 10
     exa_search.py "machine learning papers" --category "research paper" --deep
-    exa_search.py "Python web scraping" --domains github.com realpython.com
+    exa_search.py "Top AI startups" --deep-reasoning --schema-preset company
+    exa_search.py "Who is the CEO of Stripe?" --deep --text-output "Short answer"
     exa_search.py "startup funding" --category company --after 2024-01-01
     exa_search.py "climate change news" --category news --fast --context
 
@@ -44,6 +48,112 @@ VALID_CATEGORIES = [
     "tweet", "personal site", "people", "financial report"
 ]
 
+# Preset output schemas for structured deep search
+PRESET_SCHEMAS = {
+    "company": {
+        "type": "object",
+        "required": ["companies"],
+        "properties": {
+            "companies": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["name", "description"],
+                    "properties": {
+                        "name": {"type": "string", "description": "Company name"},
+                        "description": {"type": "string", "description": "What the company does"},
+                        "ceo": {"type": "string", "description": "Current CEO"},
+                        "headquarters": {"type": "string", "description": "HQ location"},
+                        "funding": {"type": "string", "description": "Total funding raised"}
+                    }
+                }
+            }
+        }
+    },
+    "paper-survey": {
+        "type": "object",
+        "required": ["papers"],
+        "properties": {
+            "papers": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["title", "authors", "key_contribution"],
+                    "properties": {
+                        "title": {"type": "string", "description": "Paper title"},
+                        "authors": {"type": "string", "description": "Author names"},
+                        "year": {"type": "number", "description": "Publication year"},
+                        "key_contribution": {"type": "string", "description": "Main contribution"},
+                        "methodology": {"type": "string", "description": "Research methodology"},
+                        "findings": {"type": "string", "description": "Key findings"}
+                    }
+                }
+            }
+        }
+    },
+    "competitor-analysis": {
+        "type": "object",
+        "required": ["competitors"],
+        "properties": {
+            "competitors": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["name", "product"],
+                    "properties": {
+                        "name": {"type": "string", "description": "Company name"},
+                        "product": {"type": "string", "description": "Main product or service"},
+                        "market_position": {"type": "string", "description": "Market positioning"},
+                        "strengths": {"type": "array", "items": {"type": "string"}, "description": "Key strengths"},
+                        "weaknesses": {"type": "array", "items": {"type": "string"}, "description": "Key weaknesses"},
+                        "pricing": {"type": "string", "description": "Pricing model or range"}
+                    }
+                }
+            }
+        }
+    },
+    "person": {
+        "type": "object",
+        "required": ["people"],
+        "properties": {
+            "people": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["name", "title"],
+                    "properties": {
+                        "name": {"type": "string", "description": "Full name"},
+                        "title": {"type": "string", "description": "Current title or role"},
+                        "organization": {"type": "string", "description": "Current organization"},
+                        "background": {"type": "string", "description": "Professional background"},
+                        "notable_achievements": {"type": "array", "items": {"type": "string"}, "description": "Notable achievements"}
+                    }
+                }
+            }
+        }
+    },
+    "news-digest": {
+        "type": "object",
+        "required": ["stories"],
+        "properties": {
+            "stories": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["headline", "summary"],
+                    "properties": {
+                        "headline": {"type": "string", "description": "Story headline"},
+                        "source": {"type": "string", "description": "Publication source"},
+                        "date": {"type": "string", "description": "Publication date"},
+                        "summary": {"type": "string", "description": "Story summary"},
+                        "significance": {"type": "string", "description": "Why this matters"}
+                    }
+                }
+            }
+        }
+    },
+}
+
 def _headers() -> Dict[str, str]:
     """Get authentication headers."""
     if not EXA_API_KEY:
@@ -58,6 +168,8 @@ def search(
     # Search type
     search_type: str = "auto",
     additional_queries: Optional[List[str]] = None,
+    # Structured output (deep/deep-reasoning only)
+    output_schema: Optional[Dict[str, Any]] = None,
     # Category
     category: Optional[str] = None,
     # Results
@@ -97,8 +209,9 @@ def search(
 
     Args:
         query: Natural language search query
-        search_type: Search method - "auto" (default), "neural", "fast", "deep", "instant"
-        additional_queries: Extra queries for deep search mode only
+        search_type: Search method - "auto", "neural", "fast", "deep", "deep-reasoning", "instant"
+        additional_queries: Extra queries for deep/deep-reasoning search
+        output_schema: JSON schema for structured output (deep/deep-reasoning only)
         category: Filter by category (see VALID_CATEGORIES)
         num_results: Number of results (max 100)
         include_domains: Only search these domains
@@ -128,9 +241,13 @@ def search(
         Dict with search results
     """
     # Validate search type
-    valid_types = ["auto", "neural", "fast", "deep", "instant"]
+    valid_types = ["auto", "neural", "fast", "deep", "deep-reasoning", "instant"]
     if search_type not in valid_types:
         raise ValueError(f"Invalid search type '{search_type}'. Must be one of: {valid_types}")
+
+    # Validate output schema requires deep search
+    if output_schema and search_type not in ("deep", "deep-reasoning"):
+        raise ValueError("outputSchema requires --deep or --deep-reasoning search type")
 
     # Validate category
     if category and category not in VALID_CATEGORIES:
@@ -144,8 +261,12 @@ def search(
     }
 
     # Deep search additional queries
-    if additional_queries and search_type == "deep":
+    if additional_queries and search_type in ("deep", "deep-reasoning"):
         payload["additionalQueries"] = additional_queries
+
+    # Structured output schema (deep/deep-reasoning only)
+    if output_schema:
+        payload["outputSchema"] = output_schema
 
     # Category
     if category:
@@ -296,11 +417,45 @@ def format_results(results: Dict[str, Any], max_text_length: int = 500, show_cos
                 if extras.get('imageLinks'):
                     output.append(f"    Images: {len(extras['imageLinks'])} found")
 
+    # Structured output (deep/deep-reasoning with outputSchema)
+    if results.get("output"):
+        output_data = results["output"]
+        output.append(f"\n{'='*60}")
+        output.append("STRUCTURED OUTPUT:")
+        output.append("-" * 40)
+
+        content = output_data.get("content")
+        if isinstance(content, str):
+            output.append(content)
+        elif isinstance(content, dict):
+            output.append(json.dumps(content, indent=2))
+        elif content is not None:
+            output.append(str(content))
+
+        grounding = output_data.get("grounding", [])
+        if grounding:
+            output.append(f"\n{'='*60}")
+            output.append(f"GROUNDING ({len(grounding)} fields cited):")
+            output.append("-" * 40)
+            for g in grounding:
+                confidence = g.get("confidence", "unknown")
+                indicator = {"high": "[H]", "medium": "[M]", "low": "[L]"}.get(confidence, "[?]")
+                output.append(f"\n  {indicator} {g.get('field', 'unknown')}")
+                for citation in g.get("citations", []):
+                    title = citation.get("title", "No title")[:60]
+                    url = citation.get("url", "")
+                    output.append(f"      -> {title}")
+                    output.append(f"         {url}")
+
     # Cost breakdown
     if show_cost and results.get("costDollars"):
         cost = results["costDollars"]
         output.append(f"\n{'='*60}")
         output.append(f"COST: ${cost.get('total', 0):.4f}")
+        if cost.get("breakDown"):
+            for key, val in cost["breakDown"].items():
+                if isinstance(val, (int, float)):
+                    output.append(f"  {key}: ${val:.4f}")
 
     return "\n".join(output)
 
@@ -317,6 +472,8 @@ Examples:
   %(prog)s "startup news" --category company --after 2024-06-01 --fast
   %(prog)s "climate research" --deep --context
   %(prog)s "CEO profiles" --category people --summary "background and achievements"
+  %(prog)s "Top AI startups" --deep-reasoning --schema-preset company
+  %(prog)s "Who founded OpenAI?" --deep --text-output "Short answer"
 
 Categories: company, research paper, news, pdf, github, tweet, personal site, people, financial report
         """
@@ -330,8 +487,17 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
     type_group.add_argument("--neural", action="store_true", help="Use neural embeddings search")
     type_group.add_argument("--fast", action="store_true", help="Use fast search (~500ms)")
     type_group.add_argument("--instant", action="store_true", help="Use instant search (sub-150ms, real-time)")
-    type_group.add_argument("--deep", action="store_true", help="Use deep search (comprehensive)")
-    parser.add_argument("--additional-queries", nargs="+", help="Extra queries for deep search")
+    type_group.add_argument("--deep", action="store_true", help="Use deep search (comprehensive, 4-12s)")
+    type_group.add_argument("--deep-reasoning", action="store_true", help="Use deep-reasoning search (maximum depth, 12-50s)")
+    parser.add_argument("--additional-queries", nargs="+", help="Extra queries for deep/deep-reasoning search")
+
+    # Structured output (deep/deep-reasoning only)
+    schema_group = parser.add_mutually_exclusive_group()
+    schema_group.add_argument("--output-schema", help="JSON schema string for structured output")
+    schema_group.add_argument("--schema-file", help="Path to JSON file containing output schema")
+    schema_group.add_argument("--schema-preset", choices=list(PRESET_SCHEMAS.keys()),
+                              help="Use preset schema: company, paper-survey, competitor-analysis, person, news-digest")
+    schema_group.add_argument("--text-output", help="Simple text output (description string)")
 
     # Category and results
     parser.add_argument("--category", "-c", choices=VALID_CATEGORIES, help="Filter by category")
@@ -387,12 +553,42 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
         search_type = "instant"
     elif args.deep:
         search_type = "deep"
+    elif args.deep_reasoning:
+        search_type = "deep-reasoning"
+
+    # Validate schema flags require deep/deep-reasoning
+    has_schema_flag = any([args.output_schema, args.schema_file, args.schema_preset, args.text_output])
+    if has_schema_flag and search_type not in ("deep", "deep-reasoning"):
+        print("Error: --output-schema/--schema-file/--schema-preset/--text-output require --deep or --deep-reasoning",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # Resolve output schema
+    output_schema = None
+    if args.output_schema:
+        try:
+            output_schema = json.loads(args.output_schema)
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in --output-schema: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.schema_file:
+        try:
+            with open(args.schema_file) as f:
+                output_schema = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error: Failed to load schema file: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.schema_preset:
+        output_schema = PRESET_SCHEMAS[args.schema_preset]
+    elif args.text_output:
+        output_schema = {"type": "text", "description": args.text_output}
 
     try:
         results = search(
             query=args.query,
             search_type=search_type,
             additional_queries=args.additional_queries,
+            output_schema=output_schema,
             category=args.category,
             num_results=args.num,
             include_domains=args.domains,

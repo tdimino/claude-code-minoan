@@ -29,6 +29,18 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research.py "question" --sources
 python3 ~/.claude/skills/exa-search/scripts/exa_similar.py URL -n 10
 ```
 
+### Structured Deep Search (Exa Deep)
+```bash
+# Quick factual answer
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Who is the CEO of Stripe?" --deep --text-output "Short answer"
+
+# Structured company research with preset schema
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Top AI startups" --deep-reasoning --schema-preset company
+
+# Custom JSON schema
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --deep --output-schema '{"answer": {"type": "string"}}'
+```
+
 ### Key Filters
 - `--domains site1.com site2.com` — restrict to specific sites
 - `--category "research paper"` — filter by type (also: company, news, github, pdf)
