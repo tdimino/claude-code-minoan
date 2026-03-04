@@ -192,9 +192,24 @@ python3 ~/.claude/skills/sms/scripts/sms_listen.py --bg --no-twilio
 
 **Telnyx webhook setup**: Point your Telnyx Messaging Profile webhook URL to `http://localhost:9147/telnyx`. For remote access, use ngrok or similar tunnel.
 
-### 6. sms_respond.py — Soul-Aware Auto-Reply
+### 6. Auto-Reply — Two Modes
 
-Process unhandled inbound SMS and reply as Claudius with soul personality, conversation memory, and user models.
+#### Mode A: `/sms-respond` Slash Command (Interactive)
+
+Process unhandled SMS using the **current Claude Code session** as the LLM. No subprocess needed—follows the same pattern as `/slack-respond`.
+
+```
+/sms-respond        # Process all unhandled messages
+/sms-respond 2      # Process only message #2 from inbox
+```
+
+The slash command loads inbox, soul.md, and memory context dynamically, then walks through a 6-step cognitive pipeline (internal monologue → external dialogue → user model check → user model update → soul state check → soul state update). Replies are sent via `sms_send.py` and all memory layers are updated.
+
+**Use this when**: You're in an active Claude Code session and want to reply to SMS.
+
+#### Mode B: `sms_respond.py` Daemon (Standalone)
+
+Standalone daemon for Mac Mini or headless deployment. Uses `claude -p` subprocess to generate responses. **Does not work from within a running Claude Code session** (subprocess nesting conflict).
 
 ```bash
 python3 ~/.claude/skills/sms/scripts/sms_respond.py [OPTIONS]
@@ -213,10 +228,7 @@ python3 ~/.claude/skills/sms/scripts/sms_respond.py [OPTIONS]
 
 **Examples**:
 ```bash
-# Process all unhandled messages once
-python3 ~/.claude/skills/sms/scripts/sms_respond.py
-
-# Start auto-reply daemon in background
+# Start auto-reply daemon in background (Mac Mini)
 python3 ~/.claude/skills/sms/scripts/sms_respond.py --daemon --bg
 
 # Check daemon status
@@ -224,19 +236,18 @@ python3 ~/.claude/skills/sms/scripts/sms_respond.py --status
 
 # Stop daemon
 python3 ~/.claude/skills/sms/scripts/sms_respond.py --stop
-
-# Dry run (shows what would be sent)
-python3 ~/.claude/skills/sms/scripts/sms_respond.py --dry-run
 ```
 
-**Requires**: `sms_listen.py` must be running to feed `inbox.jsonl`. Uses `claude -p` subprocess (no separate API key needed).
+**Use this when**: Running headless on Mac Mini or outside Claude Code.
 
-**Memory**: Uses 3-tier SQLite memory at `data/sms_memory.db`:
+#### Shared Infrastructure
+
+Both modes require `sms_listen.py` running to feed `inbox.jsonl`.
+
+**Memory**: 3-tier SQLite at `data/sms_memory.db`:
 - Working memory — per-conversation message history + cognitive outputs
 - User models — per-phone-number personality profiles
 - Soul memory — cross-conversation soul state
-
-**Slash command**: `/sms-respond`
 
 ### 7. sms_inbox.py — Read Inbound Inbox
 
