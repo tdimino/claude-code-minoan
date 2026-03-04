@@ -21,4 +21,5 @@ Local ML inference, RAG, browser automation, messaging, telephony, and external 
 | `supabase-skill` | Supabase project management via MCP |
 | `telnyx-api` | SMS/MMS and voice via Telnyx API |
 | `twilio-api` | SMS/MMS and voice via Twilio API |
+| `resend` | Send email via [Resend](https://resend.com/) API — text, HTML, attachments, CC/BCC, stdin pipe, sender aliases |
 | `twitter` | Twitter/X via bird CLI + x-search API + Smaug archival |
