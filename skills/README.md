@@ -51,6 +51,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
 | `speak-response` | Local TTS via [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS) |
 | `classical-887` | WRHV 88.7 FM (Classical WMHT) — now playing, playlist history, Markdown reports, Spotify playlist creation via [NPR Composer API](https://classicalwmht.org/playlist) |
+| `resend` | Send email via [Resend](https://resend.com/) API — text, HTML, attachments, CC/BCC, stdin pipe, sender aliases |
 | `slack` | [Slack](https://api.slack.com/) workspace integration — 7 on-demand scripts (post, read, search, react, upload, channels, users) + Session Bridge for connecting Claude Code sessions to Slack |
 | `slack-respond` | Process unhandled Slack messages as [Claudicle](https://github.com/tdimino/claudicle) with persistent memory, cognitive pipeline, and soul state |
 | `linkedin-export` | Parse LinkedIn GDPR data exports — search messages, analyze connections, export Markdown, ingest into RLAMA |
