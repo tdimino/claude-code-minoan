@@ -2,9 +2,9 @@
 
 The meta-skill. Teaches Claude how to build, validate, and package skills—the modular units that transform Claude Code from a general-purpose agent into a specialized one.
 
-**Last updated:** 2026-02-21
+**Last updated:** 2026-03-04
 
-**Reflects:** Claude Code skills specification (Feb 2026), [Agent Skills](https://agentskills.io/) open standard, Claude 4.6 prompting best practices, and [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers) v2.0.0+ for documentation scraping.
+**Reflects:** Claude Code skills specification (Feb 2026), [Agent Skills](https://agentskills.io/) open standard, Claude 4.6 prompting best practices, [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers) v2.0.0+ for documentation scraping, and Anthropic's [skill-creator eval framework](https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills) (March 2026) for testing, benchmarking, and iterative refinement.
 
 ---
 
@@ -20,7 +20,7 @@ This skill encodes the full lifecycle: understanding requirements, planning reus
 
 ```
 skill-optimizer/
-  SKILL.md                                  # Full skill creation guide (480 lines)
+  SKILL.md                                  # Full skill creation guide (~600 lines)
   README.md                                 # This file
   LICENSE.txt                               # License
   scripts/
@@ -28,9 +28,23 @@ skill-optimizer/
     quick_validate.py                       # Validate frontmatter and structure
     package_skill.py                        # Zip for distribution (validates first)
     scrape_documentation_helper.py          # Interactive Skill_Seekers guide
+    run_eval.py                             # Execute evals with/without skill
+    aggregate_benchmark.py                  # Aggregate grading into benchmark report
+    run_loop.py                             # Description optimization loop
+    improve_description.py                  # Generate improved descriptions
+    generate_report.py                      # HTML report from eval/benchmark data
+    utils.py                                # Shared utilities
+  agents/
+    grader.md                               # Grade assertions against outputs
+    comparator.md                           # Blind A/B output comparison
+    analyzer.md                             # Benchmark pattern analysis
+  eval-viewer/
+    generate_review.py                      # Generate HTML review viewer
+    viewer.html                             # HTML template for review UI
   references/
     frontmatter-reference.md                # Complete YAML frontmatter field reference
     documentation-scraping.md               # Skill_Seekers deep dive
+    schemas.md                              # JSON schemas for eval/grading/benchmark
 ```
 
 ---
@@ -130,14 +144,16 @@ Interactive guide for using [Skill_Seekers](https://github.com/yusufkaraaslan/Sk
 
 ---
 
-## The 6-Step Creation Process
+## The 8-Step Creation Process
 
 1. **Understand** — Gather concrete examples of how the skill will be used. What triggers it? What does the user say?
 2. **Plan** — Analyze examples to identify reusable resources: scripts for repeated code, references for domain knowledge, assets for templates.
 3. **Initialize** — Run `init_skill.py` to scaffold the directory.
 4. **Edit** — Build resources first (scripts, references, assets), then write SKILL.md instructions. Optionally scrape documentation with Skill_Seekers.
 5. **Package** — Run `package_skill.py` to validate and zip.
-6. **Iterate** — Use the skill on real tasks, notice gaps, refine.
+6. **Test & Evaluate** — Write evals (`evals/evals.json`), run with/without skill, grade assertions, aggregate benchmarks, review in the eval viewer.
+7. **Optimize Description** — Generate trigger eval queries, run the optimization loop with train/test split, adopt the best-performing description.
+8. **Iterate** — Use the skill on real tasks, notice gaps, refine.
 
 ---
 
@@ -152,10 +168,63 @@ Interactive guide for using [Skill_Seekers](https://github.com/yusufkaraaslan/Sk
 
 ---
 
+## Eval Framework
+
+Adapted from Anthropic's [skill-creator eval framework](https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills) (March 2026). Measures skill effectiveness through structured testing.
+
+### Quick Start
+
+```bash
+# 1. Write evals in your skill directory
+mkdir -p my-skill/evals/files
+# Create evals/evals.json with test prompts and expectations
+
+# 2. Run evals
+python3 scripts/run_eval.py --eval-set my-skill/evals/evals.json --skill-path my-skill/
+
+# 3. Grade outputs
+# The grader agent (agents/grader.md) evaluates expectations against outputs
+
+# 4. Aggregate into benchmark
+python3 scripts/aggregate_benchmark.py benchmark-dir/ --skill-path my-skill/
+
+# 5. Review results
+python3 eval-viewer/generate_review.py workspace/
+```
+
+### Agents
+
+| Agent | Purpose |
+|-------|---------|
+| `agents/grader.md` | Evaluate assertions as PASS/FAIL with evidence, extract implicit claims |
+| `agents/comparator.md` | Blind A/B comparison—judges outputs without knowing which skill produced them |
+| `agents/analyzer.md` | Surface patterns across benchmark runs (non-discriminating assertions, variance, tradeoffs) |
+
+### Description Optimization
+
+Systematically improve the YAML `description` field to reduce undertriggering:
+
+```bash
+python3 scripts/run_loop.py \
+  --eval-set trigger-queries.json \
+  --skill-path my-skill/ \
+  --holdout 0.4 \
+  --runs-per-query 3 \
+  --model sonnet
+```
+
+Generates improved descriptions using extended thinking, evaluates on held-out test set, produces an HTML accuracy report.
+
+### Schemas
+
+All JSON schemas documented in `references/schemas.md`: `evals.json`, `grading.json`, `benchmark.json`, `history.json`, `timing.json`, `metrics.json`, `comparison.json`, `analysis.json`.
+
+---
+
 ## Requirements
 
 - Python 3.9+
-- No external dependencies for core scripts
+- No external dependencies for core scripts (eval scripts use stdlib only)
 - [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers) for documentation scraping (optional)
 
 ---

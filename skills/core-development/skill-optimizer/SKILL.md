@@ -384,6 +384,18 @@ To complete SKILL.md, answer the following questions:
 2. When should the skill be used?
 3. In practice, how should Claude use the skill? All reusable skill contents developed above should be referenced so that Claude knows how to use them.
 
+#### Skill Writing Philosophy
+
+When writing skill instructions, follow these principles adapted from Anthropic's skill-creator research:
+
+**Explain the "why" behind everything.** Instructions that explain reasoning produce better generalization than bare directives. "Validate output with the script because OCR errors are common in scanned documents" outperforms "Run the validation script." Claude generalizes the reasoning to novel situations the instructions don't cover.
+
+**Keep the prompt lean.** Every token in SKILL.md competes for context with the user's actual task. Move reference material to `references/`, detailed examples to `assets/`, and repeated logic to `scripts/`. The skill body should contain only what Claude needs to decide *what to do*—not exhaustive detail on *how to do it*.
+
+**Bundle repeated work into scripts.** When the same code appears across multiple test runs or eval transcripts, extract it into a script. Scripts are token-efficient (only output enters context), deterministic, and cacheable. Look for patterns across test cases to identify bundling opportunities.
+
+**Make descriptions slightly "pushy."** Skills undertrigger more often than they overtrigger. Descriptions that actively claim territory ("This skill should be used when..." with specific trigger phrases) perform better than passive descriptions. Include keywords users would naturally say.
+
 #### Claude 4.6 Prompting Alignment
 
 When writing or reviewing skill instructions, follow these patterns:
@@ -429,7 +441,158 @@ The packaging script will:
 
 If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
 
-### Step 6: Iterate
+### Step 6: Testing & Evaluation
+
+After packaging, test the skill systematically to measure its effectiveness. This step adapts Anthropic's eval framework for skill quality measurement.
+
+#### Two Kinds of Skills
+
+Before writing evals, identify which category the skill falls into—this determines eval strategy:
+
+- **Capability uplift**: Helps Claude do something it cannot consistently do without the skill (e.g., fill PDF forms, generate specific file formats). Eval strategy: compare outputs with and without the skill.
+- **Encoded preference**: Sequences workflow steps Claude can already do, but encodes specific preferences or domain knowledge (e.g., coding style guide, brand voice). Eval strategy: compare outputs against a human-reviewed gold standard.
+
+#### Writing Evals
+
+Create `evals/evals.json` in the skill directory with 2-5 realistic test prompts:
+
+```json
+{
+  "skill_name": "example-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "User's example prompt",
+      "expected_output": "Description of expected result",
+      "files": ["evals/files/sample1.pdf"],
+      "expectations": [
+        "The output includes X",
+        "The skill used script Y"
+      ]
+    }
+  ]
+}
+```
+
+Each eval needs:
+- A realistic prompt a user would actually say
+- Optional input files (placed in `evals/files/`)
+- A human-readable description of expected output
+- 3-7 verifiable expectations that a grader can check against the output
+
+Write expectations as specific, falsifiable statements—not vague quality judgments. "The output contains a table with 5 columns" is verifiable. "The output is well-formatted" is not.
+
+#### Running Evals
+
+Execute evals using the eval runner script:
+
+```bash
+# Run evals with the skill active
+python3 scripts/run_eval.py --eval-set evals/evals.json --skill-path <skill-path>
+
+# Run with multiple attempts per query for reliability
+python3 scripts/run_eval.py --eval-set evals/evals.json --skill-path <skill-path> --runs-per-query 3
+```
+
+Each run produces an output directory with the skill's outputs, a transcript, and timing/token metrics.
+
+#### Grading
+
+After running evals, grade the outputs against expectations. The grader agent (`agents/grader.md`) evaluates each expectation as PASS/FAIL with evidence, extracts implicit claims from the output, and summarizes executor behavior from the transcript.
+
+Grading produces `grading.json` with pass rates, execution metrics, and timing data. See `references/schemas.md` for the full schema.
+
+#### Benchmarking
+
+To aggregate results across multiple runs:
+
+```bash
+python3 scripts/aggregate_benchmark.py <benchmark-dir> --skill-path <skill-path>
+```
+
+This produces `benchmark.json` with statistical aggregates (mean, stddev) for pass_rate, timing, and token usage across with-skill and without-skill configurations. The analyzer agent (`agents/analyzer.md`) then surfaces patterns the aggregate metrics would hide—non-discriminating assertions, high-variance evals, and quality-vs-speed tradeoffs.
+
+#### Reviewing Results
+
+Launch the eval viewer for qualitative and quantitative review:
+
+```bash
+# Interactive server (auto-refreshes on new outputs)
+python3 eval-viewer/generate_review.py <workspace-path>
+
+# Static HTML export
+python3 eval-viewer/generate_review.py <workspace-path> --static review.html
+
+# With previous iteration context
+python3 eval-viewer/generate_review.py <workspace-path> --previous-workspace <prev-workspace>
+
+# With benchmark data
+python3 eval-viewer/generate_review.py <workspace-path> --benchmark <benchmark.json>
+```
+
+The viewer has two tabs: **Outputs** (qualitative review with feedback per run) and **Benchmark** (quantitative pass rates, timing, and token charts).
+
+#### Blind A/B Comparison
+
+For comparing two skill versions, use the comparator agent (`agents/comparator.md`) which receives outputs labeled A and B without knowing which skill produced them. This prevents bias toward a particular approach. The comparator generates an evaluation rubric with Content and Structure dimensions, scores each output 1-5, and declares a winner.
+
+After comparison, the analyzer agent unblinds the results and produces actionable improvement suggestions categorized by priority (high/medium/low) and type (instructions, tools, examples, error_handling, structure, references).
+
+#### Version Tracking
+
+Track improvement iterations in `history.json`:
+
+```json
+{
+  "skill_name": "pdf",
+  "current_best": "v2",
+  "iterations": [
+    {"version": "v0", "parent": null, "expectation_pass_rate": 0.65, "grading_result": "baseline"},
+    {"version": "v1", "parent": "v0", "expectation_pass_rate": 0.75, "grading_result": "won"},
+    {"version": "v2", "parent": "v1", "expectation_pass_rate": 0.85, "grading_result": "won"}
+  ]
+}
+```
+
+### Step 7: Description Optimization
+
+Skill descriptions determine when Claude uses the skill. A weak description causes undertriggering (skill not invoked when it should be) or overtriggering (skill invoked when it should not be). This step systematically optimizes the description.
+
+#### Generate Trigger Eval Queries
+
+Create 20 test queries: 10 that should trigger the skill and 10 that should not. Include realistic edge cases—queries that are close to the skill's domain but should not trigger it.
+
+For a `pdf-editor` skill, examples:
+- **Should trigger**: "Rotate this PDF 90 degrees", "Merge these three PDFs", "Extract page 5 from this document"
+- **Should not trigger**: "Read this PDF and summarize it", "Convert this Word doc to PDF", "What does this PDF contain?"
+
+#### Run the Optimization Loop
+
+```bash
+python3 scripts/run_loop.py \
+  --eval-set trigger-queries.json \
+  --skill-path <skill-path> \
+  --holdout 0.4 \
+  --runs-per-query 3 \
+  --max-iterations 5 \
+  --model sonnet
+```
+
+The loop:
+1. Splits queries into 60% train / 40% test
+2. Runs each query 3 times for reliability (majority vote)
+3. Analyzes failures on the training set
+4. Generates an improved description using extended thinking
+5. Evaluates on the held-out test set
+6. Repeats until convergence or max iterations
+
+#### Review and Adopt
+
+The loop produces an HTML report showing accuracy progression across iterations. Review the final description—it should be specific enough to avoid overtriggering but inclusive enough to catch legitimate use cases.
+
+If the optimized description improves test-set accuracy, update the skill's YAML frontmatter `description` field. If accuracy plateaus or regresses, keep the current description and investigate whether the trigger queries themselves need refinement.
+
+### Step 8: Iterate
 
 After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
 
