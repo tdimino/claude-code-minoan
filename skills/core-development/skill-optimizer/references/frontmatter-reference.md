@@ -54,21 +54,21 @@ ARGUMENTS: <user input>
 
 ## Dynamic Context Injection
 
-Shell commands can be executed before the skill content reaches Claude using the exclamation-backtick syntax (`!` followed by a backtick-wrapped command).
+Shell commands can be executed before the skill content reaches Claude using the exclamation-backtick syntax.
 
-**Syntax:** `!` + `` `shell-command` ``
+**Syntax:** exclamation mark followed by backtick-wrapped command: `EXCLAIM` + `BACKTICK command BACKTICK`
 
 **Example skill content:**
 
 ```
 ## Current PR
-- Diff: [!]`gh pr diff`
-- Comments: [!]`gh pr view --comments`
+- Diff: EXCLAIM-BACKTICK gh pr diff BACKTICK
+- Comments: EXCLAIM-BACKTICK gh pr view --comments BACKTICK
 
 Based on the above, summarize this PR...
 ```
 
-(Replace `[!]` with actual `!` character in real skills)
+(Replace EXCLAIM with the exclamation mark character and BACKTICK with the backtick character in real skills)
 
 **Execution order:**
 1. All exclamation-backtick placeholders execute
@@ -186,9 +186,9 @@ allowed-tools: Bash(gh:*)
 ---
 
 ## PR Context
-- Diff: [!]`gh pr diff`
-- Comments: [!]`gh pr view --comments`
-- Files: [!]`gh pr diff --name-only`
+- Diff: EXCLAIM-BACKTICK gh pr diff BACKTICK
+- Comments: EXCLAIM-BACKTICK gh pr view --comments BACKTICK
+- Files: EXCLAIM-BACKTICK gh pr diff --name-only BACKTICK
 
 Summarize this pull request focusing on:
 1. What changed
@@ -196,4 +196,4 @@ Summarize this pull request focusing on:
 3. Potential concerns
 ```
 
-(Replace `[!]` with actual `!` character in real skills)
+(Replace EXCLAIM with the exclamation mark character and BACKTICK with the backtick character in real skills)
