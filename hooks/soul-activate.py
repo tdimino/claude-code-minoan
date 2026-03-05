@@ -21,6 +21,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 
 SOUL_MD = os.path.expanduser("~/.claudicle/soul/soul.md")
 SOUL_MEMORY_DIR = os.path.expanduser("~/.claudicle/daemon")
@@ -137,6 +138,33 @@ def _is_soul_active(session_id):
     return False
 
 
+def _write_env_file(session_id, soul_active):
+    """Write a CLAUDE_ENV_FILE with soul state for all Bash subprocesses.
+
+    Claude Code sources this file before every Bash command, so any skill
+    or script can check $CLAUDICLE_SOUL_ACTIVE instead of importing Python.
+    """
+    env_dir = os.path.expanduser("~/.claude/soul-sessions/env")
+    os.makedirs(env_dir, exist_ok=True)
+
+    # Detect active soul profile (if any)
+    profile = os.environ.get("CLAUDICLE_SOUL_PROFILE", "default")
+
+    env_lines = [
+        f"CLAUDICLE_SESSION_ID={session_id}",
+        f"CLAUDICLE_SOUL_ACTIVE={'1' if soul_active else '0'}",
+        f"CLAUDICLE_CHANNEL=terminal:{session_id}",
+        f"CLAUDICLE_SOUL_PROFILE={profile}",
+    ]
+
+    # Write to a stable path (not tmp) so it survives the session
+    env_path = os.path.join(env_dir, f"{session_id}.env")
+    with open(env_path, "w") as f:
+        f.write("\n".join(env_lines) + "\n")
+
+    return env_path
+
+
 def main():
     # Read hook input
     try:
@@ -157,10 +185,23 @@ def main():
     _registry_cmd("register", session_id, cwd, "--pid", str(os.getppid()))
 
     # 3. Check if soul should be injected
-    if not _is_soul_active(session_id):
+    soul_active = _is_soul_active(session_id)
+
+    # 4. Write env file (always — session ID is useful even without soul)
+    env_path = _write_env_file(session_id, soul_active)
+
+    if not soul_active:
+        # Even without soul, export the env file so Bash gets session context
+        output = {
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "CLAUDE_ENV_FILE": env_path,
+            }
+        }
+        print(json.dumps(output))
         sys.exit(0)
 
-    # 4. Build additionalContext (only when soul is active)
+    # 5. Build additionalContext (only when soul is active)
     parts = []
 
     # Soul personality
@@ -198,6 +239,14 @@ def main():
         parts.append("## Active Sessions\n\n" + "\n".join(marked))
 
     if not parts:
+        # Still export env file even if no context parts
+        output = {
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "CLAUDE_ENV_FILE": env_path,
+            }
+        }
+        print(json.dumps(output))
         sys.exit(0)
 
     context = "\n\n".join(parts)
@@ -206,6 +255,7 @@ def main():
         "hookSpecificOutput": {
             "hookEventName": "SessionStart",
             "additionalContext": context,
+            "CLAUDE_ENV_FILE": env_path,
         }
     }
     print(json.dumps(output))

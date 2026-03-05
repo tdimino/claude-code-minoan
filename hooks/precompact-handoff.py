@@ -5,7 +5,10 @@ import json, sys, os, datetime, pathlib, urllib.request, re
 
 def main():
     # 1. Read hook input from stdin
-    hook_input = json.loads(sys.stdin.read())
+    try:
+        hook_input = json.loads(sys.stdin.read())
+    except (json.JSONDecodeError, EOFError):
+        return
     session_id = hook_input.get("session_id", "unknown")
     transcript_path = hook_input.get("transcript_path", "")
     cwd = hook_input.get("cwd", os.getcwd())
