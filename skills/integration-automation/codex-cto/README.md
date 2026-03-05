@@ -1,6 +1,6 @@
 # Codex CTO
 
-Inverted orchestration: GPT-5.3-Codex plans and reviews (read-only sandbox, JSON schema enforcement), Claude Code executes with native tools.
+Inverted orchestration: GPT-5.4-Pro plans and GPT-5.4 reviews (read-only sandbox, JSON schema enforcement), Claude Code executes with native tools.
 
 Sister skill to [`codex-orchestrator`](../codex-orchestrator/README.md). The orchestrator delegates one-shot specialist tasks to Codex. This skill inverts it — Codex directs, Claude Code builds.
 
@@ -53,21 +53,24 @@ Invoke from any Claude Code session:
 ### Direct script usage
 
 ```bash
-# Plan phase
+# Plan phase (uses gpt-5.4-pro by default)
 ~/.claude/skills/codex-cto/scripts/cto-invoke.sh plan \
-  "Add a health check endpoint" --model gpt-5.3-codex
+  "Add a health check endpoint"
 
-# Review phase
+# Review phase (uses gpt-5.4 by default)
 ~/.claude/skills/codex-cto/scripts/cto-invoke.sh review \
-  "Health check added at /health returning {status: ok}. Tests pass." \
-  --model gpt-5.3-codex
+  "Health check added at /health returning {status: ok}. Tests pass."
+
+# Override model
+~/.claude/skills/codex-cto/scripts/cto-invoke.sh plan \
+  "Quick fix" --model gpt-5-mini
 ```
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `--model <model>` | Override model (default: config default) |
+| `--model <model>` | Override model (default: phase-specific) |
 | `--dry-run` | Show what would be sent without calling Codex |
 | `--max-iterations N` | Set iteration limit (default: 5) |
 
@@ -80,13 +83,37 @@ Invoke from any Claude Code session:
 
 Key insight: Claude Code IS the loop. SKILL.md instructions are the orchestrator. No Python loop manager needed.
 
-## Models
+## Model Defaults
+
+| Phase | Model | Reasoning | Rationale |
+|-------|-------|-----------|-----------|
+| **Plan** | `gpt-5.4-pro` | `high` | Deepest reasoning for architectural decomposition |
+| **Review** | `gpt-5.4` | `high` | Strong reasoning for diff analysis and criteria evaluation |
+
+### Override Per-Task
+
+```bash
+# Use Mini for fast iteration
+cto-invoke.sh plan "Quick fix" --model gpt-5-mini
+
+# Dry run to inspect the command
+cto-invoke.sh plan "Add caching" --dry-run
+```
+
+### All Available Models
 
 | Model | ID | Notes |
 |-------|----|-------|
-| GPT-5.3-Codex | `gpt-5.3-codex` | Default. Recommended. |
-| GPT-5.3-Codex Spark | `gpt-5.3-codex-spark` | Lighter, faster. |
-| GPT-5.2-Codex | `gpt-5.2-codex` | Previous generation. |
+| GPT-5.4 Pro | `gpt-5.4-pro` | Default for plan. Deepest reasoning. |
+| GPT-5.4 | `gpt-5.4` | Default for review. Unified coding + reasoning. |
+| GPT-5 Mini | `gpt-5-mini` | Cost-optimized, fast iteration. |
+
+### Previous Generation (still functional)
+
+| Model | ID |
+|-------|----|
+| GPT-5.3-Codex | `gpt-5.3-codex` |
+| GPT-5.2 | `gpt-5.2` |
 
 ## Directory Structure
 

@@ -1,6 +1,6 @@
 ---
 name: codex-orchestrator
-description: Orchestrate OpenAI Codex CLI with specialized subagents for code review, debugging, architecture analysis, security audits, refactoring, and documentation. This skill should be used when delegating focused development tasks to Codex subagents (gpt-5.3-codex, gpt-5.3-codex-spark, gpt-5.2) via AGENTS.md persona injection.
+description: Orchestrate OpenAI Codex CLI with specialized subagents for code review, debugging, architecture analysis, security audits, refactoring, and documentation. This skill should be used when delegating focused development tasks to Codex subagents (gpt-5.4, gpt-5.4-pro, gpt-5-mini) via AGENTS.md persona injection.
 ---
 
 # Codex Orchestrator
@@ -254,26 +254,27 @@ Each profile has a default model and reasoning effort. User flags override these
 
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
-| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.3-codex` | `xhigh` |
-| **Planning** | planner, architect, researcher | `gpt-5.2` | `xhigh` |
+| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.4` | `high` |
+| **Planning** | planner, architect | `gpt-5.4-pro` | `high` |
+| **Research** | researcher | `gpt-5.4` | `medium` |
 
-**Reasoning effort levels**: `minimal` < `low` < `medium` < `high` < `xhigh`
+**Reasoning effort levels**: `none` < `minimal` < `low` < `medium` < `high` < `xhigh`
 
 ```bash
-# Uses profile defaults (builder → gpt-5.3-codex + xhigh)
+# Uses profile defaults (builder → gpt-5.4 + high)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Implement auth module"
 
-# Uses profile defaults (planner → gpt-5.2 + xhigh)
+# Uses profile defaults (planner → gpt-5.4-pro + high)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Create ExecPlan for caching"
 
-# Override model only
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Style check" --model gpt-5.3-codex-spark
+# Override model for quick tasks
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Style check" --model gpt-5-mini
 
 # Override reasoning only
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Quick lint fix" --reasoning medium
 
 # Override both
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Design distributed cache" --model gpt-5.3-codex --reasoning high
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Design distributed cache" --model gpt-5.4 --reasoning high
 ```
 
 ## Testing
@@ -308,7 +309,7 @@ codex login
 ```
 
 ### "Model not supported with ChatGPT account"
-Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`.
+Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.4`, `gpt-5.4-pro`, `gpt-5-mini`, `gpt-5-nano`. Previous generation (`gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.2`) still works but is superseded.
 Set an API key instead of using `codex login`:
 ```bash
 export OPENAI_API_KEY=sk-...
@@ -326,4 +327,4 @@ ls ~/.claude/skills/codex-orchestrator/agents/
 - Narrow the task scope
 - Provide more context in the prompt
 - Try a different profile
-- Use `--model gpt-5.3-codex` for complex tasks
+- Use `--model gpt-5.4-pro` for complex tasks

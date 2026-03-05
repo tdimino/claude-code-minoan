@@ -52,8 +52,9 @@ show_usage() {
     echo "  --with-mcp            (no-op, kept for compatibility; manage MCPs in ~/.codex/config.toml)"
     echo ""
     echo "Profile defaults:"
-    echo "  Coding  (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.3-codex + xhigh"
-    echo "  Planning (planner,architect,researcher):                           gpt-5.2 + xhigh"
+    echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.4 + high"
+    echo "  Planning (planner,architect):                                       gpt-5.4-pro + high"
+    echo "  Research (researcher):                                              gpt-5.4 + medium"
     echo ""
     echo "Examples:"
     echo "  codex-exec.sh reviewer \"Review src/auth.ts for security issues\""
@@ -69,15 +70,20 @@ show_usage() {
 get_profile_defaults() {
     local profile="$1"
     case "$profile" in
-        # Planning profiles: gpt-5.2 with xhigh reasoning
-        planner|architect|researcher)
-            DEFAULT_MODEL="gpt-5.2"
-            DEFAULT_REASONING="xhigh"
+        # Planning profiles: gpt-5.4-pro with high reasoning (deepest reasoning for architecture)
+        planner|architect)
+            DEFAULT_MODEL="gpt-5.4-pro"
+            DEFAULT_REASONING="high"
             ;;
-        # Coding profiles: gpt-5.3-codex with xhigh reasoning
+        # Research profile: gpt-5.4 with medium reasoning (1M context, read-only)
+        researcher)
+            DEFAULT_MODEL="gpt-5.4"
+            DEFAULT_REASONING="medium"
+            ;;
+        # Coding profiles: gpt-5.4 with high reasoning (unified coding + reasoning)
         builder|reviewer|debugger|refactor|syseng|security|docs)
-            DEFAULT_MODEL="gpt-5.3-codex"
-            DEFAULT_REASONING="xhigh"
+            DEFAULT_MODEL="gpt-5.4"
+            DEFAULT_REASONING="high"
             ;;
         *)
             DEFAULT_MODEL=""

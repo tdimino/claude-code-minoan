@@ -115,34 +115,35 @@ Each profile has a default model and reasoning effort. User flags override these
 
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
-| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.3-codex` | `xhigh` |
-| **Planning** | planner, architect, researcher | `gpt-5.2` | `xhigh` |
+| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.4` | `high` |
+| **Planning** | planner, architect | `gpt-5.4-pro` | `high` |
+| **Research** | researcher | `gpt-5.4` | `medium` |
 
-### Available Models (Feb 2026)
+### Available Models (Mar 2026)
 
 | Model | ID | Released | Notes |
 |-------|----|----------|-------|
-| **GPT-5.3-Codex** | `gpt-5.3-codex` | Feb 5, 2026 | Default for coding. 25% faster than 5.2. SOTA SWE-Bench Pro. |
-| **GPT-5.3-Codex Spark** | `gpt-5.3-codex-spark` | Feb 5, 2026 | Lighter, near-instant. Pro subscribers only. |
-| **GPT-5.2** | `gpt-5.2` | Dec 2025 | Default for planning. Deeper single-pass reasoning. |
+| **GPT-5.4** | `gpt-5.4` | Mar 2026 | Unified flagship. Coding + reasoning. 1M+ context. Default for coding/research. |
+| **GPT-5.4 Pro** | `gpt-5.4-pro` | Mar 2026 | Deepest reasoning. Default for planning profiles. |
+| **GPT-5 Mini** | `gpt-5-mini` | Mar 2026 | Cost-optimized. Replaces Spark for fast iteration. |
 
 ### Reasoning Effort Levels
 
-`minimal` < `low` < `medium` < `high` < `xhigh`
+`none` < `minimal` < `low` < `medium` < `high` < `xhigh`
 
 See `references/codex-models.md` for full model history, capabilities, and reasoning reference.
 
 ### Override Per-Task
 
 ```bash
-# Override model
-./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.3-codex-spark
+# Override model for quick tasks
+./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5-mini
 
 # Override reasoning effort
 ./scripts/codex-exec.sh builder "Quick lint fix" --reasoning medium
 
 # Override both
-./scripts/codex-exec.sh planner "Complex design" --model gpt-5.3-codex --reasoning high
+./scripts/codex-exec.sh planner "Complex design" --model gpt-5.4 --reasoning high
 ```
 
 ## Chaining Patterns
@@ -258,14 +259,14 @@ npm install -g @openai/codex
 
 ### "Model not supported with ChatGPT account"
 
-Some older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Use current models:
+Older model names (`codex-mini`, `o3`, `o4-mini`, `gpt-5.3-codex`) have been superseded. Use current models:
 
 ```bash
 # Recommended
-./scripts/codex-exec.sh reviewer "task" --model gpt-5.3-codex
+./scripts/codex-exec.sh reviewer "task" --model gpt-5.4
 
 # Fast/cheap
-./scripts/codex-exec.sh reviewer "task" --model gpt-5.3-codex-spark
+./scripts/codex-exec.sh reviewer "task" --model gpt-5-mini
 ```
 
 ### "Authentication error"
@@ -293,7 +294,7 @@ ls ./agents/
 - Narrow the task scope
 - Provide more context in the prompt
 - Try a different profile
-- Use `--model gpt-5.3-codex` for complex tasks
+- Use `--model gpt-5.4-pro` for complex tasks
 
 ## Testing
 
