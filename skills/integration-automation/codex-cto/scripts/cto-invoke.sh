@@ -24,14 +24,14 @@ show_usage() {
     echo "  review  - Evaluate implementation results and issue verdict"
     echo ""
     echo "Options:"
-    echo "  --model <model>   Model ID (default: config default)"
-    echo "                    Examples: gpt-5.3-codex, gpt-5.2-codex, gpt-5.3-codex-spark"
+    echo "  --model <model>   Model ID (default: gpt-5.4-pro for plan, gpt-5.4 for review)"
+    echo "                    Examples: gpt-5.4, gpt-5.4-pro, gpt-5-mini"
     echo "  --dry-run         Print the command without executing"
     echo ""
     echo "Examples:"
     echo "  cto-invoke.sh plan \"Add WebSocket auth to the Express API\""
     echo "  cto-invoke.sh review \"Health check added at /health. Tests pass.\""
-    echo "  cto-invoke.sh plan \"Refactor auth module\" --model gpt-5.3-codex-spark"
+    echo "  cto-invoke.sh plan \"Refactor auth module\" --model gpt-5-mini"
 }
 
 if [ $# -lt 2 ]; then
@@ -53,6 +53,13 @@ SCHEMA_FILE="$TEMPLATES_DIR/${PHASE}-schema.json"
 if [ ! -f "$SCHEMA_FILE" ]; then
     echo -e "${RED}Error: Schema not found at $SCHEMA_FILE${NC}"
     exit 1
+fi
+
+# Phase-specific model defaults
+if [ "$PHASE" = "plan" ]; then
+    DEFAULT_MODEL="gpt-5.4-pro"
+else
+    DEFAULT_MODEL="gpt-5.4"
 fi
 
 # Parse options
@@ -120,12 +127,16 @@ echo -e "Prompt: $PROMPT"
 echo ""
 
 # Build command
+# Apply default model if user didn't override
+if [ -z "$MODEL" ]; then
+    MODEL="$DEFAULT_MODEL"
+fi
+
 CODEX_CMD="codex exec --sandbox read-only --skip-git-repo-check"
 CODEX_CMD="$CODEX_CMD --output-schema \"$SCHEMA_FILE\""
 CODEX_CMD="$CODEX_CMD -o \"$OUTPUT_FILE\""
-if [ -n "$MODEL" ]; then
-    CODEX_CMD="$CODEX_CMD --model \"$MODEL\""
-fi
+CODEX_CMD="$CODEX_CMD --model \"$MODEL\""
+CODEX_CMD="$CODEX_CMD -c model_reasoning_effort='\"high\"'"
 CODEX_CMD="$CODEX_CMD \"$PROMPT\""
 
 if [ "$DRY_RUN" = true ]; then

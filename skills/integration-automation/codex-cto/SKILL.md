@@ -71,9 +71,10 @@ The `--model` flag passes through to `codex exec`. Available models:
 
 | Model | ID | Notes |
 |-------|----|-------|
-| GPT-5.3-Codex | `gpt-5.3-codex` | Default. Fastest, most capable. |
-| GPT-5.3-Codex Spark | `gpt-5.3-codex-spark` | Lighter, near-instant. |
-| GPT-5.2-Codex | `gpt-5.2-codex` | Previous generation. |
+| GPT-5.4 Pro | `gpt-5.4-pro` | Default for plan phase. Deepest reasoning for architectural decomposition. |
+| GPT-5.4 | `gpt-5.4` | Default for review phase. Unified coding + reasoning flagship. |
+| GPT-5 Mini | `gpt-5-mini` | Cost-optimized, fast iteration. |
+| GPT-5.3-Codex | `gpt-5.3-codex` | Previous generation. Still functional. |
 
 Omit `--model` to use the default from `~/.codex/config.toml`.
 
@@ -103,7 +104,7 @@ Reuse codex-orchestrator's status script for CLI diagnostics:
 /codex-cto Add a health check endpoint at /health returning {status: "ok"}
 
 # With model override
-/codex-cto Refactor the auth module to use JWT --model gpt-5.3-codex-spark
+/codex-cto Refactor the auth module to use JWT --model gpt-5-mini
 
 # Dry run to inspect the command
 ~/.claude/skills/codex-cto/scripts/cto-invoke.sh plan "Add rate limiting" --dry-run

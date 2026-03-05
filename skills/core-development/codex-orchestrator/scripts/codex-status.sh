@@ -76,7 +76,7 @@ if command -v gtimeout &> /dev/null; then
 elif command -v timeout &> /dev/null; then
     TIMEOUT_CMD="timeout 20"
 fi
-if $TIMEOUT_CMD codex exec --model gpt-5.3-codex-spark --sandbox read-only --skip-git-repo-check --ephemeral "Reply with: OK" &> /dev/null; then
+if $TIMEOUT_CMD codex exec --model gpt-5-mini --sandbox read-only --skip-git-repo-check --ephemeral "Reply with: OK" &> /dev/null; then
     echo -e "${GREEN}✓ Codex API connection successful${NC}"
 else
     echo -e "${YELLOW}⚠ Could not verify Codex API connection${NC}"

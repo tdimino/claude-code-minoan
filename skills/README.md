@@ -40,7 +40,8 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | Skill | Description |
 |-------|-------------|
 | `agent-browser` | Browser automation via [Vercel agent-browser](https://github.com/AkshitIredworworwordy/agent-browser) CLI |
-| `codex-orchestrator` | Orchestrate [OpenAI Codex CLI](https://github.com/openai/codex) with specialized subagents |
+| `codex-cto` | [Codex CLI](https://github.com/openai/codex) as CTO: GPT-5.4-Pro plans, GPT-5.4 reviews, Claude Code executes |
+| `codex-orchestrator` | Orchestrate [OpenAI Codex CLI](https://github.com/openai/codex) subagents (GPT-5.4/5.4-Pro) for review, debug, architect, security |
 | `llama-cpp` | Local LLM inference via [llama.cpp](https://github.com/ggerganov/llama.cpp) with LoRA hot-loading |
 | `beautiful-mermaid` | Mermaid diagrams as ASCII art via [beautiful-mermaid](https://github.com/nicepkg/beautiful-mermaid) |
 | `parakeet` | Speech-to-text via [NVIDIA Parakeet](https://docs.nvidia.com/nemo/asr/models/parakeet.html) + [Handy](https://github.com/cjpais/Handy) |

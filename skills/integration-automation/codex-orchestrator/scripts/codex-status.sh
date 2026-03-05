@@ -57,7 +57,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="$SCRIPT_DIR/../agents"
 
 echo -e "${BLUE}Agent Profiles:${NC}"
-for profile in reviewer debugger architect security refactor docs; do
+for profile in reviewer debugger architect security refactor docs planner syseng builder researcher; do
     if [ -f "$AGENTS_DIR/$profile.md" ]; then
         echo -e "  ${GREEN}✓${NC} $profile"
     else
@@ -69,7 +69,14 @@ echo ""
 
 # Test Codex connectivity (quick check)
 echo -e "${BLUE}Testing Codex connectivity...${NC}"
-if timeout 10 codex exec --model gpt-5.3-codex-spark "echo 'test'" &> /dev/null; then
+# Use gtimeout (coreutils) or timeout if available, otherwise run without timeout
+TIMEOUT_CMD=""
+if command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout 20"
+elif command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout 20"
+fi
+if $TIMEOUT_CMD codex exec --model gpt-5-mini --sandbox read-only --skip-git-repo-check --ephemeral "Reply with: OK" &> /dev/null; then
     echo -e "${GREEN}✓ Codex API connection successful${NC}"
 else
     echo -e "${YELLOW}⚠ Could not verify Codex API connection${NC}"

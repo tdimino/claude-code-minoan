@@ -37,7 +37,7 @@ Launches the interactive TUI with optional initial prompt.
 
 ```bash
 codex exec "<prompt>"
-codex exec --model gpt-5.3-codex-spark "Review this file"
+codex exec --model gpt-5-mini "Review this file"
 codex e "Quick task"  # alias
 ```
 
@@ -73,9 +73,9 @@ codex debug                            # Internal debugging commands
 
 ```bash
 -m, --model <MODEL>                    # Select model
-    --model gpt-5.3-codex              # Latest, fastest, most capable
-    --model gpt-5.3-codex-spark        # Lighter, near-instant
-    --model gpt-5.2                    # Previous generation
+    --model gpt-5.4                    # Flagship — coding + reasoning unified
+    --model gpt-5.4-pro                # Deeper reasoning, hardest problems
+    --model gpt-5-mini                 # Cost-optimized, fast iteration
 ```
 
 ### Sandbox Modes
@@ -99,7 +99,7 @@ codex debug                            # Internal debugging commands
 
 ```bash
 -c, --config <key=value>               # Override config
-    -c model="gpt-5.3-codex"            # Set model
+    -c model="gpt-5.4"                   # Set model
     -c 'sandbox_permissions=["disk-full-read-access"]'
 ```
 
@@ -123,15 +123,15 @@ Located at `~/.codex/config.toml`:
 
 ```toml
 # Default settings
-model = "gpt-5.3-codex"
+model = "gpt-5.4"
 sandbox = "workspace-write"
 
 # Custom profiles
 [profile.reviewer]
-model = "gpt-5.3-codex"
+model = "gpt-5.4"
 
 [profile.quick]
-model = "gpt-5.3-codex-spark"
+model = "gpt-5-mini"
 sandbox = "read-only"
 ```
 
@@ -184,7 +184,7 @@ codex "Help me debug the login failure"
 codex exec --ask-for-approval on-failure "Fix all lint errors"
 
 # Use specific model
-codex --model gpt-5.3-codex "Design a caching system"
+codex --model gpt-5.4 "Design a caching system"
 
 # Read-only analysis
 codex --sandbox read-only "Analyze the codebase architecture"

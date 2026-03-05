@@ -41,7 +41,7 @@ DEFAULT_TELNYX_FROM = "+18628026208"
 DEFAULT_TWILIO_FROM = "+18557066006"
 DEFAULT_PROVIDER = "telnyx"
 
-TELNYX_MESSAGING_PROFILE_ID = os.environ.get("TELNYX_MESSAGING_PROFILE_ID", "")
+TELNYX_MESSAGING_PROFILE_ID = "40019a09-498f-45b1-98e4-ca1339a3babc"
 
 
 # ── Credential Loading ──────────────────────────────────────────────────────
@@ -107,11 +107,9 @@ def get_twilio_credentials() -> Tuple[str, str]:
     token = _get_credential("TWILIO_AUTH_TOKEN")
     if sid and token:
         return sid, token
-    # Fallback from TinyClaw config
     if not sid or not token:
         print("Error: TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set in env or ~/.config/env/secrets.env.", file=sys.stderr)
-        sys.exit(1)
-    return sid, token
+    return sid or "", token or ""
 
 
 # ── Phone Number Utilities ──────────────────────────────────────────────────

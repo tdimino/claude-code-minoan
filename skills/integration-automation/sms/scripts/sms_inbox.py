@@ -36,11 +36,7 @@ def print_messages(messages: list):
         body = truncate(msg.get("body", ""), 100)
         handled = " [read]" if msg.get("handled") else ""
         msg_id = msg.get("id", "?")
-        # Shorten long IDs for display
-        if len(msg_id) > 20:
-            id_display = msg_id[:12] + "..."
-        else:
-            id_display = msg_id
+        id_display = msg_id
 
         print(f"  {ts}  [{provider}] {msg['from']} → {msg.get('to', '?')}{handled}")
         print(f"    {body}")

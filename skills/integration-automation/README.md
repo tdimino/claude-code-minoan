@@ -7,8 +7,8 @@ Local ML inference, RAG, browser automation, messaging, telephony, and external 
 | `agent-browser` | Headless browser automation for AI agents |
 | `beautiful-mermaid` | Mermaid diagrams as ASCII/Unicode art or SVG (15 themes) |
 | `classical-887` | WRHV 88.7 FM (Classical WMHT) playlist — now playing, history, search |
-| `codex-cto` | Codex CLI as CTO: plans and reviews while Claude Code executes |
-| `codex-orchestrator` | Spawn specialized OpenAI Codex CLI subagents |
+| `codex-cto` | Codex CLI as CTO: GPT-5.4-Pro plans, GPT-5.4 reviews, Claude Code executes |
+| `codex-orchestrator` | Orchestrate OpenAI Codex CLI subagents (GPT-5.4/5.4-Pro) — 10 profiles |
 | `figma-mcp` | Convert Figma designs to production code via MCP |
 | `linkedin-export` | Parse, search, analyze LinkedIn GDPR data exports (23 CSV types) |
 | `llama-cpp` | Direct llama.cpp access: GGUF models, LoRA hot-loading, benchmarking |

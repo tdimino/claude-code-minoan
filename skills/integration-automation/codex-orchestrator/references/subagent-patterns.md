@@ -195,22 +195,22 @@ wait
 ### If API Errors Occur
 - Check OPENAI_API_KEY is set
 - Verify network connectivity
-- Try with --model gpt-5.3-codex-spark (faster/cheaper)
+- Try with --model gpt-5-mini (faster/cheaper)
 
 ## Cost Optimization
 
 | Profile Use Case | Recommended Model |
 |-----------------|-------------------|
-| Quick checks | gpt-5.3-codex-spark |
-| Detailed review | gpt-5.3-codex |
-| Complex architecture | gpt-5.3-codex |
-| Simple docs | gpt-5.3-codex-spark |
-| Security audit | gpt-5.3-codex |
+| Quick checks | gpt-5-mini |
+| Detailed review | gpt-5.4 |
+| Complex architecture | gpt-5.4-pro |
+| Simple docs | gpt-5-mini |
+| Security audit | gpt-5.4 |
 
 ```bash
 # Override model for cost savings
-./scripts/codex-exec.sh reviewer "Quick style check" --model gpt-5.3-codex-spark
+./scripts/codex-exec.sh reviewer "Quick style check" --model gpt-5-mini
 
 # Use full power for complex tasks
-./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.3-codex
+./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.4-pro
 ```
