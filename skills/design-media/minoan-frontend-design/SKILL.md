@@ -58,6 +58,10 @@ Match implementation complexity to the aesthetic vision. Maximalist designs dema
 
 Claude is capable of extraordinary, award-worthy creative work. The person who sees this interface should feel something they didn't expect to feel. Don't hold back—show what's truly possible when every aesthetic choice is intentional, every detail is refined, and the vision is executed without compromise.
 
+## Post-Build QA
+
+After building, consult `references/anti-patterns.md` for a systematic checklist of common mistakes across typography, color, spacing, motion, interaction, responsive, and UX writing. Catch AI slop tells, accessibility failures, and technical anti-patterns before shipping.
+
 ## References
 
-For engineering standards, consult `references/vercel-web-interface-guidelines.md` and `references/design-system-checklist.md`. For advanced techniques, consult `references/creative-arsenal.md` and `references/design-dials.md`. For editorial patterns from eval testing, consult `references/editorial-patterns.md`. For Stripe's premium light-mode aesthetic, consult `references/stripe-design-tokens.md`, `references/stripe-component-patterns.md`, and `references/stripe-signature-techniques.md`.
+Consult `references/` on demand: `vercel-web-interface-guidelines.md`, `design-system-checklist.md` (engineering). `creative-arsenal.md`, `design-dials.md` (techniques). `editorial-patterns.md` (eval-tested). Stripe light-mode: `stripe-design-tokens.md`, `stripe-component-patterns.md`, `stripe-signature-techniques.md`. Mintlify dark-first docs: `mintlify-design-tokens.md`, `mintlify-component-patterns.md`, `mintlify-signature-techniques.md`. `anti-patterns.md` (Impeccable v1.1.0). For component research, invoke `component-gallery`.

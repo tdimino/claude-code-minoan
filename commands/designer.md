@@ -18,6 +18,7 @@ Audit against these five reference points:
 | **Stripe** | Accessible color systems, light-mode-first premium, documentation-as-design, signature visual elements. Deep references: `references/stripe-design-tokens.md`, `references/stripe-component-patterns.md`, `references/stripe-signature-techniques.md` |
 | **Raycast** | Progressive disclosure via action bar, search-centered architecture, Fast > Simple > Delightful priority |
 | **Resend** | Code-first design (codebase IS the source of truth, not Figma), polish IN code, design as discipline anyone exercises |
+| **Mintlify** | Dark-first dual-mode, AI-native docs (llms.txt + MCP + skill.md), progressive disclosure, semantic component naming, keyboard-first (Cmd+K), border-over-shadow elevation. Deep references: `references/mintlify-design-tokens.md`, `references/mintlify-component-patterns.md`, `references/mintlify-signature-techniques.md` |
 
 ## Guiding Frameworks
 
