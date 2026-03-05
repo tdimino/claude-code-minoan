@@ -5,6 +5,7 @@ Thank you for contributing to the Aldea team's Claude Code setup! This guide wil
 ## 📋 Table of Contents
 
 - [Contributing Skills](#contributing-skills)
+- [Contributing Hooks](#contributing-hooks)
 - [Contributing Slash Commands](#contributing-slash-commands)
 - [Contributing MCP Servers](#contributing-mcp-servers)
 - [Pull Request Process](#pull-request-process)
@@ -110,6 +111,108 @@ EOF
 - Include API keys or secrets
 - Duplicate existing skill functionality
 - Skip documentation
+
+## 🪝 Contributing Hooks
+
+### What Are Hooks?
+
+Hooks are scripts that execute in response to Claude Code lifecycle events (SessionStart, Stop, PreToolUse, PostToolUse, etc.). They live in `hooks/` and are configured via `settings.json`. See `hooks/INDEX.md` for the full inventory and architecture diagram.
+
+### Hook Structure
+
+```
+hooks/
+├── INDEX.md              # Master inventory (auto-maintained)
+├── README.md             # Detailed documentation
+├── your-hook.py          # Python hooks (preferred)
+├── your-hook.sh          # Shell hooks (for simple cases)
+└── tests/                # Hook tests
+```
+
+### Available Events (18 total, 10 currently used)
+
+| Event | When it fires |
+|-------|--------------|
+| `SessionStart` | Session begins, resumes, or compacts |
+| `UserPromptSubmit` | Before user prompt is sent to model |
+| `PermissionRequest` | Tool needs permission (allow/deny/pass) |
+| `SubagentStart` | Subagent spawns |
+| `PreToolUse` | Before any tool executes |
+| `PostToolUse` | After tool succeeds |
+| `PostToolUseFailure` | After tool fails |
+| `Stop` | Model finishes a response |
+| `PreCompact` | Before context compaction |
+| `SessionEnd` | Session terminates |
+
+### Creating a New Hook
+
+1. **Write the hook** (Python preferred for complex logic, shell for simple):
+
+```python
+#!/usr/bin/env python3
+"""Description of what this hook does."""
+import json, sys
+
+def main():
+    try:
+        hook_input = json.load(sys.stdin)
+    except (json.JSONDecodeError, EOFError):
+        sys.exit(0)  # Always fail gracefully
+
+    # Your logic here...
+
+    # To output a decision (PermissionRequest hooks):
+    output = {
+        "hookSpecificOutput": {
+            "hookEventName": "PermissionRequest",
+            "permissionDecision": "allow",  # or "deny" or omit to pass
+        }
+    }
+    print(json.dumps(output))
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
+```
+
+2. **Register in `settings.json`**:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 ~/.claude/hooks/your-hook.py",
+        "async": true
+      }
+    ]
+  }
+}
+```
+
+3. **Update `hooks/INDEX.md`** with the new hook's event, description, and any matchers.
+
+4. **Test the hook** by triggering its event in a Claude Code session.
+
+### Hook Best Practices
+
+- Always wrap `json.load(sys.stdin)` in try/except
+- Use file-based cooldowns in `/tmp/claude-{uid}/` for API-calling hooks
+- Guard shell commands against chaining (`; | & \``) before pattern matching
+- Use `async: true` for hooks that call external APIs
+- Write cooldown timestamps AFTER successful operations, not before
+- Keep hooks idempotent—they may fire multiple times
+
+### Key Hooks
+
+| Hook | Event | Purpose |
+|------|-------|---------|
+| `smart-auto-approve.py` | PermissionRequest | Auto-approve safe Bash commands, deny dangerous ones |
+| `error-context-hints.py` | PostToolUseFailure | Pattern-match common errors, inject recovery hints |
+| `precompact-handoff.py` | PreCompact/SessionEnd | Generate handoff YAML via OpenRouter |
+| `session-tags-infer.py` | Stop (async) | Infer session tags via OpenRouter |
+| `soul-subagent-inject.py` | SubagentStart | Inject soul context into subdaimones |
 
 ## ⚡ Contributing Slash Commands
 

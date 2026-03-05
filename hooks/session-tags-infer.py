@@ -17,6 +17,7 @@ import urllib.request
 
 
 TAGS_DIR = pathlib.Path.home() / ".claude" / "session-tags"
+TAGS_COOLDOWN = 180  # 3 minutes — matches old stop-handoff.py gate
 
 
 def get_api_key():
@@ -168,6 +169,19 @@ def main():
         except OSError:
             pass
 
+    # Cooldown check — don't call OpenRouter more than once per TAGS_COOLDOWN seconds.
+    # This replaces the gating that stop-handoff.py used to provide (3-min cooldown).
+    cooldown_dir = pathlib.Path(f"/tmp/claude-{os.getuid()}")
+    cooldown_dir.mkdir(parents=True, exist_ok=True)
+    cooldown_file = cooldown_dir / f"session-tags-{session_id}.last"
+    now = datetime.datetime.now().timestamp()
+    if cooldown_file.exists():
+        try:
+            last_run = float(cooldown_file.read_text().strip())
+            if now - last_run < TAGS_COOLDOWN:
+                return  # Too soon — skip this run
+        except (ValueError, OSError):
+            pass  # Corrupted file — proceed
     api_key = get_api_key()
     if not api_key:
         return
@@ -187,6 +201,13 @@ def main():
         result = infer_tags(api_key, transcript_text)
     except Exception:
         return
+
+    # Write cooldown timestamp AFTER successful inference (not before)
+    # so failed API calls don't block retries for 3 minutes.
+    try:
+        cooldown_file.write_text(str(now))
+    except OSError:
+        pass
 
     tags = result.get("tags", [])[:10]
     display_tags = result.get("display_tags", tags[:3])[:3]
