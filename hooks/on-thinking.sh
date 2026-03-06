@@ -1,1 +1,1 @@
-terminal-title.sh
+/Users/tomdimino/.claude/hooks/terminal-title.sh

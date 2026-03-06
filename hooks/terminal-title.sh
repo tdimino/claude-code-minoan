@@ -212,6 +212,6 @@ case "$SCRIPT_NAME" in
 esac
 
 # Set terminal title via OSC escape sequence
-printf '\033]0;%s\007' "$TITLE"
+printf '\033]0;%s\007' "$TITLE" > /dev/tty 2>/dev/null
 
 exit 0

@@ -6,13 +6,17 @@ with per-tag ANSI true-color separated by dim |. Requires preserveColors: true i
 ccstatusline widget config.
 """
 import json
+import os
 import pathlib
 import sys
 
 TAGS_DIR = pathlib.Path.home() / ".claude" / "session-tags"
+# Read mode from file (env var not available—ccstatusline spawns us separately)
+_mode_file = pathlib.Path.home() / ".claude" / "statusline-mode"
+is_light = _mode_file.exists() and _mode_file.read_text().strip() == "light"
 
-# Rainbow-pastel palette (one color per tag, cycling)
-PASTEL_COLORS = [
+# Rainbow-pastel palette: dark bg variant (bright pastels)
+PASTEL_COLORS_DARK = [
     (255, 154, 162),  # Rose
     (255, 183, 148),  # Peach
     (253, 216, 132),  # Gold
@@ -20,6 +24,18 @@ PASTEL_COLORS = [
     (162, 210, 255),  # Sky
     (205, 180, 255),  # Lilac
 ]
+
+# Rainbow-jewel palette: light bg variant (deep saturated)
+PASTEL_COLORS_LIGHT = [
+    (180, 50, 60),    # Deep rose
+    (180, 90, 40),    # Deep peach/terracotta
+    (160, 120, 20),   # Deep gold
+    (30, 140, 60),    # Deep mint/emerald
+    (30, 100, 180),   # Deep sky/cobalt
+    (100, 60, 180),   # Deep lilac/indigo
+]
+
+PASTEL_COLORS = PASTEL_COLORS_LIGHT if is_light else PASTEL_COLORS_DARK
 
 RESET = "\033[0m"
 DIM = "\033[2m"
@@ -59,7 +75,7 @@ def main():
         parts.append(f"{fg(*color)}{tag}{RESET}")
 
     # Middle dot (·) as inter-tag separator, visually grouping them as one unit
-    dot_color = fg(120, 120, 140)  # Muted lavender-gray
+    dot_color = fg(80, 80, 100) if is_light else fg(120, 120, 140)
     sep = f" {dot_color}·{RESET} "
     sys.stdout.write(sep.join(parts))
 
