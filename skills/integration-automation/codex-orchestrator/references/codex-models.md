@@ -1,15 +1,17 @@
 # Codex CLI Model Reference
 
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 ## Current Models
 
-| Model | ID | Released | Description |
-|-------|----|----------|-------------|
-| **GPT-5.4** | `gpt-5.4` | Mar 2026 | Unified flagship. Absorbs GPT-5.3-Codex coding into general model. 1M+ token context, built-in computer use, native compaction, deferred tool loading. Default for coding and research profiles. |
-| **GPT-5.4 Pro** | `gpt-5.4-pro` | Mar 2026 | Deeper reasoning variant with more compute. For hardest problems: architecture, multi-step planning, complex decomposition. Default for planning profiles and CTO plan phase. |
-| **GPT-5 Mini** | `gpt-5-mini` | Mar 2026 | Cost-optimized reasoning and chat. Replaces GPT-5.3-Codex-Spark for fast iteration, lint fixes, quick reads. |
-| **GPT-5 Nano** | `gpt-5-nano` | Mar 2026 | High-throughput, simple tasks. Classification, straightforward instruction-following. |
+| Model | ID | Released | ChatGPT Auth | API Key | Description |
+|-------|----|----------|:---:|:---:|-------------|
+| **GPT-5.4** | `gpt-5.4` | Mar 2026 | **Yes** | Yes | Unified flagship. 1M+ context, native compaction. Default for all profiles on ChatGPT accounts. |
+| **GPT-5.4 Pro** | `gpt-5.4-pro` | Mar 2026 | **No** | Yes | Deeper reasoning variant. Requires API key auth (`OPENAI_API_KEY`). |
+| **GPT-5 Mini** | `gpt-5-mini` | Mar 2026 | **No** | Yes | Cost-optimized. Requires API key auth. |
+| **GPT-5 Nano** | `gpt-5-nano` | Mar 2026 | **No** | Yes | High-throughput. Requires API key auth. |
+
+> **ChatGPT account limitation:** Only `gpt-5.4` and legacy Codex-family models (`gpt-5.3-codex`, `gpt-5.2`) work with ChatGPT-authenticated Codex sessions. All other models require `OPENAI_API_KEY` (API billing). This is by design—confirmed via [GitHub #2051](https://github.com/openai/codex/issues/2051) and OpenAI's Codex models page.
 
 ## Previous Generation
 
@@ -102,11 +104,11 @@ Both `codex-orchestrator` and `codex-cto` skills pass `--model` and `-c model_re
 
 ## Selection Guide
 
-| Task | Model | Reasoning | Why |
-|------|-------|-----------|-----|
-| Coding subagents (builder, reviewer, debugger, etc.) | `gpt-5.4` | `high` | Unified coding + reasoning, native compaction for longer trajectories |
-| Planning subagents (planner, architect) | `gpt-5.4-pro` | `high` | Deepest reasoning for architecture and multi-step planning |
-| Research subagent (researcher) | `gpt-5.4` | `medium` | 1M context window for codebase analysis, read-only doesn't need deep reasoning |
-| Quick reads, fast iteration | `gpt-5-mini` | `medium` | Cost-optimized, replaces Spark |
-| CTO planning (codex-cto) | `gpt-5.4-pro` | `high` | Architectural decomposition at maximum depth |
-| CTO review (codex-cto) | `gpt-5.4` | `high` | Strong reasoning for diff analysis and acceptance criteria |
+| Task | Model (ChatGPT auth) | Model (API key) | Reasoning | Why |
+|------|---------------------|-----------------|-----------|-----|
+| Coding subagents (builder, reviewer, debugger, etc.) | `gpt-5.4` | `gpt-5.4` | `high` | Unified coding + reasoning, native compaction |
+| Planning subagents (planner, architect) | `gpt-5.4` | `gpt-5.4-pro` | `high` | ChatGPT: best available; API: deepest reasoning |
+| Research subagent (researcher) | `gpt-5.4` | `gpt-5.4` | `medium` | 1M context for codebase analysis |
+| Quick reads, fast iteration | `gpt-5.3-codex` | `gpt-5-mini` | `medium` | ChatGPT: Codex model; API: cost-optimized |
+| CTO planning (codex-cto) | `gpt-5.4` | `gpt-5.4-pro` | `high` | Architectural decomposition |
+| CTO review (codex-cto) | `gpt-5.4` | `gpt-5.4` | `high` | Diff analysis and acceptance criteria |
