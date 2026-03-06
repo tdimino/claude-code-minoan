@@ -53,7 +53,7 @@ show_usage() {
     echo ""
     echo "Profile defaults:"
     echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.4 + high"
-    echo "  Planning (planner,architect):                                       gpt-5.4-pro + high"
+    echo "  Planning (planner,architect):                                       gpt-5.4 + high"
     echo "  Research (researcher):                                              gpt-5.4 + medium"
     echo ""
     echo "Examples:"
@@ -70,9 +70,9 @@ show_usage() {
 get_profile_defaults() {
     local profile="$1"
     case "$profile" in
-        # Planning profiles: gpt-5.4-pro with high reasoning (deepest reasoning for architecture)
+        # Planning profiles: gpt-5.4 with high reasoning (gpt-5.4-pro requires API key auth)
         planner|architect)
-            DEFAULT_MODEL="gpt-5.4-pro"
+            DEFAULT_MODEL="gpt-5.4"
             DEFAULT_REASONING="high"
             ;;
         # Research profile: gpt-5.4 with medium reasoning (1M context, read-only)
