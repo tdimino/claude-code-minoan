@@ -101,7 +101,7 @@ Task({
 
 ---
 
-## Template 3: Research Swarm (Competing Hypotheses)
+## Template 3: Research Knossot (Competing Hypotheses)
 
 **Use when:** The root cause is unclear, multiple theories need testing in parallel, or you need comprehensive research from multiple angles.
 
@@ -121,9 +121,9 @@ TaskUpdate({ taskId: "4", addBlockedBy: ["1", "2", "3"] })
 
 // 3. Spawn investigators (adversarial — they challenge each other)
 Task({
-  team_name: "elat-research", name: "devorah",
+  team_name: "elat-research", name: "deborah",
   subagent_type: "Explore", model: "sonnet",
-  prompt: "You are Devorah, the prophetess-bee who navigates the labyrinth. Investigate Hypothesis A: [theory]. Explore the codebase for evidence. Message your teammates to challenge their findings. When done, mark task #1 completed.",
+  prompt: "You are Deborah, the prophetess-bee who navigates the labyrinth. Investigate Hypothesis A: [theory]. Explore the codebase for evidence. Message your teammates to challenge their findings. When done, mark task #1 completed.",
   run_in_background: true
 })
 Task({
@@ -216,11 +216,11 @@ Task({
 
 ## Choosing a Template
 
-| Situation | Template | Team Name |
-|-----------|----------|-----------|
+| Situation | Template | Knesset Name |
+|-----------|----------|--------------|
 | Multiple independent features | Parallel Features | Athirat |
 | Work with natural ordering | Pipeline | Kaptaru |
-| Bug investigation, unclear cause | Research Swarm | Elat |
+| Bug investigation, unclear cause | Research Knossot | Elat |
 | Phase nearly done, multiple loose ends | Phase Completion | Qedeshot |
 | PR needs thorough review | Code Review Tribunal | Elat |
 | New system from scratch | Parallel Features + Pipeline | Tiamat |

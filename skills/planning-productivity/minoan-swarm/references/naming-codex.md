@@ -62,7 +62,7 @@ Teammates who investigate, analyze, and discover.
 
 | Name | Pronunciation | Meaning | Ideal Assignment |
 |------|--------------|---------|-----------------|
-| **devorah** | deh-voh-RAH | דְּבוֹרָה — Bee / Prophetess (Hebrew Melissa) | Codebase exploration, tracing execution paths |
+| **deborah** | deh-boh-RAH | דְּבוֹרָה — Bee / Prophetess, from D-B-R "bee" and "word/speech." Linear B *da-bo-ri-tu* (Daboritu) preserves the Semitic form on Crete. | Codebase exploration, tracing execution paths |
 | **melissa** | meh-LIS-sah | *Hierai Melissai* — Holy Bees, first priestess of Magna Mater | API discovery, external service research |
 | **eileithyia** | ay-lay-THOO-ee-ah | *e-re-u-ti-ja* (Linear B) — She Who Comes | New source discovery, onboarding new integrations |
 | **membliaros** | mem-blee-AH-ros | מם־בלי־אר — "Waters without light" (Astour) | Documentation, knowledge gathering, context building |
@@ -122,7 +122,7 @@ Several names trace through the dossier's own research:
 | **membliaros** | מם־בלי־אר "waters without light" → Orphic cosmogony | Astour, *Hellenosemitica*, p. 145 |
 | **phikola** | פי־כל "womb of all" → Herodotus's Phikola | Astour, *Hellenosemitica*, p. 146 |
 | **kaptaru** | כַּפְתּוֹר → Caphtor → kaftôrîm on the Menorah | Gordon, *Ugarit and Caphtor*, p. 131 |
-| **devorah** | דְּבוֹרָה → Cretan Melissa → *hierai melissai* | Lawler, "The Name Melissa" |
+| **deborah** | D-B-R "bee/word" → דְּבוֹרָה → Linear B *da-bo-ri-tu* (Daboritu) → Cretan Melissa → *hierai melissai* | Lawler, "The Name Melissa"; Thera dossiers |
 | **dikte** | *diqqatu* (Akkadian) → Dikte (Cretan mountain) | Gordon, *Ugarit and Caphtor*, p. 127 |
 | **themis** | *thmtm* (Ugaritic) → Tehom (Hebrew) → Themis (Greek) | Tiamat-Athirat dossier |
 | **hubur** | Ummu-Ḫubur → *pātiqat kalāma* "former of everything" | Enuma Elish I:113 |
@@ -159,7 +159,7 @@ Team: Qedeshot (the priestesses finishing the rite)
   qedesha-lead   (Opus)   — orchestrates
   kaptaru        (Sonnet) — cron pipeline
   hestia         (Sonnet) — deployment
-  devorah        (Sonnet) — integration tests
+  deborah        (Sonnet) — integration tests
 ```
 
 ---
