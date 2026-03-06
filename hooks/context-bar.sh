@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Dynamic context bar for ccstatusline — gradient + appended percentage."""
-import sys, json
+import os, sys, json
+
+is_light = os.environ.get("STATUSLINE_MODE") == "light"
 
 data = json.load(sys.stdin)
 cw = data.get("context_window", {})
@@ -41,6 +43,9 @@ for i in range(WIDTH):
     color = gradient_color(pos_pct)
     if i < filled:
         out += fg(*color) + "█" + RESET
+    elif is_light:
+        # Neutral gray track so bar structure is visible on white bg
+        out += fg(180, 180, 180) + "░" + RESET
     else:
         out += DIM + fg(*color) + "░" + RESET
 
@@ -54,7 +59,10 @@ if used_tokens >= 1000:
     token_str = f"{used_tokens // 1000}k"
 else:
     token_str = str(used_tokens)
-MUTED = fg(184, 184, 184)  # #b8b8b8 — site's --color-text-muted
-out += DIM + " | " + RESET + MUTED + token_str + RESET
+MUTED = fg(100, 100, 100) if is_light else fg(184, 184, 184)
+if is_light:
+    out += MUTED + " | " + RESET + MUTED + token_str + RESET
+else:
+    out += DIM + " | " + RESET + MUTED + token_str + RESET
 
 sys.stdout.write(out)

@@ -16,13 +16,19 @@ def main():
     if not transcript_path or not os.path.exists(transcript_path):
         return
 
-    # Soul registry heartbeat (lightweight, no LLM calls, no cooldown)
+    # Soul registry heartbeat (lightweight, no LLM calls, 60s cooldown)
+    cooldown_dir = pathlib.Path(f"/tmp/claude-{os.getuid()}")
+    cooldown_dir.mkdir(parents=True, exist_ok=True)
+    heartbeat_cooldown = cooldown_dir / f"heartbeat-{session_id}.last"
+    now = time.time()
     try:
-        subprocess.run(
-            ["python3", str(pathlib.Path.home() / ".claude/hooks/soul-registry.py"),
-             "heartbeat", session_id],
-            timeout=5, capture_output=True,
-        )
+        if not heartbeat_cooldown.exists() or (now - heartbeat_cooldown.stat().st_mtime) > 60:
+            subprocess.run(
+                ["python3", str(pathlib.Path.home() / ".claude/hooks/soul-registry.py"),
+                 "heartbeat", session_id],
+                timeout=5, capture_output=True,
+            )
+            heartbeat_cooldown.touch()
     except Exception:
         pass  # Non-critical
 
@@ -38,7 +44,7 @@ def main():
             last_time = last_data.get("timestamp", 0)
             last_session = last_data.get("session_id", "")
             # Reset cooldown if session changed
-            if last_session == session_id and (now - last_time) < 300:  # 5 min
+            if last_session == session_id and (now - last_time) < 180:  # 3 min
                 return
         except (json.JSONDecodeError, OSError):
             pass
@@ -67,43 +73,18 @@ def main():
     except Exception:
         return  # Silent failure
 
-    # Run session tag inference (fire-and-forget via shell pipe)
-    tags_script = pathlib.Path.home() / ".claude" / "hooks" / "session-tags-infer.py"
-    try:
-        proc = subprocess.Popen(
-            ["python3", str(tags_script)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-            text=True,
-        )
-        proc.stdin.write(input_json)
-        proc.stdin.close()  # Signal EOF so sys.stdin.read() returns
-    except Exception:
-        pass  # Non-critical
-
-    # Run soul reflection (fire-and-forget — retrospective cognitive pipeline)
-    reflect_script = pathlib.Path.home() / ".claude" / "hooks" / "soul-reflect.py"
-    try:
-        proc = subprocess.Popen(
-            ["python3", str(reflect_script)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-            text=True,
-        )
-        proc.stdin.write(input_json)
-        proc.stdin.close()
-    except Exception:
-        pass  # Non-critical
+    # NOTE: soul-reflect.py and session-tags-infer.py are now registered as
+    # separate async: true hooks in settings.json. Claude Code manages their
+    # lifecycle natively — no more manual Popen fire-and-forget.
 
     # Update cooldown timestamp
-    cooldown_file.write_text(json.dumps({
-        "timestamp": now,
-        "session_id": session_id,
-    }))
+    try:
+        cooldown_file.write_text(json.dumps({
+            "timestamp": now,
+            "session_id": session_id,
+        }))
+    except OSError:
+        pass  # Non-critical — worst case: cooldown resets early
 
 
 if __name__ == "__main__":

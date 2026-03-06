@@ -5,12 +5,31 @@
 
 INPUT=$(cat)
 
-# ── ANSI color codes ──
-TYRIAN="\033[38;2;204;92;58m"      # hex:CC5C3A (original session name color)
-CRAB_COLOR="\033[38;2;200;128;188m" # Pastel Byzantium (#C880BC)
-BLUE="\033[94m"                   # brightBlue
-DIM="\033[2m"
+# ── Ghostty light mode detection ──
+STATUSLINE_MODE="dark"
+if [[ "$TERM_PROGRAM" == "ghostty" ]]; then
+    # AppleInterfaceStyle = "Dark" in dark mode, key absent in light mode.
+    # "Auto" appearance follows the same pattern dynamically.
+    if ! defaults read -g AppleInterfaceStyle &>/dev/null; then
+        STATUSLINE_MODE="light"
+    fi
+fi
+export STATUSLINE_MODE
+# Persist mode for ccstatusline custom-command widgets (which don't inherit env vars)
+echo "$STATUSLINE_MODE" > "$HOME/.claude/statusline-mode"
+
+# ── ANSI color codes (mode-adaptive) ──
 RESET="\033[0m"
+DIM="\033[2m"
+if [[ "$STATUSLINE_MODE" == "light" ]]; then
+    TYRIAN="\033[38;2;140;45;20m"       # Darker burnt sienna
+    CRAB_COLOR="\033[38;2;120;40;110m"  # Deeper Byzantium
+    BLUE="\033[34m"                      # Standard blue (not bright)
+else
+    TYRIAN="\033[38;2;204;92;58m"       # hex:CC5C3A (original session name color)
+    CRAB_COLOR="\033[38;2;200;128;188m" # Pastel Byzantium (#C880BC)
+    BLUE="\033[94m"                      # brightBlue
+fi
 
 # ── Separator ──
 SEP="${DIM} | ${RESET}"
@@ -55,6 +74,21 @@ LINE1="${LINE1}${CONTEXT_BAR}"
 LINE1="${LINE1}${SEP}"
 LINE1="${LINE1}${BLUE}⎇ ${GIT_BRANCH}${RESET}"
 # [ -n "$GIT_CHANGES" ] && LINE1="${LINE1}${SEP}${YELLOW}${GIT_CHANGES}${RESET}"
+
+# ── Swap ccstatusline config for light/dark (atomic, cached) ──
+CCSL_DIR="$HOME/.config/ccstatusline"
+MODE_CACHE="/tmp/ccstatusline_mode"
+LAST_MODE=$(cat "$MODE_CACHE" 2>/dev/null)
+if [[ "$STATUSLINE_MODE" != "$LAST_MODE" ]]; then
+    if [[ "$STATUSLINE_MODE" == "light" && -f "$CCSL_DIR/settings-light.json" ]]; then
+        cp "$CCSL_DIR/settings-light.json" "$CCSL_DIR/settings.json.tmp" \
+          && mv "$CCSL_DIR/settings.json.tmp" "$CCSL_DIR/settings.json"
+    elif [[ -f "$CCSL_DIR/settings-dark.json" ]]; then
+        cp "$CCSL_DIR/settings-dark.json" "$CCSL_DIR/settings.json.tmp" \
+          && mv "$CCSL_DIR/settings.json.tmp" "$CCSL_DIR/settings.json"
+    fi
+    echo "$STATUSLINE_MODE" > "$MODE_CACHE"
+fi
 
 # ── Render ccstatusline (lines 2-3 only now) ──
 CC_OUTPUT=$(echo "$INPUT" | ccstatusline 2>/dev/null)
