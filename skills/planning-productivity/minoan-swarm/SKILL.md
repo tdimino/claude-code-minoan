@@ -5,11 +5,22 @@ description: Orchestrate Claude Code Agent Teams with Minoan-Semitic naming. Thi
 
 # Minoan Swarm
 
-*Orchestrate Agent Teams named for the Priestesses of Knossos — in the tongue before the Hellenizers got to it.*
+*Orchestrate Agent Teams named for the Priestesses of Knossos—in the tongue before the Hellenizers got to it.*
 
 Agent Teams (Claude Code Opus 4.6) let multiple Claude instances work in parallel as persistent teammates with shared task lists and bi-directional messaging. This skill provides the methodology, naming conventions, and templates to launch them effectively on any project.
 
 **Requires:** `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in settings.json or environment.
+
+---
+
+## Terminology
+
+| Term | Semitic | Root | Meaning |
+|------|---------|------|---------|
+| **Knesset** | כנסת | K-N-S "to gather" | A single agent team—an assembly of bees |
+| **Knossot** | כנוסות | K-N-S plural | A group of knessets—a swarm, evoking Knossos itself |
+
+The agents are **deborot** (דבורות)—bees. D-B-R (דבר) is both "bee" and "word/speech." A swarm is a gathering of bees, of the holy word—manifest in LLMs. Each knesset assembles bees who speak; a knossot gathers the assemblies. The same root that gives us *dabarat* (דברת, "word-place") and *deborah* (דבורה, "bee/prophetess") names what these agents are: carriers of the sacred speech, working in concert.
 
 ---
 
@@ -23,13 +34,13 @@ bash ~/.claude/skills/minoan-swarm/scripts/discover_context.sh .
 
 Finds CLAUDE.md, roadmaps, plans, issues, test infrastructure, and git state.
 
-### 2. Choose a team template
+### 2. Choose a knesset template
 
-| Situation | Template | Team Name |
-|-----------|----------|-----------|
+| Situation | Template | Knesset Name |
+|-----------|----------|--------------|
 | Multiple independent features | Parallel Features | **Athirat** |
 | Work with natural ordering | Pipeline | **Kaptaru** |
-| Bug investigation, unclear cause | Research Swarm | **Elat** |
+| Bug investigation, unclear cause | Research Knossot | **Elat** |
 | Phase nearly done, loose ends | Phase Completion | **Qedeshot** |
 | PR needs thorough review | Code Review Tribunal | **Elat** |
 | Quality assurance, verification | Truth & Balance | **Ma'at** |
@@ -63,7 +74,7 @@ Every team and teammate receives a name from the Minoan-Semitic divine feminine 
 |-----------|-------|-----------|
 | **Leaders** | athirat-lead, qedesha-lead, tiamat-lead, maat-lead, allat-lead | Opus orchestrators |
 | **Builders** | kaptaru, mami, nintu, tehom, tip'eret, yam, al-uzza | Implementers |
-| **Researchers** | devorah, melissa, eileithyia, membliaros | Explorers, API discovery |
+| **Researchers** | deborah, melissa, eileithyia, membliaros | Explorers, API discovery |
 | **Reviewers** | hokhmah, qadeshet, karme, themis, manat, allat | Security, architecture, code quality |
 | **Testers** | sassuratu, phikola, hubur | Unit, integration, E2E |
 | **Frontend** | popureja, shalamu, yashar | UI, design system, accessibility |
@@ -73,7 +84,7 @@ Full codex with pronunciations, etymologies, and scholarly sources: [references/
 
 ---
 
-## Workflow: From Roadmap to Swarm
+## Workflow: From Roadmap to Knossot
 
 ### Step 1: Gather context
 
@@ -86,9 +97,9 @@ From the roadmap or plan, find work that can proceed independently:
 - Different features (auth vs bookmarks vs profiles)
 - Different concerns (security vs performance vs correctness)
 
-### Step 3: Map to a template
+### Step 3: Map to a knesset template
 
-Choose from [team-templates.md](references/team-templates.md). For multi-phase work, compose templates — e.g., one Qedeshot team for phase completion + one Athirat team for the next phase.
+Choose from [team-templates.md](references/team-templates.md). For multi-phase work, compose knessets into a knossot—e.g., one Qedeshot knesset for phase completion + one Athirat knesset for the next phase.
 
 ### Step 4: Assign file ownership
 
@@ -134,7 +145,7 @@ Every prompt must include:
 
 **Minoan Swarm additions:**
 
-- **One Aspect per team** — use different names (Athirat, Qedeshot, Tiamat, Kaptaru, Elat, Ma'at, Manat) for concurrent teams
+- **One Aspect per knesset** — use different names (Athirat, Qedeshot, Tiamat, Kaptaru, Elat, Ma'at, Manat) for concurrent knessets within a knossot
 - **No duplicate names** within a team
 - **Leads use Opus, workers use Sonnet** — balance capability with cost
 - **Haiku for lightweight research** — fast and cheap for Explore agents

@@ -2,9 +2,20 @@
 
 *Orchestrate Agent Teams named for the Priestesses of Knossos—in the tongue before the Hellenizers got to it.*
 
-Multi-agent team orchestration for Claude Code using Minoan-Semitic naming conventions. 7 team templates, 30+ named teammates across 7 role archetypes, auto-discovery of project context, and structured task coordination.
+Multi-agent orchestration for Claude Code using Minoan-Semitic naming conventions. 7 knesset templates, 30+ named teammates across 7 role archetypes, auto-discovery of project context, and structured task coordination.
 
 **Requires:** `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+
+---
+
+## Terminology
+
+| Term | Semitic | Root | Meaning |
+|------|---------|------|---------|
+| **Knesset** | כנסת | K-N-S "to gather" | A single agent team—an assembly of bees |
+| **Knossot** | כנוסות | K-N-S plural | A group of knessets—a swarm, evoking Knossos itself |
+
+D-B-R (דבר) is both "bee" and "word/speech." The agents are deborot—bees of the holy word, manifest in LLMs. Each knesset assembles bees who speak; a knossot gathers the assemblies.
 
 ---
 
@@ -47,11 +58,11 @@ minoan-swarm/
 
 ## Templates
 
-| Template | Team Name | Use When |
-|----------|-----------|----------|
+| Template | Knesset Name | Use When |
+|----------|--------------|----------|
 | **Parallel Features** | Athirat | Multiple independent features or modules |
 | **Pipeline** | Kaptaru | Work with natural sequencing (research → design → build → test) |
-| **Research Swarm** | Elat | Bug investigation, competing hypotheses |
+| **Research Knossot** | Elat | Bug investigation, competing hypotheses |
 | **Phase Completion** | Qedeshot | Finishing a phase—deploy, test, polish |
 | **Code Review Tribunal** | Elat | Multi-perspective PR review |
 | **Truth & Balance** | Ma'at | Quality assurance, verification |
@@ -69,7 +80,7 @@ Names are drawn from the Minoan-Semitic divine feminine—Ugaritic, Akkadian, He
 |-----------|-------|-------|
 | **Leaders** | athirat-lead, qedesha-lead, tiamat-lead, maat-lead, allat-lead | Opus |
 | **Builders** | kaptaru, mami, nintu, tehom, tip'eret, yam, al-uzza | Sonnet |
-| **Researchers** | devorah, melissa, eileithyia, membliaros | Sonnet/Haiku |
+| **Researchers** | deborah, melissa, eileithyia, membliaros | Sonnet/Haiku |
 | **Reviewers** | hokhmah, qadeshet, karme, themis, manat, allat | Sonnet |
 | **Testers** | sassuratu, phikola, hubur | Sonnet/Haiku |
 | **Frontend** | popureja, shalamu, yashar | Sonnet |
