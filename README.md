@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-50-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-51-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-47-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-30-orange.svg" alt="Hooks"></a>
 </p>
@@ -20,7 +20,7 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 50 custom skills across 5 categories
+├── skills/                      # 51 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
@@ -79,7 +79,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 50 skills across 5 categories
+### [Skills](skills/README.md) — 51 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -88,7 +88,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
 | Core Development | 10 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk`, `skill-optimizer`, `claude-usage` |
-| Integration & Automation | 19 | `llama-cpp`, `rlama`, `classical-887`, `slack`, `resend`, `firecrawl`, `codex-orchestrator`, `codex-cto` |
+| Integration & Automation | 20 | `llama-cpp`, `rlama`, `cloudflare`, `classical-887`, `slack`, `resend`, `firecrawl`, `codex-orchestrator`, `codex-cto` |
 | Design & Media | 8 | `minoan-frontend-design` (70% win rate, eval-validated), `gemini-claude-resonance`, `image-forge`, `nano-banana-pro` |
 | Research | 6 | `academic-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling` |
 | Planning & Productivity | 8 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
@@ -341,7 +341,7 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 
 ---
 
-**Skills**: 50 | **Commands**: 47 | **Hooks**: 30 | **CLI Tools**: 10
+**Skills**: 51 | **Commands**: 47 | **Hooks**: 30 | **CLI Tools**: 10
 
 ---
 
