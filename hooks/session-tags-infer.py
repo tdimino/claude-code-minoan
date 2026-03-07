@@ -29,22 +29,32 @@ LLAMA_SERVER_URL = "http://127.0.0.1:8787/v1/chat/completions"
 # Known bug: QwenLM/Qwen2.5 #1095 (mid-generation JSON corruption)
 # Mitigated by: response_format json_object + temperature 0.0 + top_k 1
 QWEN_LOCAL_SYSTEM_PROMPT = """\
-You are a JSON extraction engine. Output ONLY a single valid JSON object, nothing else.
-Do NOT include explanations, markdown fences, or text outside the JSON.
+You are a session title generator. Output ONLY valid JSON, nothing else.
+
+RULES:
+- The title MUST describe what the USER was trying to accomplish
+- The title MUST be 5-8 words, plain English
+- DO NOT mention internal operations: hooks, tags, stop events, session management, subagents, registry, JSONL, transcript
+- DO NOT mention tools or infrastructure: Next.js, Tailwind, exa, firecrawl, MCP, llama-server, webpack, workspace
+- Focus on the USER'S GOAL, not Claude's implementation steps
 
 Required JSON schema:
 {
   "tags": ["string", "..."],        // up to 10 topic tags, 4-5 words each
   "display_tags": ["string", "..."], // exactly 3 most relevant tags, 3-5 words
-  "title": "string",                // 5-8 word session title
-  "summary": "string"               // 2-4 sentence summary
+  "title": "string",                // 5-8 word user-focused session title
+  "summary": "string"               // 2-4 sentence summary of what the user accomplished
 }"""
 
 QWEN_LOCAL_USER_TEMPLATE = """\
-Extract topic tags and a summary from this Claude Code session transcript.
+Generate a title, tags, and summary for this Claude Code conversation.
+The transcript below contains the user's messages. Focus on what the user wanted to do.
+
+BAD titles (too internal): "Session Tags and Stop Hook", "Next.js Workspace Configuration", "Hook Architecture Refactor"
+GOOD titles (user-focused): "Optimum Router Bridge Mode Setup", "Fix Dead Session Index File", "Sync Hooks to Both Repos"
 
 Example output:
-{{"tags": ["statusline tags feature", "ccstatusline hook design", "plan rename fix"], "display_tags": ["statusline session tags display", "plan rename on creation", "stop hook architecture"], "title": "Session Tags and Plan Rename", "summary": "Extended the statusline with session tag display. Fixed plan rename hook to trigger on file creation. Refactored stop hook to use fire-and-forget pattern for tag inference."}}
+{{"tags": ["router setup", "bridge mode config", "session tags fix"], "display_tags": ["router bridge mode setup", "session registry migration", "repo hooks sync"], "title": "Router Setup and Session Registry Fix", "summary": "Configured Optimum gateway in bridge mode with GL.iNet Flint 2 router. Diagnosed and replaced dead sessions-index.json with self-maintained session-registry.json."}}
 
 TRANSCRIPT:
 {transcript}"""
@@ -77,6 +87,62 @@ def read_transcript_tail(transcript_path, max_lines=100):
         return "\n".join(lines[-max_lines:])
     except (OSError, UnicodeDecodeError):
         return ""
+
+
+def read_clean_conversation(transcript_path):
+    """Extract real user messages from JSONL transcript using structural filtering.
+
+    Identifies genuine user input by checking for `type == "user"` AND
+    `permissionMode` present — this combination uniquely marks actual user
+    prompts vs tool results, skill injections, and system messages.
+
+    Returns a clean text of USER: lines suitable for LLM title inference.
+    """
+    try:
+        with open(transcript_path) as f:
+            lines = f.readlines()
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+    user_msgs = []
+    for line in lines:
+        try:
+            obj = json.loads(line)
+        except (json.JSONDecodeError, ValueError):
+            continue
+
+        # Structural filter: only real user prompts have both fields
+        if obj.get("type") != "user" or "permissionMode" not in obj:
+            continue
+
+        message = obj.get("message", {})
+        content = message.get("content", "")
+
+        # Real user input has string content
+        if not isinstance(content, str):
+            continue
+
+        text = content.strip()
+        if len(text) < 10:
+            continue
+
+        # Skip system noise that occasionally appears in user messages
+        if text.startswith(("<task-notification", "<local-command")):
+            continue
+
+        user_msgs.append(text[:200])
+
+    clean_lines = [f"USER: {msg}" for msg in user_msgs]
+    clean_text = "\n".join(clean_lines)
+
+    # Truncate to ~5K chars to leave room for prompt template + output
+    if len(clean_text) > 5000:
+        clean_text = clean_text[:5000]
+        nl = clean_text.rfind("\n")
+        if nl > 0:
+            clean_text = clean_text[:nl]
+
+    return clean_text
 
 
 def extract_json(text):
@@ -218,14 +284,19 @@ def main():
         except (ValueError, OSError):
             pass  # Corrupted file — proceed
 
-    transcript_text = read_transcript_tail(transcript_path)
+    # Use clean conversation extraction (user messages only) for local inference.
+    # Falls back to raw tail if clean extraction returns empty.
+    transcript_text = read_clean_conversation(transcript_path)
+    if not transcript_text:
+        transcript_text = read_transcript_tail(transcript_path)
     if not transcript_text:
         return
 
-    # Truncate if over 8K chars (~4K tokens), align to line boundary.
-    # llama-server runs with -c 8192, leaving ~4K tokens for the prompt template + output.
-    if len(transcript_text) > 8_000:
-        transcript_text = transcript_text[-8_000:]
+    # Truncate if over 6K chars (~3K tokens), align to line boundary.
+    # llama-server runs with -c 8192; improved prompts use more tokens,
+    # so we budget ~3K for transcript, ~2K for prompt template, ~1K for output.
+    if len(transcript_text) > 6_000:
+        transcript_text = transcript_text[-6_000:]
         nl = transcript_text.find("\n")
         if nl > 0:
             transcript_text = transcript_text[nl + 1:]
