@@ -28,7 +28,7 @@ WATCHED_DIRS = [
 SKIP_PATTERNS = [
     "INDEX.md",          # We create these ourselves
     ".annotations.",     # Dabarat sidecars
-    "sessions-index.",   # Auto-generated
+    "session-registry.", # Our self-maintained session index
 ]
 
 

@@ -83,17 +83,14 @@ fi
 
 MAIN_TITLE=""
 
-# Priority 1: customTitle from sessions-index.json (set via /rename)
-if [[ -n "$TRANSCRIPT_PATH" && -n "$SESSION_ID" ]]; then
-  PROJECT_DIR=$(dirname "$TRANSCRIPT_PATH")
-  INDEX_FILE="$PROJECT_DIR/sessions-index.json"
-  if [[ -f "$INDEX_FILE" ]]; then
-    CUSTOM_TITLE=$(jq -r --arg sid "$SESSION_ID" \
-      '.entries[] | select(.sessionId == $sid) | .customTitle // empty' \
-      "$INDEX_FILE" 2>/dev/null)
-    if [[ -n "$CUSTOM_TITLE" && "$CUSTOM_TITLE" != "null" ]]; then
-      MAIN_TITLE="$CUSTOM_TITLE"
-    fi
+# Priority 1: title from session-registry.json (our self-maintained index)
+REGISTRY="$HOME/.claude/session-registry.json"
+if [[ -n "$SESSION_ID" && -f "$REGISTRY" ]]; then
+  CUSTOM_TITLE=$(jq -r --arg sid "$SESSION_ID" \
+    '.sessions[$sid].title // empty' \
+    "$REGISTRY" 2>/dev/null)
+  if [[ -n "$CUSTOM_TITLE" && "$CUSTOM_TITLE" != "null" ]]; then
+    MAIN_TITLE="$CUSTOM_TITLE"
   fi
 fi
 
