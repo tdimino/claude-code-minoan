@@ -77,30 +77,24 @@ def read_hook_input() -> dict:
     return {}
 
 
-# --- Session index (Claude Code titles) ---
+# --- Session registry (our self-maintained session index) ---
+
+REGISTRY_PATH = Path.home() / ".claude" / "session-registry.json"
 
 def load_session_index(project_dir: Path) -> dict:
-    """Load sessions-index.json for a project dir. Returns {session_id: {title, summary, firstPrompt}}."""
-    index_path = project_dir / "sessions-index.json"
-    if not index_path.exists():
+    """Load session metadata from session-registry.json. Returns {session_id: {customTitle, summary, firstPrompt}}."""
+    if not REGISTRY_PATH.exists():
         return {}
     try:
-        data = json.loads(index_path.read_text())
+        registry = json.loads(REGISTRY_PATH.read_text())
         result = {}
-        for entry in data.get("entries", []):
-            sid = entry.get("sessionId", "")
-            if not sid:
-                continue
-            custom_title = entry.get("customTitle") or ""
-            cc_summary = entry.get("summary") or ""
-            first_prompt = entry.get("firstPrompt") or ""
-            # Skip API error summaries
-            if cc_summary.startswith("API Error:"):
-                cc_summary = ""
+        for sid, entry in registry.get("sessions", {}).items():
+            title = entry.get("title") or ""
+            summary = entry.get("summary") or ""
             result[sid] = {
-                "customTitle": custom_title,
-                "summary": cc_summary,
-                "firstPrompt": first_prompt,
+                "customTitle": title,
+                "summary": summary,
+                "firstPrompt": "",
             }
         return result
     except (json.JSONDecodeError, OSError):

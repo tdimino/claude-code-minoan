@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Stop hook subprocess: infer session tags + summary from transcript via OpenRouter.
+"""Stop hook subprocess: infer session tags + summary from transcript via local llama-server.
 
-Reads last 100 JSONL lines, calls Gemini Flash Lite to extract topic tags and
-a 2-4 sentence summary. Writes to ~/.claude/session-tags/{session_id}.json,
-auto-sets customTitle in sessions-index.json, and updates the soul-session
-registry with topic + summary.
+Reads last 100 JSONL lines, calls Qwen 2.5 7B (llama-server on port 8787) to extract
+topic tags and a 2-4 sentence summary. Writes to ~/.claude/session-tags/{session_id}.json,
+updates session-registry.json (our self-maintained session index), and updates
+the soul-session registry with topic + summary.
+
+Requires: com.minoan.llama-tags-server launchd daemon running on 127.0.0.1:8787.
 """
 import datetime
 import fcntl
@@ -17,23 +19,54 @@ import urllib.request
 
 
 TAGS_DIR = pathlib.Path.home() / ".claude" / "session-tags"
+REGISTRY_PATH = pathlib.Path.home() / ".claude" / "session-registry.json"
 TAGS_COOLDOWN = 180  # 3 minutes — matches old stop-handoff.py gate
+LLAMA_SERVER_URL = "http://127.0.0.1:8787/v1/chat/completions"
 
+# --- Prompt Configurations (switchable) ---
 
-def get_api_key():
-    """Resolve OpenRouter API key from env or .env files."""
-    key = os.environ.get("OPENROUTER_API_KEY", "")
-    if key:
-        return key
-    for env_file in [
-        pathlib.Path.home() / "Desktop/Aldea/Prompt development/Aldea-Soul-Engine/.env",
-        pathlib.Path.home() / "Desktop/minoanmystery-astro/.env",
-    ]:
-        if env_file.exists():
-            for line in env_file.read_text().splitlines():
-                if line.startswith("OPENROUTER_API_KEY="):
-                    return line.split("=", 1)[1].strip().strip('"').strip("'")
-    return ""
+# Qwen 2.5 7B local: system/user split, explicit JSON schema, negative constraints
+# Known bug: QwenLM/Qwen2.5 #1095 (mid-generation JSON corruption)
+# Mitigated by: response_format json_object + temperature 0.0 + top_k 1
+QWEN_LOCAL_SYSTEM_PROMPT = """\
+You are a JSON extraction engine. Output ONLY a single valid JSON object, nothing else.
+Do NOT include explanations, markdown fences, or text outside the JSON.
+
+Required JSON schema:
+{
+  "tags": ["string", "..."],        // up to 10 topic tags, 4-5 words each
+  "display_tags": ["string", "..."], // exactly 3 most relevant tags, 3-5 words
+  "title": "string",                // 5-8 word session title
+  "summary": "string"               // 2-4 sentence summary
+}"""
+
+QWEN_LOCAL_USER_TEMPLATE = """\
+Extract topic tags and a summary from this Claude Code session transcript.
+
+Example output:
+{{"tags": ["statusline tags feature", "ccstatusline hook design", "plan rename fix"], "display_tags": ["statusline session tags display", "plan rename on creation", "stop hook architecture"], "title": "Session Tags and Plan Rename", "summary": "Extended the statusline with session tag display. Fixed plan rename hook to trigger on file creation. Refactored stop hook to use fire-and-forget pattern for tag inference."}}
+
+TRANSCRIPT:
+{transcript}"""
+
+# Cloud model (Google/OpenRouter): single-prompt, higher temperature tolerance
+CLOUD_PROMPT_TEMPLATE = """\
+Analyze this Claude Code session transcript and extract topic tags and a summary.
+
+Output ONLY valid JSON with these fields:
+- "tags": array of up to 10 topic tags (4-5 words each) describing what this session covers
+- "display_tags": array of exactly 3 most relevant tags (3-5 words each, descriptive and specific)
+- "title": a short descriptive title for this session (5-8 words, no quotes)
+- "summary": a 2-4 sentence summary of what happened in this session (what was built, fixed, or discussed)
+
+Example output:
+{{"tags": ["statusline tags feature", "ccstatusline hook design", "plan rename fix"], "display_tags": ["statusline session tags display", "plan rename on creation", "stop hook architecture"], "title": "Session Tags and Plan Rename", "summary": "Extended the statusline with session tag display. Fixed plan rename hook to trigger on file creation. Refactored stop hook to use fire-and-forget pattern for tag inference."}}
+
+TRANSCRIPT:
+{transcript}"""
+
+# Active configuration: "local" (Qwen 2.5 7B via llama-server) or "cloud" (OpenRouter)
+ACTIVE_PROVIDER = "local"
 
 
 def read_transcript_tail(transcript_path, max_lines=100):
@@ -56,59 +89,53 @@ def extract_json(text):
     return json.loads(text[start:end])
 
 
-def infer_tags(api_key, transcript_text):
-    """Call OpenRouter to extract tags from transcript."""
-    prompt = f"""Analyze this Claude Code session transcript and extract topic tags and a summary.
+def infer_tags(transcript_text):
+    """Call local llama-server (Qwen 2.5 7B) to extract tags from transcript.
 
-Output ONLY valid JSON with these fields:
-- "tags": array of up to 10 topic tags (4-5 words each) describing what this session covers
-- "display_tags": array of exactly 3 most relevant tags (3-5 words each, descriptive and specific)
-- "title": a short descriptive title for this session (5-8 words, no quotes)
-- "summary": a 2-4 sentence summary of what happened in this session (what was built, fixed, or discussed)
-
-Example output:
-{{"tags": ["statusline tags feature", "ccstatusline hook design", "plan rename fix"], "display_tags": ["statusline session tags display", "plan rename on creation", "stop hook architecture"], "title": "Session Tags and Plan Rename", "summary": "Extended the statusline with session tag display. Fixed plan rename hook to trigger on file creation. Refactored stop hook to use fire-and-forget pattern for tag inference."}}
-
-TRANSCRIPT:
-{transcript_text}"""
-
-    body = json.dumps({
-        "model": "google/gemini-2.0-flash-lite-001",
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 500,
-        "temperature": 0.2,
-    }).encode()
+    Uses ACTIVE_PROVIDER to select prompt format and sampling params.
+    Switchable between 'local' (Qwen 2.5 7B) and 'cloud' (OpenRouter).
+    """
+    if ACTIVE_PROVIDER == "local":
+        messages = [
+            {"role": "system", "content": QWEN_LOCAL_SYSTEM_PROMPT},
+            {"role": "user", "content": QWEN_LOCAL_USER_TEMPLATE.format(transcript=transcript_text)},
+        ]
+        body = json.dumps({
+            "messages": messages,
+            "temperature": 0.0,
+            "top_k": 1,
+            "max_tokens": 500,
+            "stream": False,
+            "response_format": {"type": "json_object"},
+        }).encode()
+    else:
+        # Cloud provider (OpenRouter) — single-prompt, higher temperature tolerance
+        messages = [
+            {"role": "user", "content": CLOUD_PROMPT_TEMPLATE.format(transcript=transcript_text)},
+        ]
+        body = json.dumps({
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": 500,
+            "stream": False,
+        }).encode()
 
     req = urllib.request.Request(
-        "https://openrouter.ai/api/v1/chat/completions",
+        LLAMA_SERVER_URL,
         data=body,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/tdimino/claudius",
-        },
+        headers={"Content-Type": "application/json"},
     )
 
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, timeout=120) as resp:
         result = json.loads(resp.read())
 
     content = result["choices"][0]["message"]["content"]
     return extract_json(content)
 
 
-def auto_rename_session(session_id, transcript_path, title):
-    """Set customTitle in sessions-index.json if none exists. Uses file locking."""
-    if not title:
-        return
-
-    project_dir = pathlib.Path(transcript_path).parent
-    index_path = project_dir / "sessions-index.json"
-
-    if not index_path.exists():
-        return
-
-    # File lock to prevent race with propagate-rename.py and other hooks
-    lock_path = pathlib.Path("/tmp") / f"claude-{os.getuid()}" / "sessions-index.lock"
+def update_registry(session_id, transcript_path, title, tags, display_tags, summary):
+    """Upsert session entry in session-registry.json. Uses file locking."""
+    lock_path = pathlib.Path("/tmp") / f"claude-{os.getuid()}" / "session-registry.lock"
     lock_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -118,21 +145,30 @@ def auto_rename_session(session_id, transcript_path, title):
         return  # Another process holds the lock — skip
 
     try:
-        index_data = json.loads(index_path.read_text())
+        registry = {"sessions": {}}
+        if REGISTRY_PATH.exists():
+            try:
+                registry = json.loads(REGISTRY_PATH.read_text())
+            except (json.JSONDecodeError, OSError):
+                registry = {"sessions": {}}
 
-        for entry in index_data.get("entries", []):
-            if entry.get("sessionId") == session_id:
-                if entry.get("customTitle"):
-                    return  # Already has a title—don't overwrite
-                entry["customTitle"] = title
-                break
-        else:
-            return  # Session not found
+        project_slug = pathlib.Path(transcript_path).parent.name
+
+        # Upsert: preserve existing fields, update with new data
+        existing = registry.get("sessions", {}).get(session_id, {})
+        registry.setdefault("sessions", {})[session_id] = {
+            "title": title or existing.get("title", ""),
+            "display_tags": display_tags or existing.get("display_tags", []),
+            "tags": tags or existing.get("tags", []),
+            "summary": summary or existing.get("summary", ""),
+            "project": project_slug,
+            "updated": datetime.datetime.now().isoformat(timespec="seconds"),
+        }
 
         # Atomic write
-        tmp = index_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(index_data, indent=2))
-        tmp.rename(index_path)
+        tmp = REGISTRY_PATH.with_suffix(".tmp")
+        tmp.write_text(json.dumps(registry, indent=2))
+        tmp.rename(REGISTRY_PATH)
     except (json.JSONDecodeError, OSError):
         pass
     finally:
@@ -156,21 +192,20 @@ def main():
     if not session_id or not transcript_path or not os.path.exists(transcript_path):
         return
 
-    # Check for pending title from plan-session-rename.py BEFORE API key guard.
+    # Check for pending title from plan-session-rename.py BEFORE inference.
     # These breadcrumbs are local-only and don't need an LLM call.
     pending_path = TAGS_DIR / f"{session_id}.pending-title"
     if pending_path.exists():
         try:
             pending_title = pending_path.read_text().strip()
             if pending_title:
-                auto_rename_session(session_id, transcript_path, pending_title)
+                update_registry(session_id, transcript_path, pending_title, [], [], "")
                 pending_path.unlink(missing_ok=True)
                 print(f"session-tags: applied pending plan title '{pending_title}'", file=sys.stderr)
         except OSError:
             pass
 
-    # Cooldown check — don't call OpenRouter more than once per TAGS_COOLDOWN seconds.
-    # This replaces the gating that stop-handoff.py used to provide (3-min cooldown).
+    # Cooldown check — don't call llama-server more than once per TAGS_COOLDOWN seconds.
     cooldown_dir = pathlib.Path(f"/tmp/claude-{os.getuid()}")
     cooldown_dir.mkdir(parents=True, exist_ok=True)
     cooldown_file = cooldown_dir / f"session-tags-{session_id}.last"
@@ -182,28 +217,27 @@ def main():
                 return  # Too soon — skip this run
         except (ValueError, OSError):
             pass  # Corrupted file — proceed
-    api_key = get_api_key()
-    if not api_key:
-        return
 
     transcript_text = read_transcript_tail(transcript_path)
     if not transcript_text:
         return
 
-    # Truncate if over 200K chars (~50K tokens), align to line boundary
-    if len(transcript_text) > 200_000:
-        transcript_text = transcript_text[-200_000:]
+    # Truncate if over 8K chars (~4K tokens), align to line boundary.
+    # llama-server runs with -c 8192, leaving ~4K tokens for the prompt template + output.
+    if len(transcript_text) > 8_000:
+        transcript_text = transcript_text[-8_000:]
         nl = transcript_text.find("\n")
         if nl > 0:
             transcript_text = transcript_text[nl + 1:]
 
     try:
-        result = infer_tags(api_key, transcript_text)
-    except Exception:
+        result = infer_tags(transcript_text)
+    except Exception as e:
+        print(f"session-tags: inference error: {e}", file=sys.stderr)
         return
 
     # Write cooldown timestamp AFTER successful inference (not before)
-    # so failed API calls don't block retries for 3 minutes.
+    # so failed calls don't block retries for 3 minutes.
     try:
         cooldown_file.write_text(str(now))
     except OSError:
@@ -242,8 +276,8 @@ def main():
 
     print(f"session-tags: {len(tags)} tags, display: {display_tags}", file=sys.stderr)
 
-    # Auto-rename session if no customTitle (pending titles already handled above)
-    auto_rename_session(session_id, transcript_path, title)
+    # Update session-registry.json with title, tags, summary
+    update_registry(session_id, transcript_path, title, tags, display_tags, summary)
 
     # Update soul registry topic + summary if this session is registered
     if title or summary:

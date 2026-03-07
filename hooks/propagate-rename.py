@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stop hook: propagate customTitle from sessions-index.json to session-summaries.json.
+"""Stop hook: propagate title from session-registry.json to session-summaries.json.
 
 Runs on every Stop event. Fast path (~20ms) when nothing changed.
 No LLM calls, no network — pure local JSON reconciliation.
@@ -26,27 +26,22 @@ def main():
     if not session_id or not transcript_path:
         return
 
-    # 1. Derive project dir from transcript path
-    project_dir = pathlib.Path(transcript_path).parent
-    index_path = project_dir / "sessions-index.json"
+    # 1. Read title from session-registry.json (our self-maintained index)
+    registry_path = pathlib.Path.home() / ".claude" / "session-registry.json"
 
-    if not index_path.exists():
+    if not registry_path.exists():
         return
 
-    # 2. Read customTitle for this session from sessions-index.json
     try:
-        index_data = json.loads(index_path.read_text())
+        registry = json.loads(registry_path.read_text())
     except (json.JSONDecodeError, OSError):
         return
 
-    custom_title = None
-    for entry in index_data.get("entries", []):
-        if entry.get("sessionId") == session_id:
-            custom_title = entry.get("customTitle") or ""
-            break
+    entry = registry.get("sessions", {}).get(session_id, {})
+    custom_title = entry.get("title", "")
 
     if not custom_title:
-        return  # No customTitle set — fast path exit
+        return  # No title set — fast path exit
 
     # 3. Check if session-summaries.json already has this title
     cache = {}

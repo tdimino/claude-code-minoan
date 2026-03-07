@@ -31,11 +31,11 @@
 | Hook | Description |
 |------|-------------|
 | `on-ready.sh` → `terminal-title.sh` | Update terminal title with ready state icon |
-| `propagate-rename.py` | Sync `customTitle` from sessions-index.json to terminal title |
+| `propagate-rename.py` | Sync title from session-registry.json to session-summaries.json |
 | `stop-handoff.py` | Throttled handoff (3min cooldown, 10min idle gate) + soul registry heartbeat |
 | `slack-stop-hook.py` | Process pending Slack messages on stop |
 | `soul-reflect.py` *(async)* | Retrospective cognitive pipeline — monologue, user model, soul state updates via Groq/OpenRouter |
-| `session-tags-infer.py` *(async)* | Infer session tags via OpenRouter (3-min cooldown), write sidecar JSON, auto-rename session |
+| `session-tags-infer.py` *(async)* | Infer session tags via llama-server (3-min cooldown), write sidecar JSON + session-registry.json |
 | `plan-rename.py stop` | Rename random-named plans to dated slugs, symlink for write-through, open in dabarat |
 
 ### SessionEnd

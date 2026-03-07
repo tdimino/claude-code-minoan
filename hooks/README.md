@@ -79,18 +79,18 @@ Also updates `~/.claude/handoffs/INDEX.md` — a running markdown table of all s
 
 ### `propagate-rename.py` — Rename Reconciliation
 
-Propagates `/rename` custom titles from `sessions-index.json` (ground truth) to `session-summaries.json` (global cache) and triggers `active-projects.md` rebuild.
+Propagates session titles from `session-registry.json` (our self-maintained index) to `session-summaries.json` (global cache) and triggers `active-projects.md` rebuild.
 
 **Fires on**: Stop (after every Claude response)
 
 **Data flow**:
 1. Read `session_id` and `transcript_path` from hook stdin JSON
-2. Look up `customTitle` in `sessions-index.json` (per-project, written by `/rename`)
+2. Look up `title` in `~/.claude/session-registry.json`
 3. Compare against `title` in `~/.claude/session-summaries.json`
 4. If mismatch: update cache, atomic write, fire `update-active-projects.py` in background
-5. If already in sync or no custom title: fast path exit (~20ms)
+5. If already in sync or no title: fast path exit (~20ms)
 
-**Why it exists**: `/rename` only updates `sessions-index.json`. Without this hook, `session-summaries.json` and `active-projects.md` never learn about the rename.
+**Why it exists**: `session-tags-infer.py` writes titles to `session-registry.json`. Without this hook, `session-summaries.json` and `active-projects.md` never learn about the title.
 
 **Cost**: Zero. No LLM calls, no network — pure local JSON reconciliation.
 
@@ -133,7 +133,7 @@ Dynamic terminal tab title with repo-type emoji icons, two-tier naming (persiste
 |-----------|--------|-------------|
 | `🔴/🟢` | Hook event (PreToolUse/Stop) | Per-event |
 | Repo icon | CWD heuristics (CLAUDE.md keywords, then file detection) | Cached per CWD in `/tmp/` |
-| Main title | `customTitle` via `/rename`, else `basename $CWD` | Persistent — only changes via `/rename` |
+| Main title | `title` from session-registry.json, else `basename $CWD` | Persistent — set by session-tags-infer.py |
 | Subtitle | Last assistant message from transcript JSONL | Updated on each Stop event |
 
 **Repo icon detection** (priority order):
@@ -196,19 +196,17 @@ Renames randomly-named plan files (`tingly-humming-simon.md`) to dated slugs (`2
 
 ### `plan-session-rename.py` — Auto-Rename Session from Plan Title
 
-When a plan file is written to `~/.claude/plans/`, extracts the H1 header and sets the session's `customTitle` in `sessions-index.json`. No LLM call—pure local, ~10ms.
+When a plan file is written to `~/.claude/plans/`, extracts the H1 header and writes a `.pending-title` breadcrumb for `session-tags-infer.py` to pick up on the next Stop event. No LLM call—pure local, ~10ms.
 
 **Fires on**: PostToolUse/Write (only when file is in `~/.claude/plans/`)
 
 **How it works**:
 1. Guard: only acts if `file_path` is inside `~/.claude/plans/`
 2. Extract H1 from `tool_input.content`, strip "Plan: " prefix if present
-3. Derive `sessions-index.json` path from `cwd` using Claude Code's path convention
-4. Acquire shared file lock (`/tmp/claude-{uid}/sessions-index.lock`)
-5. Set `customTitle` if none exists; also propagate to `session-summaries.json`
-6. If session not yet in index (Claude Code writes lazily), writes a `.pending-title` breadcrumb to `~/.claude/session-tags/` for `session-tags-infer.py` to pick up on next Stop
+3. Write a `.pending-title` breadcrumb to `~/.claude/session-tags/`
+4. On next Stop, `session-tags-infer.py` reads the breadcrumb and writes the title to `session-registry.json`
 
-**Interplay with `session-tags-infer.py`**: Pending breadcrumbs are checked before the API key guard in the Stop hook, so sessions without OpenRouter API keys still get plan-derived titles.
+**Interplay with `session-tags-infer.py`**: Pending breadcrumbs are checked before inference, so sessions get plan-derived titles even if the LLM server is unavailable.
 
 **Cost**: Zero. No LLM calls, no network.
 
@@ -263,9 +261,10 @@ Reads the session transcript and generates 3 descriptive tags (3-5 words each) p
 1. Reads the last ~4000 chars of the transcript JSONL
 2. Sends to Gemini Flash Lite via OpenRouter (~$0.004/call)
 3. Returns 3 `display_tags`, up to 10 `tags`, a `title`, and a `summary`
-4. Writes to `~/.claude/session-tags/{session_id}.json`
-5. `session-tags-display.sh` reads this file for statusline display
-6. Pushes `topic` and `summary` to the soul registry via `soul-registry.py heartbeat`
+4. Writes to `~/.claude/session-tags/{session_id}.json` (sidecar for statusline)
+5. Updates `~/.claude/session-registry.json` (consolidated session index)
+6. `session-tags-display.sh` reads sidecar for statusline display
+7. Pushes `topic` and `summary` to the soul registry via `soul-registry.py heartbeat`
 
 **Cooldown**: 5 minutes per session (shared with handoff cooldown). Tags don't re-infer if nothing has changed.
 
@@ -295,7 +294,7 @@ Fires on every `.md` write (create or edit). If Dabarat is already running, adds
 - `~/.claude/scripts/`
 - Current project working directory
 
-**Skips**: `INDEX.md`, `.annotations.` files, `sessions-index`
+**Skips**: `INDEX.md`, `.annotations.` files, `session-registry`
 
 **Why it exists**: When Claude writes or updates a plan, dossier, or documentation file, you instantly see the rendered markdown in a browser tab without switching context.
 
