@@ -169,6 +169,8 @@ class MeshyClient:
 
         resp = self._request("POST", "/text-to-3d", json=payload)
         task_id = resp.get("result", "")
+        if not task_id:
+            raise MeshyError(500, "API returned no task_id in response")
         log_event({"action": f"text_to_3d_{mode}", "task_id": task_id, "prompt": prompt[:100]})
         return task_id
 
@@ -195,6 +197,8 @@ class MeshyClient:
 
         resp = self._request("POST", "/image-to-3d", json=payload)
         task_id = resp.get("result", "")
+        if not task_id:
+            raise MeshyError(500, "API returned no task_id in response")
         log_event({"action": "image_to_3d", "task_id": task_id})
         return task_id
 
@@ -220,6 +224,8 @@ class MeshyClient:
 
         resp = self._request("POST", "/text-to-texture", json=payload)
         task_id = resp.get("result", "")
+        if not task_id:
+            raise MeshyError(500, "API returned no task_id in response")
         log_event({"action": "text_to_texture", "task_id": task_id, "prompt": prompt[:100]})
         return task_id
 
@@ -271,7 +277,14 @@ class MeshyClient:
                 log_event({"action": "poll_timeout", "task_id": task_id, "elapsed": round(elapsed)})
                 raise MeshyError(408, f"Task {task_id} timed out after {timeout}s", task_id)
 
-            task = self.get_task(task_id, endpoint)
+            for attempt in range(3):
+                try:
+                    task = self.get_task(task_id, endpoint)
+                    break
+                except requests.RequestException:
+                    if attempt == 2:
+                        raise
+                    time.sleep(poll_interval)
             status = task.get("status", "UNKNOWN")
             progress = task.get("progress", 0)
 
@@ -314,7 +327,7 @@ class MeshyClient:
             filename = task.get("id", task.get("task_id", "model"))
         output_path = output_dir / f"{filename}.{format}"
 
-        resp = requests.get(url, timeout=120)
+        resp = self.session.get(url, timeout=120)
         resp.raise_for_status()
         output_path.write_bytes(resp.content)
 

@@ -42,7 +42,6 @@ def main():
     parser.add_argument("--timeout", type=int, default=600, help="Max wait seconds (default: 600)")
     parser.add_argument("--quiet", action="store_true", help="Minimal output")
     parser.add_argument("--json", action="store_true", help="Machine-readable JSON output")
-    parser.add_argument("--verbose", action="store_true", help="Show full API responses")
     args = parser.parse_args()
 
     client = MeshyClient(api_key=args.api_key)

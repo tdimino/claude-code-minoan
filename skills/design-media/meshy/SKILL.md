@@ -118,7 +118,7 @@ uv run ~/.claude/skills/meshy/scripts/meshy_tasks.py balance                  # 
 | `--api-key` | env | Override MESHY_API_KEY |
 | `--poll-interval` | `5` | Seconds between polls |
 | `--timeout` | `600` | Max wait seconds |
-| `--quiet` / `--json` / `--verbose` | — | Output modes |
+| `--quiet` / `--json` | — | Output modes |
 
 ### meshy_image_to_3d.py
 

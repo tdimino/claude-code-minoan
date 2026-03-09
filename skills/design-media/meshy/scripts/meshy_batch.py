@@ -169,6 +169,8 @@ def cmd_generate(manifest: dict, args):
 
         batch_log_event({"action": "start", "model_id": cfg["id"], "prompt": cfg["prompt"][:100]})
 
+        fmt = args.format if args.format else cfg["format"]
+
         success, path = client.generate_full(
             cfg["prompt"],
             negative_prompt=cfg["negative_prompt"],
@@ -176,7 +178,7 @@ def cmd_generate(manifest: dict, args):
             skip_refine=skip,
             output_dir=output_dir,
             output_name=name_base,
-            format=cfg["format"],
+            format=fmt,
             poll_interval=args.poll_interval,
             timeout=args.timeout,
             quiet=args.quiet,
