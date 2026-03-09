@@ -45,7 +45,7 @@ def cmd_list(client: MeshyClient, args):
     for t in tasks:
         tid = t.get("id", t.get("task_id", "?"))
         status = t.get("status", "?")
-        progress = t.get("progress", "?")
+        progress = t.get("progress") or "?"
         prompt = t.get("prompt", "")[:50]
         created_raw = t.get("created_at", "?")
         if isinstance(created_raw, (int, float)):
