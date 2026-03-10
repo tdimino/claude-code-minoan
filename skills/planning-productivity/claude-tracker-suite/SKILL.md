@@ -51,6 +51,9 @@ claude-tracker-search "kothar" --fzf
 # Search by session ID prefix
 claude-tracker-search --id 1da2b718
 
+# Search by session name/slug only (fast — no JSONL body scan)
+claude-tracker-search "thera" --name
+
 # Check what's alive
 claude-tracker-alive
 
@@ -76,6 +79,7 @@ claude-tracker-search "$ARGUMENTS"
 | `--project <name>` | Filter by project name (substring) |
 | `--since <duration>` | Recent only: `7d`, `24h`, `30m`, `2w` |
 | `--json` | Machine-readable JSON output |
+| `--name` | Search only session names, slugs, summaries—skips JSONL body scan (fast) |
 | `--fzf` | Interactive selection via fzf (outputs resume command) |
 
 ## Resume Crashed Sessions
