@@ -46,7 +46,7 @@ Every turn ──────────→ StatusLine ────────
 
 ### `precompact-handoff.py` — Session Handoff
 
-The core of the handoff system. Reads the transcript JSONL, summarizes it via OpenRouter (Gemini Flash Lite, ~$0.01/call), and writes a structured YAML to `~/.claude/handoffs/{session_id}.yaml`.
+The core of the handoff system. Reads the transcript JSONL, summarizes it via OpenRouter (Qwen 3 235B MoE, ~$0.008/call), and writes a structured YAML to `~/.claude/handoffs/{session_id}.yaml`. See [HANDOFF-MODEL-EVAL.md](HANDOFF-MODEL-EVAL.md) for the model comparison that led to this choice.
 
 **Fires on**: PreCompact (context full), SessionEnd (graceful exit)
 
