@@ -68,6 +68,22 @@ async function main() {
     if (session.gitRemote) console.log('    \x1b[90mRepo:\x1b[0m \x1b[34m' + session.gitRemote + '\x1b[0m');
     if (session.gitBranch) console.log('    \x1b[90mBranch:\x1b[0m \x1b[35m' + session.gitBranch + '\x1b[0m');
 
+    // Show repos touched from git-tracking (cross-directory awareness)
+    const repos = utils.getReposForSession(session.fullId);
+    const repoEntries = Object.entries(repos);
+    if (repoEntries.length > 0) {
+      const repoStrs = repoEntries.map(([rpath, rdata]) => {
+        const name = rpath.split('/').pop();
+        const branch = (rdata.branches || [])[0] || '';
+        const commits = (rdata.commits || []).length;
+        let s = name;
+        if (branch) s += '/' + branch;
+        if (commits) s += ' (' + commits + ' commit' + (commits > 1 ? 's' : '') + ')';
+        return s;
+      });
+      console.log('    \x1b[90mRepos touched:\x1b[0m \x1b[33m' + repoStrs.join('\x1b[0m, \x1b[33m') + '\x1b[0m');
+    }
+
     const lastMsgTime = session.lastUserTimestamp
       ? utils.formatAge(session.lastUserTimestamp)
       : utils.formatAge(session.timestamp);
