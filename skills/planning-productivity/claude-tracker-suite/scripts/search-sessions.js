@@ -72,6 +72,7 @@ async function searchSession(filePath, projectPath) {
     let timestamp = '';
     let sessionSlug = '';
     let sessionSummary = '';
+    let customTitle = '';
     let lineCount = 0;
     let resolved = false;
     let stream, rl;
@@ -85,13 +86,16 @@ async function searchSession(filePath, projectPath) {
 
     const done = () => {
       cleanup();
-      if (matches.length > 0) {
+      // Match if body matches OR custom title matches the search term
+      const titleMatch = customTitle && customTitle.toLowerCase().includes(searchTerm);
+      if (matches.length > 0 || titleMatch) {
         resolve({
           sessionId,
           projectPath,
           timestamp,
           sessionSlug,
           sessionSummary,
+          customTitle,
           matches: matches.slice(0, 5),
         });
       } else {
@@ -115,6 +119,11 @@ async function searchSession(filePath, projectPath) {
           if (timestamp === '' && data.timestamp) timestamp = data.timestamp;
           if (sessionSlug === '' && data.slug) sessionSlug = data.slug;
           if (data.type === 'summary' && data.summary) sessionSummary = data.summary;
+
+          // Track user-assigned custom title (/rename) — last one wins
+          if (data.type === 'custom-title' && data.customTitle) {
+            customTitle = data.customTitle;
+          }
 
           // Search user messages
           if (data.type === 'user' && data.message && data.message.content) {
@@ -189,8 +198,16 @@ function searchByName() {
     const tagsArr = regEntry.display_tags || regEntry.tags || [];
     const tagsStr = tagsArr.join(' ');
 
+    // Read user-assigned custom title from JSONL (/rename)
+    const userTitle = utils.readCustomTitle(session.fullPath);
+
     const matchedFields = [];
 
+    // Check user-assigned name first (from /rename)
+    if (userTitle && matchName(searchTerm, userTitle)) {
+      matchedFields.push({ field: 'name', value: userTitle });
+    }
+    // Also check auto-generated title from registry
     if (session.customTitle && matchName(searchTerm, session.customTitle)) {
       matchedFields.push({ field: 'title', value: session.customTitle });
     }
@@ -264,6 +281,22 @@ function printNameResults(results, escapedTerm) {
   }
 }
 
+/** Read timestamp from first JSONL line (for title-only matches) */
+async function getFirstLineTimestamp(filePath) {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(4096);
+    const bytesRead = fs.readSync(fd, buf, 0, 4096, 0);
+    fs.closeSync(fd);
+    const firstLine = buf.toString('utf-8', 0, bytesRead).split('\n')[0];
+    if (firstLine) {
+      const obj = JSON.parse(firstLine);
+      return obj.timestamp || '';
+    }
+  } catch (e) { /* skip */ }
+  return '';
+}
+
 async function main() {
   // --name mode: fast metadata-only search, no JSONL body scan
   if (nameOnly) {
@@ -296,7 +329,27 @@ async function main() {
     const projectPath = utils.decodeProjectPath(file.projectDir);
     const projectName = projectPath.split('/').pop();
 
-    const result = await searchSession(file.filePath, projectPath);
+    // Pre-read custom title (user rename) from JSONL tail — survives line limit
+    const preReadTitle = utils.readCustomTitle(file.filePath);
+
+    let result = await searchSession(file.filePath, projectPath);
+    // Inject pre-read title if the stream didn't reach it (file > maxLinesPerFile)
+    if (result && !result.customTitle && preReadTitle) {
+      result.customTitle = preReadTitle;
+    }
+    // Synthesize a result for title-only matches (no body content matched)
+    if (!result && preReadTitle && preReadTitle.toLowerCase().includes(searchTerm)) {
+      const sessionId = path.basename(file.filePath, '.jsonl');
+      result = {
+        sessionId,
+        projectPath,
+        timestamp: await getFirstLineTimestamp(file.filePath),
+        sessionSlug: utils.readSessionSlug(file.filePath),
+        sessionSummary: '',
+        customTitle: preReadTitle,
+        matches: [],
+      };
+    }
     if (result) {
       resultCount++;
       const gitRemote = utils.getGitRemote(projectPath);
@@ -305,6 +358,13 @@ async function main() {
         '\x1b[0m \x1b[90m(' + utils.formatAge(result.timestamp) + ')\x1b[0m'
       );
 
+      if (result.customTitle) {
+        const highlightedTitle = result.customTitle.replace(
+          new RegExp('(' + escapedTerm + ')', 'gi'),
+          '\x1b[43m\x1b[30m$1\x1b[0m\x1b[1m\x1b[35m'
+        );
+        console.log('    \x1b[90mName:\x1b[0m \x1b[1m\x1b[35m' + highlightedTitle + '\x1b[0m');
+      }
       if (result.sessionSummary) {
         console.log('    \x1b[90mSummary:\x1b[0m \x1b[1m' + result.sessionSummary + '\x1b[0m');
       }

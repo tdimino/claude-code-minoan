@@ -64,7 +64,7 @@
 |------|-------------|
 | `git-track-post.sh` *(Bash)* | Diff git state after Bash command, log file changes |
 | `dabarat-open.py` *(Write)* | Auto-open written Markdown files in Dabarat preview |
-| `plan-session-rename.py` *(Write)* | Link plan files to session names via JSONL transcript metadata |
+| `plan-session-rename.py` *(Write)* | Emit plan canonical path as additionalContext when plans are written |
 
 ### PostToolUseFailure
 | Hook | Matcher | Description |

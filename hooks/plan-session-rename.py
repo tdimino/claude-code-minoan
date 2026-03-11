@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""PostToolUse hook: auto-rename session when a plan file is written.
+"""PostToolUse hook: emit context when a plan file is written.
 
 Matcher: Write
-When the written file is in ~/.claude/plans/, extracts the H1 header and appends
-a {"type": "custom-title"} event to the session JSONL—the same authoritative
-mechanism that /rename uses. Idempotent via 4KB tail-scan. ~5ms.
+When the written file is in ~/.claude/plans/, extracts the H1 header and emits
+additionalContext via hookSpecificOutput so Claude Code knows the plan file's
+canonical (dated) name. Only fires on first write per slug (re-fires if the
+H1 title changes).
 
-Also emits additionalContext via hookSpecificOutput so Claude Code knows the
-plan file's canonical (dated) name. Only fires on first write per slug (re-fires
-if the H1 title changes).
+NOTE: This hook previously also auto-renamed the session to match the plan H1
+by injecting {"type": "custom-title"} events into the session JSONL. That
+behavior was removed — session names should only change via explicit /rename.
+Plan file renaming (random-name → dated-slug) is handled by plan-rename.py.
 """
 import datetime
 import json
@@ -18,7 +20,6 @@ import re
 import sys
 
 PLANS_DIR = pathlib.Path.home() / ".claude" / "plans"
-PENDING_DIR = pathlib.Path.home() / ".claude" / "session-tags"
 CONTEXT_CACHE = PLANS_DIR / ".plan-context-cache.json"
 
 # H1 header — accept any non-empty content after "# "
@@ -53,43 +54,6 @@ def extract_h1(content):
         return ""
     title = m.group(1).strip()
     return re.sub(r"^Plan:\s*", "", title, flags=re.IGNORECASE)
-
-
-def has_custom_title(jsonl_path):
-    """Check if a custom-title event exists by scanning the last 4KB."""
-    try:
-        with open(jsonl_path, "rb") as f:
-            f.seek(0, 2)
-            size = f.tell()
-            chunk = min(4096, size)
-            f.seek(size - chunk)
-            tail = f.read().decode("utf-8", errors="replace")
-        for line in reversed(tail.splitlines()):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                if json.loads(line).get("type") == "custom-title":
-                    return True
-            except (json.JSONDecodeError, ValueError):
-                continue
-    except OSError:
-        pass
-    return False
-
-
-def jsonl_path_for(session_id, cwd):
-    """Derive the session JSONL path from cwd and session ID."""
-    project_dir = cwd.replace("/", "-")
-    if not project_dir.startswith("-"):
-        project_dir = "-" + project_dir
-    return (
-        pathlib.Path.home()
-        / ".claude"
-        / "projects"
-        / project_dir
-        / f"{session_id}.jsonl"
-    )
 
 
 def load_context_cache():
@@ -129,37 +93,6 @@ def compute_dated_path(title, filepath):
     return str(PLANS_DIR / new_name)
 
 
-def apply_pending_titles(session_id, cwd):
-    """Consume any .pending-title breadcrumbs from earlier writes."""
-    pending = PENDING_DIR / f"{session_id}.pending-title"
-    if not pending.exists():
-        return
-    try:
-        title = pending.read_text().strip()
-    except (OSError, UnicodeDecodeError):
-        return
-    if not title:
-        pending.unlink(missing_ok=True)
-        return
-
-    jsonl = jsonl_path_for(session_id, cwd)
-    if not jsonl.exists():
-        return  # Still not ready
-
-    if has_custom_title(jsonl):
-        pending.unlink(missing_ok=True)
-        return
-
-    event = json.dumps({"type": "custom-title", "customTitle": title, "sessionId": session_id})
-    try:
-        with open(jsonl, "a") as f:
-            f.write(event + "\n")
-        print(f"plan-session-rename: applied pending '{title}' for {session_id[:8]}", file=sys.stderr)
-    except OSError:
-        pass
-    pending.unlink(missing_ok=True)
-
-
 def main():
     try:
         data = json.loads(sys.stdin.read())
@@ -186,38 +119,6 @@ def main():
     title = extract_h1(content)
     if not title:
         return
-
-    session_id = data.get("session_id", "")
-    cwd = data.get("cwd", "")
-    if not session_id or not cwd:
-        return
-
-    # Resolve JSONL path
-    jsonl = jsonl_path_for(session_id, cwd)
-
-    if not jsonl.exists():
-        # Session JSONL not on disk yet (rare race) — save breadcrumb
-        PENDING_DIR.mkdir(parents=True, exist_ok=True)
-        pending = PENDING_DIR / f"{session_id}.pending-title"
-        try:
-            pending.write_text(title)
-            print(f"plan-session-rename: pending '{title}' for {session_id[:8]}", file=sys.stderr)
-        except OSError:
-            pass
-        return
-
-    # Write current title first (before consuming pending) so H1 changes take priority
-    if not has_custom_title(jsonl):
-        event = json.dumps({"type": "custom-title", "customTitle": title, "sessionId": session_id})
-        try:
-            with open(jsonl, "a") as f:
-                f.write(event + "\n")
-            print(f"plan-session-rename: '{title}' for {session_id[:8]}", file=sys.stderr)
-        except OSError:
-            pass
-
-    # Consume any stale pending title breadcrumbs (harmless now — current title already written)
-    apply_pending_titles(session_id, cwd)
 
     # Emit additionalContext for random-named plan files so Claude knows the
     # canonical path. Only fires on first write per slug (re-fires if H1 changes).
