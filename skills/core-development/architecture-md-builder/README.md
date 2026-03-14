@@ -2,7 +2,7 @@
 
 The cartography skill. Teaches Claude how to create production-quality ARCHITECTURE.md files that serve as definitive maps of any codebase, following matklad's canonical guidelines with modern AI-agent documentation patterns.
 
-**Last updated:** 2026-03-14
+**Last updated:** 2026-01-13
 
 **Reflects:** matklad's [ARCHITECTURE.md guidelines](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html), rust-analyzer's architecture documentation, Divio documentation system principles, and multi-agent exploration patterns for large codebases.
 
