@@ -277,6 +277,7 @@ function printNameResults(results, escapedTerm) {
     }
     console.log('    \x1b[90mDir:\x1b[0m ' + result.projectPath);
     console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
+    console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
     console.log('');
   }
 }
@@ -309,7 +310,7 @@ async function main() {
     const escapedTerm = utils.escapeRegex(searchTerm);
     printNameResults(results, escapedTerm);
     console.log('\x1b[90mFound ' + results.length + ' session(s) by name.\x1b[0m');
-    console.log('\x1b[90mResume: claude --resume <session-id>\x1b[0m\n');
+    console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
     return;
   }
 
@@ -376,6 +377,7 @@ async function main() {
       }
       console.log('    \x1b[90mDir:\x1b[0m ' + result.projectPath);
       console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
+      console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
 
       result.matches.forEach((match) => {
         const highlighted = match.replace(
@@ -401,7 +403,7 @@ async function main() {
     console.log('\x1b[33mNo matches found.\x1b[0m\n');
   } else {
     console.log('\x1b[90mFound ' + resultCount + ' session(s) with matches.\x1b[0m');
-    console.log('\x1b[90mResume: claude --resume <session-id>\x1b[0m\n');
+    console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
   }
 }
 
