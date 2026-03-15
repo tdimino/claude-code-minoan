@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.minoan.syspeek</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/tomdimino/.claude/scripts/syspeek/syspeek.py</string>
+        <string>--daemon</string>
+        <string>--interval</string>
+        <string>5</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/tomdimino/.claude/scripts/syspeek</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/tomdimino</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/tomdimino/.claude/scripts/syspeek/logs/stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/tomdimino/.claude/scripts/syspeek/logs/stderr.log</string>
+</dict>
+</plist>
