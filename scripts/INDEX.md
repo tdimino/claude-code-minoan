@@ -1,6 +1,6 @@
 # Scripts Index
 
-*10 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
+*11 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
 
 ## Plugin Management
 
@@ -28,5 +28,6 @@
 
 | Directory | Description |
 |-----------|-------------|
+| `clean-browser-screenshot/` | Take browser screenshots with no toolbar or UI chrome via CleanShot X fullscreen capture |
 | `screenshot-rename/` | macOS launchd service for auto-renaming screenshots with AI-generated descriptions |
 | `syspeek/` | macOS system resource monitor — categorized processes, Kothar-compatible JSON, Claudicle memory integration, launchd daemon |
