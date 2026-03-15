@@ -131,58 +131,62 @@ def _delete(endpoint):
 # --- Endpoint functions ---
 
 
-def fetch_markdown(url):
-    """Fetch a single page as markdown."""
-    payload = {"url": url}
-    resp = _post("markdown", payload)
+def _unwrap_text(resp):
+    """Unwrap CF API response — handles both JSON envelope and raw text."""
+    ct = resp.headers.get("Content-Type", "")
+    if "application/json" in ct:
+        try:
+            data = resp.json()
+            if isinstance(data, dict) and "result" in data:
+                return data["result"]
+            return resp.text
+        except (ValueError, KeyError):
+            return resp.text
+    return resp.text
+
+
+def _unwrap_json(resp):
+    """Unwrap CF API JSON response."""
     data = resp.json()
     if isinstance(data, dict) and "result" in data:
         return data["result"]
-    return resp.text
+    return data
+
+
+def fetch_markdown(url):
+    """Fetch a single page as markdown."""
+    payload = {"url": url}
+    return _unwrap_text(_post("markdown", payload))
 
 
 def fetch_content(url):
     """Fetch a single page as rendered HTML."""
     payload = {"url": url}
-    resp = _post("content", payload)
-    data = resp.json()
-    if isinstance(data, dict) and "result" in data:
-        return data["result"]
-    return resp.text
+    return _unwrap_text(_post("content", payload))
 
 
 def fetch_screenshot(url):
     """Fetch a screenshot of a page. Returns PNG bytes."""
     payload = {"url": url}
-    resp = _post("screenshot", payload, stream=True)
-    return resp.content
+    return _post("screenshot", payload, stream=True).content
 
 
 def fetch_pdf(url):
     """Fetch a page as PDF. Returns PDF bytes."""
     payload = {"url": url}
-    resp = _post("pdf", payload, stream=True)
-    return resp.content
+    return _post("pdf", payload, stream=True).content
 
 
 def fetch_links(url, exclude_external=False):
     """Extract all links from a page."""
     payload = {"url": url, "excludeExternalLinks": exclude_external}
-    resp = _post("links", payload)
-    data = resp.json()
-    if isinstance(data, dict) and "result" in data:
-        return data["result"]
-    return data
+    return _unwrap_json(_post("links", payload))
 
 
 def fetch_scrape(url, selectors):
     """Scrape specific elements via CSS selectors."""
     payload = {"url": url, "elements": selectors}
-    resp = _post("scrape", payload)
-    data = resp.json()
-    if isinstance(data, dict) and "result" in data:
-        return data["result"]
-    return data
+    return _unwrap_json(_post("scrape", payload))
 
 
 def fetch_json(url, prompt=None, schema=None):
@@ -195,11 +199,7 @@ def fetch_json(url, prompt=None, schema=None):
         json_options["response_format"] = json.loads(schema)
     if json_options:
         payload["jsonOptions"] = json_options
-    resp = _post("json", payload)
-    data = resp.json()
-    if isinstance(data, dict) and "result" in data:
-        return data["result"]
-    return data
+    return _unwrap_json(_post("json", payload))
 
 
 def start_crawl(url, limit=100, depth=None, source="all", formats=None,
@@ -309,12 +309,10 @@ def main():
     # -- markdown --
     p_md = sub.add_parser("markdown", help="Fetch single page as markdown")
     p_md.add_argument("url", help="URL to fetch")
-    p_md.add_argument("--no-render", action="store_true", help="Static HTML only (free during beta)")
 
     # -- content --
     p_ct = sub.add_parser("content", help="Fetch single page as rendered HTML")
     p_ct.add_argument("url", help="URL to fetch")
-    p_ct.add_argument("--no-render", action="store_true", help="Static HTML only")
 
     # -- crawl --
     p_cr = sub.add_parser("crawl", help="Crawl entire website (async)")
@@ -348,44 +346,45 @@ def main():
     p_ss = sub.add_parser("screenshot", help="Capture page screenshot (PNG)")
     p_ss.add_argument("url", help="URL to capture")
     p_ss.add_argument("-o", "--output", default="-", help="Output file (default: stdout)")
-    p_ss.add_argument("--no-render", action="store_true", help="Static HTML only")
 
     # -- pdf --
     p_pdf = sub.add_parser("pdf", help="Render page as PDF")
     p_pdf.add_argument("url", help="URL to render")
     p_pdf.add_argument("-o", "--output", default="-", help="Output file (default: stdout)")
-    p_pdf.add_argument("--no-render", action="store_true", help="Static HTML only")
 
     # -- links --
     p_ln = sub.add_parser("links", help="Extract all links from a page")
     p_ln.add_argument("url", help="URL to extract links from")
-    p_ln.add_argument("--no-render", action="store_true", help="Static HTML only")
     p_ln.add_argument("--exclude-external", action="store_true", help="Exclude external links")
 
     # -- scrape --
     p_sc = sub.add_parser("scrape", help="Scrape HTML elements via CSS selectors")
     p_sc.add_argument("url", help="URL to scrape")
     p_sc.add_argument("--selector", "-s", action="append", required=True, help="CSS selector(s)")
-    p_sc.add_argument("--no-render", action="store_true", help="Static HTML only")
 
     # -- json --
     p_js = sub.add_parser("json", help="AI-powered structured data extraction")
     p_js.add_argument("url", help="URL to extract from")
     p_js.add_argument("--prompt", "-p", help="Extraction prompt for the AI model")
     p_js.add_argument("--schema", help="JSON schema string for response structure")
-    p_js.add_argument("--no-render", action="store_true", help="Static HTML only")
 
     args = parser.parse_args()
 
     try:
         if args.command == "markdown":
             result = fetch_markdown(args.url)
+            if not result:
+                print("Warning: cf_browser produced empty output", file=sys.stderr)
+                sys.exit(1)
             sys.stdout.write(result)
-            if result and not result.endswith("\n"):
+            if not result.endswith("\n"):
                 sys.stdout.write("\n")
 
         elif args.command == "content":
             result = fetch_content(args.url)
+            if not result:
+                print("Warning: cf_browser produced empty output", file=sys.stderr)
+                sys.exit(1)
             sys.stdout.write(result)
             if result and not result.endswith("\n"):
                 sys.stdout.write("\n")
