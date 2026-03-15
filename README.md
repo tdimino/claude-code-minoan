@@ -29,6 +29,7 @@ claude-code-minoan/
 ├── hooks/                       # Lifecycle hooks (handoffs, terminal UX, multi-response)
 ├── commands/                    # 47 slash commands (workflows, planning, code review)
 ├── agents/                      # Custom subagents (librarian, etc.)
+├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
 ├── tools/                       # Standalone tools (see github.com/tdimino/dabarat)
 ├── lib/                         # Shared libraries (tracker-utils.js)

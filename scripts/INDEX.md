@@ -1,6 +1,6 @@
 # Scripts Index
 
-*9 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
+*10 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
 
 ## Plugin Management
 
@@ -29,3 +29,4 @@
 | Directory | Description |
 |-----------|-------------|
 | `screenshot-rename/` | macOS launchd service for auto-renaming screenshots with AI-generated descriptions |
+| `syspeek/` | macOS system resource monitor — categorized processes, Kothar-compatible JSON, Claudicle memory integration, launchd daemon |
