@@ -26,6 +26,9 @@ Plan/md file written → PostToolUse ────────→ plan-rename.py 
   (Write on ~/.claude/plans/)              → dabarat-open.py (auto-open new .md in preview)
                                            → plan-session-rename.py (auto-title session from H1)
 
+Frontend file edit ──→ PostToolUse ────────→ auto-screenshot.py (CDP screenshot after HMR)
+  (Write/Edit on .tsx/.jsx/.css/.html)
+
 Context full ────────→ PreCompact ──────────→ precompact-handoff.py (full handoff)
 
 Session exits ───────→ SessionEnd ──────────→ precompact-handoff.py (full handoff)
@@ -300,6 +303,28 @@ Fires on every `.md` write (create or edit). If Dabarat is already running, adds
 
 ---
 
+### `auto-screenshot.py` — Visual Dev Loop Screenshot
+
+Automatically takes a Chrome DevTools Protocol screenshot after every frontend file edit, returning the image path as `additionalContext` so the agent can see what the page looks like after HMR settles. Part of the Visual Dev Loop pattern: portless dev server + Vite/Next.js HMR + CDP screenshot = closed feedback loop.
+
+**Fires on**: PostToolUse/Write, PostToolUse/Edit (only `.tsx`, `.jsx`, `.css`, `.html`, `.svelte`, `.vue`, `.scss`)
+
+**How it works**:
+1. Guard: file extension must be a frontend type
+2. Guard: `portless list` must show at least one active dev server
+3. Guard: `cdp.mjs list` must find a Chrome tab matching `localhost`
+4. Wait 1.5s for HMR to settle
+5. `cdp.mjs shot <target> .visual-feedback/latest.png`
+6. Return screenshot path as `additionalContext`
+
+**Requires**: [chrome-cdp skill](../skills/chrome-cdp/) (`cdp.mjs`), Chrome with remote debugging enabled, `portless`
+
+**Cost**: Zero. No LLM calls — pure local CDP + subprocess.
+
+**Inspired by**: [Danielle Fong's vibecoding recommendations](https://x.com/DanielleFong/status/2033244721427140890) on hot-reloads + AI visual feedback loops.
+
+---
+
 ### `soul-activate.py` / `soul-deregister.py` / `soul-registry.py` — Soul Daemon Lifecycle
 
 Manages registration of [Claudicle](https://github.com/tdimino/claudicle) soul daemons—persistent AI personalities with identity, memory, and cognitive pipelines that survive across sessions.
@@ -347,6 +372,7 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
 | Plan symlink cleanup | SessionEnd (plan-rename) | Yes |
 | New .md file created | PostToolUse/Write (dabarat-open) | Yes |
 | Session auto-title from plan | PostToolUse/Write (plan-session-rename) | Yes |
+| Frontend file visual feedback | PostToolUse/Write+Edit (auto-screenshot) | Yes |
 | Soul daemon registration | SessionStart (soul-activate) | Yes |
 | Soul daemon cleanup | SessionEnd (soul-deregister) | Yes |
 | Slack channel notification | Stop (slack-stop-hook) | Yes |
@@ -443,7 +469,14 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
         "matcher": "Write",
         "hooks": [
           {"type": "command", "command": "python3 ~/.claude/hooks/dabarat-open.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/plan-session-rename.py", "timeout": 5000}
+          {"type": "command", "command": "python3 ~/.claude/hooks/plan-session-rename.py", "timeout": 5000},
+          {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000}
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000}
         ]
       }
     ]

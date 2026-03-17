@@ -1,6 +1,6 @@
 ---
 name: cloudflare
-description: Cloudflare platform management via Wrangler CLI. Deploy Pages sites, manage Workers, KV namespaces, R2 buckets, D1 databases, Queues, Vectorize indexes, Workflows, and Hyperdrive connections. Use when deploying to Cloudflare, managing CF infrastructure, configuring wrangler.toml, working with CF storage services, or setting up Cloudflare Pages projects. Triggers on Cloudflare, wrangler, Pages deploy, KV namespace, R2 bucket, D1 database, CF Workers, Cloudflare DNS, Vectorize, Queues, Workflows, Hyperdrive.
+description: Cloudflare platform management via Wrangler CLI and Browser Rendering REST API. Deploy Pages sites, manage Workers, KV namespaces, R2 buckets, D1 databases, Queues, Vectorize indexes, Workflows, and Hyperdrive connections. Also provides budget web scraping, crawling, screenshots, and PDF generation via cf_browser.py (Browser Rendering API). Use when deploying to Cloudflare, managing CF infrastructure, configuring wrangler.toml, working with CF storage services, setting up Cloudflare Pages projects, or when you need cheap/free web scraping as an alternative to Firecrawl. Triggers on Cloudflare, wrangler, Pages deploy, KV namespace, R2 bucket, D1 database, CF Workers, Cloudflare DNS, Vectorize, Queues, Workflows, Hyperdrive, cf_browser, Browser Rendering, budget scrape.
 ---
 
 # Cloudflare & Wrangler CLI
@@ -201,9 +201,87 @@ WRANGLER_LOG=debug wrangler pages deploy out --project-name mysite
 
 ---
 
+---
+
+## Browser Rendering (Web Scraping & Crawling)
+
+Budget alternative to Firecrawl using Cloudflare's headless Chrome on the edge. Free tier: 10 min/day, 5 crawls/day, 100 pages/crawl. Static fetches (`--no-render`) are **free during beta**.
+
+### Quick Start
+
+```bash
+# Single page to markdown
+python3 ~/.claude/skills/cloudflare/scripts/cf_browser.py markdown https://example.com
+
+# Free static fetch (no JS rendering, free during beta)
+python3 ~/.claude/skills/cloudflare/scripts/cf_browser.py markdown https://example.com --no-render
+
+# With filter pipeline (same as Firecrawl)
+python3 ~/.claude/skills/cloudflare/scripts/cf_browser.py markdown https://docs.example.com | \
+  python3 ~/.claude/skills/firecrawl/scripts/filter_web_results.py --sections "API" --max-chars 5000
+
+# Multi-page crawl
+python3 ~/.claude/skills/cloudflare/scripts/cf_browser.py crawl https://docs.example.com --limit 50
+
+# Screenshot / PDF
+python3 ~/.claude/skills/cloudflare/scripts/cf_browser.py screenshot https://example.com -o page.png
+python3 ~/.claude/skills/cloudflare/scripts/cf_browser.py pdf https://example.com -o page.pdf
+
+# AI-structured extraction (Workers AI, free tier included)
+python3 ~/.claude/skills/cloudflare/scripts/cf_browser.py json https://example.com --prompt "Extract product names and prices"
+
+# Extract links
+python3 ~/.claude/skills/cloudflare/scripts/cf_browser.py links https://example.com
+```
+
+### When to Use CF Browser Rendering vs Firecrawl vs Scrapling
+
+| Need | Best Tool | Why |
+|------|-----------|-----|
+| Clean markdown, reliable | `firecrawl scrape --only-main-content` | Best markdown quality, optimized for LLMs |
+| Cheap/free JS-rendered scrape | `cf_browser.py markdown URL` | Free 10 min/day, $0.09/hr after |
+| Free static page fetch | `cf_browser.py markdown URL --no-render` | FREE during beta |
+| Multi-page crawl on a budget | `cf_browser.py crawl URL` | 5 free crawls/day, 100 pages each |
+| Incremental re-crawl | `cf_browser.py crawl --modified-since` | Built-in cache, Firecrawl lacks this |
+| Autonomous data finding (no URL) | `firecrawl_api.py agent` | No CF equivalent |
+| Anti-bot / Cloudflare bypass | `scrapling --stealth` | Local, no API key |
+| Web search + scrape | `firecrawl search --scrape` | No CF search API |
+| Twitter/X content | `jina URL` | Only tool that works |
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `markdown` | Single page → markdown |
+| `content` | Single page → rendered HTML |
+| `crawl` | Multi-page async crawl (polls until done, or `--async`) |
+| `status` | Check crawl job status |
+| `cancel` | Cancel a running crawl |
+| `screenshot` | Page screenshot (PNG) |
+| `pdf` | Page → PDF |
+| `links` | Extract all links |
+| `scrape` | Extract elements via CSS selectors |
+| `json` | AI-structured extraction (Workers AI) |
+
+### Auth
+
+Uses `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` (preferred) or `CLOUDFLARE_GLOBAL_API_KEY` + `CLOUDFLARE_EMAIL` (fallback). All in `~/.config/env/secrets.env`.
+
+### Pricing
+
+| Tier | Browser Hours | Crawl Limits |
+|------|---------------|--------------|
+| Free | 10 min/day | 5 jobs/day, 100 pages/job |
+| Paid | 10 hr/month included, $0.09/hr after | 100,000 pages/job |
+
+**Full API reference:** `references/browser-rendering-api.md`
+
+---
+
 ## Reference Documentation
 
 | File | Contents |
 |------|----------|
 | `references/wrangler-commands.md` | Full Wrangler CLI command reference with all flags |
 | `references/pages-config.md` | Pages config: `_headers`, `_redirects`, build presets, env vars |
+| `references/browser-rendering-api.md` | Browser Rendering REST API: endpoints, params, pricing, limits |
