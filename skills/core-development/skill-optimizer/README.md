@@ -2,9 +2,9 @@
 
 The meta-skill. Teaches Claude how to build, validate, and package skills—the modular units that transform Claude Code from a general-purpose agent into a specialized one.
 
-**Last updated:** 2026-03-04
+**Last updated:** 2026-03-18
 
-**Reflects:** Claude Code skills specification (Feb 2026), [Agent Skills](https://agentskills.io/) open standard, Claude 4.6 prompting best practices, [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers) v2.0.0+ for documentation scraping, and Anthropic's [skill-creator eval framework](https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills) (March 2026) for testing, benchmarking, and iterative refinement.
+**Reflects:** Claude Code skills specification (Feb 2026), [Agent Skills](https://agentskills.io/) open standard, Claude 4.6 prompting best practices, [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers) v2.0.0+ for documentation scraping, Anthropic's [skill-creator eval framework](https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills) (March 2026) for testing, benchmarking, and iterative refinement, Thariq (Anthropic) "Lessons from Building Claude Code: How We Use Skills" (March 2026), and the Skill Builder methodology (March 2026).
 
 ---
 
@@ -45,6 +45,10 @@ skill-optimizer/
     frontmatter-reference.md                # Complete YAML frontmatter field reference
     documentation-scraping.md               # Skill_Seekers deep dive
     schemas.md                              # JSON schemas for eval/grading/benchmark
+    skill-categories.md                     # 9-category taxonomy (from Anthropic internal use)
+    interview-protocol.md                   # Structured interview with pushback rules
+    advanced-patterns.md                    # Config, hooks, memory, analytics, composition
+    distribution-strategy.md                # Distribution tiers, promotion, portfolio hygiene
 ```
 
 ---
@@ -146,8 +150,8 @@ Interactive guide for using [Skill_Seekers](https://github.com/yusufkaraaslan/Sk
 
 ## The 8-Step Creation Process
 
-1. **Understand** — Gather concrete examples of how the skill will be used. What triggers it? What does the user say?
-2. **Plan** — Analyze examples to identify reusable resources: scripts for repeated code, references for domain knowledge, assets for templates.
+1. **Understand** — Conduct structured interview (`references/interview-protocol.md`). Key question: what does Claude get wrong today?
+2. **Plan** — Identify reusable resources and confirm which of the 9 skill categories applies (`references/skill-categories.md`).
 3. **Initialize** — Run `init_skill.py` to scaffold the directory.
 4. **Edit** — Build resources first (scripts, references, assets), then write SKILL.md instructions. Optionally scrape documentation with Skill_Seekers.
 5. **Package** — Run `package_skill.py` to validate and zip.
@@ -226,6 +230,17 @@ All JSON schemas documented in `references/schemas.md`: `evals.json`, `grading.j
 - Python 3.9+
 - No external dependencies for core scripts (eval scripts use stdlib only)
 - [Skill_Seekers](https://github.com/yusufkaraaslan/Skill_Seekers) for documentation scraping (optional)
+
+---
+
+## Sources
+
+This skill synthesizes methodology from:
+
+1. **Claude Code skills specification** (Feb 2026) -- official frontmatter fields, invocation control, subagent execution
+2. **Anthropic skill-creator eval framework** (March 2026) -- grading, benchmarking, description optimization
+3. **Thariq (Anthropic)** -- "Lessons from Building Claude Code: How We Use Skills" (March 17, 2026) -- 9 skill categories, advanced patterns (hooks, memory, analytics, distribution), script-as-composition
+4. **Skill Builder** -- "Claude Code Skill Development System" (March 2026) -- structured interview protocol, pushback rules, category confirmation workflow
 
 ---
 
