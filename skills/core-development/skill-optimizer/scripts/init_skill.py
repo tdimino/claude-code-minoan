@@ -33,6 +33,13 @@ description: [TODO: Complete and informative explanation of what the skill does 
 
 [TODO: 1-2 sentences explaining what this skill enables]
 
+## Category
+
+<!-- Choose from: Library/API Reference | Product Verification | Data Fetching & Analysis |
+Code Scaffolding & Templates | Code Quality & Review | CI/CD & Deployment |
+Runbooks | Business Process & Team Automation | Infrastructure Operations -->
+[TODO: Identify this skill's category. See skill-optimizer references/skill-categories.md]
+
 ## Arguments
 
 This skill supports the `$ARGUMENTS` placeholder for dynamic input:
