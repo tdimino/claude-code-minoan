@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-52-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-53-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-47-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-30-orange.svg" alt="Hooks"></a>
 </p>
@@ -90,7 +90,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 |----------|-------|---------------|
 | Core Development | 10 | `agents-md-manager`, `beads-task-tracker`, `architecture-md-builder`, `claude-agent-sdk`, `skill-optimizer`, `claude-usage` |
 | Integration & Automation | 20 | `llama-cpp`, `rlama`, `cloudflare`, `classical-887`, `slack`, `resend`, `firecrawl`, `codex-orchestrator`, `codex-cto` |
-| Design & Media | 9 | `minoan-frontend-design` (70% win rate, eval-validated), `gemini-claude-resonance`, `image-forge`, `nano-banana-pro`, `meshy` |
+| Design & Media | 10 | `minoan-frontend-design` (70% win rate, eval-validated), `gemini-claude-resonance`, `image-well`, `image-forge`, `nano-banana-pro`, `meshy` |
 | Research | 6 | `academic-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling` |
 | Planning & Productivity | 8 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
 
