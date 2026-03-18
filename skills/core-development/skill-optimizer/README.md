@@ -20,7 +20,7 @@ This skill encodes the full lifecycle: understanding requirements, planning reus
 
 ```
 skill-optimizer/
-  SKILL.md                                  # Full skill creation guide (~600 lines)
+  SKILL.md                                  # Full skill creation guide (~660 lines)
   README.md                                 # This file
   LICENSE.txt                               # License
   scripts/
