@@ -31,7 +31,7 @@ Before first use, check for `config.json` in this skill's directory. If absent, 
 Save answers to `config.json` and confirm the configuration.
 ```
 
-Use the `AskUserQuestion` tool for structured multiple-choice questions during setup. This creates a clean, guided onboarding experience.
+For structured onboarding, instruct Claude to ask questions sequentially in the conversation, presenting numbered options for the user to choose from. This creates a clean, guided setup experience.
 
 ## 2. Session-Scoped Hooks
 
@@ -67,12 +67,12 @@ Skills can store data within themselves: append-only text logs, JSON files, or e
 
 **Example**: A standup-post skill saves every standup it's written to `standups.log`. The next time it runs, Claude reads the history and can say "since yesterday, you merged 3 PRs and closed 2 tickets."
 
-**Storage location**: Use `${CLAUDE_PLUGIN_DATA}` as the stable folder for persistent data. Data stored in the skill directory itself may be deleted when the skill is upgraded.
+**Storage location**: For plugin skills, use `${CLAUDE_PLUGIN_DATA}` if available (a stable per-plugin data directory). For personal and project skills, use an explicit path like `~/.claude/data/<skill-name>/` or store data in a `data/` subdirectory within the skill and add it to `.gitignore`.
 
 ```markdown
 ## Persistence
 
-This skill maintains a log at `${CLAUDE_PLUGIN_DATA}/history.jsonl`. After each run, append a JSON line with:
+This skill maintains a log at `~/.claude/data/my-skill/history.jsonl`. After each run, append a JSON line with:
 - timestamp
 - action taken
 - summary of output
