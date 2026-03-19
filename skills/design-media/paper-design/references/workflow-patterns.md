@@ -76,3 +76,35 @@ Tight feedback loop for polishing a design.
 7. `finish_working_on_nodes`
 8. `get_screenshot` — verify improvement
 9. Repeat until satisfied
+
+## 7. Live Design-to-Code Sync
+
+Automated bridge that watches Paper for changes and updates React components. Adapted from Pencil's proven `sync-design.js` pattern (debounce + cooldown + `claude -p` spawn).
+
+**Architecture:**
+1. A Node.js watcher script polls Paper's MCP endpoint at intervals (e.g., every 5s)
+2. `get_basic_info` returns node count and artboard list — compare against last snapshot to detect changes
+3. On change detected, debounce 5s (wait for the designer to finish editing)
+4. 30s cooldown between syncs to prevent rapid-fire
+5. Spawn `claude -p` with a sync prompt that reads the changed artboards via `get_jsx` + `get_computed_styles`
+6. Claude updates the corresponding React components in `src/components/` to match
+7. One sync at a time — queue the next if one is already running
+
+**Sync prompt template:**
+```
+The Paper design was just updated. Use Paper MCP tools to read the current state:
+1. get_basic_info to identify artboards
+2. get_jsx on each artboard for React+Tailwind JSX
+3. get_computed_styles for design tokens
+
+Update src/components/ to match. Rules:
+- Map design elements to semantic HTML (<header>, <nav>, <section>, <footer>)
+- Interactive elements (buttons, links) get cursor-pointer and hover states
+- Images: use /images/ absolute paths (Paper may show relative ./images/ paths)
+- Only update layout and styling — do not touch existing logic or event handlers
+```
+
+**Key differences from Pencil sync:**
+- Paper has no local design files to watch — poll via HTTP MCP instead of chokidar file watching
+- Paper's `get_jsx` exports React+Tailwind directly — no manual translation needed
+- Paper designs are DOM-native — the sync prompt is simpler because the output format matches the input
