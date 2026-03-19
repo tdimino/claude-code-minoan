@@ -67,7 +67,7 @@ def main():
             ["python3", str(script)],
             input=input_json,
             text=True,
-            timeout=45,
+            timeout=120,
             capture_output=True,
         )
     except Exception:
