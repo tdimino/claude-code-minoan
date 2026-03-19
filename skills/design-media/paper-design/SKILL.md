@@ -72,5 +72,5 @@ When `shadcn` is active, extract Paper design tokens via `get_computed_styles` a
 
 Consult `references/` on demand:
 - `tool-reference.md` — All 21 MCP tools with usage patterns and gotchas. Read for any Paper MCP operation.
-- `workflow-patterns.md` — 6 detailed workflow recipes. Read when starting a multi-step design task.
+- `workflow-patterns.md` — 7 detailed workflow recipes. Read when starting a multi-step design task.
 - `paper-vs-pencil.md` — Decision matrix across 10 dimensions. Read when choosing between design tools.

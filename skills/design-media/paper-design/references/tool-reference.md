@@ -61,6 +61,6 @@
 
 **Artboard dimensions constrain layout.** A 1440x900 artboard with mobile-width content renders with excess whitespace. Match artboard size to the target viewport before writing HTML — wrong dimensions produce wrong layouts even if the HTML is structurally correct.
 
-**Image paths differ between design and code.** Paper designs may reference images with relative paths (`./images/file.png`), but React/Next.js components need absolute paths (`/images/file.png`). Always translate image paths when extracting code from designs or syncing design-to-code.
+**Image paths must be translated from relative to absolute.** Paper may reference images as `./images/file.png`; code requires `/images/file.png`. Always translate when extracting or syncing design-to-code.
 
 **Tailwind class support scope is unknown.** Paper renders HTML/CSS in its own viewport, which may not include all Tailwind utilities. Stick to common layout and typography classes. If a design renders incorrectly, check whether the specific Tailwind class is supported by calling `get_screenshot` to verify. When in doubt, use inline styles instead of obscure Tailwind utilities.

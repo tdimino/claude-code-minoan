@@ -83,7 +83,7 @@ Automated bridge that watches Paper for changes and updates React components. Ad
 
 **Architecture:**
 1. A Node.js watcher script polls Paper's MCP endpoint at intervals (e.g., every 5s)
-2. `get_basic_info` returns node count and artboard list — compare against last snapshot to detect changes
+2. Poll `get_jsx` on known artboard IDs and hash the output — compare against last snapshot to detect changes. (`get_basic_info` only returns artboard names and counts, which miss interior edits.)
 3. On change detected, debounce 5s (wait for the designer to finish editing)
 4. 30s cooldown between syncs to prevent rapid-fire
 5. Spawn `claude -p` with a sync prompt that reads the changed artboards via `get_jsx` + `get_computed_styles`
@@ -101,6 +101,7 @@ Update src/components/ to match. Rules:
 - Map design elements to semantic HTML (<header>, <nav>, <section>, <footer>)
 - Interactive elements (buttons, links) get cursor-pointer and hover states
 - Images: use /images/ absolute paths (Paper may show relative ./images/ paths)
+- Use write_html with mode: replace when updating existing artboards
 - Only update layout and styling — do not touch existing logic or event handlers
 ```
 
