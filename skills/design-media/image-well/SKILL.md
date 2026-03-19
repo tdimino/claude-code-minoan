@@ -22,6 +22,9 @@ uv run ~/.claude/skills/image-well/scripts/well.py search "sunset" --format down
 # Check which sources are available
 uv run ~/.claude/skills/image-well/scripts/well.py sources
 
+# Visual HTML preview — opens in browser, no context pollution
+uv run ~/.claude/skills/image-well/scripts/well.py search "bronze statue" --format html
+
 # Output as JSON for piping
 uv run ~/.claude/skills/image-well/scripts/well.py search "cat" --format json
 ```
