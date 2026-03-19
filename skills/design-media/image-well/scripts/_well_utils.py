@@ -278,9 +278,9 @@ def format_html(results: list[ImageResult], query: str, output_path: Path | None
     from html import escape as esc
 
     def _safe_url(raw: str) -> str:
-        stripped = raw.strip().lower()
-        if stripped.startswith(("http://", "https://", "data:image/")):
-            return raw
+        stripped = raw.strip()
+        if stripped.lower().startswith(("http://", "https://", "data:image/")):
+            return stripped
         return ""
 
     source_colors = {
@@ -293,7 +293,10 @@ def format_html(results: list[ImageResult], query: str, output_path: Path | None
     cards = []
     for r in results:
         thumb = esc(_safe_url(r.thumbnail_url or r.url))
-        full = esc(_safe_url(r.url))
+        full_url = _safe_url(r.url)
+        if full_url.lower().startswith("data:"):
+            full_url = ""
+        full = esc(full_url)
         title = esc(r.title[:80])
         dims = f"{r.width}\u00d7{r.height}" if r.width and r.height else "?"
         tags_str = ", ".join(r.tags[:5]) if r.tags else ""
