@@ -298,8 +298,9 @@ def format_html(results: list[ImageResult], query: str, output_path: Path | None
         dims = f"{r.width}\u00d7{r.height}" if r.width and r.height else "?"
         tags_str = ", ".join(r.tags[:5]) if r.tags else ""
         sc = source_colors.get(r.source, "rgba(201,162,39,0.3)")
-        cards.append(f"""<div class="card" data-source="{esc(r.source)}" style="border-left:3px solid {sc}">
-  <div class="card-img"><img src="{thumb}" alt="{title}" loading="lazy" data-full="{full}" onerror="this.parentElement.innerHTML='<div class=\\'broken\\'>Failed to load</div>'"></div>
+        idx = len(cards)
+        cards.append(f"""<div class="card" data-source="{esc(r.source)}" style="border-left:3px solid {sc};--i:{idx}">
+  <div class="card-img"><span class="source-badge" style="background:rgba(0,0,0,0.6);border:1px solid {sc};color:{sc}">{esc(r.source)}</span><img src="{thumb}" alt="{title}" loading="lazy" data-full="{full}" onerror="this.parentElement.innerHTML='<div class=\\'broken\\'>Failed to load</div>'"></div>
   <div class="card-meta">
     <div class="card-title">{title}</div>
     <div class="card-details"><span class="card-source" style="color:{sc}">{esc(r.source)}</span> · {esc(dims)} · {esc(r.license)}</div>
@@ -323,7 +324,7 @@ def format_html(results: list[ImageResult], query: str, output_path: Path | None
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Image Well — {esc(query)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
   :root {{
     --bg-deep: #0a0a12;
@@ -371,11 +372,59 @@ def format_html(results: list[ImageResult], query: str, output_path: Path | None
   ::-webkit-scrollbar-track {{ background: var(--bg-deep); }}
   ::-webkit-scrollbar-thumb {{ background: rgba(201,162,39,0.3); border-radius: 4px; }}
   ::-webkit-scrollbar-thumb:hover {{ background: rgba(201,162,39,0.5); }}
+
+  /* View toggle */
+  .view-toggle {{ position: absolute; top: 32px; right: 32px; display: flex; gap: 4px; background: #1a1825; border: 1px solid rgba(201,162,39,0.25); border-radius: 20px; padding: 3px; }}
+  .view-btn {{ background: none; color: var(--text-secondary); border: none; border-radius: 16px; padding: 5px 12px; font-size: 11px; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: all 0.2s; }}
+  .view-btn.active {{ background: var(--accent); color: #fff; }}
+
+  /* ═══ DARKROOM VIEW (Kotharat: Murex Darkroom) ═══ */
+  body.darkroom {{ --bg-deep: #0f0d10; --bg-surface: #1a161c; --border-dim: #3a3240; --text-primary: #e0d8ce; --text-secondary: #8a7e90; --text-muted: #605468; }}
+  body.darkroom::before {{ content: ''; position: fixed; top: -200px; left: 50%; transform: translateX(-50%); width: 800px; height: 600px; background: radial-gradient(ellipse, rgba(212,168,67,0.08) 0%, transparent 70%); pointer-events: none; z-index: 0; }}
+  body.darkroom .header {{ position: relative; z-index: 1; }}
+  body.darkroom h1 {{ font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }}
+  body.darkroom .grid {{ position: relative; z-index: 1; }}
+
+  /* Darkroom cards — spotlight border */
+  body.darkroom .card {{ position: relative; border-left: none !important; border: 1px solid #3a3240; border-radius: 8px; }}
+  body.darkroom .card::before {{ content: ''; position: absolute; inset: -1px; border-radius: 9px; background: radial-gradient(circle 200px at var(--mx, 50%) var(--my, 50%), rgba(212,168,67,0.25) 0%, transparent 60%); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1; }}
+  body.darkroom .card:hover::before {{ opacity: 1; }}
+  body.darkroom .card:hover {{ border-color: #504560; box-shadow: 0 8px 32px rgba(212,168,67,0.08); transform: translateY(-2px) scale(1.01); }}
+
+  /* Darkroom image area — flush, with source badge */
+  body.darkroom .card-img {{ padding: 0; position: relative; min-height: 200px; }}
+  body.darkroom .card-img img {{ border-radius: 0; max-height: 280px; width: 100%; object-fit: cover; }}
+  body.darkroom .card:hover .card-img img {{ transform: scale(1.03); filter: brightness(1.05); }}
+
+  /* Source badge overlay */
+  body.darkroom .card-meta .card-source {{ display: none; }}
+  .source-badge {{ display: none; }}
+  body.darkroom .source-badge {{ display: block; position: absolute; top: 10px; right: 10px; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-family: 'JetBrains Mono', monospace; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; backdrop-filter: blur(8px); z-index: 2; }}
+
+  /* Darkroom metadata */
+  body.darkroom .card-meta {{ border-top: 1px solid #3a3240; }}
+  body.darkroom .card-title {{ font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; }}
+  body.darkroom .card-tags {{ text-transform: uppercase; letter-spacing: 0.03em; font-size: 10px; background: #5e3a52; color: #c9a0b8; padding: 2px 6px; border-radius: 3px; display: inline-block; }}
+  body.darkroom .card-links a {{ color: #d4a843; }}
+  body.darkroom .card-links a:hover {{ color: #f0d890; }}
+
+  /* Darkroom filter pills */
+  body.darkroom .pill {{ text-transform: uppercase; letter-spacing: 0.05em; }}
+  body.darkroom .pill.active {{ background: #5e3a52; border-color: #966a85; }}
+
+  /* Staggered entrance */
+  body.darkroom .card {{ animation: card-enter 400ms cubic-bezier(0.25, 1, 0.5, 1) forwards; opacity: 0; }}
+  @keyframes card-enter {{ from {{ opacity: 0; transform: translateY(12px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+
+  @media (max-width: 700px) {{ .view-toggle {{ top: 16px; right: 16px; }} }}
+  @media (prefers-reduced-motion: reduce) {{ body.darkroom .card {{ animation: none; opacity: 1; }} }}
+  @media (min-width: 1200px) {{ body.darkroom .grid {{ grid-template-columns: repeat(3, 1fr); }} }}
 </style>
 </head><body>
 <div class="header">
   <h1>Image Well — <span>"{esc(query)}"</span></h1>
   <div class="subtitle">{len(results)} results from {len(sources)} source{'s' if len(sources) != 1 else ''} · updated {now}</div>
+  <div class="view-toggle"><button class="view-btn active" data-view="gallery">Gallery</button><button class="view-btn" data-view="darkroom">Darkroom</button></div>
 </div>
 <div class="pills">{pills}</div>
 <div class="grid">
@@ -403,6 +452,22 @@ document.querySelectorAll('.card-img').forEach(wrap => {{
 }});
 modal.addEventListener('click', () => {{ modal.classList.remove('open'); modalImg.src = ''; }});
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') {{ modal.classList.remove('open'); modalImg.src = ''; }} }});
+// View toggle
+document.querySelectorAll('.view-btn').forEach(btn => {{
+  btn.addEventListener('click', () => {{
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.body.classList.toggle('darkroom', btn.dataset.view === 'darkroom');
+  }});
+}});
+// Darkroom spotlight — track mouse position on cards
+document.querySelectorAll('.card').forEach(card => {{
+  card.addEventListener('mousemove', e => {{
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  }});
+}});
 </script>
 </body></html>"""
 
