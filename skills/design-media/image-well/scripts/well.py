@@ -30,6 +30,7 @@ from _well_utils import (
     cache_get,
     cache_put,
     cache_stats,
+    format_html,
     format_json,
     format_table,
     format_urls,
@@ -238,6 +239,12 @@ def cmd_search(args: argparse.Namespace) -> int:
         print(format_json(results))
     elif fmt == "urls":
         print(format_urls(results))
+    elif fmt == "html":
+        html_path = format_html(results, query)
+        print(f"Preview: {html_path}", file=sys.stderr)
+        # Auto-open on macOS
+        import subprocess
+        subprocess.run(["open", str(html_path)], check=False)
     else:
         print(format_table(results))
 
@@ -293,7 +300,7 @@ def main() -> int:
     search_p.add_argument("--license", help="License filter: cc0, cc-by, cc-by-sa, any (default: any)")
     search_p.add_argument("--min-width", type=int, default=0, help="Min image width")
     search_p.add_argument("--min-height", type=int, default=0, help="Min image height")
-    search_p.add_argument("--format", choices=["table", "json", "download", "urls"], default="table")
+    search_p.add_argument("--format", choices=["table", "json", "download", "urls", "html"], default="table")
     search_p.add_argument("--output", default="./well-images", help="Download output dir")
     search_p.add_argument("--no-cache", action="store_true", help="Skip cache")
     search_p.add_argument("--timeout", type=int, default=15, help="Per-source timeout (seconds)")

@@ -269,6 +269,147 @@ def format_urls(results: list[ImageResult]) -> str:
     return "\n".join(r.url for r in results)
 
 
+def format_html(results: list[ImageResult], query: str, output_path: Path | None = None) -> Path:
+    """Generate a Daimon Chamber-inspired HTML preview page."""
+    if output_path is None:
+        output_path = Path.home() / ".cache" / "image-well" / "preview.html"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    from html import escape as esc
+
+    def _safe_url(raw: str) -> str:
+        stripped = raw.strip().lower()
+        if stripped.startswith(("http://", "https://", "data:image/")):
+            return raw
+        return ""
+
+    source_colors = {
+        "openverse": "#4ade80", "wikimedia": "#a78bfa", "met": "#f0c040",
+        "nasa": "#38bdf8", "pexels": "#f472b6", "pixabay": "#fb923c",
+        "rijksmuseum": "#818cf8", "unsplash": "#34d399", "smithsonian": "#fbbf24",
+        "europeana": "#c084fc", "iconify": "#94a3b8", "pollinations": "#f43f5e",
+    }
+
+    cards = []
+    for r in results:
+        thumb = esc(_safe_url(r.thumbnail_url or r.url))
+        full = esc(_safe_url(r.url))
+        title = esc(r.title[:80])
+        dims = f"{r.width}\u00d7{r.height}" if r.width and r.height else "?"
+        tags_str = ", ".join(r.tags[:5]) if r.tags else ""
+        sc = source_colors.get(r.source, "rgba(201,162,39,0.3)")
+        cards.append(f"""<div class="card" data-source="{esc(r.source)}" style="border-left:3px solid {sc}">
+  <div class="card-img"><img src="{thumb}" alt="{title}" loading="lazy" data-full="{full}" onerror="this.parentElement.innerHTML='<div class=\\'broken\\'>Failed to load</div>'"></div>
+  <div class="card-meta">
+    <div class="card-title">{title}</div>
+    <div class="card-details"><span class="card-source" style="color:{sc}">{esc(r.source)}</span> · {esc(dims)} · {esc(r.license)}</div>
+    {f'<div class="card-tags">{esc(tags_str)}</div>' if tags_str else ''}
+    <div class="card-links"><a href="{full}" target="_blank">Full image</a><a href="{esc(_safe_url(r.source_url))}" target="_blank">Source page</a></div>
+  </div>
+</div>""")
+
+    sources = sorted(set(r.source for r in results))
+    pills = '<button class="pill active" data-filter="all">All</button>'
+    for s in sources:
+        count = sum(1 for r in results if r.source == s)
+        sc = source_colors.get(s, "#a89f8a")
+        pills += f'<button class="pill" data-filter="{esc(s)}" data-color="{sc}">{esc(s)} ({count})</button>'
+
+    now = datetime.now().strftime("%H:%M:%S")
+
+    html = f"""<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image Well — {esc(query)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {{
+    --bg-deep: #0a0a12;
+    --bg-surface: #141220;
+    --bg-img: #08080e;
+    --border-dim: rgba(201,162,39,0.15);
+    --border-gold: #c9a227;
+    --text-primary: #e8e4d9;
+    --text-secondary: #a89f8a;
+    --text-muted: #706858;
+    --accent: #966a85;
+    --gold: #d4a843;
+  }}
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{ background: var(--bg-deep); color: var(--text-primary); font-family: 'Inter', system-ui, sans-serif; padding: 32px; min-height: 100vh; }}
+  .header {{ margin-bottom: 24px; }}
+  h1 {{ font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }}
+  h1 span {{ color: var(--gold); }}
+  .subtitle {{ font-size: 13px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 6px; }}
+  .pills {{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }}
+  .pill {{ background: #1a1825; color: var(--text-secondary); border: 1px solid rgba(201,162,39,0.25); border-radius: 20px; padding: 6px 14px; font-size: 12px; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: all 0.2s; }}
+  .pill:hover {{ transform: translateY(-1px); border-color: rgba(201,162,39,0.5); color: var(--text-primary); }}
+  .pill.active {{ background: var(--accent); color: #fff; border-color: var(--accent); }}
+  .grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }}
+  .card {{ background: var(--bg-surface); border: 1px solid var(--border-dim); border-radius: 12px; overflow: hidden; transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s; }}
+  .card:hover {{ border-color: var(--border-gold); box-shadow: 0 4px 24px rgba(201,162,39,0.12); transform: translateY(-2px); }}
+  .card.hidden {{ display: none; }}
+  .card-img {{ display: flex; align-items: center; justify-content: center; background: var(--bg-img); min-height: 220px; padding: 16px; cursor: pointer; }}
+  .card-img img {{ max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 6px; transition: transform 0.3s; }}
+  .card:hover .card-img img {{ transform: scale(1.03); }}
+  .broken {{ color: var(--text-muted); font-size: 12px; font-family: 'JetBrains Mono', monospace; }}
+  .card-meta {{ padding: 14px 16px 16px; border-top: 1px solid var(--border-dim); }}
+  .card-title {{ font-size: 14px; font-weight: 500; line-height: 1.4; margin-bottom: 6px; color: var(--text-primary); }}
+  .card-details {{ font-size: 11px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; margin-bottom: 6px; }}
+  .card-source {{ font-weight: 500; }}
+  .card-tags {{ font-size: 10px; color: var(--text-muted); margin-bottom: 6px; }}
+  .card-links {{ display: flex; gap: 12px; font-size: 11px; }}
+  .card-links a {{ color: var(--gold); text-decoration: none; transition: color 0.2s; }}
+  .card-links a:hover {{ color: #f0d890; text-decoration: underline; }}
+  .modal {{ display: none; position: fixed; inset: 0; background: rgba(5,3,10,0.94); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; cursor: pointer; }}
+  .modal.open {{ display: flex; }}
+  .modal img {{ max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; border: 2px solid var(--border-gold); box-shadow: 0 8px 40px rgba(201,162,39,0.2); }}
+  @media (max-width: 700px) {{ .grid {{ grid-template-columns: 1fr; }} body {{ padding: 16px; }} }}
+  ::-webkit-scrollbar {{ width: 8px; }}
+  ::-webkit-scrollbar-track {{ background: var(--bg-deep); }}
+  ::-webkit-scrollbar-thumb {{ background: rgba(201,162,39,0.3); border-radius: 4px; }}
+  ::-webkit-scrollbar-thumb:hover {{ background: rgba(201,162,39,0.5); }}
+</style>
+</head><body>
+<div class="header">
+  <h1>Image Well — <span>"{esc(query)}"</span></h1>
+  <div class="subtitle">{len(results)} results from {len(sources)} source{'s' if len(sources) != 1 else ''} · updated {now}</div>
+</div>
+<div class="pills">{pills}</div>
+<div class="grid">
+{"".join(cards)}
+</div>
+<div class="modal" id="modal"><img id="modal-img" src=""></div>
+<script>
+document.querySelectorAll('.pill').forEach(btn => {{
+  btn.addEventListener('click', () => {{
+    document.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    document.querySelectorAll('.card').forEach(card => {{
+      card.classList.toggle('hidden', f !== 'all' && card.dataset.source !== f);
+    }});
+  }});
+}});
+const modal = document.getElementById('modal');
+const modalImg = document.getElementById('modal-img');
+document.querySelectorAll('.card-img').forEach(wrap => {{
+  wrap.addEventListener('click', () => {{
+    const img = wrap.querySelector('img');
+    if (img) {{ modalImg.src = img.dataset.full || img.src; modal.classList.add('open'); }}
+  }});
+}});
+modal.addEventListener('click', () => {{ modal.classList.remove('open'); modalImg.src = ''; }});
+document.addEventListener('keydown', e => {{ if (e.key === 'Escape') {{ modal.classList.remove('open'); modalImg.src = ''; }} }});
+</script>
+</body></html>"""
+
+    output_path.write_text(html)
+    return output_path
+
+
 def warn(msg: str) -> None:
     """Print warning to stderr."""
     print(f"  \u26a0 {msg}", file=sys.stderr)
