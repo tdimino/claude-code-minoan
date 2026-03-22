@@ -133,7 +133,7 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
 
 **Session Auto-Titling**: When a plan file is created, `plan-session-rename.py` immediately extracts the H1 header and sets the session's `customTitle` in `sessions-index.json`—no LLM call, pure local, ~10ms. If the session isn't yet in the index (Claude Code writes lazily), a `.pending-title` breadcrumb is saved for `session-tags-infer.py` to apply on next Stop.
 
-**Lint-Directed Agent Loop**: `lint-on-write.py` runs standard linters (ESLint, Clippy, Ruff) and grep-based convention checks (`custom-lint.sh`) after every Write/Edit, returning violations as `additionalContext` so the agent self-corrects against machine-enforced rules. Implements the [Factory.ai pattern](https://factory.ai/news/using-linters-to-direct-agents) of encoding CLAUDE.md conventions as executable lint rules. 5s per-file cooldown, 10-violation cap, project-aware dispatch.
+**Lint-Directed Agent Loop**: `lint-on-write.py` runs standard linters (ESLint, Clippy, Ruff) and custom grep-based convention rules after every Write/Edit, returning violations as `additionalContext` so the agent self-corrects against machine-enforced rules. Any repo can opt in by dropping a `.claude/lint-rules.json` config file declaring which linter to use and what CLAUDE.md conventions to enforce as grep rules. Implements the [Factory.ai pattern](https://factory.ai/news/using-linters-to-direct-agents). 5s per-file cooldown, 10-violation cap.
 
 ---
 

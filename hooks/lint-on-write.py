@@ -2,9 +2,9 @@
 """PostToolUse hook: run linters after Write/Edit and feed violations back.
 
 Matcher: Write, Edit
-Detects project and language from file path, dispatches to appropriate linter,
-runs custom grep-based checks for project conventions, returns violations as
-additionalContext for agent self-correction.
+Auto-discovers .claude/lint-rules.json at the project root, dispatches to the
+configured linter (ESLint/Clippy/Ruff), and runs custom grep-based convention
+rules from the config. Any repo can opt in by dropping a config file.
 
 Inspired by Factory.ai's "Using Linters to Direct Agents" (Sep 2025) and
 "Lint Against the Machine" (Mar 2026). Agents self-correct faster against
@@ -13,6 +13,7 @@ lint output than prose instructions.
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,9 @@ PRUNE_AGE_SECONDS = 60.0
 MAX_VIOLATIONS = 10
 SUBPROCESS_TIMEOUT = 8  # seconds (clippy needs ~3-5s with incremental cache)
 
+CONFIG_FILENAME = ".claude/lint-rules.json"
+
+# Legacy fallback script (used when no .claude/lint-rules.json exists)
 CUSTOM_LINT_SCRIPT = os.path.join(os.path.dirname(__file__), "custom-lint.sh")
 
 # File extensions to skip entirely (no linting value)
@@ -35,8 +39,8 @@ SKIP_EXTENSIONS = {
     ".map", ".lock", ".env", ".gitignore", ".prettierrc",
 }
 
-# Extension → linter type mapping
-EXTENSION_LINTERS = {
+# Default extension → linter mapping (used when no config file exists)
+DEFAULT_LINTERS = {
     ".ts": "eslint",
     ".tsx": "eslint",
     ".js": "eslint",
@@ -44,28 +48,37 @@ EXTENSION_LINTERS = {
     ".mjs": "eslint",
     ".rs": "clippy",
     ".py": "ruff",
-    ".css": "custom_only",
-    ".scss": "custom_only",
-    ".astro": "custom_only",
 }
 
-# Project detection: walk up from file looking for these markers
-# Each project has a name, root markers, and optional config
-PROJECTS = {
-    "worldwarwatcher": {
-        "markers": {"next.config.ts", "next.config.mjs"},
-        "identify_file": "next.config.ts",  # unique to this project
-    },
-    "open-rebellion": {
-        "markers": {"Cargo.toml"},
-        "identify_dir": "open-rebellion",  # dirname check
-    },
-    "minoanmystery-astro": {
-        "markers": {"astro.config.mjs", "astro.config.ts"},
-        "identify_dir": "minoanmystery-astro",
-    },
-}
 
+# --- Config Discovery ---
+
+def find_config(file_path: str) -> tuple[dict | None, str | None]:
+    """Walk up from file_path looking for .claude/lint-rules.json.
+
+    Returns (config_dict, project_root) or (None, None).
+    """
+    current = os.path.dirname(os.path.abspath(file_path))
+
+    for _ in range(20):
+        config_path = os.path.join(current, CONFIG_FILENAME)
+        if os.path.isfile(config_path):
+            try:
+                with open(config_path, "r") as f:
+                    config = json.load(f)
+                return config, current
+            except (json.JSONDecodeError, OSError):
+                return None, None
+
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+
+    return None, None
+
+
+# --- Cooldown ---
 
 def check_cooldown(file_path: str) -> bool:
     """Return True if file should be linted (not in cooldown)."""
@@ -78,14 +91,12 @@ def check_cooldown(file_path: str) -> bool:
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         pass
 
-    # Prune stale entries
     cooldowns = {k: v for k, v in cooldowns.items() if now - v < PRUNE_AGE_SECONDS}
 
     last_lint = cooldowns.get(file_path, 0)
     if now - last_lint < COOLDOWN_SECONDS:
         return False
 
-    # Update cooldown
     cooldowns[file_path] = now
     try:
         tmp = COOLDOWN_FILE + ".tmp"
@@ -98,107 +109,17 @@ def check_cooldown(file_path: str) -> bool:
     return True
 
 
-def detect_project(file_path: str) -> tuple[str | None, str | None]:
-    """Walk up from file_path to find project root and name.
-
-    Returns (project_name, project_root) or (None, None).
-    """
-    current = os.path.dirname(os.path.abspath(file_path))
-
-    for _ in range(20):  # max depth
-        dirname = os.path.basename(current)
-
-        for project_name, config in PROJECTS.items():
-            # Check directory name match
-            if config.get("identify_dir") and dirname == config["identify_dir"]:
-                return project_name, current
-
-            # Check marker files
-            for marker in config.get("markers", set()):
-                if os.path.exists(os.path.join(current, marker)):
-                    # For generic markers like Cargo.toml, verify by dirname
-                    if config.get("identify_dir"):
-                        if dirname == config["identify_dir"]:
-                            return project_name, current
-                    elif config.get("identify_file"):
-                        if os.path.exists(os.path.join(current, config["identify_file"])):
-                            return project_name, current
-                    else:
-                        return project_name, current
-
-        parent = os.path.dirname(current)
-        if parent == current:
-            break
-        current = parent
-
-    return None, None
-
-
-def find_crate_name(file_path: str) -> str | None:
-    """For Rust files, find the crate name by walking up to nearest Cargo.toml."""
-    current = os.path.dirname(os.path.abspath(file_path))
-
-    for _ in range(10):
-        cargo_path = os.path.join(current, "Cargo.toml")
-        if os.path.exists(cargo_path):
-            try:
-                with open(cargo_path, "r") as f:
-                    for line in f:
-                        line = line.strip()
-                        if line.startswith("name"):
-                            # Parse: name = "rebellion-core"
-                            parts = line.split("=", 1)
-                            if len(parts) == 2:
-                                return parts[1].strip().strip('"').strip("'")
-            except OSError:
-                pass
-            return None
-
-        parent = os.path.dirname(current)
-        if parent == current:
-            break
-        current = parent
-
-    return None
-
-
-def find_workspace_root(file_path: str) -> str | None:
-    """For Rust files, find the workspace root (has [workspace] in Cargo.toml)."""
-    current = os.path.dirname(os.path.abspath(file_path))
-
-    for _ in range(10):
-        cargo_path = os.path.join(current, "Cargo.toml")
-        if os.path.exists(cargo_path):
-            try:
-                with open(cargo_path, "r") as f:
-                    content = f.read()
-                    if "[workspace]" in content:
-                        return current
-            except OSError:
-                pass
-
-        parent = os.path.dirname(current)
-        if parent == current:
-            break
-        current = parent
-
-    return None
-
+# --- Standard Linter Runners ---
 
 def run_eslint(file_path: str, project_root: str) -> list[str]:
     """Run ESLint on a single file and return violation strings."""
     violations = []
-
     try:
         result = subprocess.run(
             ["npx", "eslint", "--no-warn-ignored", "--format", "json", file_path],
-            capture_output=True,
-            text=True,
-            timeout=SUBPROCESS_TIMEOUT,
-            cwd=project_root,
+            capture_output=True, text=True,
+            timeout=SUBPROCESS_TIMEOUT, cwd=project_root,
         )
-
-        # ESLint exits 1 when there are violations
         if result.stdout:
             data = json.loads(result.stdout)
             for file_result in data:
@@ -210,134 +131,231 @@ def run_eslint(file_path: str, project_root: str) -> list[str]:
                     violations.append(
                         f"[eslint/{severity}] {rule}: {message} (line {line})"
                     )
-
     except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError, OSError):
         pass
-
     return violations
 
 
-def run_clippy(file_path: str, project_root: str) -> list[str]:
+def find_crate_name(file_path: str) -> str | None:
+    """For Rust files, find the crate name by walking up to nearest Cargo.toml."""
+    current = os.path.dirname(os.path.abspath(file_path))
+    for _ in range(10):
+        cargo_path = os.path.join(current, "Cargo.toml")
+        if os.path.exists(cargo_path):
+            try:
+                with open(cargo_path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("name"):
+                            parts = line.split("=", 1)
+                            if len(parts) == 2:
+                                return parts[1].strip().strip('"').strip("'")
+            except OSError:
+                pass
+            return None
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    return None
+
+
+def find_workspace_root(file_path: str) -> str | None:
+    """For Rust files, find the workspace root (has [workspace] in Cargo.toml)."""
+    current = os.path.dirname(os.path.abspath(file_path))
+    for _ in range(10):
+        cargo_path = os.path.join(current, "Cargo.toml")
+        if os.path.exists(cargo_path):
+            try:
+                with open(cargo_path, "r") as f:
+                    if "[workspace]" in f.read():
+                        return current
+            except OSError:
+                pass
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    return None
+
+
+def run_clippy(file_path: str, project_root: str, linter_options: dict | None = None) -> list[str]:
     """Run Clippy on the crate containing file_path, filter to that file."""
     violations = []
-
     crate_name = find_crate_name(file_path)
     workspace_root = find_workspace_root(file_path)
     if not crate_name or not workspace_root:
         return violations
 
     env = os.environ.copy()
-    env["PATH"] = "/usr/bin:" + env.get("PATH", "")
+    path_prefix = (linter_options or {}).get("path_prefix", "/usr/bin")
+    if path_prefix:
+        env["PATH"] = path_prefix + ":" + env.get("PATH", "")
 
     try:
         result = subprocess.run(
-            [
-                "cargo", "clippy",
-                "-p", crate_name,
-                "--message-format=json",
-                "--quiet",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=SUBPROCESS_TIMEOUT,
-            cwd=workspace_root,
-            env=env,
+            ["cargo", "clippy", "-p", crate_name, "--message-format=json", "--quiet"],
+            capture_output=True, text=True,
+            timeout=SUBPROCESS_TIMEOUT, cwd=workspace_root, env=env,
         )
-
         abs_file = os.path.abspath(file_path)
-
         for line in result.stdout.splitlines():
             try:
                 msg = json.loads(line)
             except json.JSONDecodeError:
                 continue
-
             if msg.get("reason") != "compiler-message":
                 continue
-
             compiler_msg = msg.get("message", {})
             level = compiler_msg.get("level", "")
             if level not in ("warning", "error"):
                 continue
-
-            # Filter to our file
-            spans = compiler_msg.get("spans", [])
-            for span in spans:
-                span_file = span.get("file_name", "")
-                # Span paths are relative to workspace root
-                span_abs = os.path.join(workspace_root, span_file)
+            for span in compiler_msg.get("spans", []):
+                span_abs = os.path.join(workspace_root, span.get("file_name", ""))
                 if os.path.abspath(span_abs) == abs_file:
                     text = compiler_msg.get("message", "")
                     code = compiler_msg.get("code", {})
                     rule = code.get("code", "") if code else ""
                     line_num = span.get("line_start", 0)
                     prefix = rule if rule else "clippy"
-                    violations.append(
-                        f"[{prefix}] {text} (line {line_num})"
-                    )
-                    break  # one violation per message
-
+                    violations.append(f"[{prefix}] {text} (line {line_num})")
+                    break
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         pass
-
     return violations
 
 
 def run_ruff(file_path: str) -> list[str]:
     """Run Ruff on a single file, if available."""
     violations = []
-
     if not shutil.which("ruff"):
         return violations
-
     try:
         result = subprocess.run(
             ["ruff", "check", file_path, "--output-format", "json"],
-            capture_output=True,
-            text=True,
-            timeout=SUBPROCESS_TIMEOUT,
+            capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT,
         )
-
         if result.stdout:
             data = json.loads(result.stdout)
             for msg in data:
                 code = msg.get("code", "unknown")
                 message = msg.get("message", "")
                 line = msg.get("location", {}).get("row", 0)
-                violations.append(
-                    f"[ruff] {code}: {message} (line {line})"
-                )
-
+                violations.append(f"[ruff] {code}: {message} (line {line})")
     except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError, OSError):
         pass
+    return violations
+
+
+# --- Config-Driven Custom Rules ---
+
+def run_custom_rules(file_path: str, rules: list[dict]) -> list[str]:
+    """Run grep-based custom rules from .claude/lint-rules.json against a file."""
+    violations = []
+    _, ext = os.path.splitext(file_path)
+    ext_bare = ext.lstrip(".").lower()
+    abs_path = os.path.abspath(file_path)
+
+    for rule in rules:
+        # Check extension filter
+        extensions = rule.get("extensions", [])
+        if extensions and ext_bare not in extensions:
+            continue
+
+        # Check path exclusion
+        exclude_paths = rule.get("exclude_paths", [])
+        skip = False
+        for ep in exclude_paths:
+            # Support simple glob patterns like "*/dat/*"
+            if _path_matches(abs_path, ep):
+                skip = True
+                break
+        if skip:
+            continue
+
+        pattern = rule.get("pattern", "")
+        message = rule.get("message", "Custom lint violation")
+        exclude_patterns = rule.get("exclude_patterns", [])
+        require_absent = rule.get("require_absent")
+
+        if not pattern:
+            continue
+
+        # require_absent: only fire if this pattern is NOT in the file
+        if require_absent:
+            try:
+                with open(file_path, "r", errors="replace") as f:
+                    content = f.read()
+                if require_absent in content:
+                    continue
+            except OSError:
+                continue
+
+        # Run grep
+        try:
+            result = subprocess.run(
+                ["grep", "-En", pattern, file_path],
+                capture_output=True, text=True, timeout=3,
+            )
+            for line in result.stdout.strip().splitlines():
+                if not line.strip():
+                    continue
+
+                # Apply exclude_patterns
+                excluded = False
+                for ep in exclude_patterns:
+                    if re.search(ep, line):
+                        excluded = True
+                        break
+                if excluded:
+                    continue
+
+                # Extract line number
+                colon_idx = line.find(":")
+                if colon_idx > 0:
+                    line_num = line[:colon_idx]
+                    violations.append(f"{line_num}: [custom] {message}")
+                else:
+                    violations.append(f"[custom] {message}")
+
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass
 
     return violations
 
 
-def run_custom_lint(file_path: str, project_name: str) -> list[str]:
-    """Run custom-lint.sh and return violation strings."""
-    violations = []
+def _path_matches(path: str, glob_pattern: str) -> bool:
+    """Simple glob match: supports * as wildcard segment."""
+    # Convert glob to regex: * matches anything except /
+    # */ matches any directory segment
+    regex = glob_pattern.replace("*", "[^/]*")
+    # But */ at start means any prefix
+    if glob_pattern.startswith("*/"):
+        regex = ".*/" + regex[len("[^/]*/"):]
+    return bool(re.search(regex, path))
 
+
+# --- Legacy Fallback ---
+
+def run_legacy_custom_lint(file_path: str, project_name: str) -> list[str]:
+    """Run legacy custom-lint.sh for projects without .claude/lint-rules.json."""
+    violations = []
     if not os.path.exists(CUSTOM_LINT_SCRIPT):
         return violations
-
     try:
         result = subprocess.run(
             ["bash", CUSTOM_LINT_SCRIPT, file_path, project_name],
-            capture_output=True,
-            text=True,
-            timeout=SUBPROCESS_TIMEOUT,
+            capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT,
         )
-
         for line in result.stdout.strip().splitlines():
             if line.strip():
                 violations.append(line.strip())
-
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         pass
-
     return violations
 
+
+# --- Output ---
 
 def format_output(file_path: str, violations: list[str]) -> str:
     """Format violations into additionalContext string."""
@@ -354,9 +372,10 @@ def format_output(file_path: str, violations: list[str]) -> str:
 
     lines.append("")
     lines.append("Fix these violations before proceeding.")
-
     return "\n".join(lines)
 
+
+# --- Main ---
 
 def main():
     try:
@@ -370,51 +389,73 @@ def main():
 
     tool_input = data.get("tool_input", {})
     file_path = tool_input.get("file_path", "")
-    if not file_path:
+    if not file_path or not os.path.isfile(file_path):
         return
 
-    # Check file exists
-    if not os.path.isfile(file_path):
-        return
-
-    # Check extension
     _, ext = os.path.splitext(file_path)
     ext = ext.lower()
     if ext in SKIP_EXTENSIONS:
         return
 
-    # Check cooldown
     if not check_cooldown(file_path):
         return
 
-    # Detect project
-    project_name, project_root = detect_project(file_path)
+    # --- Discover config ---
+    config, project_root = find_config(file_path)
 
-    # Determine linter type
-    linter_type = EXTENSION_LINTERS.get(ext)
-    if not linter_type and not project_name:
-        return  # Unknown extension and unknown project — nothing to do
-
-    # Collect violations from standard linter
     violations = []
 
-    if linter_type == "eslint" and project_root:
-        violations.extend(run_eslint(file_path, project_root))
-    elif linter_type == "clippy" and project_root:
-        violations.extend(run_clippy(file_path, project_root))
-    elif linter_type == "ruff":
-        violations.extend(run_ruff(file_path))
+    if config:
+        # Config-driven mode
+        linter = config.get("linter", "")
+        linter_options = config.get("linter_options", {})
 
-    # Always run custom lint if project is known
-    if project_name:
-        violations.extend(run_custom_lint(file_path, project_name))
+        if linter == "eslint" and project_root:
+            violations.extend(run_eslint(file_path, project_root))
+        elif linter == "clippy" and project_root:
+            violations.extend(run_clippy(file_path, project_root, linter_options))
+        elif linter == "ruff":
+            violations.extend(run_ruff(file_path))
 
-    # Output
+        # Run custom rules from config
+        rules = config.get("rules", [])
+        if rules:
+            violations.extend(run_custom_rules(file_path, rules))
+
+    else:
+        # No config — fallback to extension-based linter detection
+        linter_type = DEFAULT_LINTERS.get(ext)
+        if not linter_type:
+            return
+
+        # Need a project root for ESLint/Clippy — find it by walking up
+        project_root = _find_project_root(file_path)
+
+        if linter_type == "eslint" and project_root:
+            violations.extend(run_eslint(file_path, project_root))
+        elif linter_type == "clippy" and project_root:
+            violations.extend(run_clippy(file_path, project_root))
+        elif linter_type == "ruff":
+            violations.extend(run_ruff(file_path))
+
     if violations:
-        output = {
-            "additionalContext": format_output(file_path, violations),
-        }
+        output = {"additionalContext": format_output(file_path, violations)}
         print(json.dumps(output))
+
+
+def _find_project_root(file_path: str) -> str | None:
+    """Find project root by looking for common markers (package.json, Cargo.toml, etc.)."""
+    markers = {"package.json", "Cargo.toml", "pyproject.toml", "go.mod", "Gemfile"}
+    current = os.path.dirname(os.path.abspath(file_path))
+    for _ in range(20):
+        for marker in markers:
+            if os.path.exists(os.path.join(current, marker)):
+                return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    return None
 
 
 if __name__ == "__main__":
