@@ -9,7 +9,7 @@ Curated Claude Code configuration: skills, MCP servers, slash commands, CLI tool
 - `/bin` - CLI tools: `cc`, `ccls`, `ccpick`, `cckill`, `claude-tracker`, `claude-tracker-search`, `claude-tracker-resume`
 - `/lib` - Shared libraries (`tracker-utils.js`)
 - `/extensions` - VS Code extensions (`claude-session-tracker`)
-- `/hooks` - Terminal title, session handoff, automation scripts
+- `/hooks` - Terminal title, session handoff, lint-on-write, automation scripts
 - `/sounds` - Notification audio
 - `.mcp.json` - MCP server configurations
 - `tmux.conf.example` - Optimized tmux config for Claude Code

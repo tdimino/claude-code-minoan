@@ -115,6 +115,7 @@ PreToolUse ────────→ on-thinking.sh              (🔴 repo-ic
 PostToolUse ───────→ git-track-post.sh           (Bash: capture commit hashes)
                    → plan-rename.py              (Write/Edit/MultiEdit: random→dated slug)
                    → plan-session-rename.py      (Write: auto-title session from plan H1)
+                   → lint-on-write.py            (Write/Edit: ESLint/Clippy/Ruff + custom rules)
 Stop ──────────────→ on-ready.sh + stop-handoff.py (🟢 title:subtitle + 5-min checkpoint)
 PreCompact ────────→ precompact-handoff.py       (full handoff before compaction)
 SessionEnd ────────→ precompact-handoff.py       (handoff on graceful exit)
@@ -131,6 +132,8 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
 **Plan Auto-Naming**: Renames randomly-named plan files (e.g. `tingly-humming-simon.md`) to dated slugs (e.g. `2026-02-17-auto-rename-plan-files-hook.md`) by extracting the H1 header. Creates forwarding symlinks for mid-session continuity; cleaned up on SessionEnd.
 
 **Session Auto-Titling**: When a plan file is created, `plan-session-rename.py` immediately extracts the H1 header and sets the session's `customTitle` in `sessions-index.json`—no LLM call, pure local, ~10ms. If the session isn't yet in the index (Claude Code writes lazily), a `.pending-title` breadcrumb is saved for `session-tags-infer.py` to apply on next Stop.
+
+**Lint-Directed Agent Loop**: `lint-on-write.py` runs standard linters (ESLint, Clippy, Ruff) and grep-based convention checks (`custom-lint.sh`) after every Write/Edit, returning violations as `additionalContext` so the agent self-corrects against machine-enforced rules. Implements the [Factory.ai pattern](https://factory.ai/news/using-linters-to-direct-agents) of encoding CLAUDE.md conventions as executable lint rules. 5s per-file cooldown, 10-violation cap, project-aware dispatch.
 
 ---
 
