@@ -1,6 +1,6 @@
 # Hooks Index
 
-*36 hooks in `~/.claude/hooks/` — 25 bound in settings.json, 4 statusline-only widgets, 1 standalone/subprocess, 6 legacy/utility*
+*38 hooks in `~/.claude/hooks/` — 27 bound in settings.json, 4 statusline-only widgets, 1 standalone/subprocess, 6 legacy/utility*
 
 ## Event Bindings (settings.json)
 
@@ -65,6 +65,7 @@
 | `git-track-post.sh` *(Bash)* | Diff git state after Bash command, log file changes |
 | `dabarat-open.py` *(Write)* | Auto-open written Markdown files in Dabarat preview |
 | `plan-session-rename.py` *(Write)* | Emit plan canonical path as additionalContext when plans are written |
+| `lint-on-write.py` *(Write, Edit)* | Run linters after file edits and return violations as additionalContext for agent self-correction. Dispatches to ESLint (TS/JS), Clippy (Rust), Ruff (Python) + custom-lint.sh (grep-based project convention checks). 5s cooldown, 10-violation cap, 8s subprocess timeout. Inspired by [Factory.ai](https://factory.ai/news/using-linters-to-direct-agents). |
 
 ### PostToolUseFailure
 | Hook | Matcher | Description |

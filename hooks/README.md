@@ -29,6 +29,9 @@ Plan/md file written → PostToolUse ────────→ plan-rename.py 
 Frontend file edit ──→ PostToolUse ────────→ auto-screenshot.py (CDP screenshot after HMR)
   (Write/Edit on .tsx/.jsx/.css/.html)
 
+Any code file edit ─→ PostToolUse ────────→ lint-on-write.py (ESLint/Clippy/Ruff + custom rules)
+  (Write/Edit on .ts/.tsx/.js/.rs/.py/.css)    → custom-lint.sh (grep-based project conventions)
+
 Context full ────────→ PreCompact ──────────→ precompact-handoff.py (full handoff)
 
 Session exits ───────→ SessionEnd ──────────→ precompact-handoff.py (full handoff)
@@ -325,6 +328,50 @@ Automatically takes a Chrome DevTools Protocol screenshot after every frontend f
 
 ---
 
+### `lint-on-write.py` + `custom-lint.sh` — Linter-Directed Agent Loop
+
+Runs linters after every file edit and feeds violations back as `additionalContext`, enabling the agent to self-correct against machine-enforced rules rather than prose conventions. Implements the [Factory.ai "Using Linters to Direct Agents"](https://factory.ai/news/using-linters-to-direct-agents) pattern.
+
+**Fires on**: PostToolUse/Write, PostToolUse/Edit (`.ts`, `.tsx`, `.js`, `.jsx`, `.rs`, `.py`, `.css`, `.astro`)
+
+**How it works**:
+1. Guard: file extension must be a lintable code type (skips `.md`, `.json`, `.yaml`, etc.)
+2. Guard: 5-second per-file cooldown prevents rapid re-fires during multi-edit sequences
+3. Detect project by walking up from file path (looks for `Cargo.toml`, `next.config.ts`, `astro.config.mjs`)
+4. Dispatch to standard linter:
+   - `.ts/.tsx/.js/.jsx` → `npx eslint --no-warn-ignored --format json`
+   - `.rs` → `cargo clippy -p <crate> --message-format=json` (filtered to edited file)
+   - `.py` → `ruff check --output-format json` (if installed)
+5. Run `custom-lint.sh` for grep-based project convention checks
+6. Cap at 10 violations, return as `additionalContext`
+
+**Custom lint rules** (`custom-lint.sh`) — grep-based checks that encode CLAUDE.md conventions standard linters can't express:
+
+| Project | Rules |
+|---------|-------|
+| worldwarwatcher | No hardcoded hex (use @theme), Phosphor icons only, no backdrop-blur over WebGL, em dash spacing |
+| open-rebellion | No fieldN names in non-DAT code, no rendering deps in rebellion-core |
+| minoanmystery-astro | No `transition: all`, CSS variables for colors, scroll-behavior requires motion gate |
+
+**Output** (JSON on stdout, only when violations found):
+```json
+{
+  "additionalContext": "Lint violations in Sparkline.tsx (3 issues):\n  1. [eslint/error] no-restricted-imports: ...\n  2. [custom] Hardcoded hex — use @theme CSS variable\n\nFix these violations before proceeding."
+}
+```
+
+**Cooldown**: `/tmp/lint-on-write-cooldown.json` — tracks last lint time per file, prunes entries >60s old, atomic writes via `os.replace()`.
+
+**Timeouts**: 8s subprocess timeout (covers clippy incremental builds), 10s settings.json timeout.
+
+**Cost**: Zero. No LLM calls — pure local linter subprocess invocations.
+
+**Extending**: To add rules for a new project, add a case block in `custom-lint.sh` and a project entry in the `PROJECTS` dict in `lint-on-write.py`.
+
+**Inspired by**: [Factory.ai "Using Linters to Direct Agents"](https://factory.ai/news/using-linters-to-direct-agents) (Sep 2025) and ["Lint Against the Machine"](https://medium.com/@montes.makes/lint-against-the-machine-a-field-guide-to-catching-ai-coding-agent-anti-patterns-3c4ef7baeb9e) (Mar 2026).
+
+---
+
 ### `soul-activate.py` / `soul-deregister.py` / `soul-registry.py` — Soul Daemon Lifecycle
 
 Manages registration of [Claudicle](https://github.com/tdimino/claudicle) soul daemons—persistent AI personalities with identity, memory, and cognitive pipelines that survive across sessions.
@@ -470,13 +517,15 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
         "hooks": [
           {"type": "command", "command": "python3 ~/.claude/hooks/dabarat-open.py"},
           {"type": "command", "command": "python3 ~/.claude/hooks/plan-session-rename.py", "timeout": 5000},
-          {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000}
+          {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000},
+          {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
         ]
       },
       {
         "matcher": "Edit",
         "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000}
+          {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000},
+          {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
         ]
       }
     ]
