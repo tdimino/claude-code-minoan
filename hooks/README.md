@@ -328,7 +328,7 @@ Automatically takes a Chrome DevTools Protocol screenshot after every frontend f
 
 ---
 
-### `lint-on-write.py` + `custom-lint.sh` — Linter-Directed Agent Loop
+### `lint-on-write.py` — Linter-Directed Agent Loop
 
 Runs linters after every file edit and feeds violations back as `additionalContext`, enabling the agent to self-correct against machine-enforced rules rather than prose conventions. Implements the [Factory.ai "Using Linters to Direct Agents"](https://factory.ai/news/using-linters-to-direct-agents) pattern.
 
@@ -337,21 +337,59 @@ Runs linters after every file edit and feeds violations back as `additionalConte
 **How it works**:
 1. Guard: file extension must be a lintable code type (skips `.md`, `.json`, `.yaml`, etc.)
 2. Guard: 5-second per-file cooldown prevents rapid re-fires during multi-edit sequences
-3. Detect project by walking up from file path (looks for `Cargo.toml`, `next.config.ts`, `astro.config.mjs`)
-4. Dispatch to standard linter:
-   - `.ts/.tsx/.js/.jsx` → `npx eslint --no-warn-ignored --format json`
-   - `.rs` → `cargo clippy -p <crate> --message-format=json` (filtered to edited file)
-   - `.py` → `ruff check --output-format json` (if installed)
-5. Run `custom-lint.sh` for grep-based project convention checks
+3. Walk up from edited file looking for `.claude/lint-rules.json` (config-driven)
+4. Dispatch to standard linter declared in config (`"linter": "eslint"` / `"clippy"` / `"ruff"`)
+5. Run custom grep rules from the config's `"rules"` array
 6. Cap at 10 violations, return as `additionalContext`
+7. Fallback: if no config file, auto-detect linter from extension (no custom rules)
 
-**Custom lint rules** (`custom-lint.sh`) — grep-based checks that encode CLAUDE.md conventions standard linters can't express:
+#### Opting In: `.claude/lint-rules.json`
 
-| Project | Rules |
-|---------|-------|
-| worldwarwatcher | No hardcoded hex (use @theme), Phosphor icons only, no backdrop-blur over WebGL, em dash spacing |
-| open-rebellion | No fieldN names in non-DAT code, no rendering deps in rebellion-core |
-| minoanmystery-astro | No `transition: all`, CSS variables for colors, scroll-behavior requires motion gate |
+Any repo can opt into the lint-on-write system by creating `.claude/lint-rules.json` at the project root:
+
+```json
+{
+  "linter": "eslint",
+  "rules": [
+    {
+      "pattern": "#[0-9a-fA-F]{3,8}",
+      "message": "Hardcoded hex — use CSS variable instead",
+      "extensions": ["tsx", "jsx", "css"],
+      "exclude_patterns": ["^\\s*//", "import "]
+    },
+    {
+      "pattern": "from ['\"]lodash",
+      "message": "Import from lodash — use native JS or lodash-es",
+      "extensions": ["ts", "tsx"]
+    },
+    {
+      "pattern": "scroll-behavior:\\s*smooth",
+      "message": "scroll-behavior: smooth requires prefers-reduced-motion gate",
+      "extensions": ["css"],
+      "require_absent": "prefers-reduced-motion"
+    }
+  ]
+}
+```
+
+#### Config Reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `linter` | `string` | Standard linter: `"eslint"`, `"clippy"`, `"ruff"`, or omit for custom rules only |
+| `linter_options` | `object` | Optional. `path_prefix` for PATH override (e.g. `"/usr/bin"` for Cargo cc shadow workaround) |
+| `rules` | `array` | Custom grep-based convention rules (see below) |
+
+#### Rule Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `pattern` | `string` | Yes | ERE regex passed to `grep -En` |
+| `message` | `string` | Yes | Violation message shown to the agent |
+| `extensions` | `string[]` | No | File extensions to check (e.g. `["tsx", "css"]`). Omit to match all |
+| `exclude_patterns` | `string[]` | No | Regex patterns — lines matching any of these are filtered out |
+| `exclude_paths` | `string[]` | No | Glob patterns — files matching any of these are skipped (e.g. `"*/test/*"`) |
+| `require_absent` | `string` | No | Only fire if this string is NOT present anywhere in the file |
 
 **Output** (JSON on stdout, only when violations found):
 ```json
@@ -366,7 +404,7 @@ Runs linters after every file edit and feeds violations back as `additionalConte
 
 **Cost**: Zero. No LLM calls — pure local linter subprocess invocations.
 
-**Extending**: To add rules for a new project, add a case block in `custom-lint.sh` and a project entry in the `PROJECTS` dict in `lint-on-write.py`.
+**Legacy**: `custom-lint.sh` still exists as a standalone grep tool for manual testing but is no longer the primary mechanism. Config files drive everything.
 
 **Inspired by**: [Factory.ai "Using Linters to Direct Agents"](https://factory.ai/news/using-linters-to-direct-agents) (Sep 2025) and ["Lint Against the Machine"](https://medium.com/@montes.makes/lint-against-the-machine-a-field-guide-to-catching-ai-coding-agent-anti-patterns-3c4ef7baeb9e) (Mar 2026).
 
