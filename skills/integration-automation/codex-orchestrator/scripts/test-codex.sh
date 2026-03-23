@@ -118,7 +118,20 @@ else
     test_fail "Exa codex-agent-guide.md missing"
 fi
 
-# Test 8: Quick API test (optional, skipped in quick mode)
+# Test 8: Write profiles auto-enable --full-auto
+echo -e "\n${YELLOW}Test 8: Write Profile Defaults${NC}"
+if grep -q 'PROFILE.*!=.*researcher.*FULL_AUTO' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "Write profiles auto-enable --full-auto"
+else
+    test_fail "Write profiles missing --full-auto default"
+fi
+if grep -q '\-\-no-auto' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "--no-auto escape hatch exists"
+else
+    test_fail "--no-auto escape hatch missing"
+fi
+
+# Test 9: Quick API test (optional, skipped in quick mode)
 if [ "$QUICK_MODE" = false ]; then
     echo -e "\n${YELLOW}Test 8: API Connectivity${NC}"
     if [ -n "$OPENAI_API_KEY" ]; then
