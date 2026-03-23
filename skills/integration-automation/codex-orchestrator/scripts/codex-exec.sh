@@ -43,7 +43,8 @@ show_usage() {
     echo "  --model <model>       Override model (default: per-profile, see below)"
     echo "  --reasoning <level>   Override reasoning effort: minimal, low, medium, high, xhigh"
     echo "  --sandbox <mode>      Sandbox mode: read-only, workspace-write, danger-full-access"
-    echo "  --full-auto           Run in full-auto mode (no approval needed)"
+    echo "  --full-auto           Run in full-auto mode (default for write profiles)"
+    echo "  --no-auto             Disable auto --full-auto (require manual approval)"
     echo "  --web-search          Enable Exa web search (injects guide into AGENTS.md)"
     echo "  --search              Enable native Codex web search (works in all sandboxes)"
     echo "  --json                Output JSONL event stream (pipe to jq, logs, etc.)"
@@ -117,6 +118,7 @@ MODEL=""
 REASONING=""
 SANDBOX="workspace-write"
 FULL_AUTO=""
+NO_AUTO=""
 WEB_SEARCH=""
 NATIVE_SEARCH=""
 JSON_OUTPUT=""
@@ -140,6 +142,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --full-auto)
             FULL_AUTO="--full-auto"
+            shift
+            ;;
+        --no-auto)
+            NO_AUTO="true"
             shift
             ;;
         --web-search)
@@ -194,6 +200,13 @@ if [ "$PROFILE" = "researcher" ]; then
     fi
 fi
 
+# Auto-enable --full-auto for write-capable profiles in non-interactive exec mode.
+# Without this, codex exec cannot approve writes (no TUI) and writes fail silently.
+# Use --no-auto to opt out if needed.
+if [ "$PROFILE" != "researcher" ] && [ -z "$FULL_AUTO" ] && [ -z "$NO_AUTO" ]; then
+    FULL_AUTO="--full-auto"
+fi
+
 # Save current directory
 WORK_DIR="$(pwd)"
 
@@ -221,6 +234,9 @@ else
 fi
 if [ -n "$REASONING" ]; then
     echo -e "Reasoning: $REASONING"
+fi
+if [ -n "$FULL_AUTO" ]; then
+    echo -e "Auto mode: ${GREEN}--full-auto${NC}"
 fi
 echo -e "Sandbox: $SANDBOX"
 echo -e "Working directory: $WORK_DIR"

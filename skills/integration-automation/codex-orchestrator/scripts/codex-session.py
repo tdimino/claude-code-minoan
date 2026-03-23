@@ -32,6 +32,10 @@ PROFILES = {
     "security": "Security audit specialist - vulnerabilities, OWASP",
     "refactor": "Code refactoring specialist - cleanup, modernization",
     "docs": "Documentation specialist - comments, READMEs, guides",
+    "planner": "ExecPlan design document specialist",
+    "syseng": "Infrastructure/DevOps/CI-CD specialist",
+    "builder": "Greenfield implementation specialist",
+    "researcher": "Read-only Q&A and analysis (no file changes)",
 }
 
 
@@ -100,12 +104,28 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
                 cmd.append(prompt)
         else:
             # Non-interactive exec mode
-            cmd = [
-                "codex", "exec",
-                "--model", "gpt-5.4",
-                "--sandbox", "workspace-write",
-                prompt
-            ]
+            # Researcher: read-only sandbox, ephemeral, no --full-auto
+            if profile == "researcher":
+                cmd = [
+                    "codex", "exec",
+                    "--skip-git-repo-check",
+                    "--model", "gpt-5.4",
+                    "--sandbox", "read-only",
+                    "--ephemeral",
+                    prompt
+                ]
+            else:
+                # All write-capable profiles: --full-auto enables unattended writes.
+                # Without it, codex exec cannot approve writes (no TUI) and writes
+                # fail silently.
+                cmd = [
+                    "codex", "exec",
+                    "--skip-git-repo-check",
+                    "--model", "gpt-5.4",
+                    "--sandbox", "workspace-write",
+                    "--full-auto",
+                    prompt
+                ]
 
         # Run from current directory so Codex can access project files
         result = subprocess.run(cmd, text=True)

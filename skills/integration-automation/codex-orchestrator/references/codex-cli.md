@@ -65,6 +65,11 @@ Exposes tools: `codex` (start session), `codex-reply` (continue session).
 codex apply                            # Apply latest diff to working tree
 codex completion bash                  # Generate shell completions
 codex debug                            # Internal debugging commands
+codex fork <session_id>                # Fork a previous session
+codex cloud                            # Browse Codex Cloud tasks
+codex features                         # Inspect feature flags
+codex review                           # Non-interactive code review
+codex sandbox                          # Run commands in sandbox
 ```
 
 ## Options
@@ -91,9 +96,15 @@ codex debug                            # Internal debugging commands
 
 ```bash
 -a, --ask-for-approval <POLICY>
-    --ask-for-approval untrusted       # Ask for non-trusted commands
+    --ask-for-approval untrusted       # Ask for non-trusted commands (default)
     --ask-for-approval on-failure      # Only ask if command fails
+    --ask-for-approval on-request      # Barely ever ask (used by --full-auto)
+    --ask-for-approval never           # Never ask for approval
+
+--full-auto                            # Convenience: -a on-request + --sandbox workspace-write
 ```
+
+**Important**: In non-interactive `exec` mode, the default `untrusted` policy blocks writes since there's no TUI to approve them. Use `--full-auto` for unattended write operations.
 
 ### Configuration
 
@@ -110,11 +121,25 @@ codex debug                            # Internal debugging commands
     --profile reviewer                 # From config.toml [profile.reviewer]
 ```
 
+### Exec-Specific Options
+
+```bash
+--add-dir <DIR>                        # Additional writable directories alongside workspace
+-C, --cd <DIR>                         # Set agent working root directory
+--output-schema <FILE>                 # JSON Schema for structured model output
+--skip-git-repo-check                  # Allow running outside git repos
+--progress-cursor                      # Force cursor-based progress display
+--ephemeral                            # Don't save session state
+-o, --output <FILE>                    # Write output to file
+```
+
 ### Other Options
 
 ```bash
 -i, --image <FILE>                     # Attach image(s) to prompt
     --oss                              # Use local Ollama model
+--enable <FEATURE>                     # Enable a feature flag
+--disable <FEATURE>                    # Disable a feature flag
 ```
 
 ## Configuration File
