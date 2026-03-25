@@ -17,3 +17,4 @@ Frontend design, image generation/editing, vision models, TTS, and visual effect
 | `threejs-particle-canvas` | Interactive Three.js particle canvases: narrative phases, geodesic lattices, ambient WebGL |
 | `smolvlm` | Local vision-language model (SmolVLM-2B) for image analysis |
 | `speak-response` | Local TTS using Qwen3-TTS with Oracle voice clone |
+| `svg-mascot-animator` | Animated pixel-art SVG mascots: image→rect grid→GSAP animation→standalone HTML. 5 presets (idle, bounce, wave, walk, walk-and-bounce) |
