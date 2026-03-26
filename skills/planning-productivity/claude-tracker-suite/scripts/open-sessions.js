@@ -27,6 +27,7 @@ let splitDirection = null; // null = tabs, otherwise left|right|up|down
 let autoConfirm = false;
 let jsonOutput = false;
 let listOnly = false;
+let forceTarget = null; // null = auto-detect, 'cmux' or 'ghostty'
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--limit' && args[i + 1]) {
@@ -41,16 +42,22 @@ for (let i = 0; i < args.length; i++) {
     jsonOutput = true;
   } else if (args[i] === '--list') {
     listOnly = true;
+  } else if (args[i] === '--cmux') {
+    forceTarget = 'cmux';
+  } else if (args[i] === '--ghostty') {
+    forceTarget = 'ghostty';
   } else if (args[i] === '--help' || args[i] === '-h') {
     console.log(`
 Usage: node open-sessions.js [OPTIONS]
 
 Lists the most recently active Claude Code sessions and opens selected
-ones in new cmux tabs or splits.
+ones in new terminal tabs. Auto-detects cmux or Ghostty.
 
 Options:
   --limit <n>           Number of sessions to show (default: 10)
-  --split <direction>   Open as splits: left, right, up, down (default: tabs)
+  --split <direction>   Open as splits: left, right, up, down (cmux only)
+  --cmux                Force cmux as terminal target
+  --ghostty             Force Ghostty as terminal target (AppleScript)
   --yes, -y             Skip confirmation, open all listed sessions
   --json                Output JSON, no interactive prompt
   --list                List sessions only, don't offer to open
@@ -173,8 +180,34 @@ function openInCmux(session, direction) {
 }
 
 function shellEscape(str) {
-  // Wrap in single quotes, escaping any internal single quotes
   return "'" + str.replace(/'/g, "'\\''") + "'";
+}
+
+// --- Open session in Ghostty via resume-session.sh ---
+function openInGhostty(session) {
+  const scriptDir = path.dirname(__filename || process.argv[1]);
+  const resumeScript = path.join(scriptDir, 'resume-session.sh');
+  const args = [resumeScript, session.sessionId, '--ghostty'];
+  if (session.projectPath) {
+    args.push('--project', session.projectPath);
+  }
+  try {
+    spawnSync('bash', args, { timeout: 10000, stdio: 'inherit' });
+    console.log(`  \x1b[32m✓\x1b[0m Opened \x1b[1m${session.name}\x1b[0m in Ghostty`);
+    return true;
+  } catch (err) {
+    console.error(`  \x1b[31m✗\x1b[0m Failed to open in Ghostty: ${err.message}`);
+    return false;
+  }
+}
+
+// --- Open session in best available terminal ---
+function openSession(session, direction, target) {
+  if (target === 'ghostty') return openInGhostty(session);
+  if (target === 'cmux') return openInCmux(session, direction);
+  // auto: try cmux first, fall back to ghostty
+  if (hasCmux()) return openInCmux(session, direction);
+  return openInGhostty(session);
 }
 
 // --- Interactive prompt ---
@@ -212,7 +245,7 @@ function promptUser(sessions, cmuxAvailable) {
       if (cmuxAvailable) {
         let opened = 0;
         for (const s of selected) {
-          if (openInCmux(s, splitDirection)) opened++;
+          if (openSession(s, splitDirection, forceTarget)) opened++;
           // Small delay between opens to avoid overwhelming cmux
           if (selected.length > 1) execSync('sleep 0.5');
         }

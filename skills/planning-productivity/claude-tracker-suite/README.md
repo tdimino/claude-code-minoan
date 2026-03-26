@@ -1,18 +1,18 @@
 # Claude Tracker Suite
 
-The session management skill. Search, resume, spawn, and monitor Claude Code sessions across projects---with crash recovery, git-aware tracking, weighted search ranking, and a bootstrap script for new machine setup.
+Session management for Claude Code. Search, resume, spawn, and open sessions across projects---with cmux/Ghostty terminal integration, crash recovery, git-aware tracking, weighted search ranking, and new machine bootstrapping.
 
-**Last updated:** 2026-03-10
+**Last updated:** 2026-03-26
 
-**Reflects:** Claude Code session internals (`sessions-index.json`, JSONL transcripts), git tracking hooks, and macOS process detection patterns.
+**Terminal targets:** cmux (preferred, deterministic CLI), Ghostty (AppleScript fallback), VS Code, Cursor
 
 ---
 
 ## Why This Skill Exists
 
-Claude Code sessions accumulate fast. After a week of active development, you might have 50+ sessions across 10 projects, some crashed mid-task, some with critical context that wasn't committed. Finding the right session to resume---by topic, by project, by what you were working on---requires searching across summaries, first prompts, branches, and project paths. And recovering from a crash means finding the session, checking if it's actually dead, and resuming in the right directory.
+Claude Code sessions accumulate fast. After a week of active development, you might have 50+ sessions across 10 projects, some crashed mid-task, some with critical context that wasn't committed. Finding the right session to resume---by topic, by project, by what you were working on---requires searching across summaries, first prompts, branches, and project paths.
 
-This skill provides 6 scripts that handle session lifecycle: search with weighted ranking, crash recovery with alive detection, headless spawning for automation, project discovery, and a bootstrap generator for setting up a new machine.
+This skill provides 8 scripts that handle session lifecycle: interactive session opening in cmux/Ghostty tabs, search with weighted ranking and ID prefix lookup, crash recovery with alive detection, headless spawning for automation, project discovery, and a bootstrap generator for new machines.
 
 ---
 
@@ -23,22 +23,76 @@ claude-tracker-suite/
   SKILL.md                                 # CLI reference and workflows
   README.md                                # This file
   references/
+    cmux-commands.md                       # Complete cmux CLI reference
     daemon-setup.md                        # Watcher daemon lifecycle and launchd plist
     data-schemas.md                        # Session index, summary cache, JSONL schemas
   scripts/
-    search-sessions.js                     # Keyword search across all sessions
+    open-sessions.js                       # List top N sessions, open in cmux/Ghostty tabs
+    resume-session.sh                      # Open single session in cmux/Ghostty (replaces resume-in-vscode.sh)
+    search-sessions.js                     # Keyword search + --id prefix lookup
     list-sessions.js                       # List recent sessions with status badges
     bootstrap-claude-setup.js              # Generate complete ~/.claude/ structure
     detect-projects.js                     # Project discovery and CLAUDE.md scaffolding
     new-session.sh                         # Start new interactive/prompt-driven/headless session
-    resume-in-vscode.sh                    # Open session in new terminal (macOS AppleScript)
+    resume-in-vscode.sh                    # Legacy: AppleScript-based terminal launch
 ```
 
 ---
 
-## What It Covers
+## Terminal Targets
 
-### Search
+Both `open-sessions.js` and `resume-session.sh` support multiple terminal backends. Auto-detection picks the best available.
+
+| Target | Flag | Method | Limitations |
+|--------|------|--------|-------------|
+| **cmux** | `--cmux` | `cmux new-surface` + `cmux send` | Requires cmux running; known UI bugs ([#616](https://github.com/manaflow-ai/cmux/issues/616), [#2132](https://github.com/manaflow-ai/cmux/issues/2132)) |
+| **Ghostty** | `--ghostty` | AppleScript clipboard-paste | Requires Accessibility permissions; timing-dependent; no native CLI on macOS |
+| **VS Code** | `--vscode` | Opens project in editor + resumes in terminal | Editor-open only; terminal via cmux/Ghostty |
+| **Cursor** | `--cursor` | Opens project in editor + resumes in terminal | Editor-open only; terminal via cmux/Ghostty |
+
+Auto-detect order: cmux (if `cmux ping` succeeds) > Ghostty > print resume command.
+
+---
+
+## What's New (2026-03-26)
+
+### open-sessions.js --- Interactive session launcher
+
+Lists top N sessions and opens selected ones in cmux tabs, Ghostty tabs, or splits:
+
+```bash
+node open-sessions.js                        # List top 10, prompt to open
+node open-sessions.js --limit 5 --split right  # Vertical splits, top 5
+node open-sessions.js --ghostty              # Force Ghostty instead of cmux
+node open-sessions.js --yes                  # Skip confirmation, open all
+node open-sessions.js --json                 # Machine-readable output
+```
+
+### resume-session.sh --- Single session resume
+
+Replaces `resume-in-vscode.sh`. cmux-first with Ghostty fallback:
+
+```bash
+resume-session.sh <session-id>               # Auto-detect best terminal
+resume-session.sh <session-id> --ghostty     # Force Ghostty
+resume-session.sh <session-id> --vscode      # Open project in VS Code + resume
+```
+
+### search-sessions.js --id --- ID prefix lookup
+
+```bash
+node search-sessions.js --id d7b8f4dd       # Find session by ID prefix
+```
+
+Returns the correct project directory from JSONL ground truth, not stale `active-projects.md`.
+
+### cmux-commands.md --- Reference
+
+Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, notifications, keyboard shortcuts. See `references/cmux-commands.md`.
+
+---
+
+## Search
 
 `search-sessions.js` searches across all sessions with weighted ranking:
 
@@ -49,9 +103,18 @@ claude-tracker-suite/
 | Project path | 1x | Directory context |
 | Branch name | 1x | Feature context |
 
-Results show session ID, project, branch, date, model, and summary. Filter by project path or date range.
+| Flag | Description |
+|------|-------------|
+| `--limit <n>` | Max results (default: 20) |
+| `--id <prefix>` | Lookup by session ID prefix |
+| `--name` | Search names/slugs only (fast, no body scan) |
+| `--project <name>` | Filter by project |
+| `--since <duration>` | Recent only: `7d`, `24h`, `30m` |
+| `--json` | Machine-readable output |
 
-### Session Status
+---
+
+## Session Status
 
 | Badge | Meaning |
 |-------|---------|
@@ -60,49 +123,19 @@ Results show session ID, project, branch, date, model, and summary. Filter by pr
 | OLD | Older than 24 hours |
 | CRASHED | Process not found, no clean exit |
 
-Alive detection uses `ps` to check for the Claude Code process by session ID.
-
-### Crash Recovery
-
-```
-1. search-sessions.js finds candidate sessions
-2. list-sessions.js shows status badges
-3. If CRASHED: resume with `claude --resume <session-id>`
-4. resume-in-vscode.sh opens in a new terminal (macOS AppleScript)
-```
-
-### Spawning
-
-`new-session.sh` supports three modes:
-
-| Mode | Command | Use Case |
-|------|---------|----------|
-| Interactive | `new-session.sh` | Normal development |
-| Prompt-driven | `new-session.sh -p "Fix the auth bug"` | Directed task |
-| Headless | `new-session.sh -p "Run tests" --headless` | Automation, CI |
-
-Prompt-driven and headless modes use `claude -p` (Agent SDK CLI).
-
-### Bootstrap
-
-`bootstrap-claude-setup.js` generates a complete `~/.claude/` directory structure for a new machine: CLAUDE.md template, agent_docs/, skills/, hooks/, plans/, and handoffs/ directories with starter files.
-
-### Daemon
-
-An optional watcher daemon auto-summarizes new sessions via Claude Haiku. See `references/daemon-setup.md` for launchd plist configuration.
-
 ---
 
 ## Scripts
 
 | Script | Usage |
 |--------|-------|
-| `search-sessions.js` | `node search-sessions.js "auth bug" [--project ~/myapp]` |
+| `open-sessions.js` | `node open-sessions.js [--limit N] [--cmux\|--ghostty] [--split <dir>]` |
+| `resume-session.sh` | `bash resume-session.sh <session-id> [--cmux\|--ghostty\|--vscode\|--cursor]` |
+| `search-sessions.js` | `node search-sessions.js "query" [--id <prefix>] [--name]` |
 | `list-sessions.js` | `node list-sessions.js [--limit 20]` |
-| `bootstrap-claude-setup.js` | `node bootstrap-claude-setup.js` |
-| `detect-projects.js` | `node detect-projects.js [~/code]` |
-| `new-session.sh` | `bash new-session.sh [-p "prompt"] [--headless]` |
-| `resume-in-vscode.sh` | `bash resume-in-vscode.sh <session-id>` |
+| `new-session.sh` | `bash new-session.sh [dir] [-p "prompt"] [--headless]` |
+| `detect-projects.js` | `node detect-projects.js [--suggest\|--scaffold]` |
+| `bootstrap-claude-setup.js` | `node bootstrap-claude-setup.js --user "Name"` |
 
 ---
 
@@ -110,7 +143,8 @@ An optional watcher daemon auto-summarizes new sessions via Claude Haiku. See `r
 
 - Node.js 18+
 - Claude Code CLI installed
-- macOS (for AppleScript-based terminal launch in `resume-in-vscode.sh`)
+- macOS (for Ghostty AppleScript fallback)
+- cmux (optional but preferred for deterministic terminal control)
 - No external npm dependencies (uses built-in `fs`, `path`, `child_process`)
 
 ---
