@@ -185,20 +185,20 @@ function shellEscape(str) {
 
 // --- Open session in Ghostty via resume-session.sh ---
 function openInGhostty(session) {
-  const scriptDir = path.dirname(__filename || process.argv[1]);
+  const scriptDir = path.dirname(process.argv[1]);
   const resumeScript = path.join(scriptDir, 'resume-session.sh');
   const args = [resumeScript, session.sessionId, '--ghostty'];
   if (session.projectPath) {
     args.push('--project', session.projectPath);
   }
-  try {
-    spawnSync('bash', args, { timeout: 10000, stdio: 'inherit' });
-    console.log(`  \x1b[32m✓\x1b[0m Opened \x1b[1m${session.name}\x1b[0m in Ghostty`);
-    return true;
-  } catch (err) {
-    console.error(`  \x1b[31m✗\x1b[0m Failed to open in Ghostty: ${err.message}`);
+  const result = spawnSync('bash', args, { timeout: 10000, stdio: 'inherit' });
+  if (result.status !== 0 || result.error) {
+    const msg = result.error ? result.error.message : `exit code ${result.status}`;
+    console.error(`  \x1b[31m✗\x1b[0m Failed to open in Ghostty: ${msg}`);
     return false;
   }
+  console.log(`  \x1b[32m✓\x1b[0m Opened \x1b[1m${session.name}\x1b[0m in Ghostty`);
+  return true;
 }
 
 // --- Open session in best available terminal ---
@@ -211,14 +211,17 @@ function openSession(session, direction, target) {
 }
 
 // --- Interactive prompt ---
-function promptUser(sessions, cmuxAvailable) {
+function promptUser(sessions) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
   const mode = splitDirection ? `split ${splitDirection}` : 'new tab';
-  const target = cmuxAvailable ? `cmux ${mode}` : 'clipboard';
+  let targetLabel;
+  if (forceTarget === 'ghostty') targetLabel = 'Ghostty';
+  else if (forceTarget === 'cmux' || hasCmux()) targetLabel = `cmux ${mode}`;
+  else targetLabel = 'Ghostty';
 
   rl.question(
-    `\x1b[36m  Open in ${target}?\x1b[0m Enter numbers (e.g. 1,3,5), "all", or "q" to quit: `,
+    `\x1b[36m  Open in ${targetLabel}?\x1b[0m Enter numbers (e.g. 1,3,5), "all", or "q" to quit: `,
     (answer) => {
       rl.close();
       answer = answer.trim().toLowerCase();
@@ -242,21 +245,12 @@ function promptUser(sessions, cmuxAvailable) {
       }
 
       console.log('');
-      if (cmuxAvailable) {
-        let opened = 0;
-        for (const s of selected) {
-          if (openSession(s, splitDirection, forceTarget)) opened++;
-          // Small delay between opens to avoid overwhelming cmux
-          if (selected.length > 1) execSync('sleep 0.5');
-        }
-        console.log(`\n  \x1b[32mOpened ${opened}/${selected.length} session(s)\x1b[0m\n`);
-      } else {
-        console.log('  \x1b[33mcmux not available — printing resume commands:\x1b[0m\n');
-        for (const s of selected) {
-          console.log(`  \x1b[36mcd ${s.projectPath} && claude --resume ${s.sessionId}\x1b[0m`);
-        }
-        console.log('');
+      let opened = 0;
+      for (const s of selected) {
+        if (openSession(s, splitDirection, forceTarget)) opened++;
+        if (selected.length > 1) execSync('sleep 0.5');
       }
+      console.log(`\n  \x1b[32mOpened ${opened}/${selected.length} session(s)\x1b[0m\n`);
     }
   );
 }
@@ -287,31 +281,17 @@ function main() {
 
   if (listOnly) return;
 
-  const cmuxAvailable = hasCmux();
-
-  if (!cmuxAvailable) {
-    console.log('  \x1b[90mcmux not detected — will print resume commands instead\x1b[0m\n');
-  }
-
   if (autoConfirm) {
-    if (cmuxAvailable) {
-      let opened = 0;
-      for (const s of sessions) {
-        if (openInCmux(s, splitDirection)) opened++;
-        if (sessions.length > 1) execSync('sleep 0.5');
-      }
-      console.log(`\n  \x1b[32mOpened ${opened}/${sessions.length} session(s)\x1b[0m\n`);
-    } else {
-      console.log('  \x1b[33mcmux not available — resume commands:\x1b[0m\n');
-      for (const s of sessions) {
-        console.log(`  \x1b[36mcd ${s.projectPath} && claude --resume ${s.sessionId}\x1b[0m`);
-      }
-      console.log('');
+    let opened = 0;
+    for (const s of sessions) {
+      if (openSession(s, splitDirection, forceTarget)) opened++;
+      if (sessions.length > 1) execSync('sleep 0.5');
     }
+    console.log(`\n  \x1b[32mOpened ${opened}/${sessions.length} session(s)\x1b[0m\n`);
     return;
   }
 
-  promptUser(sessions, cmuxAvailable);
+  promptUser(sessions);
 }
 
 main();
