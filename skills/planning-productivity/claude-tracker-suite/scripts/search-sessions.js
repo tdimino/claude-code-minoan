@@ -23,6 +23,7 @@ let searchTerm = '';
 let maxResults = 15;
 let maxLinesPerFile = 8000;
 let nameOnly = false;
+let idPrefix = '';
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--limit' && args[i + 1]) {
@@ -33,16 +34,20 @@ for (let i = 0; i < args.length; i++) {
     i++;
   } else if (args[i] === '--name') {
     nameOnly = true;
+  } else if (args[i] === '--id' && args[i + 1]) {
+    idPrefix = args[i + 1].toLowerCase();
+    i++;
   } else if (!searchTerm) {
     searchTerm = args[i].toLowerCase();
   }
 }
 
-if (!searchTerm) {
+if (!searchTerm && !idPrefix) {
   console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js <search-term> [--limit N] [--name]');
   console.log('\x1b[90mExample: node search-sessions.js "kothar mac mini"');
   console.log('Example: node search-sessions.js "websocket" --limit 5');
-  console.log('Example: node search-sessions.js "thera" --name    (name/slug only, fast)\x1b[0m\n');
+  console.log('Example: node search-sessions.js "thera" --name    (name/slug only, fast)');
+  console.log('Example: node search-sessions.js --id d7b8f4dd     (lookup by session ID prefix)\x1b[0m\n');
   process.exit(0);
 }
 
@@ -299,6 +304,40 @@ async function getFirstLineTimestamp(filePath) {
 }
 
 async function main() {
+  // --id mode: lookup by session ID prefix
+  if (idPrefix) {
+    console.log('\n\x1b[1m\x1b[36mLooking up session:\x1b[0m "' + idPrefix + '"\n');
+    const allFiles = utils.getAllSessionFiles();
+    const matches = allFiles.filter(f => path.basename(f.filePath, '.jsonl').startsWith(idPrefix));
+
+    if (matches.length === 0) {
+      console.log('\x1b[33mNo session found matching ID prefix "' + idPrefix + '".\x1b[0m\n');
+      return;
+    }
+
+    for (const file of matches.slice(0, 5)) {
+      const sessionId = path.basename(file.filePath, '.jsonl');
+      const projectPath = utils.decodeProjectPath(file.projectDir);
+      const projectName = projectPath.split('/').pop();
+      const slug = utils.readSessionSlug(file.filePath);
+      const customTitle = utils.readCustomTitle(file.filePath);
+      const age = utils.formatAge(new Date(file.mtime).toISOString());
+
+      console.log('\x1b[1m' + projectName + '\x1b[0m \x1b[90m(' + age + ')\x1b[0m');
+      if (customTitle) console.log('    \x1b[90mName:\x1b[0m \x1b[1m\x1b[35m' + customTitle + '\x1b[0m');
+      if (slug) console.log('    \x1b[90mSlug:\x1b[0m ' + slug);
+      console.log('    \x1b[90mDir:\x1b[0m ' + projectPath);
+      console.log('    \x1b[90mID:\x1b[0m ' + sessionId);
+      console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + projectPath + ' && claude --resume ' + sessionId + '\x1b[0m');
+      console.log('');
+    }
+
+    if (matches.length > 5) {
+      console.log('\x1b[90m... and ' + (matches.length - 5) + ' more\x1b[0m\n');
+    }
+    return;
+  }
+
   // --name mode: fast metadata-only search, no JSONL body scan
   if (nameOnly) {
     console.log('\n\x1b[1m\x1b[36mSearching names for:\x1b[0m "' + searchTerm + '" \x1b[90m(--name)\x1b[0m\n');
