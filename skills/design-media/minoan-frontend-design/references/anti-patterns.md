@@ -1,15 +1,17 @@
 # Anti-Patterns & Technical Standards
 
-Condensed from Impeccable (pbakaus/impeccable v1.1.0) domain references. Use this as a checklist to catch common mistakes after building.
+Condensed from Impeccable (pbakaus/impeccable v1.6.0) domain references. Use this as a checklist to catch common mistakes after building.
 
 ## AI Slop Tells
 
 These patterns signal AI-generated design. Avoid all of them:
 - **Fonts**: Inter, Roboto, Arial, Open Sans, Lato, Montserrat. Better alternatives: Instrument Sans, Plus Jakarta Sans, Outfit, Onest, Figtree, Fraunces, Newsreader
 - **Color**: Purple gradients on white, cyan/neon on dark, gradient text on headings/metrics, glowing accents, generic glassmorphism
-- **Layout**: Three equal feature cards, hero metric template (big number + subtitle + icon), everything centered, cards wrapping everything, cards nested inside cards
+- **Layout**: Three equal feature cards, hero metric template (big number + subtitle + icon), everything centered, cards wrapping everything, cards nested inside cards, modals for everything (modals are lazy — use inline or progressive disclosure), rounded rectangles with generic drop shadows
 - **Motion**: Bounce/elastic easing (tacky since ~2015), overshoot effects
-- **Content**: "Elevate your workflow," John Doe, 99.99%, emoji avatars, SVG-egg placeholders
+- **Content**: "Elevate your workflow," John Doe, 99.99%, emoji avatars, SVG-egg placeholders, repeating the same information (redundant headers, intros that restate the heading)
+- **Decoration**: Large icons with rounded corners above every heading (templated look), rounded elements with thick colored border on one side (lazy accent), sparklines as decoration (look sophisticated, convey nothing), monospace typography as lazy shorthand for "technical/developer" vibes
+- **Hierarchy**: Making every button primary — use ghost buttons, text links, secondary styles; hierarchy matters
 
 ## Typography
 
