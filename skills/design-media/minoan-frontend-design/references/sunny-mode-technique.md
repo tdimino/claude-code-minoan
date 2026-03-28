@@ -98,6 +98,30 @@ body.leaves #leaves-overlay { opacity: 1; }
 
 The `multiply` blend mode on a light background is the key — dark leaf shapes darken the cream, creating naturalistic shadow patterns. `pointer-events: none` ensures the overlay doesn't intercept clicks.
 
+**IMPORTANT: Video is essential, not optional.** CSS radial gradients produce smooth ellipses — real leaf shadows have irregular fractal edges that only video can provide. A CSS gradient fallback looks "intentionally decorative" at best and "flat blobs" at worst. Always use actual leaf shadow video footage for this effect. The video is lightweight (~340KB for a looping clip) and the visual difference is dramatic.
+
+### Implementation Pattern (React)
+
+```jsx
+<video
+  className="sunny-shadows"
+  src="/leaves.mp4"
+  loop muted playsInline
+  preload="none"
+  aria-hidden="true"
+  ref={(el) => {
+    if (!el) return;
+    const obs = new MutationObserver(() => {
+      const isSunny = document.documentElement.getAttribute('data-theme') === 'sunny';
+      if (isSunny) el.play().catch(() => {});
+      else { el.pause(); el.currentTime = 0; }
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    if (document.documentElement.getAttribute('data-theme') === 'sunny') el.play().catch(() => {});
+  }}
+/>
+```
+
 ## Chaos Mode: Matter.js Physics
 
 Dynamically loads Matter.js from CDN, then:
