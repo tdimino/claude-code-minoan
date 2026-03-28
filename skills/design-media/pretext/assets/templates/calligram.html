@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pretext Calligram Engine</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    min-height: 100vh; background: #08080e; color: #e8e4dc;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 32px 16px;
+  }
+  h1 { font: 600 26px/1.2 Georgia, serif; color: rgba(255,255,255,0.9); margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: rgba(255,255,255,0.28); margin-bottom: 20px; text-align: center; max-width: 400px; }
+  .input-area { margin-bottom: 12px; }
+  .word-input {
+    font: 500 18px/1 "Helvetica Neue", sans-serif; padding: 10px 16px;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+    background: rgba(255,255,255,0.04); color: #e8e4dc; outline: none;
+    width: 220px; text-align: center;
+  }
+  .word-input:focus { border-color: rgba(196,163,90,0.4); }
+  .shape-picker { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+  .shape-btn {
+    font: 500 12px/1 "Helvetica Neue", sans-serif; padding: 6px 14px;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+    background: none; color: rgba(255,255,255,0.4); cursor: pointer;
+  }
+  .shape-btn.active { background: rgba(196,163,90,0.15); color: rgba(196,163,90,0.9); border-color: rgba(196,163,90,0.3); }
+  .controls { display: flex; gap: 16px; margin-bottom: 16px; align-items: center; }
+  .control-group { display: flex; align-items: center; gap: 8px; }
+  .control-group label { font-size: 12px; color: rgba(255,255,255,0.3); }
+  .val-display { font: 500 12px/1 "SF Mono", monospace; color: rgba(196,163,90,0.6); min-width: 36px; }
+  canvas { border-radius: 8px; }
+  .credit { margin-top: 16px; font-size: 11px; color: rgba(255,255,255,0.15); }
+</style>
+</head>
+<body>
+<h1>Calligram Engine</h1>
+<p class="subtitle">Type a word. It becomes a picture of itself. Characters precisely spaced using proportional font measurement.</p>
+
+<div class="input-area">
+  <input type="text" class="word-input" id="wordInput" placeholder="Type a word..." value="heart" maxlength="20">
+</div>
+
+<div class="shape-picker" id="shapes"></div>
+
+<div class="controls">
+  <div class="control-group">
+    <label>Size</label>
+    <input type="range" id="sizeSlider" min="200" max="600" value="400">
+    <span class="val-display" id="sizeVal">400</span>
+  </div>
+  <div class="control-group">
+    <label>Density</label>
+    <input type="range" id="densitySlider" min="6" max="24" value="14">
+    <span class="val-display" id="densityVal">14px</span>
+  </div>
+</div>
+
+<canvas id="canvas" width="400" height="400" style="width:400px;height:400px;"></canvas>
+<div class="credit">Built with pretext</div>
+
+<script type="module">
+import { prepareWithSegments, layoutWithLines } from 'https://esm.sh/@chenglou/pretext@0.0.2'
+
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+const input = document.getElementById('wordInput')
+const sizeSlider = document.getElementById('sizeSlider')
+const densitySlider = document.getElementById('densitySlider')
+const sizeVal = document.getElementById('sizeVal')
+const densityVal = document.getElementById('densityVal')
+const shapesEl = document.getElementById('shapes')
+
+const FONT_FAMILY = '"Helvetica Neue", Helvetica, Arial, sans-serif'
+const charWidthCache = new Map()
+
+function measureChar(ch, fontSize) {
+  const key = `${ch}:${fontSize}`
+  const cached = charWidthCache.get(key)
+  if (cached !== undefined) return cached
+  const font = `${fontSize}px ${FONT_FAMILY}`
+  const prepared = prepareWithSegments(ch, font)
+  const result = layoutWithLines(prepared, 10000, fontSize * 1.2)
+  const width = result.lines.length > 0 ? result.lines[0].width : fontSize * 0.5
+  charWidthCache.set(key, width)
+  return width
+}
+
+// SDF shapes
+function heartSDF(nx, ny) {
+  const x = nx * 1.2, y = -ny * 1.1 + 0.3
+  const d = Math.sqrt(x * x + y * y)
+  const angle = Math.atan2(y, x)
+  return d - (0.5 + 0.15 * Math.cos(angle * 2) + 0.1 * Math.cos(angle) + 0.02 * Math.sin(angle * 3))
+}
+function circleSDF(nx, ny) { return Math.sqrt(nx * nx + ny * ny) - 0.75 }
+function starSDF(nx, ny) {
+  const angle = Math.atan2(ny, nx), d = Math.sqrt(nx * nx + ny * ny)
+  const a = ((angle / Math.PI + 1) / 2 * 5) % 1
+  const r = a < 0.5 ? 0.35 + 0.45 * (1 - Math.abs(a - 0.25) * 4) : 0.35 + 0.45 * (1 - Math.abs(a - 0.75) * 4)
+  return d - r
+}
+function waveSDF(nx, ny) { return Math.abs(ny - Math.sin(nx * 4) * 0.25) - (0.2 + Math.cos(nx * 2) * 0.05) }
+function spiralSDF(nx, ny) {
+  const d = Math.sqrt(nx * nx + ny * ny)
+  if (d > 0.85) return d - 0.85
+  const angle = Math.atan2(ny, nx)
+  return Math.abs((d - ((angle / Math.PI + 1) / 2 * 0.6 + d * 0.15) * 0.5) % 0.25 - 0.125) - 0.06
+}
+
+const SHAPES = { heart: heartSDF, circle: circleSDF, star: starSDF, wave: waveSDF, spiral: spiralSDF }
+let currentShape = 'heart'
+let canvasSize = 400
+let charSize = 14
+let animChars = []
+let animT = 0
+let rafId = null
+
+// Build shape picker
+for (const name of Object.keys(SHAPES)) {
+  const btn = document.createElement('button')
+  btn.className = 'shape-btn' + (name === currentShape ? ' active' : '')
+  btn.textContent = name[0].toUpperCase() + name.slice(1)
+  btn.addEventListener('click', () => {
+    currentShape = name
+    shapesEl.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    generate()
+  })
+  shapesEl.appendChild(btn)
+}
+
+function wordColor(word, idx, total) {
+  const hue = (word.charCodeAt(0) * 37 + word.length * 73) % 360
+  const t = idx / Math.max(1, total - 1)
+  return `hsl(${(hue + t * 60) % 360}, ${60 + Math.sin(t * Math.PI) * 20}%, ${55 + Math.sin(t * Math.PI * 2) * 15}%)`
+}
+
+function generate() {
+  const dpr = devicePixelRatio
+  canvas.width = canvasSize * dpr
+  canvas.height = canvasSize * dpr
+  canvas.style.width = canvasSize + 'px'
+  canvas.style.height = canvasSize + 'px'
+  charWidthCache.clear()
+
+  const word = (input.value.toLowerCase().replace(/[^a-z0-9\u00C0-\u024F]/g, '') || 'text')
+  const sdf = SHAPES[currentShape] || heartSDF
+  const fontSize = charSize
+  const positions = []
+  const padding = canvasSize * 0.08
+  const drawArea = canvasSize - padding * 2
+  const lineHeight = fontSize * 1.3
+  let counter = 0
+
+  for (let py = padding; py < canvasSize - padding; py += lineHeight) {
+    let px = padding
+    while (px < canvasSize - padding) {
+      const nx = (px - canvasSize / 2) / (drawArea / 2)
+      const ny = (py - canvasSize / 2) / (drawArea / 2)
+      const dist = sdf(nx, ny)
+      if (dist < -0.02) {
+        const idx = counter % word.length
+        const w = measureChar(word[idx], fontSize)
+        positions.push({ ch: word[idx], x: px, y: py, width: w, charIdx: idx, dist: Math.abs(dist), globalIdx: counter })
+        px += w + fontSize * 0.05
+        counter++
+      } else { px += dist < 0.05 ? fontSize * 0.3 : fontSize * 0.5 }
+    }
+  }
+
+  // Spring animation entrance
+  animChars = positions.map(p => ({
+    ...p,
+    targetX: p.x, targetY: p.y,
+    currentX: canvasSize / 2 + (Math.random() - 0.5) * canvasSize * 0.3,
+    currentY: canvasSize / 2 + (Math.random() - 0.5) * canvasSize * 0.3,
+    velX: 0, velY: 0, currentAlpha: 0, targetAlpha: 1,
+    delay: p.globalIdx * 0.012 + Math.random() * 0.08
+  }))
+  animT = 0
+  if (!rafId) animate()
+}
+
+function animate() {
+  const dpr = devicePixelRatio
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  const fontSize = charSize * dpr
+  ctx.font = `${fontSize}px ${FONT_FAMILY}`
+  ctx.textBaseline = 'top'
+  animT += 0.016
+  const word = input.value.toLowerCase().replace(/[^a-z0-9\u00C0-\u024F]/g, '') || 'text'
+  let allDone = true
+
+  for (const ch of animChars) {
+    const t = Math.max(0, animT - ch.delay)
+    if (t <= 0) { allDone = false; continue }
+    const k = 0.08, d = 0.75
+    ch.velX = (ch.velX + (ch.targetX - ch.currentX) * k) * d
+    ch.velY = (ch.velY + (ch.targetY - ch.currentY) * k) * d
+    ch.currentX += ch.velX
+    ch.currentY += ch.velY
+    ch.currentAlpha += (ch.targetAlpha - ch.currentAlpha) * 0.06
+    if (Math.abs(ch.targetX - ch.currentX) > 0.5 || Math.abs(ch.targetY - ch.currentY) > 0.5) allDone = false
+    ctx.globalAlpha = Math.min(1, ch.currentAlpha)
+    ctx.fillStyle = wordColor(word, ch.charIdx, animChars.length)
+    ctx.fillText(ch.ch, ch.currentX * dpr, ch.currentY * dpr)
+  }
+  ctx.globalAlpha = 1
+  rafId = allDone ? null : requestAnimationFrame(animate)
+}
+
+input.addEventListener('input', generate)
+sizeSlider.addEventListener('input', () => { canvasSize = parseInt(sizeSlider.value); sizeVal.textContent = canvasSize; generate() })
+densitySlider.addEventListener('input', () => { charSize = parseInt(densitySlider.value); densityVal.textContent = charSize + 'px'; generate() })
+
+window.addEventListener('resize', () => {
+  const maxSize = Math.min(600, window.innerWidth - 32)
+  if (canvasSize > maxSize) { canvasSize = maxSize; sizeSlider.value = canvasSize; sizeVal.textContent = canvasSize; generate() }
+})
+document.fonts.ready.then(generate)
+</script>
+</body>
+</html>

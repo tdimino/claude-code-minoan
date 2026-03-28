@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pretext Accordion</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    min-height: 100vh;
+    background: #f5f1ea;
+    color: #201b18;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding: 40px 20px;
+  }
+  .page { max-width: 640px; margin: 0 auto; }
+  h1 { font: 700 28px/1.2 Georgia, "Times New Roman", serif; margin-bottom: 8px; }
+  .subtitle { color: #6d645d; margin-bottom: 24px; line-height: 1.5; }
+  .accordion { border: 1px solid #d8cec3; border-radius: 12px; overflow: hidden; background: #fffdf8; }
+  .accordion-item { border-bottom: 1px solid #d8cec3; }
+  .accordion-item:last-child { border-bottom: none; }
+  .toggle {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border: none; background: none; cursor: pointer;
+    font: 600 16px/1.3 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #201b18; text-align: left;
+  }
+  .toggle:hover { background: rgba(0,0,0,0.02); }
+  .meta { font: 400 12px/1 "Helvetica Neue", sans-serif; color: #6d645d; margin-left: auto; padding: 0 12px; white-space: nowrap; }
+  .glyph { font-size: 18px; color: #955f3b; transition: transform 200ms ease; }
+  .glyph.open { transform: rotate(90deg); }
+  .body { overflow: hidden; transition: height 300ms cubic-bezier(0.4, 0, 0.2, 1); }
+  .inner { padding: 0 20px 16px; }
+  .copy { font: 400 15px/1.6 Georgia, "Times New Roman", serif; color: #3a352f; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Pretext Accordion</h1>
+  <p class="subtitle">Section heights calculated by Pretext — zero DOM measurement in the animation path.</p>
+  <div class="accordion" id="accordion"></div>
+</div>
+
+<script type="module">
+import { prepare, layout } from 'https://esm.sh/@chenglou/pretext@0.0.2'
+
+const FONT = '15px Georgia, "Times New Roman", serif'
+const LINE_HEIGHT = 24 // 15px * 1.6
+
+const items = [
+  { id: 'shipping', title: 'Shipping & Returns',
+    text: 'We ship worldwide within 3–5 business days. Returns accepted within 30 days of delivery for unworn items in original packaging. Refunds processed to the original payment method within 7 days of receiving the return.' },
+  { id: 'care', title: 'Care Instructions',
+    text: 'Hand wash cold with mild detergent. Lay flat to dry away from direct sunlight. Do not bleach or tumble dry. Iron on low heat if needed, avoiding any printed areas. Store folded in a cool, dry place.' },
+  { id: 'sizing', title: 'Sizing Guide',
+    text: 'Our garments follow standard US sizing. For the best fit, measure your chest, waist, and hips and compare with our size chart. If you are between sizes, we recommend sizing up for a relaxed fit or sizing down for a more tailored silhouette. Model is 5\'10" wearing size Medium.' },
+  { id: 'mixed', title: 'Mixed Language Demo',
+    text: 'AGI 春天到了. بدأت الرحلة 🚀 The long URL is https://example.com/reports/q3?lang=ar&mode=full. Nora wrote "please keep 10\u202F000 rows visible," Mina replied "trans\u00ADatlantic labels are still weird." This tests CJK, Arabic bidi, emoji, URLs, and soft hyphens.' },
+]
+
+let openId = 'shipping'
+const preparedCache = new Map()
+const bodyHeightCache = new Map()
+
+function getPrepared(text) {
+  let p = preparedCache.get(text)
+  if (!p) { p = prepare(text, FONT); preparedCache.set(text, p) }
+  return p
+}
+
+function getTextHeight(text, width) {
+  const key = `${text}:${width}`
+  let h = bodyHeightCache.get(key)
+  if (!h) {
+    const prepared = getPrepared(text)
+    h = layout(prepared, width, LINE_HEIGHT).height
+    bodyHeightCache.set(key, h)
+  }
+  return h
+}
+
+function buildAccordion() {
+  const acc = document.getElementById('accordion')
+  acc.innerHTML = ''
+
+  for (const item of items) {
+    const el = document.createElement('div')
+    el.className = 'accordion-item'
+    el.innerHTML = `
+      <button class="toggle" data-id="${item.id}">
+        <span>${item.title}</span>
+        <span class="meta" data-meta="${item.id}"></span>
+        <span class="glyph ${openId === item.id ? 'open' : ''}" data-glyph="${item.id}">›</span>
+      </button>
+      <div class="body" data-body="${item.id}">
+        <div class="inner"><p class="copy">${item.text}</p></div>
+      </div>`
+    acc.appendChild(el)
+  }
+
+  acc.addEventListener('click', e => {
+    const btn = e.target.closest('.toggle')
+    if (!btn) return
+    const id = btn.dataset.id
+    openId = openId === id ? null : id
+    render()
+  })
+}
+
+function render() {
+  for (const item of items) {
+    const body = document.querySelector(`[data-body="${item.id}"]`)
+    const glyph = document.querySelector(`[data-glyph="${item.id}"]`)
+    const meta = document.querySelector(`[data-meta="${item.id}"]`)
+    const inner = body.querySelector('.inner')
+    const copyEl = inner.querySelector('.copy')
+
+    const isOpen = openId === item.id
+    glyph.classList.toggle('open', isOpen)
+
+    // Measure with Pretext — width derived from known container geometry, not DOM reads
+    const padding = 36 // 0 + 20px bottom + 16px inner padding
+    const accWidth = document.getElementById('accordion').clientWidth
+    const textWidth = accWidth - 40 // 20px inner padding * 2
+    const textHeight = getTextHeight(item.text, textWidth)
+    const totalHeight = isOpen ? textHeight + padding : 0
+
+    meta.textContent = isOpen ? `${Math.round(textHeight)}px` : ''
+    body.style.height = totalHeight + 'px'
+  }
+}
+
+document.fonts.ready.then(() => {
+  buildAccordion()
+  render()
+})
+
+window.addEventListener('resize', () => {
+  bodyHeightCache.clear()
+  render()
+})
+</script>
+</body>
+</html>

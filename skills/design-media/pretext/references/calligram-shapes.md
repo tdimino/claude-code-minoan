@@ -1,0 +1,373 @@
+# Calligram Shapes with Pretext
+
+## Overview
+
+A calligram fills a shape's interior with repeated characters from a word, using Pretext's `prepareWithSegments()` for precise proportional character spacing. Each character's position is determined by testing grid points against a signed distance function (SDF).
+
+---
+
+## Signed Distance Functions
+
+SDFs return negative values inside the shape, positive outside. The boundary is at 0.
+
+### Heart
+
+```js
+function heartSDF(nx, ny) {
+  const x = nx * 1.2
+  const y = -ny * 1.1 + 0.3
+  const d = Math.sqrt(x * x + y * y)
+  const angle = Math.atan2(y, x)
+  const heartR = 0.5 + 0.15 * Math.cos(angle * 2) + 0.1 * Math.cos(angle) + 0.02 * Math.sin(angle * 3)
+  return d - heartR
+}
+```
+
+### Circle
+
+```js
+function circleSDF(nx, ny) {
+  return Math.sqrt(nx * nx + ny * ny) - 0.75
+}
+```
+
+### Star (5-pointed)
+
+```js
+function starSDF(nx, ny) {
+  const angle = Math.atan2(ny, nx)
+  const d = Math.sqrt(nx * nx + ny * ny)
+  const points = 5
+  const innerR = 0.35
+  const outerR = 0.8
+  const a = ((angle / Math.PI + 1) / 2 * points) % 1
+  const r = a < 0.5
+    ? innerR + (outerR - innerR) * (1 - Math.abs(a - 0.25) * 4)
+    : innerR + (outerR - innerR) * (1 - Math.abs(a - 0.75) * 4)
+  return d - r
+}
+```
+
+### Wave
+
+```js
+function waveSDF(nx, ny) {
+  const waveY = Math.sin(nx * 4) * 0.25
+  const thickness = 0.2 + Math.cos(nx * 2) * 0.05
+  return Math.abs(ny - waveY) - thickness
+}
+```
+
+### Spiral
+
+```js
+function spiralSDF(nx, ny) {
+  const d = Math.sqrt(nx * nx + ny * ny)
+  const angle = Math.atan2(ny, nx)
+  const spiralR = ((angle / Math.PI + 1) / 2) * 0.6 + d * 0.15
+  const armDist = Math.abs((d - spiralR * 0.5) % 0.25 - 0.125)
+  return d > 0.85 ? d - 0.85 : armDist - 0.06
+}
+```
+
+### Creating Custom SDFs
+
+Combine primitives with boolean operations:
+
+- **Union**: `Math.min(sdf1(x,y), sdf2(x,y))`
+- **Intersection**: `Math.max(sdf1(x,y), sdf2(x,y))`
+- **Subtraction**: `Math.max(sdf1(x,y), -sdf2(x,y))`
+- **Smooth union**: `let h = Math.max(k - Math.abs(a-b), 0) / k; return Math.min(a,b) - h*h*k*0.25`
+
+Common primitives:
+
+- **Rectangle**: `Math.max(Math.abs(nx) - w, Math.abs(ny) - h)`
+- **Ring**: `Math.abs(Math.sqrt(nx*nx + ny*ny) - radius) - thickness`
+- **Diamond**: `Math.abs(nx) + Math.abs(ny) - size`
+- **Triangle**: Use barycentric coordinates or half-plane intersection
+
+---
+
+## Character Measurement
+
+Use `prepareWithSegments()` for precise proportional width. CSS `measureText` is unreliable at small sizes—this is Pretext's core value here.
+
+```js
+import { prepareWithSegments, layoutWithLines } from 'https://esm.sh/@chenglou/pretext@0.0.2'
+
+const charWidthCache = new Map()
+
+function measureChar(ch, fontSize) {
+  const key = `${ch}:${fontSize}`
+  const cached = charWidthCache.get(key)
+  if (cached !== undefined) return cached
+
+  const font = `${fontSize}px "Helvetica Neue", Helvetica, sans-serif`
+  const prepared = prepareWithSegments(ch, font)
+  const result = layoutWithLines(prepared, 10000, fontSize * 1.2)
+  const width = result.lines.length > 0 ? result.lines[0].width : fontSize * 0.5
+  charWidthCache.set(key, width)
+  return width
+}
+```
+
+Cache character widths—they're constant per font/size combination. Measuring the full word on each placement call is expensive; cache per `ch:fontSize` key instead.
+
+---
+
+## Filling Algorithm
+
+Scan line by line. For each candidate x position, test the SDF. Step size varies with distance—this gives clean edges without over-sampling the interior.
+
+```js
+function generateCalligram(word, sdf, canvasSize, fontSize) {
+  const positions = []
+  const padding = canvasSize * 0.08
+  const drawArea = canvasSize - padding * 2
+  const lineHeight = fontSize * 1.3
+  let charCounter = 0
+
+  for (let py = padding; py < canvasSize - padding; py += lineHeight) {
+    let px = padding
+    while (px < canvasSize - padding) {
+      // Convert pixel coords to normalized [-1, 1]
+      const nx = (px - canvasSize / 2) / (drawArea / 2)
+      const ny = (py - canvasSize / 2) / (drawArea / 2)
+      const dist = sdf(nx, ny)
+
+      if (dist < -0.02) {
+        // Inside shape: place a character
+        const idx = charCounter % word.length
+        const ch = word[idx]
+        const w = measureChar(ch, fontSize)
+        positions.push({ ch, x: px, y: py, width: w, charIdx: idx, dist: Math.abs(dist), globalIdx: charCounter })
+        px += w + fontSize * 0.05 // character width + small gap
+        charCounter++
+      } else if (dist < 0.05) {
+        px += fontSize * 0.3  // near boundary: smaller steps
+      } else {
+        px += fontSize * 0.5  // far outside: larger steps
+      }
+    }
+  }
+  return positions
+}
+```
+
+**Step size logic**: Far outside the shape, skip in large increments. Near the boundary (`dist < 0.05`), slow down to avoid missing interior characters. Inside (`dist < -0.02`), step by actual character width so characters pack tightly without overlap.
+
+The `-0.02` inset threshold prevents characters from straddling the boundary. Increase the magnitude for a tighter inset (border gap), decrease toward 0 for characters flush with the edge.
+
+---
+
+## Spring Animation
+
+Characters fly in from random scatter positions to their calligram targets. Staggered delays create a cascade.
+
+```js
+function animateEntrance(positions, canvasSize) {
+  return positions.map(p => ({
+    ...p,
+    targetX: p.x,
+    targetY: p.y,
+    currentX: canvasSize / 2 + (Math.random() - 0.5) * canvasSize * 0.3,
+    currentY: canvasSize / 2 + (Math.random() - 0.5) * canvasSize * 0.3,
+    velX: 0, velY: 0,
+    currentAlpha: 0, targetAlpha: 1,
+    delay: p.globalIdx * 0.015 + Math.random() * 0.1
+  }))
+}
+
+// In animation loop (called each rAF frame):
+for (const ch of animChars) {
+  const t = Math.max(0, animTime - ch.delay)
+  if (t <= 0) continue
+
+  const springK = 0.08
+  const damping = 0.75
+  ch.velX = (ch.velX + (ch.targetX - ch.currentX) * springK) * damping
+  ch.velY = (ch.velY + (ch.targetY - ch.currentY) * springK) * damping
+  ch.currentX += ch.velX
+  ch.currentY += ch.velY
+  ch.currentAlpha += (ch.targetAlpha - ch.currentAlpha) * 0.06
+}
+```
+
+`springK` controls stiffness—higher values snap faster. `damping` below 1.0 bleeds velocity each frame. At `0.75` you get a slight overshoot and settle; increase toward `0.9` for a stiffer, less bouncy feel.
+
+`delay: p.globalIdx * 0.015` staggers characters by their scan order (top-left first). Add `Math.random() * 0.1` for organic variation.
+
+---
+
+## Color Generation
+
+Derive a gradient from the word itself so color is deterministic but unique per word.
+
+```js
+function wordColor(word, charIdx, total) {
+  const hue = (word.charCodeAt(0) * 37 + word.length * 73) % 360
+  const t = charIdx / Math.max(1, total - 1)
+  const h = (hue + t * 60) % 360
+  const s = 60 + Math.sin(t * Math.PI) * 20
+  const l = 55 + Math.sin(t * Math.PI * 2) * 15
+  return `hsl(${h}, ${s}%, ${l}%)`
+}
+```
+
+Base hue from `charCodeAt(0) * 37 + word.length * 73`—the prime multipliers spread short words across the full hue wheel. Each character shifts hue by up to 60° across the shape. Saturation and lightness ride sine waves over the full character range, producing smooth oscillation rather than linear fade.
+
+To vary the palette range: change the `60` in `t * 60` (wider = more hue shift across the shape).
+
+---
+
+## Canvas Rendering
+
+Always scale by `devicePixelRatio` for crisp rendering on high-DPI displays. Measure and generate at logical pixel coordinates; multiply only at draw time.
+
+```js
+const dpr = devicePixelRatio
+canvas.width = canvasSize * dpr
+canvas.height = canvasSize * dpr
+canvas.style.width = canvasSize + 'px'
+canvas.style.height = canvasSize + 'px'
+```
+
+```js
+// Per-frame render:
+ctx.clearRect(0, 0, canvas.width, canvas.height)
+const fontSize = charSize * dpr
+ctx.font = `${fontSize}px "Helvetica Neue", Helvetica, sans-serif`
+ctx.textBaseline = 'top'
+
+const total = animChars.length
+for (const ch of animChars) {
+  if (ch.currentAlpha < 0.01) continue
+  ctx.globalAlpha = ch.currentAlpha
+  ctx.fillStyle = wordColor(word, ch.charIdx, total)
+  ctx.fillText(ch.ch, ch.currentX * dpr, ch.currentY * dpr)
+}
+
+ctx.globalAlpha = 1
+```
+
+**Important**: `measureChar` runs at logical pixel `fontSize` (before DPR multiplication). Apply DPR only when setting `canvas.font` and calling `fillText`. If you measure at DPR-scaled sizes, the layout coordinates will be off by a factor of `dpr`.
+
+---
+
+## Full Integration Example
+
+```js
+import { prepareWithSegments, layoutWithLines } from 'https://esm.sh/@chenglou/pretext@0.0.2'
+
+const CANVAS_SIZE = 500
+const CHAR_SIZE = 11
+
+const canvas = document.createElement('canvas')
+const ctx = canvas.getContext('2d')
+document.body.appendChild(canvas)
+
+const dpr = devicePixelRatio
+canvas.width = CANVAS_SIZE * dpr
+canvas.height = CANVAS_SIZE * dpr
+canvas.style.width = CANVAS_SIZE + 'px'
+canvas.style.height = CANVAS_SIZE + 'px'
+
+// --- Measurement ---
+const charWidthCache = new Map()
+function measureChar(ch, fontSize) {
+  const key = `${ch}:${fontSize}`
+  if (charWidthCache.has(key)) return charWidthCache.get(key)
+  const prepared = prepareWithSegments(ch, `${fontSize}px "Helvetica Neue", Helvetica, sans-serif`)
+  const result = layoutWithLines(prepared, 10000, fontSize * 1.2)
+  const w = result.lines.length > 0 ? result.lines[0].width : fontSize * 0.5
+  charWidthCache.set(key, w)
+  return w
+}
+
+// --- SDF ---
+function heartSDF(nx, ny) {
+  const x = nx * 1.2
+  const y = -ny * 1.1 + 0.3
+  const d = Math.sqrt(x * x + y * y)
+  const angle = Math.atan2(y, x)
+  const r = 0.5 + 0.15 * Math.cos(angle * 2) + 0.1 * Math.cos(angle) + 0.02 * Math.sin(angle * 3)
+  return d - r
+}
+
+// --- Layout ---
+function generateCalligram(word, sdf) {
+  const positions = []
+  const padding = CANVAS_SIZE * 0.08
+  const drawArea = CANVAS_SIZE - padding * 2
+  const lineHeight = CHAR_SIZE * 1.3
+  let counter = 0
+  for (let py = padding; py < CANVAS_SIZE - padding; py += lineHeight) {
+    let px = padding
+    while (px < CANVAS_SIZE - padding) {
+      const nx = (px - CANVAS_SIZE / 2) / (drawArea / 2)
+      const ny = (py - CANVAS_SIZE / 2) / (drawArea / 2)
+      const dist = sdf(nx, ny)
+      if (dist < -0.02) {
+        const ch = word[counter % word.length]
+        const w = measureChar(ch, CHAR_SIZE)
+        positions.push({ ch, x: px, y: py, width: w, charIdx: counter % word.length, globalIdx: counter })
+        px += w + CHAR_SIZE * 0.05
+        counter++
+      } else if (dist < 0.05) {
+        px += CHAR_SIZE * 0.3
+      } else {
+        px += CHAR_SIZE * 0.5
+      }
+    }
+  }
+  return positions
+}
+
+// --- Animation state ---
+const word = 'LOVE'
+const positions = generateCalligram(word, heartSDF)
+const animChars = positions.map((p, i) => ({
+  ...p,
+  targetX: p.x, targetY: p.y,
+  currentX: CANVAS_SIZE / 2 + (Math.random() - 0.5) * CANVAS_SIZE * 0.3,
+  currentY: CANVAS_SIZE / 2 + (Math.random() - 0.5) * CANVAS_SIZE * 0.3,
+  velX: 0, velY: 0,
+  currentAlpha: 0, targetAlpha: 1,
+  delay: i * 0.015 + Math.random() * 0.1
+}))
+
+function wordColor(word, charIdx, total) {
+  const hue = (word.charCodeAt(0) * 37 + word.length * 73) % 360
+  const t = charIdx / Math.max(1, total - 1)
+  return `hsl(${(hue + t * 60) % 360}, ${60 + Math.sin(t * Math.PI) * 20}%, ${55 + Math.sin(t * Math.PI * 2) * 15}%)`
+}
+
+// --- Loop ---
+let animTime = 0
+const fontSize = CHAR_SIZE * dpr
+ctx.font = `${fontSize}px "Helvetica Neue", Helvetica, sans-serif`
+ctx.textBaseline = 'top'
+
+function frame() {
+  animTime += 1 / 60
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  for (const ch of animChars) {
+    const t = Math.max(0, animTime - ch.delay)
+    if (t > 0) {
+      ch.velX = (ch.velX + (ch.targetX - ch.currentX) * 0.08) * 0.75
+      ch.velY = (ch.velY + (ch.targetY - ch.currentY) * 0.08) * 0.75
+      ch.currentX += ch.velX
+      ch.currentY += ch.velY
+      ch.currentAlpha += (1 - ch.currentAlpha) * 0.06
+    }
+    if (ch.currentAlpha < 0.01) continue
+    ctx.globalAlpha = ch.currentAlpha
+    ctx.fillStyle = wordColor(word, ch.charIdx, animChars.length)
+    ctx.fillText(ch.ch, ch.currentX * dpr, ch.currentY * dpr)
+  }
+  ctx.globalAlpha = 1
+  requestAnimationFrame(frame)
+}
+
+requestAnimationFrame(frame)
+```
