@@ -111,7 +111,7 @@ A `DitherEffect` component (360 lines) that creates a dithered image effect usin
 3. Convert with `pixel_art_generator.py --grid 20 --colors 4 --merge --remove-bg`
 4. Add `id="mascot"` to SVG root
 5. Apply animation preset via `animation_builder.py`
-6. Assemble with `template_renderer.py`
+6. Assemble with `animation_builder.py --standalone`
 
 ### Path 2: Hand-Designed Characters (Claude mascot approach)
 
