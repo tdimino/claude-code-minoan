@@ -6,6 +6,7 @@ Frontend design, image generation/editing, vision models, TTS, and visual effect
 |-------|-------------|
 | `component-gallery` | Encyclopedic UI pattern research: 60 components, 95 design systems, 8,692 RAG chunks. Pairs with `minoan-frontend-design` |
 | `gemini-claude-resonance` | Cross-model dialogue between Claude and Gemini with shared visual memory |
+| `gemini-forge` | Frontend code drafts via Gemini 3.1 Pro — UI generation, screenshot-to-code, SVG animation |
 | `image-well` | Multi-source image search: 12 APIs (Openverse, Pexels, Met, NASA, Wikimedia, etc.), presets, license filtering, download with metadata sidecars |
 | `image-forge` | Precision image editing: ImageMagick 7, rembg, sips, JSON pipelines |
 | `meshy` | 3D model generation via Meshy API: text-to-3D, image-to-3D, texture, batch manifests |
@@ -17,4 +18,5 @@ Frontend design, image generation/editing, vision models, TTS, and visual effect
 | `threejs-particle-canvas` | Interactive Three.js particle canvases: narrative phases, geodesic lattices, ambient WebGL |
 | `smolvlm` | Local vision-language model (SmolVLM-2B) for image analysis |
 | `speak-response` | Local TTS using Qwen3-TTS with Oracle voice clone |
-| `svg-mascot-animator` | Animated pixel-art SVG mascots: image→rect grid→GSAP animation→standalone HTML. 5 presets (idle, bounce, wave, walk, walk-and-bounce) |
+| `shadcn` | Install, customize, compose shadcn/ui components with Tailwind v4 OKLCH theming |
+| `sprite-forge` | Game sprites, SVG characters, ASCII art, animated mascots, isometric turnarounds — 5 output modes with chongdashu pipeline, video-to-spritesheet, Gemini SVG-as-code, GSAP animation. 9 scripts, 10 references |
