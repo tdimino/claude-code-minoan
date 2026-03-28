@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pretext Shrinkwrap Bubbles</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    min-height: 100vh;
+    background: #08080e;
+    color: #e8e4dc;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px;
+  }
+  h1 { font: 600 24px/1.2 "Helvetica Neue", Helvetica, sans-serif; color: rgba(255,255,255,0.9); margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: rgba(255,255,255,0.3); margin-bottom: 24px; }
+  .controls { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .controls label { font-size: 13px; color: rgba(255,255,255,0.4); }
+  .controls input[type=range] { width: 200px; }
+  .val { font: 500 13px/1 "SF Mono", monospace; color: rgba(196,163,90,0.7); min-width: 40px; }
+  .chat {
+    width: 100%; max-width: 420px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .msg {
+    font: 400 15px/20px "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding: 10px 14px;
+    border-radius: 18px;
+    word-wrap: break-word;
+    position: relative;
+  }
+  .sent {
+    align-self: flex-end;
+    background: #2563eb;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .recv {
+    align-self: flex-start;
+    background: #1c1c24;
+    color: #e8e4dc;
+    border-bottom-left-radius: 4px;
+  }
+  .waste-bar {
+    position: absolute; top: 0; right: 0; bottom: 0;
+    background: rgba(255,80,80,0.15);
+    border-radius: 0 18px 4px 0;
+    pointer-events: none;
+  }
+  .recv .waste-bar { left: auto; right: auto; border-radius: 0; }
+  .stats {
+    margin-top: 16px;
+    font: 400 12px/1.5 "SF Mono", monospace;
+    color: rgba(255,255,255,0.25);
+    text-align: center;
+  }
+  .stats em { font-style: normal; color: rgba(196,163,90,0.6); }
+</style>
+</head>
+<body>
+<h1>Shrinkwrap Bubbles</h1>
+<p class="subtitle">Pretext finds the exact tightest width. Red = wasted space vs CSS fit-content.</p>
+
+<div class="controls">
+  <label>Chat width</label>
+  <input type="range" id="slider" min="200" max="500" value="380">
+  <span class="val" id="val">380px</span>
+</div>
+
+<div class="chat" id="chat"></div>
+<div class="stats" id="stats"></div>
+
+<script type="module">
+import { prepareWithSegments, walkLineRanges } from 'https://esm.sh/@chenglou/pretext@0.0.2'
+
+const FONT = '15px "Helvetica Neue", Helvetica, Arial, sans-serif'
+const LINE_HEIGHT = 20
+const PADDING_H = 28 // 14px * 2
+const BUBBLE_MAX_RATIO = 0.82
+
+const messages = [
+  { text: 'Hey, did you see the new pretext library?', sent: false },
+  { text: 'Yeah! It measures text without the DOM. Pure JavaScript arithmetic.', sent: true },
+  { text: 'The shrinkwrap feature is wild — it finds the exact minimum width for multiline text. CSS can\'t do that.', sent: false },
+  { text: '성능 최적화가 정말 많이 되었더라고요 🎉', sent: true },
+  { text: 'Wait, so it handles CJK and emoji too?', sent: false },
+  { text: 'Everything. Mixed bidi, grapheme clusters, the works. Try resizing.', sent: true },
+  { text: 'ok this is genuinely impressive', sent: false },
+  { text: 'The best part: zero layout reflow. You could shrinkwrap 10,000 bubbles and the browser wouldn\'t even blink.', sent: true },
+  { text: 'Shut up and take my money 💸', sent: false },
+]
+
+const prepared = messages.map(m => prepareWithSegments(m.text, FONT))
+
+function shrinkwrap(prep, maxWidth) {
+  let targetCount = 0
+  let widest = 0
+  walkLineRanges(prep, maxWidth, line => {
+    targetCount++
+    if (line.width > widest) widest = line.width
+  })
+  if (targetCount <= 1) return { width: Math.ceil(widest), lineCount: targetCount }
+
+  let lo = 1, hi = Math.ceil(widest)
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    let count = 0
+    walkLineRanges(prep, mid, () => count++)
+    count <= targetCount ? hi = mid : lo = mid + 1
+  }
+  return { width: lo, lineCount: targetCount }
+}
+
+const chatEl = document.getElementById('chat')
+const sliderEl = document.getElementById('slider')
+const valEl = document.getElementById('val')
+const statsEl = document.getElementById('stats')
+
+// Build DOM once
+const bubbleEls = messages.map((m, i) => {
+  const div = document.createElement('div')
+  div.className = `msg ${m.sent ? 'sent' : 'recv'}`
+  div.style.font = FONT
+  div.style.lineHeight = LINE_HEIGHT + 'px'
+  div.textContent = m.text
+  const waste = document.createElement('div')
+  waste.className = 'waste-bar'
+  div.appendChild(waste)
+  chatEl.appendChild(div)
+  return { el: div, waste }
+})
+
+function render() {
+  const chatWidth = parseInt(sliderEl.value, 10)
+  valEl.textContent = chatWidth + 'px'
+  chatEl.style.maxWidth = chatWidth + 'px'
+
+  const maxBubbleContent = Math.floor(chatWidth * BUBBLE_MAX_RATIO) - PADDING_H
+  let totalCssWaste = 0
+  let totalPretextWaste = 0
+
+  for (let i = 0; i < messages.length; i++) {
+    const { width: shrunkWidth } = shrinkwrap(prepared[i], maxBubbleContent)
+    const pretextBubbleW = Math.min(shrunkWidth + PADDING_H, chatWidth * BUBBLE_MAX_RATIO)
+
+    bubbleEls[i].el.style.maxWidth = Math.floor(chatWidth * BUBBLE_MAX_RATIO) + 'px'
+    bubbleEls[i].el.style.width = 'fit-content'
+
+    // Measure CSS waste
+    const cssW = bubbleEls[i].el.offsetWidth
+    const cssContentW = cssW - PADDING_H
+
+    // Find widest line at CSS width to measure actual waste
+    let cssWidest = 0
+    walkLineRanges(prepared[i], cssContentW, line => {
+      if (line.width > cssWidest) cssWidest = line.width
+    })
+    const cssWaste = Math.max(0, cssContentW - cssWidest)
+
+    totalCssWaste += cssWaste
+    totalPretextWaste += Math.max(0, shrunkWidth - cssWidest)
+
+
+    // Show waste as red bar
+    const wastePct = cssWaste / cssContentW * 100
+    bubbleEls[i].waste.style.width = wastePct + '%'
+  }
+
+  statsEl.innerHTML = `CSS waste: <em>${Math.round(totalCssWaste)}px</em> total &middot; Pretext waste: <em>${Math.round(totalPretextWaste)}px</em> total`
+}
+
+sliderEl.addEventListener('input', render)
+window.addEventListener('resize', render)
+document.fonts.ready.then(render)
+</script>
+</body>
+</html>

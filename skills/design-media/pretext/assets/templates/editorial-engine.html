@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pretext Editorial Engine</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: radial-gradient(ellipse at 50% 40%, #0f0f14 0%, #0a0a0c 100%); color: #e8e4dc; height: 100vh; overflow: hidden; }
+  body { font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif; }
+  #stage { position: relative; width: 100vw; height: 100vh; overflow: hidden; touch-action: none; }
+  .line { position: absolute; white-space: pre; z-index: 1; color: #e8e4dc; user-select: text; }
+  .headline-line { position: absolute; white-space: pre; font-weight: 700; color: #fff; letter-spacing: -0.5px; z-index: 2; user-select: text; }
+  .drop-cap { position: absolute; pointer-events: none; z-index: 2; font-weight: 700; color: #c4a35a; }
+  .orb { position: absolute; border-radius: 50%; pointer-events: none; z-index: 10; will-change: transform; }
+  .hint {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    font: 400 13px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: rgba(255,255,255,0.22); z-index: 100;
+    background: rgba(0,0,0,0.45); padding: 8px 18px; border-radius: 999px;
+    pointer-events: none; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="hint">Drag the orbs · Click to pause · Zero DOM reads</div>
+
+<script type="module">
+import { prepareWithSegments, layoutWithLines, layoutNextLine } from 'https://esm.sh/@chenglou/pretext@0.0.2'
+
+const BODY_FONT = '18px "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif'
+const BODY_LH = 30
+const HEADLINE_FAMILY = '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif'
+const HEADLINE_TEXT = 'THE FUTURE OF TEXT LAYOUT IS NOT CSS'
+const GUTTER = 48
+const COL_GAP = 40
+const DROP_CAP_LINES = 3
+
+const BODY_TEXT = `The browser's layout engine is one of the most sophisticated pieces of software ever written. It handles bidirectional text, complex scripts, font fallback chains, and thousands of edge cases accumulated over three decades of web standards. And yet, for one of the most common operations in UI development—measuring how tall a paragraph of text will be—it requires you to put that text into the DOM and ask the engine to lay it out.
+
+This round trip is expensive. Not because the engine is slow, but because asking the question forces the engine to answer every question: cascade the styles, resolve the fonts, shape the glyphs, break the lines, compute the geometry. All of it, even if you only needed the height.
+
+Pretext takes a different approach entirely. It uses the browser's own font engine as ground truth—canvas measureText for shaping—but implements its own line-breaking and layout logic in pure arithmetic. The result is a library that can tell you how tall a paragraph will be without ever touching the DOM.
+
+The implications ripple outward. Virtualization becomes trivial when you can predict heights before rendering. Masonry layouts stop guessing. Chat bubbles shrink to their exact minimum width. Text flows around obstacles at sixty frames per second. And all of it happens in the same thread, with no layout thrashing, no forced reflows, no performance cliffs.
+
+What makes this work is a simple insight: most of the complexity in text layout lives in two places—segmentation and measurement. Once you have accurate segment widths, everything else is arithmetic. Line breaking is a greedy scan. Height is line count times line height. Width is a max over line widths. The DOM was never the right tool for this particular job.`
+
+const stage = document.getElementById('stage')
+
+// Orb definitions
+const orbDefs = [
+  { fx: 0.3, fy: 0.35, r: 70, vx: 0.4, vy: 0.25, color: [196, 163, 90] },
+  { fx: 0.65, fy: 0.55, r: 55, vx: -0.3, vy: 0.2, color: [120, 180, 220] },
+  { fx: 0.5, fy: 0.75, r: 45, vx: 0.2, vy: -0.35, color: [180, 120, 200] },
+]
+
+let orbs = []
+let drag = null
+let paused = false
+let lastTime = null
+let preparedBody = null
+let lineEls = []
+let headlineEls = []
+let orbEls = []
+let dropCapEl = null
+
+function init() {
+  const W = window.innerWidth, H = window.innerHeight
+  preparedBody = prepareWithSegments(BODY_TEXT, BODY_FONT)
+  orbs = orbDefs.map(d => ({ x: d.fx * W, y: d.fy * H, r: d.r, vx: d.vx, vy: d.vy, color: d.color, paused: false }))
+
+  // Create orb DOM elements
+  stage.innerHTML = ''
+  orbEls = orbs.map(o => {
+    const el = document.createElement('div')
+    el.className = 'orb'
+    const [r, g, b] = o.color
+    el.style.width = el.style.height = o.r * 2 + 'px'
+    el.style.background = `radial-gradient(circle at 35% 35%, rgba(${r},${g},${b},0.4), rgba(${r},${g},${b},0.08) 70%, transparent)`
+    stage.appendChild(el)
+    return el
+  })
+  lineEls = []
+  headlineEls = []
+  dropCapEl = null
+}
+
+function fitHeadline(text, maxW, maxH) {
+  let lo = 16, hi = 120
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1
+    const font = `700 ${mid}px ${HEADLINE_FAMILY}`
+    const p = prepareWithSegments(text, font)
+    const { height } = layoutWithLines(p, maxW, Math.round(mid * 1.08))
+    height <= maxH ? lo = mid : hi = mid - 1
+  }
+  const font = `700 ${lo}px ${HEADLINE_FAMILY}`
+  const p = prepareWithSegments(font === '' ? text : text, font)
+  const lh = Math.round(lo * 1.08)
+  return { fontSize: lo, lineHeight: lh, ...layoutWithLines(p, maxW, lh) }
+}
+
+function circleInterval(cx, cy, r, bandTop, bandBottom) {
+  const closestY = Math.max(bandTop, Math.min(cy, bandBottom))
+  const dy = Math.abs(closestY - cy)
+  if (dy >= r) return null
+  const dx = Math.sqrt(r * r - dy * dy)
+  return { left: cx - dx, right: cx + dx }
+}
+
+function flowText(prepared, colLeft, colRight, startY, endY, obstacles, startCursor) {
+  const lines = []
+  let cursor = startCursor || { segmentIndex: 0, graphemeIndex: 0 }
+  let y = startY
+
+  while (y + BODY_LH <= endY) {
+    let aLeft = colLeft, aRight = colRight
+    for (const obs of obstacles) {
+      const iv = circleInterval(obs.x, obs.y, obs.r + 12, y, y + BODY_LH)
+      if (!iv) continue
+      if (iv.left <= aLeft + 20) aLeft = Math.max(aLeft, iv.right)
+      else if (iv.right >= aRight - 20) aRight = Math.min(aRight, iv.left)
+      else { aLeft > iv.left ? (aRight = Math.min(aRight, iv.left)) : (aLeft = Math.max(aLeft, iv.right)) }
+    }
+    const w = aRight - aLeft
+    if (w < 40) { y += BODY_LH; continue }
+    const line = layoutNextLine(prepared, cursor, w)
+    if (!line) break
+    lines.push({ x: aLeft, y, text: line.text, width: line.width })
+    cursor = line.end
+    y += BODY_LH
+  }
+  return { lines, cursor, endY: y }
+}
+
+function render() {
+  const W = window.innerWidth, H = window.innerHeight
+  const contentW = W - GUTTER * 2
+  const colW = (contentW - COL_GAP) / 2
+  const colLeft = [GUTTER, GUTTER + colW + COL_GAP]
+
+  // Fit headline
+  const headlineMaxH = H * 0.18
+  const hl = fitHeadline(HEADLINE_TEXT, contentW, headlineMaxH)
+  const hlY = GUTTER
+
+  // Ensure headline elements
+  while (headlineEls.length < hl.lines.length) {
+    const el = document.createElement('div')
+    el.className = 'headline-line'
+    stage.appendChild(el)
+    headlineEls.push(el)
+  }
+  while (headlineEls.length > hl.lines.length) {
+    stage.removeChild(headlineEls.pop())
+  }
+  for (let i = 0; i < hl.lines.length; i++) {
+    const el = headlineEls[i]
+    el.style.font = `700 ${hl.fontSize}px ${HEADLINE_FAMILY}`
+    el.style.left = GUTTER + 'px'
+    el.style.top = (hlY + i * hl.lineHeight) + 'px'
+    el.textContent = hl.lines[i].text
+  }
+
+  const bodyStartY = hlY + hl.height + 20
+
+  // Drop cap
+  const firstChar = BODY_TEXT[0]
+  const dcSize = BODY_LH * DROP_CAP_LINES
+  const dcFont = `700 ${dcSize}px ${HEADLINE_FAMILY}`
+  const dcPrep = prepareWithSegments(firstChar, dcFont)
+  const dcW = (dcPrep.widths.length > 0 ? dcPrep.widths[0] : dcSize * 0.7) + 8
+
+  if (!dropCapEl) {
+    dropCapEl = document.createElement('div')
+    dropCapEl.className = 'drop-cap'
+    stage.appendChild(dropCapEl)
+  }
+  dropCapEl.style.font = dcFont
+  dropCapEl.style.left = GUTTER + 'px'
+  dropCapEl.style.top = bodyStartY + 'px'
+  dropCapEl.textContent = firstChar
+
+  // Flow left column (with drop cap obstacle for first 3 lines)
+  const dcObstacle = { x: GUTTER + dcW / 2, y: bodyStartY + dcSize / 2, r: Math.max(dcW, dcSize) / 2 }
+  const leftObs = [...orbs.filter(o => o.x < W / 2), dcObstacle]
+  const left = flowText(preparedBody, colLeft[0], colLeft[0] + colW, bodyStartY, H - GUTTER, leftObs)
+
+  // Flow right column continuing from where left stopped
+  const rightObs = orbs.filter(o => o.x >= W / 2)
+  const right = flowText(preparedBody, colLeft[1], colLeft[1] + colW, bodyStartY, H - GUTTER, rightObs, left.cursor)
+
+  const allLines = [...left.lines, ...right.lines]
+
+  // Ensure line elements
+  while (lineEls.length < allLines.length) {
+    const el = document.createElement('div')
+    el.className = 'line'
+    stage.appendChild(el)
+    lineEls.push(el)
+  }
+  while (lineEls.length > allLines.length) {
+    stage.removeChild(lineEls.pop())
+  }
+  for (let i = 0; i < allLines.length; i++) {
+    const el = lineEls[i]
+    el.style.font = BODY_FONT
+    el.style.left = allLines[i].x + 'px'
+    el.style.top = allLines[i].y + 'px'
+    el.textContent = allLines[i].text
+  }
+
+  // Update orb positions
+  for (let i = 0; i < orbs.length; i++) {
+    const o = orbs[i]
+    orbEls[i].style.transform = `translate(${o.x - o.r}px, ${o.y - o.r}px)`
+  }
+}
+
+function update(dt) {
+  if (paused) return
+  const W = window.innerWidth, H = window.innerHeight
+  for (const o of orbs) {
+    if (o.paused) continue
+    o.x += o.vx * dt
+    o.y += o.vy * dt
+    if (o.x - o.r < 0 || o.x + o.r > W) o.vx *= -1
+    if (o.y - o.r < 0 || o.y + o.r > H) o.vy *= -1
+    o.x = Math.max(o.r, Math.min(W - o.r, o.x))
+    o.y = Math.max(o.r, Math.min(H - o.r, o.y))
+  }
+}
+
+function loop(now) {
+  if (lastTime !== null) {
+    const dt = Math.min(now - lastTime, 50)
+    update(dt)
+  }
+  lastTime = now
+  render()
+  requestAnimationFrame(loop)
+}
+
+// Interaction
+stage.addEventListener('pointerdown', e => {
+  for (let i = orbs.length - 1; i >= 0; i--) {
+    const dx = e.clientX - orbs[i].x, dy = e.clientY - orbs[i].y
+    if (dx * dx + dy * dy <= orbs[i].r * orbs[i].r) {
+      drag = { idx: i, ox: dx, oy: dy }
+      orbs[i].paused = true
+      return
+    }
+  }
+  paused = !paused
+})
+
+stage.addEventListener('pointermove', e => {
+  if (!drag) return
+  orbs[drag.idx].x = e.clientX - drag.ox
+  orbs[drag.idx].y = e.clientY - drag.oy
+})
+
+stage.addEventListener('pointerup', () => {
+  if (drag) orbs[drag.idx].paused = false
+  drag = null
+})
+
+stage.addEventListener('touchstart', e => e.preventDefault(), { passive: false })
+
+window.addEventListener('resize', () => { init(); render() })
+document.fonts.ready.then(() => { init(); requestAnimationFrame(loop) })
+</script>
+</body>
+</html>

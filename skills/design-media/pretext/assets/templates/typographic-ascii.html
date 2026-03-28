@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pretext Typographic ASCII</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100vw; height: 100vh; overflow: hidden; background: #06060a; }
+  #art { width: 100%; height: 100%; }
+  .r { white-space: pre; overflow: hidden; font-family: Georgia, Palatino, "Times New Roman", serif; font-size: 14px; line-height: 17px; }
+  .w3 { font-weight: 300; } .w5 { font-weight: 500; } .w8 { font-weight: 800; }
+  .it { font-style: italic; }
+  .a1 { color: rgba(196,163,90,0.08); } .a2 { color: rgba(196,163,90,0.16); }
+  .a3 { color: rgba(196,163,90,0.24); } .a4 { color: rgba(196,163,90,0.32); }
+  .a5 { color: rgba(196,163,90,0.42); } .a6 { color: rgba(196,163,90,0.54); }
+  .a7 { color: rgba(196,163,90,0.66); } .a8 { color: rgba(196,163,90,0.78); }
+  .a9 { color: rgba(196,163,90,0.90); } .a10 { color: rgba(196,163,90,1.0); }
+  #stats {
+    position: fixed; bottom: 6px; left: 0; right: 0; text-align: center;
+    font: 400 10px/1 "Helvetica Neue", sans-serif; color: rgba(255,255,255,0.10);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="art"></div>
+<div id="stats"></div>
+
+<script type="module">
+import { prepareWithSegments } from 'https://esm.sh/@chenglou/pretext@0.0.2'
+
+const FONT_SIZE = 14
+const LINE_HEIGHT = 17
+const FONT_FAMILY = 'Georgia, Palatino, "Times New Roman", serif'
+const CHARSET = ' .,:;!+-=*#@%&abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const WEIGHTS = [300, 500, 800]
+const STYLES = ['normal', 'italic']
+const MAX_COLS = 200
+const MAX_ROWS = 80
+
+// Brightness estimation
+const bCanvas = document.createElement('canvas')
+bCanvas.width = bCanvas.height = 28
+const bCtx = bCanvas.getContext('2d', { willReadFrequently: true })
+
+function estimateBrightness(ch, font) {
+  bCtx.clearRect(0, 0, 28, 28)
+  bCtx.font = font
+  bCtx.fillStyle = '#fff'
+  bCtx.textBaseline = 'middle'
+  bCtx.fillText(ch, 1, 14)
+  const d = bCtx.getImageData(0, 0, 28, 28).data
+  let sum = 0
+  for (let i = 3; i < d.length; i += 4) sum += d[i]
+  return sum / (255 * 784)
+}
+
+// Build palette
+const palette = []
+for (const style of STYLES) {
+  for (const weight of WEIGHTS) {
+    const font = `${style === 'italic' ? 'italic ' : ''}${weight} ${FONT_SIZE}px ${FONT_FAMILY}`
+    for (const ch of CHARSET) {
+      if (ch === ' ') continue
+      const p = prepareWithSegments(ch, font)
+      const width = p.widths.length > 0 ? p.widths[0] : 0
+      if (width <= 0) continue
+      palette.push({ char: ch, weight, style, font, width, brightness: estimateBrightness(ch, font) })
+    }
+  }
+}
+const maxB = Math.max(...palette.map(p => p.brightness))
+if (maxB > 0) for (const p of palette) p.brightness /= maxB
+palette.sort((a, b) => a.brightness - b.brightness)
+const avgCharW = palette.reduce((s, p) => s + p.width, 0) / palette.length
+const aspect = avgCharW / LINE_HEIGHT
+const spaceW = FONT_SIZE * 0.27
+
+function findBest(targetB, targetW) {
+  let lo = 0, hi = palette.length - 1
+  while (lo < hi) { const mid = (lo + hi) >> 1; palette[mid].brightness < targetB ? lo = mid + 1 : hi = mid }
+  let bestScore = Infinity, best = palette[lo]
+  for (let i = Math.max(0, lo - 15); i < Math.min(palette.length, lo + 15); i++) {
+    const p = palette[i]
+    const score = Math.abs(p.brightness - targetB) * 2.5 + Math.abs(p.width - targetW) / targetW
+    if (score < bestScore) { bestScore = score; best = p }
+  }
+  return best
+}
+
+function esc(c) { return c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c }
+function wCls(w, s) { const wc = w === 300 ? 'w3' : w === 500 ? 'w5' : 'w8'; return s === 'italic' ? wc + ' it' : wc }
+
+const artEl = document.getElementById('art')
+const statsEl = document.getElementById('stats')
+let COLS = 0, ROWS = 0, rowEls = []
+
+// Fluid simulation
+let density, tempDen
+const emitters = [
+  { cx: 0.25, cy: 0.4, orbitR: 0.14, freq: 0.3, phase: 0, strength: 0.18 },
+  { cx: 0.7, cy: 0.35, orbitR: 0.1, freq: 0.25, phase: 2.1, strength: 0.15 },
+  { cx: 0.45, cy: 0.65, orbitR: 0.16, freq: 0.35, phase: 4.2, strength: 0.2 },
+]
+
+function getVel(c, r, t) {
+  const nx = c / COLS, ny = r / ROWS
+  let vx = Math.sin(ny * 6.28 + t * 0.3) * 2 + Math.cos((nx + ny) * 12.5 + t * 0.55) * 0.7
+  let vy = Math.cos(nx * 5 + t * 0.4) * 1.5 + Math.sin((nx - ny) * 10 + t * 0.4) * 0.8
+  vy *= aspect
+  return [vx, vy]
+}
+
+function resize() {
+  const vw = window.innerWidth, vh = window.innerHeight
+  COLS = Math.min(MAX_COLS, Math.floor(vw / avgCharW))
+  ROWS = Math.min(MAX_ROWS, Math.floor(vh / LINE_HEIGHT))
+
+  density = new Float32Array(COLS * ROWS)
+  tempDen = new Float32Array(COLS * ROWS)
+
+  // Rebuild DOM rows
+  artEl.innerHTML = ''
+  rowEls = []
+  for (let r = 0; r < ROWS; r++) {
+    const div = document.createElement('div')
+    div.className = 'r'
+    artEl.appendChild(div)
+    rowEls.push(div)
+  }
+}
+
+let t = 0
+function step() {
+  t += 0.016
+
+  // Emit
+  for (const em of emitters) {
+    const ex = (em.cx + Math.cos(t * em.freq * 6.28 + em.phase) * em.orbitR) * COLS
+    const ey = (em.cy + Math.sin(t * em.freq * 6.28 + em.phase) * em.orbitR) * ROWS
+    const radius = 3
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        const r = Math.round(ey) + dr, c = Math.round(ex) + dc
+        if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+          const dist = Math.sqrt(dr * dr + dc * dc)
+          if (dist <= radius) density[r * COLS + c] = Math.min(1, density[r * COLS + c] + em.strength * (1 - dist / radius))
+        }
+      }
+    }
+  }
+
+  // Advect
+  tempDen.fill(0)
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const [vx, vy] = getVel(c, r, t)
+      const sc = c - vx * 0.5, sr = r - vy * 0.5
+      const c0 = Math.floor(sc), r0 = Math.floor(sr)
+      const fc = sc - c0, fr = sr - r0
+      if (c0 >= 0 && c0 + 1 < COLS && r0 >= 0 && r0 + 1 < ROWS) {
+        tempDen[r * COLS + c] =
+          density[r0 * COLS + c0] * (1 - fc) * (1 - fr) +
+          density[r0 * COLS + c0 + 1] * fc * (1 - fr) +
+          density[(r0 + 1) * COLS + c0] * (1 - fc) * fr +
+          density[(r0 + 1) * COLS + c0 + 1] * fc * fr
+      }
+    }
+  }
+  // Decay
+  for (let i = 0; i < density.length; i++) density[i] = tempDen[i] * 0.96
+}
+
+function render() {
+  const t0 = performance.now()
+  for (let r = 0; r < ROWS; r++) {
+    let html = ''
+    for (let c = 0; c < COLS; c++) {
+      const b = density[r * COLS + c]
+      if (b < 0.005) {
+        html += ' '
+      } else {
+        const best = findBest(b, avgCharW)
+        const alpha = Math.max(1, Math.min(10, Math.round(b * 10)))
+        html += `<span class="${wCls(best.weight, best.style)} a${alpha}">${esc(best.char)}</span>`
+        x += best.width
+      }
+    }
+    rowEls[r].innerHTML = html
+  }
+  statsEl.textContent = `${COLS}×${ROWS} · ${(performance.now() - t0).toFixed(1)}ms`
+}
+
+function loop() {
+  step()
+  render()
+  requestAnimationFrame(loop)
+}
+
+window.addEventListener('resize', resize)
+document.fonts.ready.then(() => { resize(); loop() })
+</script>
+</body>
+</html>
