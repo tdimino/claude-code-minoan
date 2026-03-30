@@ -1,0 +1,44 @@
+# ${REPO_NAME} — Autoresearch Program
+
+## Objective
+
+${REPO_DESCRIPTION}
+
+## What to Improve
+
+<!-- List specific areas the agent should focus on. Be concrete — reference files,
+     function names, metric names, or behaviors that need to change. -->
+
+1. ...
+
+## Hypothesis List
+
+<!-- Ranked list of things to try. The runner reads this before every hypothesis.
+     Strike through completed items or move to Dead Ends. -->
+
+1. ...
+2. ...
+
+## Constraints
+
+- Do not modify `.lab/` contents (config.json, eval_base.py, runner.py)
+- Do not break existing tests — build and test gates must stay green
+- All eval gates must be deterministic: same code produces same score
+- Keep changes atomic — one hypothesis per experiment, not compound refactors
+- Do not add network-dependent code to eval gates
+
+## Scope
+
+**Include:** ${SCOPE_INCLUDE}
+
+**Exclude:** `.lab/`, `vendor/`, `node_modules/`, `target/`, `__pycache__/`, `dist/`, `.git/`
+
+## Dead Ends
+
+*Updated automatically by the runner when experiments are marked INTERESTING or reveal falsified approaches.*
+
+## Current Priorities
+
+1. Establish a green baseline (all tier-1 gates passing)
+2. Improve tier-2 behavioral score above 0.70
+3. Address any gates with 0.0 score in the initial run
