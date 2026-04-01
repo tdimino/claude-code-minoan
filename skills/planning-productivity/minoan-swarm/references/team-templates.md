@@ -214,6 +214,167 @@ Task({
 
 ---
 
+## Template 6: Truth & Balance
+
+**Use when:** An implementation needs multi-dimensional quality verification — correctness, performance, accessibility, standards compliance. Each reviewer weighs the code against a different standard, as Ma'at's feather weighs against the heart.
+
+**Team name:** Ma'at (truth, cosmic order, the balance that sustains all)
+
+```javascript
+// 1. Create team
+TeamCreate({ team_name: "maat-balance", description: "Multi-dimensional quality verification" })
+
+// 2. Create tasks — one per quality dimension
+TaskCreate({
+  subject: "Correctness audit",
+  description: "Verify all business logic, data flows, and state transitions behave correctly. Run tests, trace edge cases manually, confirm error handling covers real failure modes. Write findings to a summary.",
+  activeForm: "Auditing correctness"
+})
+TaskCreate({
+  subject: "Performance audit",
+  description: "Profile render times, bundle size, query counts, memory usage. Identify N+1 queries, unnecessary re-renders, unindexed lookups. Benchmark before/after if changes are warranted.",
+  activeForm: "Auditing performance"
+})
+TaskCreate({
+  subject: "Accessibility & standards audit",
+  description: "Check WCAG 2.1 AA compliance: keyboard navigation, screen reader labels, color contrast, focus management. Verify semantic HTML, ARIA roles, and form labeling.",
+  activeForm: "Auditing accessibility"
+})
+TaskCreate({
+  subject: "Weigh the heart — synthesize verdicts",
+  description: "Collect all audit findings. Produce a single verdict: PASS (ship), CONDITIONAL (ship with noted caveats), or FAIL (block until resolved). List every finding by severity (P0-P3).",
+  activeForm: "Synthesizing verdicts"
+})
+
+TaskUpdate({ taskId: "4", addBlockedBy: ["1", "2", "3"] })
+
+// 3. Spawn auditors (all parallel)
+Task({
+  team_name: "maat-balance", name: "hokhmah",
+  subagent_type: "general-purpose", model: "sonnet",
+  prompt: "You are Hokhmah, חָכְמָה — Wisdom herself, who was with the Creator before the world was made. You audit for correctness. Claim task #1. Read CLAUDE.md for conventions. Trace every data flow, verify every edge case, run the test suite. Your standard is truth — does the code do what it claims? When done, mark the task completed and send findings to maat-lead.",
+  run_in_background: true
+})
+Task({
+  team_name: "maat-balance", name: "al-uzza",
+  subagent_type: "general-purpose", model: "sonnet",
+  prompt: "You are Al-Uzza, العزى — The Mighty One, Venus as morning star. You audit for performance. Claim task #2. Read CLAUDE.md for conventions. Profile, benchmark, measure. Your standard is power — does the code run as fast as it should? Identify bottlenecks, unnecessary work, scaling concerns. When done, mark the task completed and send findings to maat-lead.",
+  run_in_background: true
+})
+Task({
+  team_name: "maat-balance", name: "yashar",
+  subagent_type: "general-purpose", model: "sonnet",
+  prompt: "You are Yashar, יָשָׁר — the Straight and Beautiful, uprightness made manifest. You audit for accessibility and standards. Claim task #3. Check WCAG 2.1 AA, semantic HTML, keyboard nav, screen reader compat, color contrast. Your standard is justice — can everyone use this? When done, mark the task completed and send findings to maat-lead.",
+  run_in_background: true
+})
+```
+
+**Verdict format (task #4):**
+
+```
+## Verdict: [PASS | CONDITIONAL | FAIL]
+
+### P0 — Must fix before ship
+- (none, or list)
+
+### P1 — Should fix before ship
+- ...
+
+### P2 — Fix soon after ship
+- ...
+
+### P3 — Nice to have
+- ...
+```
+
+---
+
+## Template 7: Fate's Reckoning
+
+**Use when:** A release candidate needs final audit before shipping. Security, dependency health, migration safety, changelog accuracy. Manat measures fate — this team determines whether the code ships or doesn't.
+
+**Team name:** Manat (She who measures fate — eldest of the Arabian triad)
+
+```javascript
+// 1. Create team
+TeamCreate({ team_name: "manat-reckoning", description: "Pre-release audit and go/no-go decision" })
+
+// 2. Create tasks — one per audit dimension
+TaskCreate({
+  subject: "Security audit",
+  description: "OWASP top 10 check. Scan for: SQL injection, XSS, auth bypass, CSRF, insecure deserialization, hardcoded secrets, overprivileged endpoints. Check dependency CVEs via `npm audit` / `bundle audit` / equivalent.",
+  activeForm: "Security audit"
+})
+TaskCreate({
+  subject: "Dependency & supply chain audit",
+  description: "Check for outdated dependencies, known CVEs, unmaintained packages, license conflicts. Verify lockfile integrity. Flag any dependency added since last release.",
+  activeForm: "Dependency audit"
+})
+TaskCreate({
+  subject: "Migration & data safety audit",
+  description: "Review all database migrations since last release. Check for: irreversible operations without rollback, missing indexes on new columns, data loss risk, transaction safety. Verify migration order is deterministic.",
+  activeForm: "Migration audit"
+})
+TaskCreate({
+  subject: "Changelog & release notes",
+  description: "Generate or verify CHANGELOG.md entries for all changes since last release. Cross-reference git log. Ensure every user-facing change is documented. Flag breaking changes.",
+  activeForm: "Changelog audit"
+})
+TaskCreate({
+  subject: "Fate's verdict — go/no-go",
+  description: "Collect all audit results. Produce a GO / NO-GO / CONDITIONAL-GO decision with justification. List every blocker (if any) and every risk accepted (if conditional).",
+  activeForm: "Rendering verdict"
+})
+
+TaskUpdate({ taskId: "5", addBlockedBy: ["1", "2", "3", "4"] })
+
+// 3. Spawn auditors
+Task({
+  team_name: "manat-reckoning", name: "themis",
+  subagent_type: "general-purpose", model: "sonnet",
+  prompt: "You are Themis, whose name traces to the thmtm — the deep waters of divine law. You are the security auditor. Claim task #1. Check OWASP top 10, scan for hardcoded secrets, review auth flows, check dependency CVEs. Your standard is inviolability — no vulnerability ships. When done, mark the task completed and send findings to manat-lead.",
+  run_in_background: true
+})
+Task({
+  team_name: "manat-reckoning", name: "qadeshet",
+  subagent_type: "general-purpose", model: "sonnet",
+  prompt: "You are Qadeshet, קְדֶשֶׁת — the Holy One who guards boundaries. You audit the supply chain. Claim task #2. Check every dependency for CVEs, license conflicts, maintenance status. Verify the lockfile. Your standard is sanctity — nothing impure enters. When done, mark the task completed and send findings to manat-lead.",
+  run_in_background: true
+})
+Task({
+  team_name: "manat-reckoning", name: "tehom",
+  subagent_type: "general-purpose", model: "sonnet",
+  prompt: "You are Tehom, תְּהוֹם — the Deep, the primordial foundation. You audit migrations and data safety. Claim task #3. Review every migration for reversibility, index coverage, transaction safety, data loss risk. Your standard is foundation — the substrate must hold. When done, mark the task completed and send findings to manat-lead.",
+  run_in_background: true
+})
+Task({
+  team_name: "manat-reckoning", name: "karme",
+  subagent_type: "general-purpose", model: "sonnet",
+  prompt: "You are Karme, daughter of Phoenix — the Phoenician eye that reads what others miss. You verify the changelog. Claim task #4. Cross-reference git log against CHANGELOG.md. Every user-facing change must be documented. Flag breaking changes, missing entries, inaccurate descriptions. When done, mark the task completed and send findings to manat-lead.",
+  run_in_background: true
+})
+```
+
+**Go/No-Go format (task #5):**
+
+```
+## Decision: [GO | NO-GO | CONDITIONAL-GO]
+
+### Blockers (NO-GO until resolved)
+- (none, or list with task owner)
+
+### Risks Accepted (CONDITIONAL-GO)
+- (none, or list with justification)
+
+### All Clear
+- Security: ✓/✗
+- Dependencies: ✓/✗
+- Migrations: ✓/✗
+- Changelog: ✓/✗
+```
+
+---
+
 ## Choosing a Template
 
 | Situation | Template | Knesset Name |
@@ -223,6 +384,8 @@ Task({
 | Bug investigation, unclear cause | Research Knossot | Elat |
 | Phase nearly done, multiple loose ends | Phase Completion | Qedeshot |
 | PR needs thorough review | Code Review Tribunal | Elat |
+| Quality verification, multi-angle testing | Truth & Balance | Ma'at |
+| Pre-release audit, go/no-go | Fate's Reckoning | Manat |
 | New system from scratch | Parallel Features + Pipeline | Tiamat |
 
 ---
