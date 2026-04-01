@@ -1,6 +1,6 @@
 # Agent Teams Quick Reference
 
-Distilled from the official Claude Code Agent Teams documentation and the orchestrating-swarms skill.
+Distilled from the official Claude Code Agent Teams documentation (`code.claude.com/docs/en/agent-teams`) and the orchestrating-swarms skill. Updated April 2026.
 
 ---
 
@@ -56,7 +56,7 @@ Task({
   team_name: "my-project",
   name: "researcher",
   subagent_type: "general-purpose",  // or Explore, Plan, any plugin agent
-  model: "sonnet",                    // optional: haiku, sonnet, opus
+  model: "sonnet",                    // optional: sonnet, opus (no haiku in swarm)
   mode: "plan",                       // optional: require plan approval
   prompt: "Your task instructions here",
   run_in_background: true
@@ -171,7 +171,7 @@ Create tasks with dependencies using `addBlockedBy`. When a blocking task comple
 
 | Mode | How | Best For |
 |------|-----|----------|
-| **in-process** (default) | All in main terminal. `Shift+Up/Down` to select teammates. | Any terminal |
+| **in-process** (default) | All in main terminal. `Shift+Down` to cycle teammates (wraps around). | Any terminal |
 | **split panes** | Each teammate in own pane. Requires tmux or iTerm2. | Monitoring all activity |
 | **auto** (default setting) | Uses split panes if already in tmux, in-process otherwise. | Most users |
 
@@ -189,14 +189,34 @@ Configure in settings.json: `"teammateMode": "in-process"` or `"tmux"`
 
 ---
 
+## Hooks (v2.1.80+)
+
+Three hook events for agent teams automation:
+
+| Hook | Fires When | Exit Code 2 Effect |
+|------|-----------|-------------------|
+| **TeammateIdle** | A teammate is about to go idle | Sends feedback, keeps teammate working. Also supports `{"continue": false, "stopReason": "..."}` to stop. |
+| **TaskCreated** | A task is being created | Prevents creation with feedback |
+| **TaskCompleted** | A task is being marked complete | Prevents completion with feedback |
+
+Configure in `settings.json` under `hooks` like any other Claude Code hook.
+
+---
+
+## SendMessage: Auto-Resume (v2.1.80+)
+
+`SendMessage` now **auto-resumes stopped agents**. If a teammate has gone idle or stopped, sending it a message restarts it with context preserved. No need to manually resume.
+
+---
+
 ## Limitations
 
-- No session resumption for in-process teammates
+- No session resumption for in-process teammates (`/resume` and `/rewind` don't restore them)
 - One team per session
 - No nested teams (teammates cannot spawn teams)
 - Lead is fixed (cannot transfer leadership)
 - Permissions set at spawn for all teammates
-- Split panes require tmux or iTerm2
+- Split panes require tmux or iTerm2 — **NOT supported in Ghostty**, VS Code terminal, or Windows Terminal
 
 ---
 

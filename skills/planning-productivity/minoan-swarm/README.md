@@ -54,6 +54,7 @@ minoan-swarm/
     agent-teams-quickref.md          # API quick reference
   scripts/
     discover_context.sh              # Auto-discover planning artifacts
+    teammate-idle-reassign.sh        # TeammateIdle hook for auto-reassignment
     sync-repos.sh                    # Sync skill across repos
     test_skill.sh                    # Verify skill installation
 ```
@@ -84,9 +85,9 @@ Names are drawn from the Minoan-Semitic divine feminine—Ugaritic, Akkadian, He
 |-----------|-------|-------|
 | **Leaders** | athirat-lead, qedesha-lead, tiamat-lead, maat-lead, allat-lead | Opus |
 | **Builders** | kaptaru, mami, nintu, tehom, tip'eret, yam, al-uzza | Sonnet |
-| **Researchers** | deborah, melissa, eileithyia, membliaros | Sonnet/Haiku |
+| **Researchers** | deborah, melissa, eileithyia, membliaros | Sonnet |
 | **Reviewers** | hokhmah, qadeshet, karme, themis, manat, allat | Sonnet |
-| **Testers** | sassuratu, phikola, hubur | Sonnet/Haiku |
+| **Testers** | sassuratu, phikola, hubur | Sonnet |
 | **Frontend** | popureja, shalamu, yashar | Sonnet |
 | **DevOps** | selene, hestia, dikte | Sonnet |
 
@@ -98,13 +99,19 @@ Full codex with pronunciations, etymologies, and scholarly sources: [`references
 
 **File ownership** — Two teammates editing the same file causes overwrites. Every team launch includes an explicit ownership matrix.
 
-**Model tiering** — Leads use Opus (orchestration), workers use Sonnet (implementation), lightweight research uses Haiku.
+**Model tiering** — Leads use Opus (orchestration), all workers use Sonnet minimum (implementation, research, testing). No Haiku in the swarm.
 
 **Tool preferences** — Firecrawl over WebFetch for scraping, Exa over WebSearch for neural search. Include in every teammate prompt.
 
 **Graceful shutdown** — `shutdown_request` each teammate, then `TeamDelete` after all confirm.
 
 **Compaction survival** — Leads re-read TaskList and `~/.claude/teams/{team-name}/config.json` to recover state after context compaction.
+
+---
+
+## Hooks
+
+**TeammateIdle auto-reassignment** — Install `scripts/teammate-idle-reassign.sh` as a `TeammateIdle` hook to keep idle teammates working on unclaimed tasks instead of stopping. See SKILL.md for installation instructions.
 
 ---
 

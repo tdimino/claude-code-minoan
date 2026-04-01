@@ -56,7 +56,7 @@ Teammates who write code, create features, build infrastructure.
 | **yam** | YAHM | יָם — The Sea | Streaming, real-time features, WebSocket, SSE |
 | **al-uzza** | al-OOZ-zah | العزى — The Mighty One, the morning star (Venus) | Performance-critical paths, core engine, heavy lifting |
 
-### Researchers / Explorers (Sonnet or Haiku)
+### Researchers / Explorers (Sonnet)
 
 Teammates who investigate, analyze, and discover.
 
@@ -80,7 +80,7 @@ Teammates who review, validate, and protect quality.
 | **manat** | mah-NAHT | مناة — She who measures fate, the eldest daughter | Final review, quality gates, release decisions |
 | **allat** | al-LAHT | اللات — The Goddess, feminine of Allah | Architecture review, sovereignty of design |
 
-### Testers / Validators (Sonnet or Haiku)
+### Testers / Validators (Sonnet)
 
 Teammates who test, validate, and ensure correctness.
 
