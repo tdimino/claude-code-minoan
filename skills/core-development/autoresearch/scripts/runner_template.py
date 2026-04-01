@@ -414,7 +414,9 @@ def log_result(
                 "timestamp", "experiment_id", "branch", "parent",
                 "commit", "composite", "status", "duration_s", "description",
             ])
-        experiment_id = f"exp{sum(1 for _ in results_tsv.read_text().splitlines()) if results_tsv.exists() else 1:04d}"
+        # Count data rows (exclude header) for zero-based experiment ID
+        line_count = len(results_tsv.read_text().splitlines()) - 1 if results_tsv.exists() else 0
+        experiment_id = f"exp{max(line_count, 0):04d}"
         branch = git_current_branch(results_tsv.parent.parent)
         writer.writerow([
             datetime.now().isoformat(timespec="seconds"),
@@ -557,13 +559,18 @@ def check_convergence_signals(
 
     recent = rows[-20:]  # last 20 rows for windowed checks
 
-    # 1. Near-perfect
-    if baseline["composite"] >= 0.99:
-        return "near_perfect"
+    # 1. Near-perfect: composite >= 0.99 sustained over last 3 keeps
+    keep_rows = [r for r in rows if r.get("status", "").startswith("keep")]
+    if len(keep_rows) >= 3:
+        last_3_composites = [float(r.get("composite", 0)) for r in keep_rows[-3:]]
+        if all(c >= 0.99 for c in last_3_composites):
+            return "near_perfect"
 
-    # 2. Excellent
-    if baseline["composite"] >= 0.95:
-        return "excellent"
+    # 2. Excellent: composite >= 0.95 sustained over last 5 keeps
+    if len(keep_rows) >= 5:
+        last_5_composites = [float(r.get("composite", 0)) for r in keep_rows[-5:]]
+        if all(c >= 0.95 for c in last_5_composites):
+            return "excellent"
 
     # 3. 10 consecutive discards
     if len(recent) >= 10 and all(r.get("status") == "discard" for r in recent[-10:]):
@@ -787,8 +794,17 @@ def main():
 
         # 5. Keep or discard
         if delta >= keep_threshold:
-            # Distinguish significant improvements (KEEP*) from marginal ones (KEEP)
-            status = "keep*" if delta >= keep_threshold * 5 else "keep"
+            # KEEP* = primary improved but a secondary metric regressed (trade-off)
+            status = "keep"
+            secondary = config.get("secondary_metrics", [])
+            if secondary and isinstance(score.get("per_gate"), dict):
+                for metric_name in secondary:
+                    prev = baseline.get("per_gate", {}).get(metric_name, {}).get("score", 0)
+                    curr = score.get("per_gate", {}).get(metric_name, {}).get("score", 0)
+                    if curr < prev - 0.01:  # secondary regressed by >1%
+                        status = "keep*"
+                        log.warning(f"KEEP* — secondary metric '{metric_name}' regressed: {prev:.4f} -> {curr:.4f}")
+                        break
             log.info(f"{status.upper()} (delta {delta:+.4f} >= threshold {keep_threshold})")
             baseline = score
             keeps += 1
@@ -805,8 +821,9 @@ def main():
 
         # Mark INTERESTING if score improved but not enough to keep
         # (useful for finding near-miss approaches to document)
-        if 0 < delta < keep_threshold * 0.5:
-            log.info(f"Marking as INTERESTING (small improvement: {delta:+.4f})")
+        if status == "discard" and 0 < delta < keep_threshold:
+            status = "interesting"
+            log.info(f"INTERESTING (small improvement {delta:+.4f} — reveals structure)")
             log_dead_end(dead_ends, description, f"Small improvement ({delta:+.4f}) — not enough to keep, but worth noting.")
 
         all_rows.append({"status": status, "composite": str(score["composite"])})
