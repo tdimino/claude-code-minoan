@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlyphKit — Variable Font Animation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08080e;
+  --bg-card: #0e0e16;
+  --bg-input: #14141e;
+  --fg: #e8e4dc;
+  --fg-dim: #8a8680;
+  --fg-accent: #c9a84c;
+  --fg-accent-dim: #8b6914;
+  --border: #1e1e2a;
+  --border-focus: #2e2e3e;
+}
+
+html { background: var(--bg); color: var(--fg); font-family: Georgia, 'Palatino Linotype', serif; }
+body { min-height: 100vh; padding: 2rem 1.5rem; max-width: 960px; margin: 0 auto; }
+
+a { color: var(--fg-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.back {
+  display: inline-block; font-family: 'SF Mono', monospace; font-size: 0.75rem;
+  color: var(--fg-dim); margin-bottom: 1rem;
+}
+.back:hover { color: var(--fg-accent); text-decoration: none; }
+
+h1 { font-weight: 400; font-size: 1.8rem; letter-spacing: 0.02em; margin-bottom: 0.25rem; font-family: 'Playfair Display', Georgia, serif; }
+.subtitle { color: var(--fg-dim); font-size: 0.9rem; margin-bottom: 1.5rem; }
+.subtitle code {
+  font-family: 'SF Mono', monospace; font-size: 0.8rem;
+  background: var(--bg-card); padding: 0.1em 0.3em;
+  border: 1px solid var(--border); border-radius: 3px; color: var(--fg-accent);
+}
+
+.controls {
+  display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  margin-bottom: 1.5rem; align-items: flex-end;
+}
+.control-group { display: flex; flex-direction: column; gap: 0.25rem; }
+.control-group label {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-dim);
+}
+input[type="text"] {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: Georgia, serif; font-size: 1rem; padding: 0.4rem 0.6rem; border-radius: 6px;
+  outline: none; width: 260px;
+}
+input[type="text"]:focus { border-color: var(--fg-accent-dim); }
+input[type="range"] {
+  accent-color: #9a7abf; width: 110px; cursor: pointer;
+}
+.range-row {
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.range-val {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem; color: var(--fg-dim);
+  width: 2.5rem; text-align: right;
+}
+
+.mode-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.mode-btn {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: 'SF Mono', monospace; font-size: 0.7rem; padding: 0.35rem 0.7rem;
+  border-radius: 6px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em;
+}
+.mode-btn:hover { border-color: #9a7abf; color: #9a7abf; }
+.mode-btn.active {
+  background: #6a4a8f; border-color: #9a7abf;
+  color: var(--bg); font-weight: 600;
+}
+
+/* Text display area */
+.text-area {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px 6px 0 0;
+  min-height: 160px; display: flex; align-items: center; justify-content: center;
+  padding: 2.5rem 1.5rem; position: relative; overflow: hidden; cursor: crosshair;
+  user-select: none;
+}
+
+.text-area::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 60%, rgba(201,168,76,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+#charContainer {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline;
+  gap: 0; line-height: 1.1; font-family: 'Inter', sans-serif;
+  font-size: 72px; font-weight: 400; letter-spacing: 0.01em;
+}
+
+.char-span {
+  display: inline-block;
+  font-family: 'Inter', sans-serif;
+  color: var(--fg);
+  transition: color 0.1s;
+  white-space: pre;
+}
+
+.char-span.space { width: 0.3em; }
+
+/* Sparkline bar */
+.sparkline-area {
+  background: var(--bg-card); border: 1px solid var(--border); border-top: none;
+  border-radius: 0; padding: 0.75rem 1rem; position: relative;
+  overflow: hidden;
+}
+
+.sparkline-label {
+  font-family: 'SF Mono', monospace; font-size: 0.6rem;
+  color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 0.4rem;
+}
+
+#sparkCanvas {
+  display: block; width: 100%; height: 36px;
+}
+
+/* Info bar */
+.info-bar {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem; color: var(--fg-dim);
+  padding: 0.5rem 1rem; border: 1px solid var(--border); border-top: none;
+  background: var(--bg); border-radius: 0 0 6px 6px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.info-bar span { color: var(--fg-accent); }
+
+/* Loading overlay */
+.loading-overlay {
+  position: absolute; inset: 0; background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'SF Mono', monospace; font-size: 0.8rem; color: var(--fg-dim);
+  border-radius: 6px 6px 0 0; z-index: 10;
+  transition: opacity 0.3s;
+}
+.loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+@media (max-width: 640px) {
+  body { padding: 1rem; }
+  .controls { flex-direction: column; }
+  input[type="text"] { width: 100%; }
+  #charContainer { font-size: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<h1>Variable Font Animation</h1>
+<p class="subtitle"><code>measureText</code> is oblivious to variation axes. Here we control weight and width per-character.</p>
+
+<div class="controls">
+  <div class="control-group">
+    <label>Text</label>
+    <input type="text" id="textInput" value="Variable" spellcheck="false" maxlength="24">
+  </div>
+  <div class="control-group">
+    <label>Mode</label>
+    <div class="mode-buttons">
+      <button class="mode-btn active" data-mode="wave">Wave</button>
+      <button class="mode-btn" data-mode="breathe">Breathe</button>
+      <button class="mode-btn" data-mode="ripple">Ripple</button>
+      <button class="mode-btn" data-mode="cascade">Cascade</button>
+    </div>
+  </div>
+  <div class="control-group">
+    <label>Speed</label>
+    <div class="range-row">
+      <input type="range" id="speedSlider" min="1" max="20" value="6" step="1">
+      <span class="range-val" id="speedVal">0.6×</span>
+    </div>
+  </div>
+  <div class="control-group">
+    <label>Amplitude</label>
+    <div class="range-row">
+      <input type="range" id="ampSlider" min="10" max="100" value="70" step="5">
+      <span class="range-val" id="ampVal">70%</span>
+    </div>
+  </div>
+</div>
+
+<div class="text-area" id="textArea">
+  <div class="loading-overlay" id="loadingOverlay">loading Inter Variable…</div>
+  <div id="charContainer"></div>
+</div>
+
+<div class="sparkline-area">
+  <div class="sparkline-label">wght per character</div>
+  <canvas id="sparkCanvas" height="36"></canvas>
+</div>
+
+<div class="info-bar">
+  <span>Inter Variable</span> — wght: 100–900 &nbsp;·&nbsp; opsz: 14–32
+  <span id="modeLabel" style="color: var(--fg-dim)">mode: wave</span>
+</div>
+
+<script>
+// ─── Polyfill: CanvasRenderingContext2D.roundRect (Safari < 15.4) ─────────────
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    this.moveTo(x + r, y);
+    this.lineTo(x + w - r, y);
+    this.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.lineTo(x + w, y + h - r);
+    this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    this.lineTo(x + r, y + h);
+    this.quadraticCurveTo(x, y + h, x, y + h - r);
+    this.lineTo(x, y + r);
+    this.quadraticCurveTo(x, y, x + r, y);
+    this.closePath();
+  };
+}
+
+// ─── State ───────────────────────────────────────────────────────────────────
+const WGHT_MIN = 100, WGHT_MAX = 900, WGHT_MID = 400;
+const OPSZ_MIN = 14, OPSZ_MAX = 32, OPSZ_MID = 20;
+
+let mode = 'wave';
+let speed = 0.6;
+let amplitude = 0.70; // fraction of half-range
+let chars = [];
+let wghtValues = [];
+let hoverIndex = -1;
+let startTime = null;
+let raf = null;
+let fontReady = false;
+let cascadePhases = [];
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const textInput    = document.getElementById('textInput');
+const charContainer = document.getElementById('charContainer');
+const speedSlider  = document.getElementById('speedSlider');
+const speedVal     = document.getElementById('speedVal');
+const ampSlider    = document.getElementById('ampSlider');
+const ampVal       = document.getElementById('ampVal');
+const textArea     = document.getElementById('textArea');
+const sparkCanvas  = document.getElementById('sparkCanvas');
+const sparkCtx     = sparkCanvas.getContext('2d');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const modeLabel    = document.getElementById('modeLabel');
+
+// ─── Build character spans ────────────────────────────────────────────────────
+function buildChars(text) {
+  charContainer.innerHTML = '';
+  chars = [];
+  cascadePhases = [];
+  const n = text.length;
+
+  for (let i = 0; i < n; i++) {
+    const ch = text[i];
+    const span = document.createElement('span');
+    span.className = 'char-span' + (ch === ' ' ? ' space' : '');
+    span.textContent = ch === ' ' ? '\u00a0' : ch;
+    span.dataset.index = i;
+    charContainer.appendChild(span);
+    chars.push(span);
+    // cascade: assign random phase offset per character
+    cascadePhases.push(Math.random() * Math.PI * 2);
+  }
+
+  wghtValues = new Array(n).fill(WGHT_MID);
+}
+
+// ─── Animation tick ───────────────────────────────────────────────────────────
+function tick(ts) {
+  if (!startTime) startTime = ts;
+  const t = (ts - startTime) / 1000; // seconds
+  const n = chars.length;
+  if (n === 0) { raf = requestAnimationFrame(tick); return; }
+
+  const halfRange = (WGHT_MAX - WGHT_MIN) / 2; // 400
+  const amp = halfRange * amplitude;
+
+  for (let i = 0; i < n; i++) {
+    let wght = WGHT_MID;
+    let opsz = OPSZ_MID;
+
+    // Hover pulse: character under cursor gets extra bold, neighbors taper off
+    let hoverBoost = 0;
+    if (hoverIndex >= 0) {
+      const dist = Math.abs(i - hoverIndex);
+      if (dist === 0) hoverBoost = 1.0;
+      else if (dist === 1) hoverBoost = 0.5;
+      else if (dist === 2) hoverBoost = 0.2;
+    }
+
+    switch (mode) {
+      case 'wave': {
+        const wave = Math.sin(t * speed - i * 0.4);
+        wght = WGHT_MID + amp * wave;
+        opsz = OPSZ_MID + (OPSZ_MAX - OPSZ_MIN) * 0.3 * wave;
+        break;
+      }
+      case 'breathe': {
+        const wave = Math.sin(t * speed * 0.5);
+        wght = WGHT_MID + amp * wave;
+        // slight phase offset so they're nearly but not exactly in phase
+        opsz = OPSZ_MID + (OPSZ_MAX - OPSZ_MIN) * 0.3 * Math.sin(t * speed * 0.5 - i * 0.05);
+        break;
+      }
+      case 'ripple': {
+        const src = hoverIndex >= 0 ? hoverIndex : Math.floor(n / 2);
+        const dist = Math.abs(i - src);
+        const wave = Math.sin(t * speed * 2 - dist * 0.5);
+        const decay = Math.exp(-dist * 0.25);
+        wght = WGHT_MID + amp * wave * decay;
+        opsz = OPSZ_MID + (OPSZ_MAX - OPSZ_MIN) * 0.3 * wave * decay;
+        break;
+      }
+      case 'cascade': {
+        // Staggered per-char with random phase, also modulates wdth via opsz
+        const phase = cascadePhases[i];
+        const wave = Math.sin(t * speed + phase);
+        wght = WGHT_MID + amp * wave;
+        opsz = OPSZ_MIN + ((OPSZ_MAX - OPSZ_MIN) * (0.5 + 0.5 * Math.sin(t * speed * 0.7 + phase)));
+        break;
+      }
+    }
+
+    // Apply hover boost on top
+    if (hoverBoost > 0) {
+      wght = wght + (WGHT_MAX - wght) * hoverBoost * 0.6;
+    }
+
+    // Clamp
+    wght = Math.max(WGHT_MIN, Math.min(WGHT_MAX, wght));
+    opsz = Math.max(OPSZ_MIN, Math.min(OPSZ_MAX, opsz));
+
+    wghtValues[i] = wght;
+    chars[i].style.fontVariationSettings = `"wght" ${wght.toFixed(1)}, "opsz" ${opsz.toFixed(1)}`;
+
+    // Color: brighter at high weight
+    const bright = (wght - WGHT_MIN) / (WGHT_MAX - WGHT_MIN); // 0..1
+    // Interpolate from dim (#8a8680) to bright (#e8e4dc) to accent (#c9a84c)
+    const r = Math.round(138 + (232 - 138) * bright);
+    const g = Math.round(134 + (228 - 134) * bright);
+    const b = Math.round(128 + (220 - 128) * bright);
+    chars[i].style.color = `rgb(${r},${g},${b})`;
+  }
+
+  drawSparkline();
+  raf = requestAnimationFrame(tick);
+}
+
+// ─── Sparkline ────────────────────────────────────────────────────────────────
+function drawSparkline() {
+  const n = wghtValues.length;
+  if (n === 0) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const W = sparkCanvas.offsetWidth;
+  const H = 36;
+  if (sparkCanvas.width !== W * dpr || sparkCanvas.height !== H * dpr) {
+    sparkCanvas.width = W * dpr;
+    sparkCanvas.height = H * dpr;
+    sparkCtx.scale(dpr, dpr);
+  }
+
+  sparkCtx.clearRect(0, 0, W, H);
+
+  const barW = Math.max(2, Math.floor((W - (n - 1) * 2) / n));
+  const gap = n > 1 ? (W - barW * n) / (n - 1) : 0;
+
+  for (let i = 0; i < n; i++) {
+    const t = (wghtValues[i] - WGHT_MIN) / (WGHT_MAX - WGHT_MIN);
+    const barH = 4 + (H - 8) * t;
+    const x = i * (barW + gap);
+    const y = H - barH;
+
+    // Color: violet tones (dim #4a3a60 → accent #9a7abf)
+    const r = Math.round(74 + (154 - 74) * t);
+    const g = Math.round(58 + (122 - 58) * t);
+    const b = Math.round(96 + (191 - 96) * t);
+    sparkCtx.fillStyle = `rgba(${r},${g},${b},${0.4 + 0.6 * t})`;
+    sparkCtx.beginPath();
+    sparkCtx.roundRect(x, y, barW, barH, 2);
+    sparkCtx.fill();
+  }
+
+  // wght label on rightmost
+  const last = wghtValues[n - 1];
+  sparkCtx.fillStyle = 'rgba(138,134,128,0.7)';
+  sparkCtx.font = `${9}px "SF Mono", monospace`;
+  sparkCtx.textAlign = 'right';
+  sparkCtx.fillText(`${Math.round(last)}`, W - 2, 10);
+}
+
+// ─── Mouse tracking ───────────────────────────────────────────────────────────
+textArea.addEventListener('pointermove', (e) => {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  if (el && el.classList.contains('char-span')) {
+    hoverIndex = parseInt(el.dataset.index, 10);
+  } else {
+    // keep last hoverIndex for ripple mode continuity; reset for others
+    if (mode !== 'ripple') hoverIndex = -1;
+  }
+});
+
+textArea.addEventListener('pointerleave', () => {
+  hoverIndex = -1;
+});
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+    modeLabel.textContent = `mode: ${mode}`;
+    // Re-randomize cascade phases on mode switch
+    if (mode === 'cascade') {
+      cascadePhases = chars.map(() => Math.random() * Math.PI * 2);
+    }
+  });
+});
+
+speedSlider.addEventListener('input', () => {
+  speed = parseInt(speedSlider.value, 10) / 10;
+  speedVal.textContent = `${speed.toFixed(1)}×`;
+});
+
+ampSlider.addEventListener('input', () => {
+  amplitude = parseInt(ampSlider.value, 10) / 100;
+  ampVal.textContent = `${ampSlider.value}%`;
+});
+
+textInput.addEventListener('input', () => {
+  buildChars(textInput.value || ' ');
+  wghtValues = new Array(chars.length).fill(WGHT_MID);
+});
+
+// ─── Resize ────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  // sparkline resizes automatically on next draw via offsetWidth check
+});
+
+// ─── Font ready → start ───────────────────────────────────────────────────────
+document.fonts.ready.then(() => {
+  fontReady = true;
+  loadingOverlay.classList.add('hidden');
+  buildChars(textInput.value);
+  if (raf) cancelAnimationFrame(raf);
+  startTime = null;
+  raf = requestAnimationFrame(tick);
+});
+
+// Fallback: start after 2s even if fonts.ready doesn't fire
+setTimeout(() => {
+  if (!fontReady) {
+    fontReady = true;
+    loadingOverlay.classList.add('hidden');
+    buildChars(textInput.value);
+    if (!raf) {
+      startTime = null;
+      raf = requestAnimationFrame(tick);
+    }
+  }
+}, 2000);
+</script>
+</body>
+</html>

@@ -184,7 +184,7 @@ function render() {
         const best = findBest(b, avgCharW)
         const alpha = Math.max(1, Math.min(10, Math.round(b * 10)))
         html += `<span class="${wCls(best.weight, best.style)} a${alpha}">${esc(best.char)}</span>`
-        x += best.width
+        // column advance handled by loop variable c
       }
     }
     rowEls[r].innerHTML = html
