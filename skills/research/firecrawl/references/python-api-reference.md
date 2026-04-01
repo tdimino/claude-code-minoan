@@ -213,6 +213,46 @@ python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py parallel-agent "Q1" 
 
 ---
 
+## interact — Post-Scrape Browser Interaction
+
+Interact with a previously scraped page using AI prompts or code execution.
+
+```bash
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py interact SCRAPE_ID [options]
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `-p, --prompt` | Natural language task for AI agent (mutually exclusive with --code) |
+| `-c, --code` | Code to execute: Node.js, Python, or Bash (mutually exclusive with --prompt) |
+| `-l, --language` | Code language: node (default), python, bash |
+| `-t, --timeout` | Timeout in seconds, 1-300 (default: 30) |
+| `--origin` | Caller identifier for tracking |
+| `--json` | Output raw JSON |
+
+```bash
+# AI prompt mode (7 credits/min)
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py interact abc123 --prompt "Click the pricing tab"
+
+# Code execution mode (2 credits/min)
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py interact abc123 --code "console.log(await page.title())"
+
+# Python code
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py interact abc123 --code "print(await page.title())" --language python
+```
+
+---
+
+## interact-stop — Stop Interact Session
+
+```bash
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py interact-stop SCRAPE_ID
+```
+
+Stops the browser session and releases resources. Profile state is saved if `saveChanges=true`.
+
+---
+
 ## Python SDK Examples
 
 ### Agent with Structured Schema

@@ -154,7 +154,8 @@ def scrape(
     actions: Optional[List[Dict[str, Any]]] = None,
     location: Optional[Dict[str, Any]] = None,
     max_age: Optional[int] = None,
-    store_in_cache: bool = True
+    store_in_cache: bool = True,
+    profile: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Scrape a single URL and extract content.
@@ -171,9 +172,12 @@ def scrape(
         location: Geo-targeting - {"country": "US", "languages": ["en-US"]}
         max_age: Maximum cache age in seconds (use cached result if fresher)
         store_in_cache: Whether to cache this scrape result (default: True)
+        profile: Persistent browser profile - {"name": "my-profile", "saveChanges": True}
+                 Scrapes with the same profile name share browser state (cookies, localStorage).
 
     Returns:
-        Dict with scraped content in requested formats
+        Dict with scraped content in requested formats. Includes data.metadata.scrapeId
+        which can be used with interact() to take actions on the scraped page.
     """
     payload = {
         "url": url,
@@ -194,8 +198,13 @@ def scrape(
         payload["maxAge"] = max_age
     if not store_in_cache:
         payload["storeInCache"] = False
+    if profile:
+        payload["profile"] = profile
 
-    if HAS_FIRECRAWL_SDK:
+    # Use direct HTTP when newer params (profile, max_age, store_in_cache) are set,
+    # since the SDK may not support them yet. Fall back to SDK for basic scrapes.
+    use_sdk = HAS_FIRECRAWL_SDK and not profile and max_age is None and store_in_cache
+    if use_sdk:
         app = _get_app()
         # New SDK uses scrape() with keyword args
         result = app.scrape(
@@ -875,6 +884,13 @@ def format_scrape_result(result: Dict[str, Any], max_text_length: int = 2000) ->
         output.append(f"URL: {data.get('url', data.get('sourceURL', 'Unknown'))}")
         output.append(f"Title: {data.get('title', 'No title')}")
 
+        # Surface scrapeId for interact workflows
+        metadata = data.get('metadata', {})
+        scrape_id = metadata.get('scrapeId') if isinstance(metadata, dict) else None
+        if scrape_id:
+            output.append(f"Scrape ID: {scrape_id}")
+            output.append(f"  → Interact: firecrawl_api.py interact {scrape_id} --prompt \"...\"")
+
         if data.get('markdown'):
             text = data['markdown'][:max_text_length]
             if len(data['markdown']) > max_text_length:
@@ -887,6 +903,131 @@ def format_scrape_result(result: Dict[str, Any], max_text_length: int = 2000) ->
                 output.append(f"  - {link}")
             if len(data['links']) > 10:
                 output.append(f"  ... and {len(data['links']) - 10} more")
+
+    return "\n".join(output)
+
+
+def interact(
+    scrape_id: str,
+    prompt: Optional[str] = None,
+    code: Optional[str] = None,
+    language: str = "node",
+    timeout: int = 30,
+    origin: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Interact with a previously scraped page. Takes actions via AI prompt or code execution.
+
+    The scrape session is resumed on the first interact call. Subsequent calls
+    reuse the same browser session. Stop with interact_stop() when done.
+
+    Args:
+        scrape_id: The scrapeId from a prior scrape response (data.metadata.scrapeId)
+        prompt: Natural language task for AI agent (max 10,000 chars).
+                Mutually exclusive with code.
+        code: Code to execute in the browser session (max 100,000 chars).
+              Node.js: implicit `page` (Playwright Page object).
+              Python: Playwright Python API.
+              Bash: agent-browser CLI with element refs (@e1, @e2).
+              Mutually exclusive with prompt.
+        language: Code execution language - "node" (default), "python", or "bash".
+                  Only used when code is provided.
+        timeout: Timeout in seconds, 1-300 (default: 30).
+        origin: Caller identifier for activity tracking.
+
+    Returns:
+        Dict with interaction results:
+        - Prompt mode: output, liveViewUrl, interactiveLiveViewUrl
+        - Code mode: stdout, stderr, result, exitCode, killed, liveViewUrl
+
+    Pricing:
+        - Code-only: 2 credits/session-minute
+        - With AI prompt: 7 credits/session-minute
+    """
+    if prompt is None and code is None:
+        raise ValueError("Either prompt or code is required")
+    if prompt is not None and code is not None:
+        raise ValueError("prompt and code are mutually exclusive — provide one, not both")
+    if prompt is not None and not prompt.strip():
+        raise ValueError("prompt must not be empty")
+    if code is not None and not code.strip():
+        raise ValueError("code must not be empty")
+    if prompt is not None and len(prompt) > 10000:
+        raise ValueError(f"Prompt exceeds 10,000 char limit ({len(prompt)} chars)")
+    if code is not None and len(code) > 100000:
+        raise ValueError(f"Code exceeds 100,000 char limit ({len(code)} chars)")
+    if language not in ("node", "python", "bash"):
+        raise ValueError(f"Invalid language '{language}'. Must be: node, python, bash")
+    if not (1 <= timeout <= 300):
+        raise ValueError(f"Timeout must be 1-300 seconds (got {timeout})")
+
+    payload: Dict[str, Any] = {"timeout": timeout}
+    if prompt:
+        payload["prompt"] = prompt
+    if code:
+        payload["code"] = code
+        payload["language"] = language
+    if origin:
+        payload["origin"] = origin
+
+    response = requests.post(
+        f"{BASE_URL_V2}/scrape/{scrape_id}/interact",
+        headers=_headers(),
+        json=payload
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def interact_stop(scrape_id: str) -> Dict[str, Any]:
+    """
+    Stop an interact session, releasing the browser.
+
+    If using a persistent profile with saveChanges=true (default),
+    browser state is saved before the session ends.
+
+    Args:
+        scrape_id: The scrapeId of the session to stop.
+
+    Returns:
+        Dict confirming the session was stopped.
+    """
+    response = requests.delete(
+        f"{BASE_URL_V2}/scrape/{scrape_id}/interact",
+        headers=_headers()
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def format_interact_result(result: Dict[str, Any], scrape_id: str, mode: str = "auto") -> str:
+    """Format interact result for display."""
+    output = []
+    is_prompt_mode = mode == "prompt" if mode != "auto" else "output" in result
+
+    if is_prompt_mode:
+        output.append("Mode: AI Prompt (~7 credits/min)")
+        if result.get("output"):
+            output.append(f"\n{result['output']}")
+    else:
+        output.append("Mode: Code Execution (~2 credits/min)")
+        if result.get("stdout"):
+            output.append(f"\nstdout:\n{result['stdout']}")
+        if result.get("stderr"):
+            output.append(f"\nstderr:\n{result['stderr']}")
+        if result.get("result") is not None:
+            output.append(f"\nResult: {result['result']}")
+        exit_code = result.get("exitCode")
+        if exit_code is not None:
+            output.append(f"Exit code: {exit_code}")
+        if result.get("killed"):
+            output.append("WARNING: Execution was killed (timeout exceeded)")
+
+    if result.get("liveViewUrl"):
+        output.append(f"\nLive view: {result['liveViewUrl']}")
+
+    output.append(f"\nNext: firecrawl_api.py interact {scrape_id} --prompt \"...\"")
+    output.append(f"Stop: firecrawl_api.py interact-stop {scrape_id}")
 
     return "\n".join(output)
 
@@ -919,6 +1060,9 @@ def main():
     scrape_parser.add_argument("--languages", nargs="+", help="Languages for geo-targeting (e.g., en-US es)")
     scrape_parser.add_argument("--max-age", type=int, help="Use cached result if fresher than N seconds")
     scrape_parser.add_argument("--no-cache", action="store_true", help="Don't cache this scrape result")
+    scrape_parser.add_argument("--profile", help="Persistent browser profile name (share state across scrapes)")
+    scrape_parser.add_argument("--no-save-changes", action="store_true",
+                               help="Load profile state but don't save changes back (read-only session)")
     scrape_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
     # Agent command
@@ -1027,6 +1171,25 @@ def main():
     extract_status_parser.add_argument("job_id", help="Job ID to check")
     extract_status_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
+    # Interact command
+    interact_parser = subparsers.add_parser("interact",
+        help="Interact with a scraped page (click, fill, extract)")
+    interact_parser.add_argument("scrape_id", help="Scrape ID from a prior scrape (data.metadata.scrapeId)")
+    interact_group = interact_parser.add_mutually_exclusive_group(required=True)
+    interact_group.add_argument("--prompt", "-p", help="Natural language task for AI agent (max 10K chars)")
+    interact_group.add_argument("--code", "-c", help="Code to execute (Node.js/Python/Bash, max 100K chars)")
+    interact_parser.add_argument("--language", "-l", choices=["node", "python", "bash"], default="node",
+                                 help="Code language (default: node). Only used with --code")
+    interact_parser.add_argument("--timeout", "-t", type=int, default=30,
+                                 help="Timeout in seconds, 1-300 (default: 30)")
+    interact_parser.add_argument("--origin", help="Caller identifier for tracking")
+    interact_parser.add_argument("--json", action="store_true", help="Output raw JSON")
+
+    # Interact stop command
+    interact_stop_parser = subparsers.add_parser("interact-stop",
+        help="Stop an interact session and release the browser")
+    interact_stop_parser.add_argument("scrape_id", help="Scrape ID of the session to stop")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -1067,6 +1230,13 @@ def main():
                 if args.languages:
                     location["languages"] = args.languages
 
+            # Build profile dict if --profile provided
+            profile = None
+            if getattr(args, 'profile', None):
+                profile = {"name": args.profile}
+                if getattr(args, 'no_save_changes', False):
+                    profile["saveChanges"] = False
+
             result = scrape(
                 args.url,
                 formats=args.formats,
@@ -1074,7 +1244,8 @@ def main():
                 actions=actions,
                 location=location,
                 max_age=getattr(args, 'max_age', None),
-                store_in_cache=not getattr(args, 'no_cache', False)
+                store_in_cache=not getattr(args, 'no_cache', False),
+                profile=profile
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
@@ -1311,6 +1482,25 @@ def main():
                 if result.get('data'):
                     print(f"\nExtracted data:")
                     print(json.dumps(result['data'], indent=2, default=str))
+
+        elif args.command == "interact":
+            result = interact(
+                args.scrape_id,
+                prompt=args.prompt,
+                code=args.code,
+                language=args.language,
+                timeout=args.timeout,
+                origin=getattr(args, 'origin', None)
+            )
+            if args.json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                mode = "prompt" if args.prompt else "code"
+                print(format_interact_result(result, args.scrape_id, mode=mode))
+
+        elif args.command == "interact-stop":
+            result = interact_stop(args.scrape_id)
+            print(f"Session {args.scrape_id} stopped")
 
     except requests.exceptions.HTTPError as e:
         print(f"API Error: {e}", file=sys.stderr)
