@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slant — 3D Perspective Renderer</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; height: 100vh; display: flex; }
+  :root { --sidebar-w: 300px; --accent: #6366f1; --accent-hover: #818cf8; --bg-panel: #141414; --bg-control: #1e1e1e; --border: #2a2a2a; --text: #e0e0e0; --text-dim: #888; --radius: 6px; }
+
+  /* Sidebar */
+  #sidebar { width: var(--sidebar-w); background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+  #sidebar h1 { font-size: 16px; font-weight: 600; padding: 16px; border-bottom: 1px solid var(--border); letter-spacing: -0.3px; }
+  #sidebar h1 span { color: var(--accent); }
+  .section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-dim); margin-bottom: 8px; }
+  .control { margin-bottom: 8px; }
+  .control label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+  .control select, .control input[type="color"], .control input[type="number"] {
+    width: 100%; background: var(--bg-control); border: 1px solid var(--border); color: var(--text);
+    border-radius: var(--radius); padding: 6px 8px; font-size: 13px; outline: none;
+  }
+  .control select:focus, .control input:focus { border-color: var(--accent); }
+  .control input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .range-row { display: flex; align-items: center; gap: 8px; }
+  .range-row input[type="range"] { flex: 1; }
+  .range-row .range-val { font-size: 11px; color: var(--text-dim); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+  .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .toggle-row input[type="checkbox"] { accent-color: var(--accent); }
+  .btn { width: 100%; padding: 10px; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { background: #333; color: #666; cursor: not-allowed; }
+  .btn-secondary { background: var(--bg-control); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #2a2a2a; }
+  .btn-row { display: flex; gap: 6px; }
+  .btn-row .btn { flex: 1; }
+
+  /* Drop zone */
+  #dropzone {
+    border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px 16px;
+    text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  }
+  #dropzone.active { border-color: var(--accent); background: rgba(99, 102, 241, 0.08); }
+  #dropzone.loaded { border-style: solid; border-color: #22c55e; }
+  #dropzone p { font-size: 13px; color: var(--text-dim); }
+  #dropzone .filename { font-size: 12px; color: var(--accent); margin-top: 4px; word-break: break-all; }
+
+  /* Preset grid */
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .preset-btn {
+    padding: 6px 8px; background: var(--bg-control); border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: 11px; color: var(--text); cursor: pointer;
+    text-align: left; transition: border-color 0.15s, background 0.15s;
+  }
+  .preset-btn:hover { background: #252525; }
+  .preset-btn.active { border-color: var(--accent); background: rgba(99, 102, 241, 0.12); }
+  .preset-btn .preset-name { font-weight: 600; font-size: 11px; }
+  .preset-btn .preset-desc { font-size: 10px; color: var(--text-dim); }
+
+  /* Viewport */
+  #viewport { flex: 1; position: relative; background: #0a0a0a; }
+  #viewport canvas { display: block; width: 100%; height: 100%; }
+  #placeholder {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; color: var(--text-dim); pointer-events: none;
+  }
+  #placeholder svg { width: 64px; height: 64px; opacity: 0.3; margin-bottom: 16px; }
+  #placeholder p { font-size: 14px; }
+
+  /* Export overlay */
+  #export-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+    display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
+  }
+  #export-overlay.visible { display: flex; }
+  #export-overlay .export-status { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+  #export-progress { width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+  #export-progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s; }
+  #export-warning { font-size: 11px; color: #f59e0b; margin-top: 12px; }
+
+  /* Scrollbar */
+  #sidebar::-webkit-scrollbar { width: 6px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1><span>Slant</span> — 3D Perspective</h1>
+
+  <!-- Video Input -->
+  <div class="section">
+    <div class="section-title">Video Input</div>
+    <div id="dropzone" tabindex="0">
+      <p>Drop a video file here<br>or click to browse</p>
+      <input type="file" id="fileInput" accept="video/*" hidden>
+    </div>
+  </div>
+
+  <!-- Presets -->
+  <div class="section">
+    <div class="section-title">Animation Preset</div>
+    <div class="preset-grid" id="presetGrid"></div>
+  </div>
+
+  <!-- Background -->
+  <div class="section">
+    <div class="section-title">Background</div>
+    <div class="control">
+      <label>Type</label>
+      <select id="bgType">
+        <option value="gradient">Gradient</option>
+        <option value="solid">Solid Color</option>
+        <option value="hdri">HDRI Environment</option>
+      </select>
+    </div>
+    <div class="control" id="bgColorControl">
+      <label>Color</label>
+      <input type="color" id="bgColor" value="#0a0a0a">
+    </div>
+    <div class="control" id="bgGradControl">
+      <label>Top</label>
+      <input type="color" id="bgGradTop" value="#1a1a2e">
+      <label style="margin-top:4px">Bottom</label>
+      <input type="color" id="bgGradBottom" value="#0a0a0a">
+    </div>
+    <div class="control" id="hdriControl" style="display:none">
+      <label>Environment</label>
+      <select id="hdriSelect">
+        <option value="studio_small_09">Soft Studio</option>
+        <option value="venice_sunset">Warm Golden</option>
+        <option value="industrial_sunset_puresky">Neutral Sky</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Screen Style -->
+  <div class="section">
+    <div class="section-title">Screen Style</div>
+    <div class="control">
+      <label>Corner Radius</label>
+      <div class="range-row">
+        <input type="range" id="cornerRadius" min="0" max="40" value="12" step="1">
+        <span class="range-val" id="cornerRadiusVal">12px</span>
+      </div>
+    </div>
+    <div class="control">
+      <label>Clearcoat (Reflection)</label>
+      <div class="range-row">
+        <input type="range" id="clearcoat" min="0" max="1" value="0.4" step="0.05">
+        <span class="range-val" id="clearcoatVal">0.40</span>
+      </div>
+    </div>
+    <div class="control">
+      <label>Shadow Opacity</label>
+      <div class="range-row">
+        <input type="range" id="shadowOpacity" min="0" max="1" value="0.25" step="0.05">
+        <span class="range-val" id="shadowOpacityVal">0.25</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Camera -->
+  <div class="section">
+    <div class="section-title">Camera</div>
+    <div class="control">
+      <label>FOV</label>
+      <div class="range-row">
+        <input type="range" id="fov" min="20" max="80" value="45" step="1">
+        <span class="range-val" id="fovVal">45</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Depth of Field -->
+  <div class="section">
+    <div class="section-title">Depth of Field</div>
+    <label class="toggle-row">
+      <input type="checkbox" id="dofEnabled" checked>
+      Enable DOF
+    </label>
+    <div class="control" style="margin-top:8px">
+      <label>Aperture</label>
+      <div class="range-row">
+        <input type="range" id="dofAperture" min="0" max="0.05" value="0.015" step="0.001">
+        <span class="range-val" id="dofApertureVal">0.015</span>
+      </div>
+    </div>
+    <div class="control">
+      <label>Max Blur</label>
+      <div class="range-row">
+        <input type="range" id="dofMaxBlur" min="0" max="0.03" value="0.008" step="0.001">
+        <span class="range-val" id="dofMaxBlurVal">0.008</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bloom -->
+  <div class="section">
+    <div class="section-title">Bloom</div>
+    <label class="toggle-row">
+      <input type="checkbox" id="bloomEnabled">
+      Enable Bloom
+    </label>
+    <div class="control" style="margin-top:8px">
+      <label>Strength</label>
+      <div class="range-row">
+        <input type="range" id="bloomStrength" min="0" max="1" value="0.15" step="0.01">
+        <span class="range-val" id="bloomStrengthVal">0.15</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export -->
+  <div class="section">
+    <div class="section-title">Export</div>
+    <div class="control">
+      <label>Format</label>
+      <select id="exportFormat">
+        <option value="mp4">MP4 (Twitter / Social)</option>
+        <option value="webm">WebM</option>
+        <option value="gif">GIF (GitHub PRs)</option>
+      </select>
+    </div>
+    <div class="control">
+      <label>Resolution</label>
+      <select id="exportRes">
+        <option value="1280x720">720p (Twitter optimal)</option>
+        <option value="1920x1080">1080p</option>
+      </select>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-primary" id="exportBtn" disabled>Export</button>
+    </div>
+    <div class="btn-row" style="margin-top:6px">
+      <button class="btn btn-secondary" id="playBtn" disabled>Play</button>
+      <button class="btn btn-secondary" id="resetBtn" disabled>Reset Camera</button>
+    </div>
+  </div>
+</div>
+
+<div id="viewport">
+  <div id="placeholder">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+    </svg>
+    <p>Drop a screen recording to get started</p>
+  </div>
+  <div id="export-overlay">
+    <div class="export-status" id="exportStatus">Exporting...</div>
+    <div id="export-progress"><div id="export-progress-bar"></div></div>
+    <div id="export-warning">Keep this tab focused — background tabs freeze the animation</div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+// ─── Animation Presets ───────────────────────────────────────────
+const PRESETS = {
+  heroFloat: {
+    name: 'Hero Float', desc: 'Landing page',
+    camera: { start: [8, 4, 12], end: [8, 4, 12] },
+    mesh: { yBob: { amplitude: 0.15, frequency: 0.5 } },
+    fov: 40,
+    dof: { aperture: 0.015, maxblur: 0.008 },
+  },
+  dramaticTilt: {
+    name: 'Dramatic Tilt', desc: 'Reveal / intro',
+    camera: { start: [0, 0, 15], end: [6, 4, 13] },
+    mesh: { rotateY: { start: 0, end: 0.25 } },
+    fov: 45, easing: 'easeOutCubic', holdAt: 0.3,
+    dof: { aperture: 0.02, maxblur: 0.01 },
+  },
+  orbitRight: {
+    name: 'Orbit Right', desc: 'Showcase',
+    camera: { orbit: { startAngle: -0.4, endAngle: 0.4, radius: 14, height: 3 } },
+    fov: 45,
+    dof: { aperture: 0.012, maxblur: 0.006 },
+  },
+  orbitLeft: {
+    name: 'Orbit Left', desc: 'Showcase (mirror)',
+    camera: { orbit: { startAngle: 0.4, endAngle: -0.4, radius: 14, height: 3 } },
+    fov: 45,
+    dof: { aperture: 0.012, maxblur: 0.006 },
+  },
+  slideIn: {
+    name: 'Slide In', desc: 'Transition',
+    camera: { start: [6, 3, 13], end: [6, 3, 13] },
+    mesh: { translateX: { start: 15, end: 0 } },
+    fov: 45, easing: 'easeOutCubic',
+    dof: { aperture: 0.015, maxblur: 0.008 },
+  },
+  pullBack: {
+    name: 'Pull Back', desc: 'Context reveal',
+    camera: { start: [3, 1.5, 8], end: [6, 3, 15] },
+    fov: 45, easing: 'easeOutQuad',
+    dof: { aperture: 0.01, maxblur: 0.005 },
+  },
+  pushIn: {
+    name: 'Push In', desc: 'Focus / detail',
+    camera: { start: [6, 3, 16], end: [2, 1, 9] },
+    fov: 42, easing: 'easeInOutCubic',
+    dof: { aperture: 0.02, maxblur: 0.012 },
+  },
+  topDown: {
+    name: 'Top Down', desc: 'App overview',
+    camera: { start: [0, 14, 2], end: [5, 5, 12] },
+    fov: 45, easing: 'easeInOutCubic', holdAt: 0.4,
+    dof: { aperture: 0.01, maxblur: 0.006 },
+  },
+  isometric: {
+    name: 'Isometric', desc: 'Technical / clean',
+    camera: { start: [10, 8, 10], end: [10, 8, 10] },
+    fov: 35, orthoFeel: true,
+    dof: { aperture: 0.005, maxblur: 0.003 },
+  },
+  carousel: {
+    name: 'Carousel', desc: 'Full rotation',
+    camera: { orbit: { startAngle: 0, endAngle: Math.PI * 2, radius: 14, height: 3 } },
+    fov: 45,
+    dof: { aperture: 0.012, maxblur: 0.006 },
+  },
+  breathing: {
+    name: 'Breathing', desc: 'Ambient / loop',
+    camera: { start: [6, 3, 13], end: [6, 3, 13] },
+    mesh: { yBob: { amplitude: 0.08, frequency: 0.3 } },
+    cameraBreathing: { amplitude: 0.5, frequency: 0.4 },
+    fov: 45,
+    dof: { aperture: 0.015, maxblur: 0.008 },
+  },
+  cinematicPan: {
+    name: 'Cinematic Pan', desc: 'Film-grade',
+    camera: { start: [-4, 2, 13], end: [10, 3, 13] },
+    fov: 50, easing: 'easeInOutQuad',
+    dof: { aperture: 0.025, maxblur: 0.015 },
+  },
+};
+
+// ─── Easing Functions ────────────────────────────────────────────
+const easings = {
+  linear: t => t,
+  easeOutCubic: t => 1 - Math.pow(1 - t, 3),
+  easeOutQuad: t => 1 - (1 - t) * (1 - t),
+  easeInOutCubic: t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  easeInOutQuad: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+};
+
+// ─── State ───────────────────────────────────────────────────────
+let renderer, scene, camera, controls, composer;
+let renderPass, bloomPass, bokehPass, outputPass;
+let screenMesh, shadowPlane, videoTexture, videoEl;
+let pmremGenerator, currentHDRI = null;
+let activePreset = 'heroFloat';
+let isExporting = false;
+let videoDuration = 0;
+let videoObjectURL = null;
+
+// ─── DOM References ──────────────────────────────────────────────
+const viewport = document.getElementById('viewport');
+const placeholder = document.getElementById('placeholder');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const presetGrid = document.getElementById('presetGrid');
+const exportBtn = document.getElementById('exportBtn');
+const playBtn = document.getElementById('playBtn');
+const resetBtn = document.getElementById('resetBtn');
+const exportOverlay = document.getElementById('export-overlay');
+const exportStatus = document.getElementById('exportStatus');
+const exportProgressBar = document.getElementById('export-progress-bar');
+const dofEnabledEl = document.getElementById('dofEnabled');
+const bloomEnabledEl = document.getElementById('bloomEnabled');
+const bloomStrengthEl = document.getElementById('bloomStrength');
+const clearcoatEl = document.getElementById('clearcoat');
+const shadowOpacityEl = document.getElementById('shadowOpacity');
+
+// ─── Init Three.js ───────────────────────────────────────────────
+function initThree() {
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(45, viewport.clientWidth / viewport.clientHeight, 0.1, 100);
+  camera.position.set(8, 4, 12);
+  camera.lookAt(0, 0, 0);
+
+  renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    preserveDrawingBuffer: true,
+    alpha: false,
+  });
+  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  viewport.appendChild(renderer.domElement);
+
+  // WebGL context loss handling
+  renderer.domElement.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    console.error('[Slant] WebGL context lost');
+    if (isExporting) { isExporting = false; exportOverlay.classList.remove('visible'); }
+    placeholder.innerHTML = '<p style="color:#ef4444">WebGL context lost. Refresh the page to continue.</p>';
+    placeholder.style.display = 'flex';
+  });
+
+  // PMREMGenerator setup — render once first to avoid r183 bug #33207
+  renderer.render(scene, camera);
+  pmremGenerator = new THREE.PMREMGenerator(renderer);
+  pmremGenerator.compileEquirectangularShader();
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambient);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(5, 10, 7);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(1024, 1024);
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 50;
+  dirLight.shadow.camera.left = -15;
+  dirLight.shadow.camera.right = 15;
+  dirLight.shadow.camera.top = 15;
+  dirLight.shadow.camera.bottom = -15;
+  dirLight.shadow.bias = -0.001;
+  scene.add(dirLight);
+
+  // Shadow ground
+  const shadowGeo = new THREE.PlaneGeometry(30, 30);
+  const shadowMat = new THREE.ShadowMaterial({ opacity: 0.25 });
+  shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
+  shadowPlane.rotation.x = -Math.PI / 2;
+  shadowPlane.position.y = -5;
+  shadowPlane.receiveShadow = true;
+  scene.add(shadowPlane);
+
+  // Controls
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.target.set(0, 0, 0);
+
+  // Post-processing
+  composer = new EffectComposer(renderer);
+  renderPass = new RenderPass(scene, camera);
+  composer.addPass(renderPass);
+
+  bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(viewport.clientWidth, viewport.clientHeight),
+    0.15, 0.4, 0.85
+  );
+  bloomPass.enabled = false;
+  composer.addPass(bloomPass);
+
+  bokehPass = new BokehPass(scene, camera, {
+    focus: 14.0,
+    aperture: 0.015,
+    maxblur: 0.008,
+  });
+  bokehPass.enabled = true;
+  composer.addPass(bokehPass);
+
+  outputPass = new OutputPass();
+  composer.addPass(outputPass);
+
+  // Default gradient background
+  updateBackground();
+
+  // Start render loop
+  animate();
+}
+
+// ─── Gradient Background ─────────────────────────────────────────
+function createGradientTexture(topHex, bottomHex) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 2;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, topHex);
+  grad.addColorStop(1, bottomHex);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 2, 256);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function updateBackground() {
+  const bgType = document.getElementById('bgType').value;
+
+  // Show/hide controls
+  document.getElementById('bgColorControl').style.display = bgType === 'solid' ? '' : 'none';
+  document.getElementById('bgGradControl').style.display = bgType === 'gradient' ? '' : 'none';
+  document.getElementById('hdriControl').style.display = bgType === 'hdri' ? '' : 'none';
+
+  if (bgType === 'solid') {
+    scene.background = new THREE.Color(document.getElementById('bgColor').value);
+    scene.environment = currentHDRI; // keep reflections if HDRI loaded
+  } else if (bgType === 'gradient') {
+    const top = document.getElementById('bgGradTop').value;
+    const bottom = document.getElementById('bgGradBottom').value;
+    scene.background = createGradientTexture(top, bottom);
+    scene.environment = currentHDRI;
+  } else if (bgType === 'hdri') {
+    loadHDRI(document.getElementById('hdriSelect').value);
+  }
+}
+
+function loadHDRI(name) {
+  const url = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/${name}_1k.hdr`;
+  new RGBELoader().load(url, (texture) => {
+    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+    scene.environment = envMap;
+    scene.background = envMap;
+    currentHDRI = envMap;
+    texture.dispose();
+  }, undefined, (err) => {
+    console.error(`[Slant] Failed to load HDRI "${name}":`, err);
+    document.getElementById('bgType').value = 'gradient';
+    updateBackground();
+  });
+}
+
+// ─── Video Loading ───────────────────────────────────────────────
+function loadVideo(file) {
+  if (videoEl) {
+    videoEl.pause();
+    videoEl.src = '';
+  }
+  if (videoObjectURL) {
+    URL.revokeObjectURL(videoObjectURL);
+    videoObjectURL = null;
+  }
+  if (videoTexture) {
+    videoTexture.dispose();
+    videoTexture = null;
+  }
+  if (screenMesh) {
+    scene.remove(screenMesh);
+    screenMesh.geometry.dispose();
+    screenMesh.material.dispose();
+  }
+
+  videoEl = document.createElement('video');
+  videoObjectURL = URL.createObjectURL(file);
+  videoEl.src = videoObjectURL;
+  videoEl.muted = true;
+  videoEl.playsInline = true;
+  videoEl.loop = true;
+  videoEl.crossOrigin = 'anonymous';
+
+  videoEl.addEventListener('error', () => {
+    const codes = { 1: 'Loading aborted.', 2: 'Network error.', 3: 'Decode error — codec may not be supported.', 4: 'Format not supported.' };
+    const msg = codes[videoEl.error?.code] || 'Unknown error loading video.';
+    console.error('[Slant] Video load error:', videoEl.error);
+    dropzone.classList.remove('loaded');
+    dropzone.innerHTML = `<p style="color:#ef4444">Failed to load video</p><div class="filename" style="color:#ef4444">${msg}</div>`;
+    exportBtn.disabled = true;
+    playBtn.disabled = true;
+    resetBtn.disabled = true;
+  });
+
+  videoEl.addEventListener('loadedmetadata', () => {
+    videoDuration = videoEl.duration;
+    const aspect = videoEl.videoWidth / videoEl.videoHeight;
+    const height = 8;
+    const width = height * aspect;
+
+    // Rounded-corner video: render video frames to a canvas with roundRect
+    const cornerR = parseInt(document.getElementById('cornerRadius').value);
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = videoEl.videoWidth;
+    offCanvas.height = videoEl.videoHeight;
+    const offCtx = offCanvas.getContext('2d');
+
+    videoTexture = new THREE.CanvasTexture(offCanvas);
+    videoTexture.colorSpace = THREE.SRGBColorSpace;
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+
+    // Store references for the render loop
+    videoTexture._offCanvas = offCanvas;
+    videoTexture._offCtx = offCtx;
+    videoTexture._videoEl = videoEl;
+    videoTexture._cornerRadius = cornerR;
+
+    const geo = new THREE.PlaneGeometry(width, height);
+    const mat = new THREE.MeshPhysicalMaterial({
+      map: videoTexture,
+      clearcoat: parseFloat(clearcoatEl.value),
+      clearcoatRoughness: 0.1,
+      roughness: 0.15,
+      metalness: 0.0,
+      envMapIntensity: 0.25,
+    });
+
+    screenMesh = new THREE.Mesh(geo, mat);
+    screenMesh.castShadow = true;
+    screenMesh.receiveShadow = false;
+    scene.add(screenMesh);
+
+    videoEl.play().catch(() => { playBtn.textContent = 'Play'; });
+    placeholder.style.display = 'none';
+    exportBtn.disabled = false;
+    playBtn.disabled = false;
+    resetBtn.disabled = false;
+    applyPreset(activePreset, 0);
+  });
+}
+
+// Update the offscreen canvas with rounded corners
+function updateVideoTexture() {
+  if (!videoTexture || !videoEl || videoEl.readyState < 2) return;
+  const canvas = videoTexture._offCanvas;
+  const ctx = videoTexture._offCtx;
+  const r = videoTexture._cornerRadius;
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.save();
+  ctx.clearRect(0, 0, w, h);
+
+  const scale = w / 800;
+  const cr = r * scale;
+
+  if (cr > 0) {
+    ctx.beginPath();
+    ctx.roundRect(0, 0, w, h, cr);
+    ctx.clip();
+  }
+  ctx.drawImage(videoEl, 0, 0, w, h);
+  ctx.restore();
+  videoTexture.needsUpdate = true;
+}
+
+// ─── Preset Application ─────────────────────────────────────────
+function applyPreset(key, t) {
+  const p = PRESETS[key];
+  if (!p) return;
+
+  const easing = easings[p.easing] || easings.linear;
+
+  // Handle holdAt — transition happens in first portion, then hold
+  let progress = t;
+  if (p.holdAt && t > p.holdAt) {
+    progress = 1;
+  } else if (p.holdAt) {
+    progress = t / p.holdAt;
+  }
+  const et = easing(Math.min(1, Math.max(0, progress)));
+
+  // Camera position
+  if (p.camera.orbit) {
+    const o = p.camera.orbit;
+    const angle = o.startAngle + (o.endAngle - o.startAngle) * et;
+    camera.position.set(
+      Math.sin(angle) * o.radius,
+      o.height,
+      Math.cos(angle) * o.radius
+    );
+  } else if (p.camera.start && p.camera.end) {
+    const s = p.camera.start, e = p.camera.end;
+    camera.position.set(
+      s[0] + (e[0] - s[0]) * et,
+      s[1] + (e[1] - s[1]) * et,
+      s[2] + (e[2] - s[2]) * et
+    );
+  }
+
+  // Camera breathing
+  if (p.cameraBreathing) {
+    const cb = p.cameraBreathing;
+    const breathOffset = Math.sin(t * Math.PI * 2 * cb.frequency) * cb.amplitude;
+    camera.position.z += breathOffset;
+  }
+
+  camera.lookAt(0, 0, 0);
+
+  // Mesh animations
+  if (screenMesh && p.mesh) {
+    screenMesh.position.set(0, 0, 0);
+    screenMesh.rotation.set(0, 0, 0);
+
+    if (p.mesh.yBob) {
+      const time = performance.now() / 1000;
+      screenMesh.position.y = Math.sin(time * p.mesh.yBob.frequency * Math.PI * 2) * p.mesh.yBob.amplitude;
+    }
+    if (p.mesh.rotateY) {
+      screenMesh.rotation.y = p.mesh.rotateY.start + (p.mesh.rotateY.end - p.mesh.rotateY.start) * et;
+    }
+    if (p.mesh.translateX) {
+      screenMesh.position.x = p.mesh.translateX.start + (p.mesh.translateX.end - p.mesh.translateX.start) * et;
+    }
+  }
+
+  // FOV
+  if (p.fov) {
+    camera.fov = p.fov;
+    camera.updateProjectionMatrix();
+  }
+
+  // DOF
+  if (p.dof && bokehPass) {
+    bokehPass.uniforms['aperture'].value = p.dof.aperture;
+    bokehPass.uniforms['maxblur'].value = p.dof.maxblur;
+  }
+}
+
+// ─── Render Loop ─────────────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Update video texture with rounded corners
+  updateVideoTexture();
+
+  // Animation
+  if (videoEl && videoDuration > 0 && !isExporting) {
+    const t = (videoEl.currentTime || 0) / videoDuration;
+    applyPreset(activePreset, t);
+  }
+
+  // Update controls only when not exporting and not in preset mode
+  if (!isExporting) {
+    controls.update();
+  }
+
+  // Update DOF focus distance based on camera-to-mesh distance
+  if (screenMesh && bokehPass && dofEnabledEl.checked) {
+    bokehPass.uniforms['focus'].value = camera.position.distanceTo(screenMesh.position);
+    bokehPass.enabled = true;
+  } else if (bokehPass) {
+    bokehPass.enabled = false;
+  }
+
+  // Bloom
+  bloomPass.enabled = bloomEnabledEl.checked;
+  if (bloomPass.enabled) {
+    bloomPass.strength = parseFloat(bloomStrengthEl.value);
+  }
+
+  // Clearcoat live update
+  if (screenMesh) {
+    screenMesh.material.clearcoat = parseFloat(clearcoatEl.value);
+  }
+
+  // Shadow opacity
+  if (shadowPlane) {
+    shadowPlane.material.opacity = parseFloat(shadowOpacityEl.value);
+  }
+
+  composer.render();
+}
+
+// ─── Export ──────────────────────────────────────────────────────
+async function startExport() {
+  if (!videoEl || isExporting) return;
+
+  const format = document.getElementById('exportFormat').value;
+  const [w, h] = document.getElementById('exportRes').value.split('x').map(Number);
+
+  const origW = viewport.clientWidth;
+  const origH = viewport.clientHeight;
+
+  try {
+    isExporting = true;
+    exportOverlay.classList.add('visible');
+    exportStatus.textContent = 'Preparing export...';
+    exportProgressBar.style.width = '0%';
+
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(1);
+    composer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+
+    // Reset video to start
+    videoEl.currentTime = 0;
+    videoEl.muted = true;
+    await Promise.race([
+      new Promise(r => { videoEl.onseeked = r; }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('Video seek timed out')), 5000))
+    ]);
+    await videoEl.play();
+
+    const canvas = renderer.domElement;
+    const fps = format === 'gif' ? 15 : 30;
+
+    if (format === 'gif') {
+      await exportGif(canvas, w, h, fps);
+    } else {
+      await exportVideo(canvas, w, h, fps, format);
+    }
+  } catch (err) {
+    console.error('[Slant] Export failed:', err);
+    exportStatus.textContent = `Export failed: ${err.message}`;
+    exportProgressBar.style.width = '0%';
+    setTimeout(() => { exportOverlay.classList.remove('visible'); }, 3000);
+  } finally {
+    isExporting = false;
+    renderer.setSize(origW, origH);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    composer.setSize(origW, origH);
+    camera.aspect = origW / origH;
+    camera.updateProjectionMatrix();
+  }
+}
+
+async function exportVideo(canvas, w, h, fps, format) {
+  // Determine MIME type with codec preference chain
+  let mimeType = 'video/webm;codecs=vp9';
+  if (format === 'mp4' && MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
+    mimeType = 'video/mp4;codecs=avc1';
+  } else if (!MediaRecorder.isTypeSupported(mimeType)) {
+    mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8')
+      ? 'video/webm;codecs=vp8'
+      : 'video/webm';
+  }
+
+  // Notify user if format fell back
+  if (format === 'mp4' && !mimeType.startsWith('video/mp4')) {
+    exportStatus.textContent = 'MP4 not supported in this browser — exporting as WebM...';
+  }
+
+  const stream = canvas.captureStream(fps);
+  const recorder = new MediaRecorder(stream, {
+    mimeType,
+    videoBitsPerSecond: 8_000_000,
+  });
+
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  return new Promise((resolve, reject) => {
+    recorder.onerror = (event) => {
+      console.error('[Slant] MediaRecorder error:', event.error);
+      reject(event.error || new Error('MediaRecorder encoding failed'));
+    };
+
+    recorder.onstop = () => {
+      const ext = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
+      const blob = new Blob(chunks, { type: mimeType });
+      downloadBlob(blob, `slant-export.${ext}`);
+      resolve();
+    };
+
+    recorder.start(100);
+    exportStatus.textContent = 'Recording...';
+
+    function exportFrame() {
+      if (!isExporting) { recorder.stop(); return; }
+
+      // Use video time as authoritative progress
+      const t = videoEl.currentTime / videoDuration;
+      const progress = Math.min(t, 1);
+      exportProgressBar.style.width = `${progress * 100}%`;
+      exportStatus.textContent = `Recording... ${Math.round(progress * 100)}%`;
+
+      applyPreset(activePreset, t);
+      updateVideoTexture();
+      composer.render();
+
+      if (progress >= 0.99) {
+        recorder.stop();
+      } else {
+        requestAnimationFrame(exportFrame);
+      }
+    }
+
+    requestAnimationFrame(exportFrame);
+  });
+}
+
+async function exportGif(canvas, w, h, fps) {
+  exportStatus.textContent = 'GIF export: capturing frames...';
+
+  const gifW = Math.min(w, 640);
+  const gifH = Math.round(gifW * (h / w));
+  const frameCanvas = document.createElement('canvas');
+  frameCanvas.width = gifW;
+  frameCanvas.height = gifH;
+  const frameCtx = frameCanvas.getContext('2d');
+
+  const frameDelay = 1000 / fps;
+  const MAX_GIF_FRAMES = 300; // ~20s at 15fps
+  const rawFrames = Math.floor(videoDuration * fps);
+  const totalFrames = Math.min(rawFrames, MAX_GIF_FRAMES);
+  if (rawFrames > MAX_GIF_FRAMES) {
+    exportStatus.textContent = `GIF limited to first ${(MAX_GIF_FRAMES / fps).toFixed(0)}s of video`;
+  }
+  const frames = [];
+
+  videoEl.pause();
+  videoEl.currentTime = 0;
+  await Promise.race([
+    new Promise(r => { videoEl.onseeked = r; }),
+    new Promise(r => setTimeout(r, 2000))
+  ]);
+
+  for (let i = 0; i < totalFrames; i++) {
+    const t = i / totalFrames;
+    videoEl.currentTime = t * videoDuration;
+    await new Promise(r => { videoEl.onseeked = r; });
+
+    applyPreset(activePreset, t);
+    updateVideoTexture();
+    composer.render();
+
+    frameCtx.drawImage(canvas, 0, 0, gifW, gifH);
+    frames.push(frameCtx.getImageData(0, 0, gifW, gifH));
+
+    exportProgressBar.style.width = `${(i / totalFrames) * 50}%`;
+    exportStatus.textContent = `Capturing frames... ${i + 1}/${totalFrames}`;
+  }
+
+  exportStatus.textContent = 'Encoding GIF...';
+
+  const { GIFEncoder, quantize, applyPalette } = await import('https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm');
+  const gif = GIFEncoder();
+
+  for (let i = 0; i < frames.length; i++) {
+    const { data, width, height } = frames[i];
+    const palette = quantize(data, 256);
+    const indexed = applyPalette(data, palette);
+    gif.writeFrame(indexed, width, height, { palette, delay: frameDelay });
+    exportProgressBar.style.width = `${50 + (i / frames.length) * 50}%`;
+  }
+
+  gif.finish();
+  const blob = new Blob([gif.bytes()], { type: 'image/gif' });
+  downloadBlob(blob, 'slant-export.gif');
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  exportStatus.textContent = 'Export complete!';
+  setTimeout(() => { exportOverlay.classList.remove('visible'); }, 1000);
+}
+
+// ─── UI Wiring ───────────────────────────────────────────────────
+
+// Preset buttons
+Object.entries(PRESETS).forEach(([key, p]) => {
+  const btn = document.createElement('button');
+  btn.className = `preset-btn ${key === activePreset ? 'active' : ''}`;
+  btn.innerHTML = `<div class="preset-name">${p.name}</div><div class="preset-desc">${p.desc}</div>`;
+  btn.addEventListener('click', () => {
+    activePreset = key;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Update DOF sliders to preset values
+    if (p.dof) {
+      document.getElementById('dofAperture').value = p.dof.aperture;
+      document.getElementById('dofApertureVal').textContent = p.dof.aperture.toFixed(3);
+      document.getElementById('dofMaxBlur').value = p.dof.maxblur;
+      document.getElementById('dofMaxBlurVal').textContent = p.dof.maxblur.toFixed(3);
+    }
+    if (p.fov) {
+      document.getElementById('fov').value = p.fov;
+      document.getElementById('fovVal').textContent = p.fov;
+    }
+  });
+  presetGrid.appendChild(btn);
+});
+
+// File input
+function handleVideoFile(file) {
+  loadVideo(file);
+  dropzone.classList.add('loaded');
+  dropzone.innerHTML = `<p>Loaded</p><div class="filename">${file.name}</div>`;
+}
+
+function handleVideoDrop(e) {
+  e.preventDefault();
+  dropzone.classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('video/')) handleVideoFile(file);
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('active'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
+dropzone.addEventListener('drop', handleVideoDrop);
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (file) handleVideoFile(file);
+});
+
+// Also allow dropping on the viewport
+viewport.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('active'); });
+viewport.addEventListener('drop', handleVideoDrop);
+
+// Background controls
+document.getElementById('bgType').addEventListener('change', updateBackground);
+document.getElementById('bgColor').addEventListener('input', updateBackground);
+document.getElementById('bgGradTop').addEventListener('input', updateBackground);
+document.getElementById('bgGradBottom').addEventListener('input', updateBackground);
+document.getElementById('hdriSelect').addEventListener('change', () => {
+  loadHDRI(document.getElementById('hdriSelect').value);
+});
+
+// Range sliders with value display
+function wireRange(id, valId, formatter) {
+  const el = document.getElementById(id);
+  const val = document.getElementById(valId);
+  el.addEventListener('input', () => { val.textContent = formatter ? formatter(el.value) : el.value; });
+}
+wireRange('cornerRadius', 'cornerRadiusVal', v => `${v}px`);
+wireRange('clearcoat', 'clearcoatVal', v => parseFloat(v).toFixed(2));
+wireRange('shadowOpacity', 'shadowOpacityVal', v => parseFloat(v).toFixed(2));
+wireRange('fov', 'fovVal');
+wireRange('dofAperture', 'dofApertureVal', v => parseFloat(v).toFixed(3));
+wireRange('dofMaxBlur', 'dofMaxBlurVal', v => parseFloat(v).toFixed(3));
+wireRange('bloomStrength', 'bloomStrengthVal', v => parseFloat(v).toFixed(2));
+
+// Corner radius updates the texture clipping
+document.getElementById('cornerRadius').addEventListener('input', (e) => {
+  if (videoTexture) {
+    videoTexture._cornerRadius = parseInt(e.target.value);
+  }
+});
+
+// FOV live update
+document.getElementById('fov').addEventListener('input', (e) => {
+  camera.fov = parseInt(e.target.value);
+  camera.updateProjectionMatrix();
+});
+
+// DOF controls
+document.getElementById('dofAperture').addEventListener('input', (e) => {
+  if (bokehPass) bokehPass.uniforms['aperture'].value = parseFloat(e.target.value);
+});
+document.getElementById('dofMaxBlur').addEventListener('input', (e) => {
+  if (bokehPass) bokehPass.uniforms['maxblur'].value = parseFloat(e.target.value);
+});
+
+// Export
+exportBtn.addEventListener('click', startExport);
+
+// Play/pause
+playBtn.addEventListener('click', () => {
+  if (!videoEl) return;
+  if (videoEl.paused) { videoEl.play(); playBtn.textContent = 'Pause'; }
+  else { videoEl.pause(); playBtn.textContent = 'Play'; }
+});
+
+// Reset camera
+resetBtn.addEventListener('click', () => {
+  if (!PRESETS[activePreset]) return;
+  const p = PRESETS[activePreset];
+  if (p.camera.start) camera.position.set(...p.camera.start);
+  else if (p.camera.orbit) {
+    const o = p.camera.orbit;
+    camera.position.set(Math.sin(o.startAngle) * o.radius, o.height, Math.cos(o.startAngle) * o.radius);
+  }
+  camera.lookAt(0, 0, 0);
+  controls.target.set(0, 0, 0);
+  controls.update();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') { e.preventDefault(); playBtn.click(); }
+  if (e.code === 'KeyE') { e.preventDefault(); exportBtn.click(); }
+  if (e.code === 'KeyR') { e.preventDefault(); resetBtn.click(); }
+  // 1-9 for presets
+  const num = parseInt(e.key);
+  if (num >= 1 && num <= 9) {
+    const keys = Object.keys(PRESETS);
+    if (keys[num - 1]) {
+      const btns = document.querySelectorAll('.preset-btn');
+      btns[num - 1]?.click();
+    }
+  }
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  if (isExporting) return;
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+});
+
+// Init
+try {
+  initThree();
+} catch (err) {
+  console.error('[Slant] Initialization failed:', err);
+  placeholder.innerHTML = `<p style="color:#ef4444">Failed to initialize 3D renderer</p><p style="color:#888;font-size:12px;margin-top:8px">${err.message}</p>`;
+}
+</script>
+</body>
+</html>

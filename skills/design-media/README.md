@@ -19,4 +19,5 @@ Frontend design, image generation/editing, vision models, TTS, and visual effect
 | `smolvlm` | Local vision-language model (SmolVLM-2B) for image analysis |
 | `speak-response` | Local TTS using Qwen3-TTS with Oracle voice clone |
 | `shadcn` | Install, customize, compose shadcn/ui components with Tailwind v4 OKLCH theming |
+| `recordly` | Screen recording polish (auto-zoom, cursor animations, webcam overlays) + 3D perspective renderer (12 presets, HDRI reflections, MP4/GIF export). Open-source Screen Studio alternative (Recordly fork of OpenScreen). 3 scripts + slant.html |
 | `sprite-forge` | Game sprites, SVG characters, ASCII art, animated mascots, isometric turnarounds — 5 output modes with chongdashu pipeline, video-to-spritesheet, Gemini SVG-as-code, GSAP animation. 9 scripts, 10 references |
