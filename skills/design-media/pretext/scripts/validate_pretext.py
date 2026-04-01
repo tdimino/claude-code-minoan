@@ -142,6 +142,44 @@ def validate(html: str) -> list[dict]:
         detail=f"Found framework import(s): {', '.join(found_frameworks)}" if found_frameworks else None,
     ))
 
+    # --- opentype.js checks (only when opentype is detected) ---
+    has_opentype = bool(re.search(r'opentype', html, re.IGNORECASE))
+    if has_opentype:
+        # 11. No .woff2 font URLs (opentype.js cannot parse woff2)
+        woff2_urls = re.findall(r'["\'][^"\']*\.woff2["\']', html)
+        results.append(check(
+            "No .woff2 font URLs (opentype.js cannot parse woff2)",
+            len(woff2_urls) == 0,
+            detail=f"Found .woff2 URL(s): {', '.join(woff2_urls[:3])} — use .woff or .ttf instead" if woff2_urls else None,
+        ))
+
+        # 12. No opentype.load() anti-pattern (use fetch+parse instead)
+        uses_ot_load = bool(re.search(r'opentype\.load\s*\(', html))
+        results.append(check(
+            "No opentype.load() — use fetch→arrayBuffer→opentype.parse instead",
+            not uses_ot_load,
+            detail="Found opentype.load() — prefer fetch(url).then(r => r.arrayBuffer()).then(opentype.parse) for better error handling" if uses_ot_load else None,
+        ))
+
+        # 13. Scale factor pattern present (fontSize / unitsPerEm)
+        has_scale = bool(re.search(r'unitsPerEm', html))
+        results.append(check(
+            "Scale factor (fontSize / font.unitsPerEm) present",
+            has_scale,
+            detail="No reference to unitsPerEm — glyph advance widths need scale = fontSize / font.unitsPerEm" if not has_scale else None,
+            warn_only=True,
+        ))
+
+        # 14. No Google Fonts TTF direct CDN URLs (return 404 for programmatic access)
+        google_fonts_ttf = bool(re.search(r'fonts\.googleapis\.com.*\.(ttf|otf)', html))
+        google_fonts_gh = bool(re.search(r'cdn\.jsdelivr\.net/gh/google/fonts', html))
+        bad_font_url = google_fonts_ttf or google_fonts_gh
+        results.append(check(
+            "No Google Fonts TTF CDN URLs (use @fontsource via jsdelivr)",
+            not bad_font_url,
+            detail="Google Fonts TTF URLs return 404 for programmatic access — use @fontsource via jsdelivr instead" if bad_font_url else None,
+        ))
+
     return results
 
 

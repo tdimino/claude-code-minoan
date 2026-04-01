@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlyphKit — Glyph Morphing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08080e;
+  --bg-card: #0e0e16;
+  --bg-input: #14141e;
+  --fg: #e8e4dc;
+  --fg-dim: #8a8680;
+  --fg-accent: #c9a84c;
+  --fg-accent-dim: #8b6914;
+  --border: #1e1e2a;
+}
+html { background: var(--bg); color: var(--fg); font-family: Georgia, 'Palatino Linotype', serif; }
+body { min-height: 100vh; padding: 2rem 1.5rem; max-width: 960px; margin: 0 auto; }
+
+a { color: var(--fg-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.back { display: inline-block; font-family: 'SF Mono', monospace; font-size: 0.75rem; color: var(--fg-dim); margin-bottom: 1rem; }
+.back:hover { color: var(--fg-accent); }
+
+h1 { font-weight: 400; font-size: 1.8rem; letter-spacing: 0.02em; margin-bottom: 0.25rem; font-family: 'Playfair Display', Georgia, serif; }
+.subtitle { color: var(--fg-dim); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+.controls {
+  display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  margin-bottom: 1.5rem; align-items: flex-end;
+}
+.control-group { display: flex; flex-direction: column; gap: 0.25rem; }
+.control-group label {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-dim);
+}
+input[type="text"] {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: Georgia, serif; font-size: 1.5rem; padding: 0.3rem 0.5rem; border-radius: 6px;
+  outline: none; width: 60px; text-align: center;
+}
+input[type="text"]:focus { border-color: var(--fg-accent-dim); }
+input[type="range"] {
+  accent-color: #c4697a; width: 180px; cursor: pointer;
+  background: transparent; -webkit-appearance: none; height: 20px;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  background: var(--bg-input); border: 1px solid var(--border); height: 4px; border-radius: 2px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: #c4697a; margin-top: -5px; cursor: pointer;
+}
+select {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: Georgia, serif; font-size: 0.85rem; padding: 0.4rem 0.6rem; border-radius: 6px;
+  outline: none; cursor: pointer;
+}
+select:focus { border-color: var(--fg-accent-dim); }
+
+.btn {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: 'SF Mono', monospace; font-size: 0.7rem; padding: 0.4rem 0.8rem;
+  border-radius: 6px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+.btn:hover { border-color: #c4697a; color: #c4697a; }
+.btn.active { background: #8c3a4a; border-color: #c4697a; color: var(--bg); }
+
+.canvas-area {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden; position: relative;
+}
+
+svg#stage { width: 100%; height: 400px; display: block; }
+
+.ghost-label {
+  font-family: 'SF Mono', monospace; font-size: 0.6rem;
+  fill: var(--fg-dim); letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+.loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 0.5rem;
+  color: var(--fg-dim); font-family: 'SF Mono', monospace; font-size: 0.8rem;
+}
+.spinner {
+  width: 24px; height: 24px; border: 2px solid var(--border);
+  border-top-color: var(--fg-accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.info-bar {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem; color: var(--fg-dim);
+  padding: 0.5rem 1rem; border-top: 1px solid var(--border);
+  display: flex; gap: 1.5rem; flex-wrap: wrap;
+}
+.info-item span { color: var(--fg-accent); }
+
+.t-display {
+  font-family: 'SF Mono', monospace; font-size: 0.75rem; color: var(--fg-dim);
+  min-width: 38px; text-align: right;
+}
+
+@media (max-width: 640px) {
+  body { padding: 1rem; }
+  .controls { flex-direction: column; }
+  input[type="text"] { width: 50px; }
+  input[type="range"] { width: 140px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<h1>Glyph Morphing</h1>
+<p class="subtitle">With glyph outlines as Bezier paths, you can interpolate between any two letterforms.</p>
+
+<div class="controls">
+  <div class="control-group">
+    <label>From</label>
+    <input type="text" id="srcChar" value="A" maxlength="1" spellcheck="false">
+  </div>
+  <div class="control-group">
+    <label>To</label>
+    <input type="text" id="dstChar" value="Z" maxlength="1" spellcheck="false">
+  </div>
+  <div class="control-group">
+    <label>Timeline &nbsp;<span class="t-display" id="tDisplay">0.00</span></label>
+    <input type="range" id="timeline" min="0" max="100" value="0">
+  </div>
+  <div class="control-group">
+    <label>Easing</label>
+    <select id="easingSelect">
+      <option value="linear">Linear</option>
+      <option value="easeInOut" selected>Ease-in-out</option>
+      <option value="elastic">Elastic</option>
+    </select>
+  </div>
+  <div class="control-group">
+    <label>&nbsp;</label>
+    <button class="btn" id="playBtn">&#9654; Play</button>
+  </div>
+  <div class="control-group">
+    <label>&nbsp;</label>
+    <button class="btn" id="cycleBtn">&#8635; Auto-Cycle</button>
+  </div>
+</div>
+
+<div class="canvas-area">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    Loading font...
+  </div>
+  <svg id="stage" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" style="opacity:0; transition: opacity 0.3s;">
+    <defs>
+      <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#c4697a"/>
+        <stop offset="45%" stop-color="#e8a0ad"/>
+        <stop offset="100%" stop-color="#8c3a4a"/>
+      </linearGradient>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- Source ghost glyph (left) -->
+    <g id="srcGroup" opacity="0.22" transform="translate(120, 0) scale(0.38)">
+      <path id="srcPath" fill="var(--fg)"/>
+    </g>
+    <text x="120" y="388" class="ghost-label" text-anchor="middle" id="srcLabel">A</text>
+
+    <!-- Target ghost glyph (right) -->
+    <g id="dstGroup" opacity="0.22" transform="translate(840, 0) scale(0.38)">
+      <path id="dstPath" fill="var(--fg)"/>
+    </g>
+    <text x="840" y="388" class="ghost-label" text-anchor="middle" id="dstLabel">Z</text>
+
+    <!-- Center morphing glyph -->
+    <g id="morphGroup" filter="url(#glow)">
+      <path id="morphPath" fill="url(#goldGrad)"/>
+    </g>
+  </svg>
+
+  <div class="info-bar" id="infoBar" style="display:none;">
+    <div class="info-item">t: <span id="infoT">0.000</span></div>
+    <div class="info-item">source contours: <span id="infoSrcContours">—</span></div>
+    <div class="info-item">target contours: <span id="infoDstContours">—</span></div>
+    <div class="info-item">interpolators: <span id="infoInterps">—</span></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flubber@0.4.2/build/flubber.min.js"></script>
+<script>
+(async function () {
+  'use strict';
+
+  // ── CDN URLs ────────────────────────────────────────────────────────────
+  const FONT_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff';
+  const FALLBACK_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/lora@5.0.8/files/lora-latin-400-normal.woff';
+
+  // ── DOM refs ─────────────────────────────────────────────────────────────
+  const stage      = document.getElementById('stage');
+  const loading    = document.getElementById('loading');
+  const infoBar    = document.getElementById('infoBar');
+  const srcCharEl  = document.getElementById('srcChar');
+  const dstCharEl  = document.getElementById('dstChar');
+  const timeline   = document.getElementById('timeline');
+  const tDisplay   = document.getElementById('tDisplay');
+  const easingSel  = document.getElementById('easingSelect');
+  const playBtn    = document.getElementById('playBtn');
+  const cycleBtn   = document.getElementById('cycleBtn');
+  const srcPath    = document.getElementById('srcPath');
+  const dstPath    = document.getElementById('dstPath');
+  const morphPath  = document.getElementById('morphPath');
+  const srcGroup   = document.getElementById('srcGroup');
+  const dstGroup   = document.getElementById('dstGroup');
+  const srcLabel   = document.getElementById('srcLabel');
+  const dstLabel   = document.getElementById('dstLabel');
+  const infoT      = document.getElementById('infoT');
+  const infoSrc    = document.getElementById('infoSrcContours');
+  const infoDst    = document.getElementById('infoDstContours');
+  const infoInterps = document.getElementById('infoInterps');
+
+  // ── State ────────────────────────────────────────────────────────────────
+  let font         = null;
+  let interpolators = [];
+  let currentT     = 0;
+  let animId       = null;
+  let animStart    = null;
+  let animForward  = true;
+  let isPlaying    = false;
+  let isCycling    = false;
+  let srcContourCount = 0;
+  let dstContourCount = 0;
+
+  // Auto-cycle state
+  const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  let cycleIdx    = 0;
+
+  // ── Constants ────────────────────────────────────────────────────────────
+  const ANIM_DURATION = 1500;  // ms for one-way t:0→1
+  const PAUSE_DURATION = 500;  // ms pause at endpoints
+  const FONT_SIZE_CENTER = 280; // px for the center morph glyph
+  const FONT_SIZE_GHOST  = 280; // same, then scaled by SVG transform
+
+  // ── Easing functions ─────────────────────────────────────────────────────
+  const easings = {
+    linear: t => t,
+    easeInOut: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+    elastic: t => {
+      if (t === 0 || t === 1) return t;
+      const c4 = (2 * Math.PI) / 3;
+      return t < 0.5
+        ? -(Math.pow(2, 20 * t - 10) * Math.sin((20 * t - 11.125) * c4)) / 2
+        : (Math.pow(2, -20 * t + 10) * Math.sin((20 * t - 11.125) * c4)) / 2 + 1;
+    }
+  };
+
+  // ── Font loading ─────────────────────────────────────────────────────────
+  async function loadFont(url) {
+    try {
+      const buf = await fetch(url).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.arrayBuffer();
+      });
+      return opentype.parse(buf);
+    } catch (e) {
+      console.warn(`Font load failed: ${url}`, e);
+      return null;
+    }
+  }
+
+  font = await loadFont(FONT_URL);
+  if (!font) font = await loadFont(FALLBACK_URL);
+
+  if (!font) {
+    loading.innerHTML = '<span>Failed to load font. Check network.</span>';
+    return;
+  }
+
+  loading.style.display = 'none';
+  stage.style.opacity = '1';
+  infoBar.style.display = 'flex';
+
+  // ── Path utilities ────────────────────────────────────────────────────────
+
+  /**
+   * Get the raw path data for a single character at a given size,
+   * centered horizontally in the SVG viewport (width=960).
+   */
+  function getGlyphPathData(char, fontSize) {
+    const glyph = font.charToGlyph(char);
+    const scale = fontSize / font.unitsPerEm;
+    // Center horizontally in 960-wide viewport
+    const advanceWidth = (glyph.advanceWidth || font.unitsPerEm) * scale;
+    const x = (960 - advanceWidth) / 2;
+    // Baseline at ~65% of 400px SVG height
+    const y = 400 * 0.68;
+    const path = glyph.getPath(x, y, fontSize);
+    return path.toPathData(3);
+  }
+
+  /**
+   * Split SVG path data string into an array of contour strings.
+   * Splits at each 'M' command that follows a 'Z' (closed subpath boundary).
+   * The regex lookbehind keeps the M attached to each contour.
+   */
+  function splitContours(pathData) {
+    if (!pathData || pathData.trim() === '') return [];
+    // Split on each M that is preceded by Z or start of string
+    const raw = pathData.trim().split(/(?<=Z\s*)(?=M)/i);
+    return raw.map(s => s.trim()).filter(s => s.length > 0);
+  }
+
+  /**
+   * Build flubber interpolators for a source → target morph.
+   * Strategy:
+   *   - equal contour counts:  pair them 1-to-1 with flubber.interpolate
+   *   - src < dst (e.g. 1→2): use flubber.separate(src[0], dst[])
+   *   - src > dst (e.g. 2→1): use flubber.combine(src[], dst[0])
+   *   - general mismatch:     pair as many as we can, handle remainder
+   */
+  function buildInterpolators(srcContours, dstContours) {
+    const ns = srcContours.length;
+    const nd = dstContours.length;
+    const interps = [];
+
+    if (ns === 0 || nd === 0) return interps;
+
+    const opts = { maxSegmentLength: 8 };
+
+    if (ns === nd) {
+      // Perfect pairing
+      for (let i = 0; i < ns; i++) {
+        try {
+          interps.push({ type: 'pair', fn: flubber.interpolate(srcContours[i], dstContours[i], opts) });
+        } catch (e) {
+          console.warn('flubber.interpolate failed, skipping contour', i, e);
+        }
+      }
+    } else if (ns === 1 && nd > 1) {
+      // One source expands into many targets
+      try {
+        const fns = flubber.separate(srcContours[0], dstContours, opts);
+        for (const fn of fns) interps.push({ type: 'separate', fn });
+      } catch (e) {
+        console.warn('flubber.separate failed, falling back to single', e);
+        try {
+          interps.push({ type: 'pair', fn: flubber.interpolate(srcContours[0], dstContours[0], opts) });
+        } catch (e2) { /* skip */ }
+      }
+    } else if (ns > 1 && nd === 1) {
+      // Many sources collapse into one target
+      try {
+        const fns = flubber.combine(srcContours, dstContours[0], opts);
+        for (const fn of fns) interps.push({ type: 'combine', fn });
+      } catch (e) {
+        console.warn('flubber.combine failed, falling back', e);
+        try {
+          interps.push({ type: 'pair', fn: flubber.interpolate(srcContours[0], dstContours[0], opts) });
+        } catch (e2) { /* skip */ }
+      }
+    } else {
+      // General mismatch — pair up to min(ns, nd), then use separate/combine for remainder
+      const pairCount = Math.min(ns, nd);
+      for (let i = 0; i < pairCount; i++) {
+        try {
+          interps.push({ type: 'pair', fn: flubber.interpolate(srcContours[i], dstContours[i], opts) });
+        } catch (e) {
+          console.warn('flubber.interpolate failed at index', i, e);
+        }
+      }
+      if (ns < nd) {
+        // Extra dst contours: separate the last src into the remaining dsts
+        const extraDst = dstContours.slice(pairCount);
+        try {
+          const lastSrc = srcContours[pairCount - 1] || srcContours[0];
+          const fns = flubber.separate(lastSrc, extraDst, opts);
+          for (const fn of fns) interps.push({ type: 'extra-separate', fn });
+        } catch (e) {
+          console.warn('extra separate failed', e);
+        }
+      } else {
+        // Extra src contours: combine remaining srcs into last dst
+        const extraSrc = srcContours.slice(pairCount);
+        try {
+          const lastDst = dstContours[pairCount - 1] || dstContours[0];
+          const fns = flubber.combine(extraSrc, lastDst, opts);
+          for (const fn of fns) interps.push({ type: 'extra-combine', fn });
+        } catch (e) {
+          console.warn('extra combine failed', e);
+        }
+      }
+    }
+
+    return interps;
+  }
+
+  /**
+   * Rebuild ghosts + interpolators when characters change.
+   */
+  function rebuildMorph() {
+    const src = (srcCharEl.value || 'A')[0];
+    const dst = (dstCharEl.value || 'Z')[0];
+
+    // Update ghost paths (same font size, different SVG group transform)
+    const srcData = getGlyphPathData(src, FONT_SIZE_GHOST);
+    const dstData = getGlyphPathData(dst, FONT_SIZE_GHOST);
+
+    srcPath.setAttribute('d', srcData);
+    dstPath.setAttribute('d', dstData);
+    srcLabel.textContent = src;
+    dstLabel.textContent = dst;
+
+    // Build morph interpolators using center-sized paths
+    const srcMorphData = getGlyphPathData(src, FONT_SIZE_CENTER);
+    const dstMorphData = getGlyphPathData(dst, FONT_SIZE_CENTER);
+
+    const srcContours = splitContours(srcMorphData);
+    const dstContours = splitContours(dstMorphData);
+
+    srcContourCount = srcContours.length;
+    dstContourCount = dstContours.length;
+
+    interpolators = buildInterpolators(srcContours, dstContours);
+
+    infoSrc.textContent = srcContourCount;
+    infoDst.textContent = dstContourCount;
+    infoInterps.textContent = interpolators.length;
+
+    // Rerender at current t
+    renderAtT(currentT);
+  }
+
+  /**
+   * Render morphed glyph at parameter t ∈ [0, 1].
+   */
+  function renderAtT(t) {
+    currentT = Math.max(0, Math.min(1, t));
+
+    if (interpolators.length === 0) {
+      morphPath.setAttribute('d', '');
+      return;
+    }
+
+    const parts = interpolators.map(interp => {
+      try {
+        return interp.fn(currentT);
+      } catch (e) {
+        return '';
+      }
+    });
+
+    morphPath.setAttribute('d', parts.filter(Boolean).join(' '));
+
+    // Update UI
+    const pct = Math.round(currentT * 100);
+    timeline.value = pct;
+    tDisplay.textContent = currentT.toFixed(2);
+    infoT.textContent = currentT.toFixed(3);
+  }
+
+  // ── Animation loop ────────────────────────────────────────────────────────
+
+  let pauseUntil = 0;
+
+  function animLoop(ts) {
+    if (!isPlaying) { animId = null; return; }
+
+    if (ts < pauseUntil) {
+      animId = requestAnimationFrame(animLoop);
+      return;
+    }
+
+    // Handle cycle-advance sentinel
+    if (animForward === 'advance') {
+      animLoop_advance(ts);
+      return;
+    }
+
+    if (animStart === null) animStart = ts;
+    const elapsed = ts - animStart;
+    const rawFraction = Math.min(elapsed / ANIM_DURATION, 1);
+    const eased = easings[easingSel.value](rawFraction);
+    const t = animForward ? eased : 1 - eased;
+
+    renderAtT(t);
+
+    if (rawFraction >= 1) {
+      // Reached endpoint — set a pause then decide what to do next
+      animStart = null;
+      pauseUntil = ts + PAUSE_DURATION;
+      if (isCycling && animForward) {
+        // After pause, advance to next letter pair (handled in next animLoop tick)
+        animForward = 'advance'; // sentinel
+      } else {
+        // Bounce direction
+        animForward = !animForward;
+      }
+    }
+
+    animId = requestAnimationFrame(animLoop);
+  }
+
+  function animLoop_advance(ts) {
+    // Called when animForward === 'advance' and pauseUntil has passed
+    cycleIdx = (cycleIdx + 1) % ALPHABET.length;
+    const src = ALPHABET[cycleIdx];
+    const dst = ALPHABET[(cycleIdx + 1) % ALPHABET.length];
+    srcCharEl.value = src;
+    dstCharEl.value = dst;
+    rebuildMorph();
+    renderAtT(0);
+    animForward = true;
+    animStart = null;
+    animId = requestAnimationFrame(animLoop);
+  }
+
+  function startPlay() {
+    if (isPlaying) return;
+    isPlaying = true;
+    animStart = null;
+    // If already at end, reset direction
+    if (currentT >= 1 && animForward) { animForward = false; }
+    if (currentT <= 0 && !animForward) { animForward = true; }
+    playBtn.textContent = '⏸ Pause';
+    playBtn.classList.add('active');
+    animId = requestAnimationFrame(animLoop);
+  }
+
+  function stopPlay() {
+    isPlaying = false;
+    if (animId) { cancelAnimationFrame(animId); animId = null; }
+    playBtn.textContent = '▶ Play';
+    playBtn.classList.remove('active');
+  }
+
+  // ── Ghost group transforms ────────────────────────────────────────────────
+  // The ghost glyphs are rendered at FONT_SIZE_GHOST=280 and use the same
+  // coordinate space (centered in 960px wide). We want them to appear small
+  // (38% scale) pinned to left and right thirds of the SVG.
+  //
+  // Left ghost: scale 0.38, translate so it centers around x=120
+  // Right ghost: scale 0.38, translate so it centers around x=840
+  //
+  // After scale(0.38), the 960-wide path becomes ~365px wide.
+  // Centered at 480 → left edge at 480 - 182 = 298.
+  // We need center at 120 → shift = 120 - 480 = -360. In unscaled: -360/0.38 = -947.
+  // Then apply: translate(-947, 0) scale(0.38) means origin shift is: -947 * 0.38 = -360. ✓
+  //
+  // Simpler: use transform-origin approach via SVG transform attribute.
+  // transform="translate(tx, ty) scale(s)" where tx = cx - cx_path * s
+  //   cx_path = 480 (centered glyph in 960px viewbox)
+  //   For left ghost: cx = 120, s = 0.38 → tx = 120 - 480*0.38 = 120 - 182.4 = -62.4
+  //   For right ghost: cx = 840, s = 0.38 → tx = 840 - 480*0.38 = 840 - 182.4 = 657.6
+  //   ty: scale y around baseline (400*0.68=272) → ty = 272 - 272*0.38 = 272*(1-0.38) = 168.6
+
+  srcGroup.setAttribute('transform', 'translate(-62.4, 168.6) scale(0.38)');
+  dstGroup.setAttribute('transform', 'translate(657.6, 168.6) scale(0.38)');
+
+  // ── Event listeners ───────────────────────────────────────────────────────
+
+  srcCharEl.addEventListener('input', () => {
+    if (srcCharEl.value.length > 0) {
+      stopPlay();
+      rebuildMorph();
+    }
+  });
+
+  dstCharEl.addEventListener('input', () => {
+    if (dstCharEl.value.length > 0) {
+      stopPlay();
+      rebuildMorph();
+    }
+  });
+
+  // Enforce single character
+  srcCharEl.addEventListener('keydown', e => {
+    if (e.key.length === 1 && srcCharEl.value.length >= 1 && !(srcCharEl.selectionEnd - srcCharEl.selectionStart)) {
+      srcCharEl.value = '';
+    }
+  });
+  dstCharEl.addEventListener('keydown', e => {
+    if (e.key.length === 1 && dstCharEl.value.length >= 1 && !(dstCharEl.selectionEnd - dstCharEl.selectionStart)) {
+      dstCharEl.value = '';
+    }
+  });
+
+  timeline.addEventListener('input', () => {
+    stopPlay();
+    const t = parseInt(timeline.value) / 100;
+    renderAtT(t);
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (isPlaying) { stopPlay(); } else { startPlay(); }
+  });
+
+  cycleBtn.addEventListener('click', () => {
+    isCycling = !isCycling;
+    cycleBtn.classList.toggle('active', isCycling);
+    if (isCycling) {
+      cycleIdx = ALPHABET.indexOf((srcCharEl.value || 'A')[0].toUpperCase());
+      if (cycleIdx < 0) cycleIdx = 0;
+      animForward = true;
+      startPlay();
+    } else {
+      stopPlay();
+    }
+  });
+
+  easingSel.addEventListener('change', () => {
+    // Restart animation from current t if playing
+    if (isPlaying) {
+      animStart = null;
+    }
+  });
+
+  // ── Initial render ────────────────────────────────────────────────────────
+  rebuildMorph();
+  // Auto-start playing
+  animForward = true;
+  startPlay();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlyphKit — Glyph Path Art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08080e;
+  --bg-card: #0e0e16;
+  --bg-input: #14141e;
+  --fg: #e8e4dc;
+  --fg-dim: #8a8680;
+  --fg-accent: #c9a84c;
+  --fg-accent-dim: #8b6914;
+  --border: #1e1e2a;
+}
+html { background: var(--bg); color: var(--fg); font-family: Georgia, 'Palatino Linotype', serif; }
+body { min-height: 100vh; padding: 2rem 1.5rem; max-width: 960px; margin: 0 auto; }
+
+a { color: var(--fg-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.back { display: inline-block; font-family: 'SF Mono', monospace; font-size: 0.75rem; color: var(--fg-dim); margin-bottom: 1rem; }
+.back:hover { color: var(--fg-accent); }
+
+h1 { font-weight: 400; font-size: 1.8rem; letter-spacing: 0.02em; margin-bottom: 0.25rem; font-family: 'Playfair Display', Georgia, serif; }
+.subtitle { color: var(--fg-dim); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+.controls {
+  display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  margin-bottom: 1.5rem; align-items: flex-end;
+}
+.control-group { display: flex; flex-direction: column; gap: 0.25rem; }
+.control-group label {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-dim);
+}
+input[type="text"] {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: Georgia, serif; font-size: 1rem; padding: 0.4rem 0.6rem; border-radius: 6px;
+  outline: none; width: 280px;
+}
+input[type="text"]:focus { border-color: var(--fg-accent-dim); }
+input[type="range"] { accent-color: #d4845a; width: 100px; }
+select {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: Georgia, serif; font-size: 0.85rem; padding: 0.4rem 0.6rem; border-radius: 6px;
+}
+
+.mode-buttons { display: flex; gap: 0.5rem; }
+.mode-btn {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: 'SF Mono', monospace; font-size: 0.7rem; padding: 0.35rem 0.7rem;
+  border-radius: 6px; cursor: pointer; transition: all 0.15s;
+}
+.mode-btn:hover { border-color: #d4845a; }
+.mode-btn.active { background: #a35c38; border-color: #d4845a; color: var(--bg); }
+
+.canvas-area {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden; position: relative; min-height: 400px;
+}
+.canvas-area svg { width: 100%; height: 400px; display: block; }
+
+.info-bar {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem; color: var(--fg-dim);
+  padding: 0.5rem 1rem; border-top: 1px solid var(--border); background: var(--bg);
+  border-radius: 0 0 6px 6px;
+}
+
+.loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--fg-dim); font-family: 'SF Mono', monospace; font-size: 0.8rem;
+}
+
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.glyph-stroke {
+  fill: none;
+  stroke: #d4845a;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph-fill { fill: var(--fg); stroke: none; }
+
+.glyph-both {
+  fill: rgba(212, 132, 90, 0.15);
+  stroke: #d4845a;
+  stroke-width: 1;
+}
+
+.control-point { fill: #e74c3c; }
+.control-handle { fill: #3498db; }
+.control-line { stroke: #3498db; stroke-width: 0.5; opacity: 0.5; }
+
+/* Distortion wave */
+.wave-active .glyph-stroke,
+.wave-active .glyph-fill,
+.wave-active .glyph-both {
+  transition: d 0.05s linear;
+}
+
+@media (max-width: 640px) {
+  body { padding: 1rem; }
+  .controls { flex-direction: column; }
+  input[type="text"] { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<h1>Glyph Path Art</h1>
+<p class="subtitle">canvas <code>measureText</code> gives you a width number. opentype.js gives you the actual Bezier curves.</p>
+
+<div class="controls">
+  <div class="control-group">
+    <label>Text</label>
+    <input type="text" id="textInput" value="Glyph" spellcheck="false">
+  </div>
+  <div class="control-group">
+    <label>Font Size</label>
+    <input type="range" id="fontSize" min="40" max="200" value="120">
+    <span id="fontSizeVal" style="font-family: monospace; font-size: 0.7rem; color: var(--fg-dim);">120px</span>
+  </div>
+  <div class="control-group">
+    <label>Distortion</label>
+    <input type="range" id="distortion" min="0" max="30" value="0">
+  </div>
+  <div class="control-group">
+    <label>Mode</label>
+    <div class="mode-buttons">
+      <button class="mode-btn active" data-mode="fill">Fill</button>
+      <button class="mode-btn" data-mode="stroke">Stroke</button>
+      <button class="mode-btn" data-mode="both">Both</button>
+      <button class="mode-btn" data-mode="points">Points</button>
+    </div>
+  </div>
+</div>
+
+<div class="canvas-area">
+  <div class="loading" id="loading">Loading font...</div>
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" style="display:none;">
+    <defs>
+      <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#d4845a"/>
+        <stop offset="50%" stop-color="#f0a878"/>
+        <stop offset="100%" stop-color="#a35c38"/>
+      </linearGradient>
+    </defs>
+    <g id="glyphGroup"></g>
+  </svg>
+</div>
+<div class="info-bar" id="infoBar">Loading...</div>
+
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<script>
+(async function() {
+  // Font URL — Inter Regular .ttf via jsdelivr (CORS-enabled, not woff2)
+  const FONT_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff';
+  const FALLBACK_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/lora@5.0.8/files/lora-latin-400-normal.woff';
+
+  const svg = document.getElementById('svg');
+  const glyphGroup = document.getElementById('glyphGroup');
+  const loading = document.getElementById('loading');
+  const infoBar = document.getElementById('infoBar');
+  const textInput = document.getElementById('textInput');
+  const fontSizeSlider = document.getElementById('fontSize');
+  const fontSizeVal = document.getElementById('fontSizeVal');
+  const distortionSlider = document.getElementById('distortion');
+  const modeButtons = document.querySelectorAll('.mode-btn');
+
+  let font = null;
+  let currentMode = 'fill';
+  let animFrame = null;
+  let time = 0;
+
+  // Load font
+  async function loadFont(url) {
+    try {
+      const buffer = await fetch(url).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.arrayBuffer();
+      });
+      return opentype.parse(buffer);
+    } catch (e) {
+      console.warn(`Failed to load ${url}:`, e);
+      return null;
+    }
+  }
+
+  font = await loadFont(FONT_URL);
+  if (!font) font = await loadFont(FALLBACK_URL);
+
+  if (!font) {
+    loading.textContent = 'Failed to load font. Check console.';
+    return;
+  }
+
+  loading.style.display = 'none';
+  svg.style.display = 'block';
+  infoBar.textContent = `Font: ${font.names.fontFamily?.en || 'Unknown'} — ${font.numGlyphs} glyphs, ${font.unitsPerEm} UPM`;
+
+  function render() {
+    const text = textInput.value || 'Glyph';
+    const fontSize = parseInt(fontSizeSlider.value);
+    const distortion = parseInt(distortionSlider.value);
+
+    // Get per-glyph paths
+    const scale = fontSize / font.unitsPerEm;
+    const glyphs = font.stringToGlyphs(text);
+    const svgWidth = svg.viewBox.baseVal.width;
+    const svgHeight = svg.viewBox.baseVal.height;
+
+    // Calculate total width for centering
+    let totalWidth = 0;
+    for (let i = 0; i < glyphs.length; i++) {
+      totalWidth += glyphs[i].advanceWidth * scale;
+      if (i < glyphs.length - 1) {
+        totalWidth += font.getKerningValue(glyphs[i], glyphs[i + 1]) * scale;
+      }
+    }
+
+    const startX = (svgWidth - totalWidth) / 2;
+    const baseline = svgHeight * 0.65;
+
+    let html = '';
+    let cx = startX;
+
+    for (let i = 0; i < glyphs.length; i++) {
+      const glyph = glyphs[i];
+      const path = glyph.getPath(cx, baseline, fontSize);
+      let pathData = path.toPathData(2);
+
+      // Apply distortion if enabled
+      if (distortion > 0) {
+        pathData = distortPath(path.commands, distortion, time);
+      }
+
+      const kern = (i < glyphs.length - 1) ? font.getKerningValue(glyph, glyphs[i + 1]) * scale : 0;
+
+      if (currentMode === 'fill') {
+        html += `<path class="glyph-fill" d="${pathData}" fill="url(#goldGrad)"/>`;
+      } else if (currentMode === 'stroke') {
+        const len = estimatePathLength(path.commands);
+        html += `<path class="glyph-stroke" d="${pathData}"
+                  stroke-dasharray="${len}" stroke-dashoffset="${len}"
+                  style="animation: draw 2s ease forwards ${i * 0.15}s;"/>`;
+      } else if (currentMode === 'both') {
+        html += `<path class="glyph-both" d="${pathData}"/>`;
+      } else if (currentMode === 'points') {
+        // Draw the outline thin
+        html += `<path d="${pathData}" fill="none" stroke="var(--fg-dim)" stroke-width="0.5" opacity="0.4"/>`;
+        // Draw control points and handles
+        html += renderControlPoints(path.commands);
+      }
+
+      cx += glyph.advanceWidth * scale + kern;
+    }
+
+    glyphGroup.innerHTML = html;
+  }
+
+  function distortPath(commands, amplitude, t) {
+    // Apply sinusoidal distortion to path commands
+    const parts = [];
+    for (const cmd of commands) {
+      if (cmd.type === 'M') {
+        const dy = amplitude * Math.sin((cmd.x || 0) * 0.05 + t);
+        parts.push(`M${(cmd.x).toFixed(1)} ${(cmd.y + dy).toFixed(1)}`);
+      } else if (cmd.type === 'L') {
+        const dy = amplitude * Math.sin((cmd.x || 0) * 0.05 + t);
+        parts.push(`L${(cmd.x).toFixed(1)} ${(cmd.y + dy).toFixed(1)}`);
+      } else if (cmd.type === 'C') {
+        const dy1 = amplitude * Math.sin((cmd.x1 || 0) * 0.05 + t);
+        const dy2 = amplitude * Math.sin((cmd.x2 || 0) * 0.05 + t);
+        const dy = amplitude * Math.sin((cmd.x || 0) * 0.05 + t);
+        parts.push(`C${(cmd.x1).toFixed(1)} ${(cmd.y1 + dy1).toFixed(1)} ${(cmd.x2).toFixed(1)} ${(cmd.y2 + dy2).toFixed(1)} ${(cmd.x).toFixed(1)} ${(cmd.y + dy).toFixed(1)}`);
+      } else if (cmd.type === 'Q') {
+        const dy1 = amplitude * Math.sin((cmd.x1 || 0) * 0.05 + t);
+        const dy = amplitude * Math.sin((cmd.x || 0) * 0.05 + t);
+        parts.push(`Q${(cmd.x1).toFixed(1)} ${(cmd.y1 + dy1).toFixed(1)} ${(cmd.x).toFixed(1)} ${(cmd.y + dy).toFixed(1)}`);
+      } else if (cmd.type === 'Z') {
+        parts.push('Z');
+      }
+    }
+    return parts.join(' ');
+  }
+
+  function renderControlPoints(commands) {
+    let html = '';
+    let prevX = 0, prevY = 0;
+
+    for (const cmd of commands) {
+      if (cmd.type === 'M') {
+        html += `<circle class="control-point" cx="${cmd.x}" cy="${cmd.y}" r="3"/>`;
+        prevX = cmd.x; prevY = cmd.y;
+      } else if (cmd.type === 'L') {
+        html += `<circle class="control-point" cx="${cmd.x}" cy="${cmd.y}" r="3"/>`;
+        prevX = cmd.x; prevY = cmd.y;
+      } else if (cmd.type === 'C') {
+        // Handle lines from on-curve to off-curve
+        html += `<line class="control-line" x1="${prevX}" y1="${prevY}" x2="${cmd.x1}" y2="${cmd.y1}"/>`;
+        html += `<line class="control-line" x1="${cmd.x}" y1="${cmd.y}" x2="${cmd.x2}" y2="${cmd.y2}"/>`;
+        // Off-curve control points
+        html += `<circle class="control-handle" cx="${cmd.x1}" cy="${cmd.y1}" r="2.5"/>`;
+        html += `<circle class="control-handle" cx="${cmd.x2}" cy="${cmd.y2}" r="2.5"/>`;
+        // On-curve point
+        html += `<circle class="control-point" cx="${cmd.x}" cy="${cmd.y}" r="3"/>`;
+        prevX = cmd.x; prevY = cmd.y;
+      } else if (cmd.type === 'Q') {
+        html += `<line class="control-line" x1="${prevX}" y1="${prevY}" x2="${cmd.x1}" y2="${cmd.y1}"/>`;
+        html += `<line class="control-line" x1="${cmd.x1}" y1="${cmd.y1}" x2="${cmd.x}" y2="${cmd.y}"/>`;
+        html += `<circle class="control-handle" cx="${cmd.x1}" cy="${cmd.y1}" r="2.5"/>`;
+        html += `<circle class="control-point" cx="${cmd.x}" cy="${cmd.y}" r="3"/>`;
+        prevX = cmd.x; prevY = cmd.y;
+      }
+    }
+    return html;
+  }
+
+  function estimatePathLength(commands) {
+    let len = 0;
+    let px = 0, py = 0;
+    for (const cmd of commands) {
+      if (cmd.type === 'M') {
+        px = cmd.x; py = cmd.y;
+      } else if (cmd.type === 'L') {
+        len += Math.hypot(cmd.x - px, cmd.y - py);
+        px = cmd.x; py = cmd.y;
+      } else if (cmd.type === 'C') {
+        // Rough estimate via chord + control polygon average
+        const chord = Math.hypot(cmd.x - px, cmd.y - py);
+        const cp = Math.hypot(cmd.x1 - px, cmd.y1 - py) +
+                   Math.hypot(cmd.x2 - cmd.x1, cmd.y2 - cmd.y1) +
+                   Math.hypot(cmd.x - cmd.x2, cmd.y - cmd.y2);
+        len += (chord + cp) / 2;
+        px = cmd.x; py = cmd.y;
+      } else if (cmd.type === 'Q') {
+        const chord = Math.hypot(cmd.x - px, cmd.y - py);
+        const cp = Math.hypot(cmd.x1 - px, cmd.y1 - py) + Math.hypot(cmd.x - cmd.x1, cmd.y - cmd.y1);
+        len += (chord + cp) / 2;
+        px = cmd.x; py = cmd.y;
+      }
+    }
+    return Math.ceil(len);
+  }
+
+  // Animation loop for distortion
+  function animate() {
+    time += 0.06;
+    if (parseInt(distortionSlider.value) > 0) {
+      render();
+    }
+    animFrame = requestAnimationFrame(animate);
+  }
+
+  // Events
+  textInput.addEventListener('input', render);
+  fontSizeSlider.addEventListener('input', () => {
+    fontSizeVal.textContent = fontSizeSlider.value + 'px';
+    render();
+  });
+  distortionSlider.addEventListener('input', render);
+
+  modeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+      render();
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    // Update viewBox to match container
+    const rect = svg.parentElement.getBoundingClientRect();
+    svg.setAttribute('viewBox', `0 0 ${Math.round(rect.width)} 400`);
+    render();
+  });
+
+  // Initial render
+  const rect = svg.parentElement.getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${Math.round(rect.width)} 400`);
+  render();
+  animate();
+})();
+</script>
+</body>
+</html>

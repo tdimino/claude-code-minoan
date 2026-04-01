@@ -64,6 +64,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `gemini-claude-resonance` | Cross-model dialogue between Claude and [Gemini](https://deepmind.google/technologies/gemini/) |
 | `nano-banana-pro` | Image generation via [Gemini 3 Pro](https://deepmind.google/technologies/gemini/) |
 | `image-forge` | Precision image editing via [ImageMagick](https://imagemagick.org/) 7, sips, rembg, Pillow — JSON pipeline specs, batch ops, smart crop, montage builder |
+| `pretext` | Text effects impossible with CSS — kinetic typography, flowing text around animated obstacles, calligrams, shrinkwrap bubbles, typographic ASCII art, glyph path animation, variable font waves, glyph morphing. Powered by [@chenglou/pretext](https://github.com/chenglou/pretext) + [opentype.js](https://opentype.js.org/). 10 templates, 5 references, validation script. |
 | `rocaille-shader` | Procedural shader generation for WebGL/GLSL |
 
 ### Research (`research/`)
@@ -112,4 +113,7 @@ skill-name/
 - **[ccstatusline](https://github.com/sirmalloc/ccstatusline)** by sirmalloc — terminal statusline for Claude Code
 - **[beautiful-mermaid](https://github.com/nicepkg/beautiful-mermaid)** by Craft — Mermaid diagram rendering
 - **[matklad's ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html)** — the canonical guide for codebase documentation
+- **[@chenglou/pretext](https://github.com/chenglou/pretext)** by Cheng Lou — DOM-free text measurement and layout (24.5K stars)
+- **[opentype.js](https://opentype.js.org/)** — JavaScript font parser for per-glyph SVG path rendering
+- **[flubber](https://github.com/veltman/flubber)** by Noah Veltman — SVG shape morphing for glyph interpolation
 - **[Open Souls](https://github.com/opensouls/opensouls)** — the AI souls paradigm that shapes our agent architecture

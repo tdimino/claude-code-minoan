@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlyphKit — Outline Calligrams</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08080e;
+  --bg-card: #0e0e16;
+  --bg-input: #14141e;
+  --bg-hover: #1a1a26;
+  --bg-canvas: #0b0b12;
+  --fg: #e8e4dc;
+  --fg-dim: #8a8680;
+  --fg-muted: #4a4844;
+  --fg-accent: #c9a84c;
+  --fg-accent-dim: #8b6914;
+  --fg-accent-bright: #e0c060;
+  --border: #1e1e2a;
+  --border-accent: #2a2a3a;
+  --sage: #7a9e6a;
+  --sage-dim: #4a6a3a;
+  --sage-bright: #9abe8a;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-serif: Georgia, 'Palatino Linotype', Palatino, serif;
+}
+
+html { background: var(--bg); color: var(--fg); font-family: var(--font-serif); }
+body { min-height: 100vh; padding: 2rem 1.5rem; max-width: 960px; margin: 0 auto; }
+
+a { color: var(--fg-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.back {
+  display: inline-block; font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--fg-dim); margin-bottom: 1.25rem;
+}
+.back:hover { color: var(--fg-accent); }
+
+h1 {
+  font-family: 'Playfair Display', var(--font-serif);
+  font-weight: 400; font-size: 1.8rem; letter-spacing: 0.02em;
+  margin-bottom: 0.25rem; color: var(--fg);
+}
+
+.subtitle {
+  color: var(--fg-dim); font-size: 0.9rem; margin-bottom: 1.75rem;
+  line-height: 1.5; max-width: 640px;
+}
+.subtitle code {
+  font-family: var(--font-mono); font-size: 0.8em;
+  background: var(--bg-card); padding: 0.1em 0.3em;
+  border-radius: 3px; color: var(--sage);
+}
+
+/* Controls */
+.controls {
+  display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  margin-bottom: 1.5rem; align-items: flex-end;
+}
+.control-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.control-group label {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-dim);
+}
+
+input[type="text"] {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font-serif); font-size: 1rem; padding: 0.4rem 0.6rem;
+  border-radius: 6px; outline: none;
+}
+input[type="text"].char-input { width: 3rem; text-align: center; font-size: 1.4rem; font-weight: bold; }
+input[type="text"].text-input { width: 320px; }
+input[type="text"]:focus { border-color: var(--sage-dim); }
+
+.range-row { display: flex; align-items: center; gap: 0.5rem; }
+input[type="range"] { accent-color: var(--sage); width: 100px; }
+.range-val {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: var(--fg-dim); min-width: 2.5rem;
+}
+
+.btn {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: var(--font-mono); font-size: 0.7rem; padding: 0.4rem 0.8rem;
+  border-radius: 6px; cursor: pointer; transition: all 0.15s; align-self: flex-end;
+}
+.btn:hover { border-color: var(--sage); color: var(--sage); }
+.btn:active { background: var(--sage-dim); color: var(--bg); }
+
+/* Canvas area */
+.canvas-area {
+  background: var(--bg-canvas); border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden; position: relative; display: flex; justify-content: center;
+  align-items: flex-start; min-height: 480px;
+}
+
+.canvas-area canvas {
+  display: block; max-width: 100%; height: auto;
+}
+
+.loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--fg-dim); font-family: var(--font-mono); font-size: 0.8rem;
+  flex-direction: column; gap: 0.5rem;
+}
+
+.loading-dot {
+  width: 6px; height: 6px; background: var(--sage); border-radius: 50%;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+/* Info bar */
+.info-bar {
+  font-family: var(--font-mono); font-size: 0.65rem; color: var(--fg-dim);
+  padding: 0.5rem 1rem; border-top: 1px solid var(--border);
+  background: var(--bg); border-radius: 0 0 6px 6px;
+  display: flex; gap: 1.5rem; flex-wrap: wrap;
+}
+.info-item { display: flex; gap: 0.4rem; }
+.info-key { color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.info-val { color: var(--sage); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  body { padding: 1rem; }
+  .controls { flex-direction: column; }
+  input[type="text"].text-input { width: 100%; }
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<h1>Outline Calligrams</h1>
+<p class="subtitle">
+  <code>Pretext</code> flows text. <code>opentype.js</code> provides the true outline—not a circle or heart,
+  but the actual ink boundary of the glyph, scanned pixel by pixel to determine where each line of text can live.
+</p>
+
+<div class="controls">
+  <div class="control-group">
+    <label>Container Glyph</label>
+    <input type="text" id="charInput" class="char-input" value="R" maxlength="1" spellcheck="false">
+  </div>
+  <div class="control-group">
+    <label>Container Size</label>
+    <div class="range-row">
+      <input type="range" id="containerSize" min="300" max="800" value="560">
+      <span class="range-val" id="containerSizeVal">560</span>
+    </div>
+  </div>
+  <div class="control-group">
+    <label>Fill Text</label>
+    <input type="text" id="fillText" class="text-input"
+      value="Typography is the craft of arranging type to make written language legible, readable, and appealing when displayed. The arrangement of type involves selecting typefaces, point sizes, line lengths, line spacing, and letter spacing. Type design is a related craft, sometimes considered part of typography. Most typography is created by typographers in the pre-digital era, and digitally by software in the modern era. "
+      spellcheck="false">
+  </div>
+  <div class="control-group">
+    <label>Fill Font Size</label>
+    <div class="range-row">
+      <input type="range" id="fillFontSize" min="7" max="16" value="10">
+      <span class="range-val" id="fillFontSizeVal">10</span>
+    </div>
+  </div>
+  <button class="btn" id="regenerateBtn">Redraw</button>
+</div>
+
+<div class="canvas-area" id="canvasArea">
+  <div class="loading" id="loading">
+    <div class="loading-dot"></div>
+    <span>Loading font…</span>
+  </div>
+  <canvas id="mainCanvas" style="display:none;"></canvas>
+</div>
+<div class="info-bar" id="infoBar" style="display:none;">
+  <span class="info-item"><span class="info-key">Glyph</span><span class="info-val" id="infoGlyph">—</span></span>
+  <span class="info-item"><span class="info-key">Contours</span><span class="info-val" id="infoContours">—</span></span>
+  <span class="info-item"><span class="info-key">Lines Placed</span><span class="info-val" id="infoLines">—</span></span>
+  <span class="info-item"><span class="info-key">Characters</span><span class="info-val" id="infoChars">—</span></span>
+  <span class="info-item"><span class="info-key">Font</span><span class="info-val" id="infoFont">—</span></span>
+</div>
+
+<!-- opentype.js as UMD — must load before the module script -->
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+
+<script type="module">
+import { prepareWithSegments, layoutNextLine } from 'https://esm.sh/@chenglou/pretext@0.0.2';
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const FONT_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff';
+const FALLBACK_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/lora@5.0.8/files/lora-latin-400-normal.woff';
+
+// Canvas color constants
+const OUTLINE_COLOR = 'rgba(122, 158, 106, 0.18)';   // sage, 18% — ghost glyph
+const FILL_COLOR    = 'rgba(138, 134, 128, 0.82)';    // fg-dim
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const charInput       = document.getElementById('charInput');
+const containerSlider = document.getElementById('containerSize');
+const containerVal    = document.getElementById('containerSizeVal');
+const fillTextInput   = document.getElementById('fillText');
+const fillSizeSlider  = document.getElementById('fillFontSize');
+const fillSizeVal     = document.getElementById('fillFontSizeVal');
+const regenerateBtn   = document.getElementById('regenerateBtn');
+const loading         = document.getElementById('loading');
+const mainCanvas      = document.getElementById('mainCanvas');
+const canvasArea      = document.getElementById('canvasArea');
+const infoBar         = document.getElementById('infoBar');
+const infoGlyph       = document.getElementById('infoGlyph');
+const infoContours    = document.getElementById('infoContours');
+const infoLines       = document.getElementById('infoLines');
+const infoChars       = document.getElementById('infoChars');
+const infoFontEl      = document.getElementById('infoFont');
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let font = null;
+
+// ─── Font loading ─────────────────────────────────────────────────────────────
+async function loadFont(url) {
+  try {
+    const buf = await fetch(url).then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.arrayBuffer();
+    });
+    return opentype.parse(buf);
+  } catch (e) {
+    console.warn(`Failed to load ${url}:`, e);
+    return null;
+  }
+}
+
+// ─── Offscreen mask ───────────────────────────────────────────────────────────
+//
+// Renders the glyph path filled in black onto an offscreen canvas.
+// We read pixel alpha channel to determine glyph interior.
+//
+function buildMask(glyph, containerSize, font) {
+  const canvW = Math.ceil(containerSize * 1.2);
+  const canvH = Math.ceil(containerSize * 1.2);
+
+  const off = document.createElement('canvas');
+  off.width = canvW;
+  off.height = canvH;
+  const ctx = off.getContext('2d', { willReadFrequently: true });
+
+  // Compute offset so the glyph bounding box is centered
+  const scale = containerSize / font.unitsPerEm;
+  const bb = glyph.getBoundingBox();
+  const glyphW = (bb.x2 - bb.x1) * scale;
+  const glyphH = (bb.y2 - bb.y1) * scale;
+
+  const offsetX = (canvW - glyphW) / 2 - bb.x1 * scale;
+  // For a font coordinate system: y increases upward, canvas y increases downward.
+  // getPath(x, y, size): y is the baseline position.
+  // baseline = top margin + ascent
+  const ascent = bb.y2 * scale;
+  const offsetY = (canvH - glyphH) / 2 + ascent;
+
+  const path = glyph.getPath(offsetX, offsetY, containerSize);
+  const path2d = new Path2D(path.toPathData(2));
+  ctx.fillStyle = '#000';
+  ctx.fill(path2d);
+
+  return { off, ctx, offsetX, offsetY, canvW, canvH };
+}
+
+// ─── Horizontal extent scan ───────────────────────────────────────────────────
+//
+// For a given y-band [y, y+lineHeight), find the leftmost and rightmost
+// pixel column that contains at least one filled pixel.
+// Uses getImageData on the band to avoid per-pixel calls.
+//
+function getLineExtent(offCtx, canvW, y, lineHeight) {
+  const bandTop  = Math.max(0, Math.floor(y));
+  const bandH    = Math.max(1, Math.ceil(lineHeight));
+  // Guard against reading outside canvas bounds
+  if (bandTop >= offCtx.canvas.height) return null;
+  const safeH = Math.min(bandH, offCtx.canvas.height - bandTop);
+
+  const imgData = offCtx.getImageData(0, bandTop, canvW, safeH);
+  const data = imgData.data;
+
+  let left  = Infinity;
+  let right = -Infinity;
+
+  for (let x = 0; x < canvW; x++) {
+    for (let row = 0; row < safeH; row++) {
+      const alpha = data[(row * canvW + x) * 4 + 3];
+      if (alpha > 100) {
+        if (x < left)  left  = x;
+        if (x > right) right = x;
+        break; // found a filled pixel in this column — move to next column
+      }
+    }
+  }
+
+  if (!isFinite(left) || right <= left) return null;
+  return { left, right, width: right - left };
+}
+
+// ─── Count glyph contours ─────────────────────────────────────────────────────
+function countContours(glyph) {
+  let count = 0;
+  for (const cmd of (glyph.path?.commands || [])) {
+    if (cmd.type === 'M') count++;
+  }
+  return count;
+}
+
+// ─── Main render ──────────────────────────────────────────────────────────────
+function render() {
+  if (!font) return;
+
+  const ch            = (charInput.value || 'R')[0];
+  const containerSize = parseInt(containerSlider.value, 10);
+  const fillSize      = parseInt(fillSizeSlider.value, 10);
+  const fillTextRaw   = fillTextInput.value.trim() || 'Typography is the craft of arranging type. ';
+  const lineHeight    = Math.round(fillSize * 1.4);
+  const fillFont      = `${fillSize}px Georgia, 'Palatino Linotype', serif`;
+
+  // Get glyph from opentype.js
+  const glyph = font.charToGlyph(ch);
+  if (!glyph || !glyph.path) {
+    loading.style.display = 'flex';
+    loading.querySelector('span').textContent = `No glyph found for "${ch}"`;
+    return;
+  }
+
+  // Build offscreen mask
+  const { off, ctx: offCtx, offsetX, offsetY, canvW, canvH } = buildMask(glyph, containerSize, font);
+
+  // Set up main canvas
+  const dpr = window.devicePixelRatio || 1;
+  mainCanvas.width  = canvW * dpr;
+  mainCanvas.height = canvH * dpr;
+  mainCanvas.style.width  = canvW + 'px';
+  mainCanvas.style.height = canvH + 'px';
+
+  const ctx = mainCanvas.getContext('2d');
+  ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+  ctx.scale(dpr, dpr);
+
+  // ── Draw ghost glyph outline ──────────────────────────────────────────────
+  {
+    const scale  = containerSize / font.unitsPerEm;
+    const bb     = glyph.getBoundingBox();
+    const glyphW = (bb.x2 - bb.x1) * scale;
+    const glyphH = (bb.y2 - bb.y1) * scale;
+    const ox     = (canvW - glyphW) / 2 - bb.x1 * scale;
+    const ascent = bb.y2 * scale;
+    const oy     = (canvH - glyphH) / 2 + ascent;
+
+    const path2d = new Path2D(glyph.getPath(ox, oy, containerSize).toPathData(2));
+    ctx.save();
+    ctx.fillStyle = OUTLINE_COLOR;
+    ctx.fill(path2d);
+    ctx.restore();
+  }
+
+  // ── Lay out fill text using Pretext ───────────────────────────────────────
+  // Ensure text cycles so the glyph is fully packed
+  const textRepeat = Math.ceil((containerSize * containerSize) / (fillTextRaw.length * fillSize * fillSize * 0.5)) + 3;
+  const fillText   = (fillTextRaw + ' ').repeat(textRepeat);
+
+  const prepared = prepareWithSegments(fillText, fillFont);
+  let cursor     = { segmentIndex: 0, graphemeIndex: 0 };
+
+  ctx.font         = fillFont;
+  ctx.textBaseline = 'top';
+  ctx.fillStyle    = FILL_COLOR;
+
+  // Vertical scan parameters
+  const topPad    = 4;   // px inset from first filled pixel row
+  const hInset    = 2;   // px horizontal inset per side
+  let linesPlaced = 0;
+  let charsPlaced = 0;
+
+  // We walk from the very top of the canvas down through all scan lines
+  for (let scanY = 0; scanY < canvH; scanY += lineHeight) {
+    const extent = getLineExtent(offCtx, canvW, scanY, lineHeight);
+    if (!extent) continue;
+
+    const availW = extent.width - hInset * 2;
+    if (availW < fillSize * 1.5) continue;   // too narrow for even one char
+
+    const lineResult = layoutNextLine(prepared, cursor, availW);
+    if (!lineResult) {
+      // Text exhausted — reset to allow fill continuation
+      cursor = { segmentIndex: 0, graphemeIndex: 0 };
+      const retryResult = layoutNextLine(prepared, cursor, availW);
+      if (!retryResult) continue;
+      cursor = retryResult.end;
+      ctx.fillText(retryResult.text, extent.left + hInset, scanY + topPad);
+      linesPlaced++;
+      charsPlaced += retryResult.text.length;
+    } else {
+      cursor = lineResult.end;
+      ctx.fillText(lineResult.text, extent.left + hInset, scanY + topPad);
+      linesPlaced++;
+      charsPlaced += lineResult.text.length;
+    }
+  }
+
+  // ── Update info bar ───────────────────────────────────────────────────────
+  const glyphName = glyph.name || ch;
+  const contours  = countContours(glyph);
+  infoGlyph.textContent    = `"${ch}" (${glyphName})`;
+  infoContours.textContent = contours;
+  infoLines.textContent    = linesPlaced;
+  infoChars.textContent    = charsPlaced;
+  infoFontEl.textContent   = font.names.fontFamily?.en || 'Inter';
+
+  infoBar.style.display = 'flex';
+}
+
+// ─── Debounce helper ──────────────────────────────────────────────────────────
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
+const debouncedRender = debounce(render, 220);
+
+// ─── Event wiring ─────────────────────────────────────────────────────────────
+charInput.addEventListener('input', () => {
+  if (charInput.value.length > 0) debouncedRender();
+});
+containerSlider.addEventListener('input', () => {
+  containerVal.textContent = containerSlider.value;
+  debouncedRender();
+});
+fillSizeSlider.addEventListener('input', () => {
+  fillSizeVal.textContent = fillSizeSlider.value;
+  debouncedRender();
+});
+fillTextInput.addEventListener('input', debounce(render, 400));
+regenerateBtn.addEventListener('click', render);
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+(async () => {
+  font = await loadFont(FONT_URL);
+  if (!font) font = await loadFont(FALLBACK_URL);
+
+  if (!font) {
+    loading.querySelector('span').textContent = 'Failed to load font. Check network.';
+    return;
+  }
+
+  loading.style.display = 'none';
+  mainCanvas.style.display = 'block';
+
+  await document.fonts.ready;
+  render();
+})();
+</script>
+</body>
+</html>

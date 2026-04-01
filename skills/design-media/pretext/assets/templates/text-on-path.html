@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlyphKit — Text on Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08080e;
+  --bg-card: #0e0e16;
+  --bg-input: #14141e;
+  --fg: #e8e4dc;
+  --fg-dim: #8a8680;
+  --fg-accent: #c9a84c;
+  --fg-accent-dim: #8b6914;
+  --border: #1e1e2a;
+}
+html { background: var(--bg); color: var(--fg); font-family: Georgia, 'Palatino Linotype', serif; }
+body { min-height: 100vh; padding: 2rem 1.5rem; max-width: 960px; margin: 0 auto; }
+
+a { color: var(--fg-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.back { display: inline-block; font-family: 'SF Mono', monospace; font-size: 0.75rem; color: var(--fg-dim); margin-bottom: 1rem; }
+.back:hover { color: var(--fg-accent); }
+
+h1 { font-weight: 400; font-size: 1.8rem; letter-spacing: 0.02em; margin-bottom: 0.25rem; font-family: 'Playfair Display', Georgia, serif; }
+.subtitle { color: var(--fg-dim); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.5; }
+.subtitle code {
+  font-family: 'SF Mono', monospace;
+  font-size: 0.8em;
+  background: var(--bg-card);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  color: var(--fg-accent);
+}
+
+.controls {
+  display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  margin-bottom: 1.5rem; align-items: flex-end;
+}
+.control-group { display: flex; flex-direction: column; gap: 0.25rem; }
+.control-group label {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-dim);
+}
+input[type="text"] {
+  background: var(--bg-input); border: 1px solid var(--border); color: var(--fg);
+  font-family: Georgia, serif; font-size: 1rem; padding: 0.4rem 0.6rem; border-radius: 6px;
+  outline: none; width: 260px;
+}
+input[type="text"]:focus { border-color: var(--fg-accent-dim); }
+input[type="range"] { accent-color: #4a9e8e; width: 110px; }
+
+.range-row {
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.range-val {
+  font-family: 'SF Mono', monospace; font-size: 0.7rem; color: var(--fg-dim);
+  min-width: 2.5rem;
+}
+
+.canvas-area {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden; position: relative;
+  user-select: none;
+}
+
+.canvas-area svg {
+  width: 100%;
+  height: 500px;
+  display: block;
+  touch-action: none;
+}
+
+.loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: var(--fg-dim); font-family: 'SF Mono', monospace; font-size: 0.8rem;
+  background: var(--bg-card);
+}
+
+.info-bar {
+  font-family: 'SF Mono', monospace; font-size: 0.65rem; color: var(--fg-dim);
+  padding: 0.5rem 1rem; border-top: 1px solid var(--border); background: var(--bg);
+  border-radius: 0 0 6px 6px;
+  display: flex; gap: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  body { padding: 1rem; }
+  .controls { flex-direction: column; }
+  input[type="text"] { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<h1>Text on Path</h1>
+<p class="subtitle">SVG <code>&lt;textPath&gt;</code> is a CSS hack. True glyph-level path following requires per-glyph advance widths and tangent rotation. Drag the control points.</p>
+
+<div class="controls">
+  <div class="control-group">
+    <label>Text</label>
+    <input type="text" id="textInput" value="The quick brown fox" spellcheck="false">
+  </div>
+  <div class="control-group">
+    <label>Font Size</label>
+    <div class="range-row">
+      <input type="range" id="fontSize" min="20" max="80" value="48">
+      <span class="range-val" id="fontSizeVal">48px</span>
+    </div>
+  </div>
+</div>
+
+<div class="canvas-area">
+  <div class="loading" id="loading">Loading font...</div>
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" style="opacity:0; transition: opacity 0.3s;">
+    <defs>
+      <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#4a9e8e"/>
+        <stop offset="50%" stop-color="#7dcfc2"/>
+        <stop offset="100%" stop-color="#2e6d60"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Bezier curve display -->
+    <g id="curveGroup">
+      <!-- handle lines -->
+      <line id="handle0" stroke="#2a2a3a" stroke-width="1" stroke-dasharray="4,3"/>
+      <line id="handle1" stroke="#2a2a3a" stroke-width="1" stroke-dasharray="4,3"/>
+      <!-- the curve itself -->
+      <path id="bezierPath" fill="none" stroke="#2a2a3a" stroke-width="1.5"/>
+    </g>
+
+    <!-- Rendered glyph paths -->
+    <g id="glyphGroup"></g>
+
+    <!-- Control points — rendered last so they're on top -->
+    <g id="cpGroup">
+      <!-- 4 control points, added dynamically -->
+    </g>
+  </svg>
+  <div class="info-bar" id="infoBar">
+    <span id="infoGlyphs">—</span>
+    <span id="infoLength">—</span>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<script>
+(async function() {
+  'use strict';
+
+  const FONT_URL      = 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff';
+  const FALLBACK_URL  = 'https://cdn.jsdelivr.net/npm/@fontsource/lora@5.0.8/files/lora-latin-400-normal.woff';
+  const ARC_SAMPLES   = 400;   // lookup table resolution
+
+  // ── DOM refs ────────────────────────────────────────────────────────────────
+  const svgEl        = document.getElementById('svg');
+  const glyphGroup   = document.getElementById('glyphGroup');
+  const cpGroup      = document.getElementById('cpGroup');
+  const bezierPath   = document.getElementById('bezierPath');
+  const handle0      = document.getElementById('handle0');
+  const handle1      = document.getElementById('handle1');
+  const loadingEl    = document.getElementById('loading');
+  const textInput    = document.getElementById('textInput');
+  const fontSizeSlider = document.getElementById('fontSize');
+  const fontSizeVal  = document.getElementById('fontSizeVal');
+  const infoGlyphs   = document.getElementById('infoGlyphs');
+  const infoLength   = document.getElementById('infoLength');
+
+  // ── State ────────────────────────────────────────────────────────────────────
+  let font      = null;
+  let dragging  = null;  // { idx, offsetX, offsetY }
+  let viewW     = 960;
+  let viewH     = 500;
+
+  // Control points in SVG coordinate space — start as a gentle S-curve
+  let cps = [
+    { x: 80,  y: 300 },   // P0 — anchor
+    { x: 280, y: 120 },   // P1 — handle
+    { x: 680, y: 400 },   // P2 — handle
+    { x: 880, y: 220 },   // P3 — anchor
+  ];
+
+  // ── Font loading ─────────────────────────────────────────────────────────────
+  async function loadFont(url) {
+    try {
+      const buf = await fetch(url).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.arrayBuffer();
+      });
+      return opentype.parse(buf);
+    } catch (e) {
+      console.warn('Font load failed:', url, e);
+      return null;
+    }
+  }
+
+  font = await loadFont(FONT_URL);
+  if (!font) font = await loadFont(FALLBACK_URL);
+
+  if (!font) {
+    loadingEl.textContent = 'Failed to load font. Check console for details.';
+    return;
+  }
+
+  loadingEl.style.display = 'none';
+  svgEl.style.opacity = '1';
+
+  // ── Cubic Bezier math ────────────────────────────────────────────────────────
+
+  /** Evaluate cubic Bezier position at t ∈ [0,1]. */
+  function bezierPoint(t, p0, p1, p2, p3) {
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const mt3 = mt2 * mt;
+    const t2  = t * t;
+    const t3  = t2 * t;
+    return {
+      x: mt3 * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t3 * p3.x,
+      y: mt3 * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t3 * p3.y
+    };
+  }
+
+  /** Evaluate cubic Bezier first derivative (tangent) at t. */
+  function bezierTangent(t, p0, p1, p2, p3) {
+    const mt  = 1 - t;
+    const mt2 = mt * mt;
+    const t2  = t * t;
+    return {
+      x: 3 * mt2 * (p1.x - p0.x) + 6 * mt * t * (p2.x - p1.x) + 3 * t2 * (p3.x - p2.x),
+      y: 3 * mt2 * (p1.y - p0.y) + 6 * mt * t * (p2.y - p1.y) + 3 * t2 * (p3.y - p2.y)
+    };
+  }
+
+  /**
+   * Build arc-length lookup table for the current control points.
+   * Returns { tValues, arcLengths, totalLength }
+   * tValues[i] is the t parameter corresponding to the chord point i.
+   * arcLengths[i] is the cumulative arc length at that t.
+   */
+  function buildArcLengthTable(p0, p1, p2, p3, n) {
+    const tValues    = new Float64Array(n + 1);
+    const arcLengths = new Float64Array(n + 1);
+    let prev = bezierPoint(0, p0, p1, p2, p3);
+    tValues[0]    = 0;
+    arcLengths[0] = 0;
+
+    for (let i = 1; i <= n; i++) {
+      const t    = i / n;
+      const curr = bezierPoint(t, p0, p1, p2, p3);
+      const dx   = curr.x - prev.x;
+      const dy   = curr.y - prev.y;
+      arcLengths[i] = arcLengths[i - 1] + Math.sqrt(dx * dx + dy * dy);
+      tValues[i]    = t;
+      prev = curr;
+    }
+
+    return {
+      tValues,
+      arcLengths,
+      totalLength: arcLengths[n]
+    };
+  }
+
+  /**
+   * Binary-search the arc-length table to find t for a given target length.
+   * Returns t ∈ [0, 1].
+   */
+  function arcLengthToT(table, targetLen) {
+    const { tValues, arcLengths } = table;
+    const n = arcLengths.length - 1;
+
+    if (targetLen <= 0)                     return tValues[0];
+    if (targetLen >= arcLengths[n])         return tValues[n];
+
+    // Binary search for the segment bracketing targetLen
+    let lo = 0, hi = n;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (arcLengths[mid] < targetLen) lo = mid;
+      else hi = mid;
+    }
+
+    // Linear interpolation within the segment
+    const span = arcLengths[hi] - arcLengths[lo];
+    const frac = span < 1e-10 ? 0 : (targetLen - arcLengths[lo]) / span;
+    return tValues[lo] + frac * (tValues[hi] - tValues[lo]);
+  }
+
+  // ── SVG path string for bezier curve ────────────────────────────────────────
+
+  function updateCurveDisplay() {
+    const [p0, p1, p2, p3] = cps;
+    bezierPath.setAttribute('d',
+      `M${p0.x},${p0.y} C${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y}`
+    );
+    // Handle lines: P0→P1, P2→P3
+    handle0.setAttribute('x1', p0.x); handle0.setAttribute('y1', p0.y);
+    handle0.setAttribute('x2', p1.x); handle0.setAttribute('y2', p1.y);
+    handle1.setAttribute('x1', p2.x); handle1.setAttribute('y1', p2.y);
+    handle1.setAttribute('x2', p3.x); handle1.setAttribute('y2', p3.y);
+  }
+
+  // ── Glyph rendering ──────────────────────────────────────────────────────────
+
+  function render() {
+    const text     = textInput.value || ' ';
+    const fontSize = parseInt(fontSizeSlider.value, 10);
+    const scale    = fontSize / font.unitsPerEm;
+
+    const [p0, p1, p2, p3] = cps;
+    const table = buildArcLengthTable(p0, p1, p2, p3, ARC_SAMPLES);
+    const totalLength = table.totalLength;
+
+    const glyphs = font.stringToGlyphs(text);
+    let cursor = 0;  // arc-length cursor
+
+    // Pre-compute total text width for optional centering (we start at cursor=0)
+    // — intentionally not centering; left-side start lets the user see overflow behavior.
+
+    let html = '';
+    let glyphCount = 0;
+
+    for (let i = 0; i < glyphs.length; i++) {
+      const glyph = glyphs[i];
+      const advW  = glyph.advanceWidth * scale;
+
+      // Kern with next glyph
+      let kern = 0;
+      if (i < glyphs.length - 1) {
+        kern = font.getKerningValue(glyph, glyphs[i + 1]) * scale;
+      }
+
+      // Place glyph at the midpoint of its advance width on the curve
+      const glyphMidLen = cursor + advW * 0.5;
+
+      if (glyphMidLen > totalLength) {
+        // Off the end of the curve — still advance cursor but skip rendering
+        cursor += advW + kern;
+        continue;
+      }
+
+      // Find curve position and tangent at mid-advance
+      const tMid  = arcLengthToT(table, glyphMidLen);
+      const pos   = bezierPoint(tMid, p0, p1, p2, p3);
+      const tang  = bezierTangent(tMid, p0, p1, p2, p3);
+      const angle = Math.atan2(tang.y, tang.x) * (180 / Math.PI);
+
+      // Get the glyph SVG path at (0, 0) so we can apply the transform ourselves.
+      // opentype.js: getPath(x, y, fontSize) places the baseline origin at (x, y).
+      // We generate at origin then transform to curve position.
+      const glyphPath = glyph.getPath(-(advW * 0.5), 0, fontSize);
+      const pathData  = glyphPath.toPathData(2);
+
+      if (!pathData) {
+        // Space or empty glyph — still advance
+        cursor += advW + kern;
+        continue;
+      }
+
+      // Transform: translate to curve point, rotate to follow tangent
+      const transform = `translate(${pos.x.toFixed(2)},${pos.y.toFixed(2)}) rotate(${angle.toFixed(3)})`;
+
+      html += `<path d="${pathData}" fill="url(#goldGrad)" transform="${transform}"/>`;
+      glyphCount++;
+
+      cursor += advW + kern;
+    }
+
+    glyphGroup.innerHTML = html;
+    infoGlyphs.textContent = `${glyphCount} glyphs rendered`;
+    infoLength.textContent = `path length: ${Math.round(totalLength)}px`;
+  }
+
+  // ── Control point interaction ─────────────────────────────────────────────────
+
+  /**
+   * Convert a pointer/mouse event to SVG coordinate space,
+   * accounting for the current viewBox and element scaling.
+   */
+  function eventToSVG(e) {
+    const rect   = svgEl.getBoundingClientRect();
+    const scaleX = viewW / rect.width;
+    const scaleY = viewH / rect.height;
+    const clientX = e.clientX != null ? e.clientX : (e.touches ? e.touches[0].clientX : 0);
+    const clientY = e.clientY != null ? e.clientY : (e.touches ? e.touches[0].clientY : 0);
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top)  * scaleY
+    };
+  }
+
+  function buildControlPoints() {
+    cpGroup.innerHTML = '';
+    cps.forEach((cp, i) => {
+      // Visual distinction: P0/P3 are anchors (solid), P1/P2 are handles (hollow)
+      const isAnchor = (i === 0 || i === 3);
+      const circle   = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', cp.x);
+      circle.setAttribute('cy', cp.y);
+      circle.setAttribute('r', '8');
+      circle.setAttribute('fill',         isAnchor ? '#4a9e8e'      : '#14141e');
+      circle.setAttribute('stroke',       '#4a9e8e');
+      circle.setAttribute('stroke-width', '1.5');
+      circle.setAttribute('cursor',       'grab');
+      circle.setAttribute('data-idx',     i);
+      // Larger invisible hit area
+      circle.style.touchAction = 'none';
+      cpGroup.appendChild(circle);
+
+      // Label
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', cp.x);
+      text.setAttribute('y', cp.y - 12);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', '#8a8680');
+      text.setAttribute('font-family', 'SF Mono, monospace');
+      text.setAttribute('font-size', '9');
+      text.setAttribute('pointer-events', 'none');
+      text.textContent = `P${i}`;
+      cpGroup.appendChild(text);
+    });
+  }
+
+  function updateControlPointPositions() {
+    const circles = cpGroup.querySelectorAll('circle');
+    const labels  = cpGroup.querySelectorAll('text');
+    cps.forEach((cp, i) => {
+      circles[i].setAttribute('cx', cp.x);
+      circles[i].setAttribute('cy', cp.y);
+      labels[i].setAttribute('x',  cp.x);
+      labels[i].setAttribute('y',  cp.y - 12);
+    });
+  }
+
+  // Pointer events on the SVG
+  svgEl.addEventListener('pointerdown', e => {
+    const target = e.target;
+    if (target.tagName !== 'circle') return;
+    const idx = parseInt(target.dataset.idx, 10);
+    if (isNaN(idx)) return;
+    dragging = { idx };
+    target.setAttribute('cursor', 'grabbing');
+    svgEl.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  svgEl.addEventListener('pointermove', e => {
+    if (dragging === null) return;
+    const { x, y } = eventToSVG(e);
+    cps[dragging.idx] = {
+      x: Math.max(0, Math.min(viewW, x)),
+      y: Math.max(0, Math.min(viewH, y))
+    };
+    updateControlPointPositions();
+    updateCurveDisplay();
+    render();
+    e.preventDefault();
+  });
+
+  svgEl.addEventListener('pointerup', e => {
+    if (dragging === null) return;
+    const circle = cpGroup.querySelectorAll('circle')[dragging.idx];
+    if (circle) circle.setAttribute('cursor', 'grab');
+    dragging = null;
+  });
+
+  svgEl.addEventListener('pointercancel', () => { dragging = null; });
+
+  // ── Resize handling ──────────────────────────────────────────────────────────
+
+  function onResize() {
+    const rect = svgEl.parentElement.getBoundingClientRect();
+    // Maintain aspect ratio 960:500 — just update viewBox width, keep height
+    viewW = Math.round(rect.width);
+    // Keep 960×500 coordinate space regardless of display size.
+    // SVG scales; we just need the right viewBox.
+    svgEl.setAttribute('viewBox', `0 0 960 500`);
+    render();
+  }
+
+  window.addEventListener('resize', onResize);
+
+  // ── Input events ─────────────────────────────────────────────────────────────
+
+  textInput.addEventListener('input', render);
+  fontSizeSlider.addEventListener('input', () => {
+    fontSizeVal.textContent = fontSizeSlider.value + 'px';
+    render();
+  });
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+
+  buildControlPoints();
+  updateCurveDisplay();
+  render();
+
+})();
+</script>
+</body>
+</html>
