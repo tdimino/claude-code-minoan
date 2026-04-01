@@ -204,6 +204,98 @@ def test_crawl_active() -> TestResult:
         return TestResult("Active Crawls", False, f"Error: {str(e)}")
 
 
+# --- Interact Tests (consume credits, use --test interact to run) ---
+
+def test_interact_prompt() -> TestResult:
+    """Test interact with AI prompt mode (scrape → interact → stop lifecycle)."""
+    scrape_id = None
+    try:
+        # Step 1: Scrape to get a scrapeId
+        result = fc.scrape(TEST_URL, formats=["markdown"])
+        data = result.get("data", result)
+        metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+        scrape_id = metadata.get("scrapeId")
+        if not scrape_id:
+            return TestResult("Interact (prompt)", False,
+                              "Scrape did not return scrapeId in data.metadata.scrapeId")
+
+        # Step 2: Interact with prompt
+        interact_result = fc.interact(scrape_id, prompt="What is the title of this page?")
+        if interact_result.get("success") or interact_result.get("output"):
+            return TestResult("Interact (prompt)", True,
+                              f"Scrape→interact→stop lifecycle OK. Output: {str(interact_result.get('output', ''))[:100]}",
+                              interact_result)
+        return TestResult("Interact (prompt)", False,
+                          f"Unexpected response: {str(interact_result)[:200]}")
+    except Exception as e:
+        return TestResult("Interact (prompt)", False, f"Error: {str(e)}")
+    finally:
+        if scrape_id:
+            try:
+                fc.interact_stop(scrape_id)
+            except Exception:
+                pass
+
+
+def test_interact_code() -> TestResult:
+    """Test interact with code execution mode."""
+    scrape_id = None
+    try:
+        result = fc.scrape(TEST_URL, formats=["markdown"])
+        data = result.get("data", result)
+        metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+        scrape_id = metadata.get("scrapeId")
+        if not scrape_id:
+            return TestResult("Interact (code)", False, "No scrapeId from scrape")
+
+        interact_result = fc.interact(scrape_id, code="console.log(await page.title());")
+        has_output = interact_result.get("stdout") is not None or interact_result.get("exitCode") is not None
+        if has_output:
+            return TestResult("Interact (code)", True,
+                              f"Code execution OK. stdout: {str(interact_result.get('stdout', ''))[:100]}",
+                              interact_result)
+        return TestResult("Interact (code)", False,
+                          f"No stdout/exitCode: {str(interact_result)[:200]}")
+    except Exception as e:
+        return TestResult("Interact (code)", False, f"Error: {str(e)}")
+    finally:
+        if scrape_id:
+            try:
+                fc.interact_stop(scrape_id)
+            except Exception:
+                pass
+
+
+def test_interact_stop() -> TestResult:
+    """Test that interact-stop works without error."""
+    try:
+        result = fc.scrape(TEST_URL, formats=["markdown"])
+        data = result.get("data", result)
+        metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+        scrape_id = metadata.get("scrapeId")
+        if not scrape_id:
+            return TestResult("Interact (stop)", False, "No scrapeId from scrape")
+
+        stop_result = fc.interact_stop(scrape_id)
+        return TestResult("Interact (stop)", True, "Session stopped successfully", stop_result)
+    except Exception as e:
+        return TestResult("Interact (stop)", False, f"Error: {str(e)}")
+
+
+def test_interact_invalid_scrape_id() -> TestResult:
+    """Test interact with a bogus scrapeId returns an error."""
+    try:
+        fc.interact("bogus-scrape-id-12345", prompt="Hello")
+        return TestResult("Interact (invalid ID)", False, "Expected error for bogus scrapeId but got success")
+    except Exception as e:
+        error_msg = str(e)
+        if "404" in error_msg or "not found" in error_msg.lower() or "400" in error_msg or "422" in error_msg:
+            return TestResult("Interact (invalid ID)", True,
+                              f"Correctly rejected bogus scrapeId: {error_msg[:100]}")
+        return TestResult("Interact (invalid ID)", False,
+                          f"Unexpected error (expected 404/400/422): {error_msg[:100]}")
+
+
 def run_tests(tests: List[Callable], verbose: bool = False) -> Dict[str, Any]:
     """Run a list of tests and return results."""
     results = []
@@ -269,7 +361,14 @@ def main():
         test_crawl_active,
     ]
 
-    all_tests = quick_tests + async_tests
+    interact_tests = [
+        test_interact_prompt,
+        test_interact_code,
+        test_interact_stop,
+        test_interact_invalid_scrape_id,
+    ]
+
+    all_tests = quick_tests + async_tests + interact_tests
 
     # Select tests to run
     if args.test:
