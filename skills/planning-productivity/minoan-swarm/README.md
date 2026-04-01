@@ -70,8 +70,8 @@ minoan-swarm/
 | **Research Knossot** | Elat | Bug investigation, competing hypotheses |
 | **Phase Completion** | Qedeshot | Finishing a phase—deploy, test, polish |
 | **Code Review Tribunal** | Elat | Multi-perspective PR review |
-| **Truth & Balance** | Ma'at | Quality assurance, verification |
-| **Fate's Reckoning** | Manat | Final audit, release decisions |
+| **Truth & Balance** | Ma'at | Multi-dimensional quality verification (correctness, performance, accessibility) |
+| **Fate's Reckoning** | Manat | Pre-release audit and go/no-go decision (security, dependencies, migrations, changelog) |
 
 Full templates with ready-to-use tool calls: [`references/team-templates.md`](references/team-templates.md)
 
