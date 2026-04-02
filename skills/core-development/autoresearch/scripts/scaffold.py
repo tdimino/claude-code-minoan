@@ -124,11 +124,13 @@ def run_baseline_eval(repo_root: Path, lab_dir: Path) -> dict | None:
 
 
 def write_results_row(results_tsv: Path, exp_id: int, results: dict, branch: str = "main") -> None:
-    """Append a row to results.tsv."""
+    """Append a row to results.tsv matching runner's TSV schema.
+
+    Schema: timestamp, experiment_id, branch, parent, commit, composite, status, duration_s, description
+    """
     composite = results.get("composite", 0.0)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    # TSV columns: id, timestamp, branch, parent, composite, disposition, note
-    row = f"{exp_id}\t{ts}\t{branch}\t-\t{composite:.4f}\tbaseline\tInitial scaffold\n"
+    row = f"{ts}\texp{exp_id:04d}\t{branch}\t—\tbaseline\t{composite:.4f}\tbaseline\t0.0\tInitial scaffold\n"
     with results_tsv.open("a") as f:
         f.write(row)
 
@@ -183,22 +185,30 @@ def main():
     stack = detect_stack(repo_root)
     lab_dir = repo_root / ".lab"
 
-    # Check for existing lab
-    if lab_dir.exists():
-        print(f"WARNING: .lab/ already exists at {lab_dir}")
+    # Check for existing lab — preserve user-customized files on re-scaffold
+    existing_lab = lab_dir.exists()
+    preserved_files: set[str] = set()
+    if existing_lab:
+        # These files are typically hand-edited after scaffold; preserve them
+        PRESERVE = {"config.json", "program.md", "eval.py", "dead-ends.md", "results.tsv"}
+        preserved_files = {f for f in PRESERVE if (lab_dir / f).exists()}
+        if preserved_files:
+            print(f"Existing .lab/ found. Preserving user-customized files: {', '.join(sorted(preserved_files))}")
+            print("  (Infrastructure files like runner.py and eval_base.py will be refreshed)")
+        else:
+            print(f"WARNING: .lab/ already exists at {lab_dir} (no customized files detected)")
         if not args.yes:
-            resp = input("Overwrite existing lab? [y/N] ").strip().lower()
-            if resp not in ("y", "yes"):
+            resp = input("Proceed with re-scaffold? [Y/n] ").strip().lower()
+            if resp in ("n", "no"):
                 print("Aborted.")
                 sys.exit(0)
-
-    print_config_summary(stack, lab_dir)
-
-    if not args.yes:
-        resp = input("Proceed with scaffold? [Y/n] ").strip().lower()
-        if resp in ("n", "no"):
-            print("Aborted.")
-            sys.exit(0)
+    else:
+        print_config_summary(stack, lab_dir)
+        if not args.yes:
+            resp = input("Proceed with scaffold? [Y/n] ").strip().lower()
+            if resp in ("n", "no"):
+                print("Aborted.")
+                sys.exit(0)
 
     # Create .lab/ directory
     lab_dir.mkdir(exist_ok=True)
@@ -260,31 +270,37 @@ def main():
     # ---- Run eval_gen.py → .lab/eval.py ----
     eval_gen_script = SCRIPTS_DIR / "eval_gen.py"
     eval_dest = lab_dir / "eval.py"
-    result = run(
-        [
-            sys.executable,
-            str(eval_gen_script),
-            "--repo-root", str(repo_root),
-            "--output", str(eval_dest),
-        ],
-    )
-    if result.returncode == 0:
-        print(f"  Created .lab/eval.py  ({result.stdout.strip()})")
+    if "eval.py" in preserved_files:
+        print("  Preserved .lab/eval.py (user-customized)")
     else:
-        print(f"  WARNING: eval_gen.py failed:\n{result.stderr}")
-        eval_dest.write_text(
-            "#!/usr/bin/env python3\n"
-            "# eval.py — gate generation failed; inspect with eval_gen.py manually\n"
-            "import json\n"
-            "if __name__ == '__main__':\n"
-            "    print(json.dumps({'gates': [], 'composite': 0.0}))\n"
+        result = run(
+            [
+                sys.executable,
+                str(eval_gen_script),
+                "--repo-root", str(repo_root),
+                "--output", str(eval_dest),
+            ],
         )
+        if result.returncode == 0:
+            print(f"  Created .lab/eval.py  ({result.stdout.strip()})")
+        else:
+            print(f"  WARNING: eval_gen.py failed:\n{result.stderr}")
+            eval_dest.write_text(
+                "#!/usr/bin/env python3\n"
+                "# eval.py — gate generation failed; inspect with eval_gen.py manually\n"
+                "import json\n"
+                "if __name__ == '__main__':\n"
+                "    print(json.dumps({'gates': [], 'composite': 0.0}))\n"
+            )
 
     # ---- Generate .lab/program.md ----
     program_tmpl = ASSETS_DIR / "program.md.tmpl"
     program_dest = lab_dir / "program.md"
-    if program_tmpl.exists():
+    if "program.md" in preserved_files:
+        print("  Preserved .lab/program.md (user-customized)")
+    elif program_tmpl.exists():
         program_dest.write_text(substitute_template(program_tmpl, replacements))
+        print("  Created .lab/program.md")
     else:
         # Minimal fallback
         program_dest.write_text(
@@ -295,13 +311,16 @@ def main():
             "## Hypotheses\n\n- [ ] Hypothesis 1\n\n"
             "## Dead Ends\n\n*(none yet)*\n"
         )
-    print("  Created .lab/program.md")
+        print("  Created .lab/program.md")
 
     # ---- Generate .lab/config.json ----
     config_tmpl = ASSETS_DIR / "config.json.tmpl"
     config_dest = lab_dir / "config.json"
-    if config_tmpl.exists():
+    if "config.json" in preserved_files:
+        print("  Preserved .lab/config.json (user-customized)")
+    elif config_tmpl.exists():
         config_dest.write_text(substitute_template(config_tmpl, replacements))
+        print("  Created .lab/config.json")
     else:
         # Minimal fallback
         config = {
@@ -317,7 +336,7 @@ def main():
             "max_iterations": 50,
         }
         config_dest.write_text(json.dumps(config, indent=2))
-    print("  Created .lab/config.json")
+        print("  Created .lab/config.json")
 
     # ---- Create empty log files ----
     results_tsv = lab_dir / "results.tsv"

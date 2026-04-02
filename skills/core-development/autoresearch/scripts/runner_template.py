@@ -27,8 +27,10 @@ import csv
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -234,7 +236,7 @@ def git_revert(repo_root: Path, log: logging.Logger) -> None:
 def git_revert_uncommitted(repo_root: Path) -> None:
     """Discard uncommitted changes without removing a commit."""
     subprocess.run(["git", "checkout", "."], cwd=str(repo_root))
-    subprocess.run(["git", "clean", "-fd", "--", "."], cwd=str(repo_root))
+    subprocess.run(["git", "clean", "-fd", "-e", ".lab/", "--", "."], cwd=str(repo_root))
 
 
 # ---------------------------------------------------------------------------
@@ -364,11 +366,25 @@ def implement(
     timeout: int,
     log: logging.Logger,
 ) -> bool:
-    """Run claude -p with the implementation prompt. Returns True on clean exit."""
+    """Run claude -p with the implementation prompt. Returns True on clean exit.
+
+    The .lab/ directory is backed up before claude -p runs and restored after,
+    because the subprocess may execute git clean or other destructive operations
+    that delete untracked/gitignored directories.
+    """
     prompt = hypothesis.get("implementation_prompt", "")
     if not prompt:
         log.error("Hypothesis missing implementation_prompt.")
         return False
+
+    lab_dir = repo_root / ".lab"
+    backup_dir = Path(tempfile.mkdtemp(prefix="lab-backup-"))
+
+    # Backup .lab/ before claude -p (it may run git clean -fdx)
+    if lab_dir.exists():
+        shutil.copytree(lab_dir, backup_dir / ".lab", dirs_exist_ok=True)
+        log.info(f"Backed up .lab/ to {backup_dir}")
+
     try:
         result = subprocess.run(
             ["claude", "-p", prompt,
@@ -378,10 +394,29 @@ def implement(
             cwd=str(repo_root), timeout=timeout,
             env=claude_env(),
         )
-        return result.returncode == 0
+        ok = result.returncode == 0
     except subprocess.TimeoutExpired:
         log.error(f"Implementation timed out after {timeout}s.")
-        return False
+        ok = False
+
+    # Restore .lab/ if it was damaged or deleted by the subprocess
+    if (backup_dir / ".lab").exists():
+        if not lab_dir.exists():
+            log.warning("claude -p deleted .lab/ — restoring from backup")
+            shutil.copytree(backup_dir / ".lab", lab_dir)
+        else:
+            # Restore any files that were deleted but keep new ones (e.g. results)
+            for src_file in (backup_dir / ".lab").rglob("*"):
+                if src_file.is_file():
+                    rel = src_file.relative_to(backup_dir / ".lab")
+                    dest = lab_dir / rel
+                    if not dest.exists():
+                        dest.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src_file, dest)
+                        log.warning(f"Restored missing .lab/{rel}")
+        shutil.rmtree(backup_dir, ignore_errors=True)
+
+    return ok
 
 
 # ---------------------------------------------------------------------------
@@ -628,7 +663,7 @@ def _make_crash_handler(repo_root: Path, lock_path: Path, log_fn) -> None:
         if result.stdout.strip():
             log_fn("Crash handler: discarding uncommitted changes.")
             subprocess.run(["git", "checkout", "."], cwd=str(repo_root))
-            subprocess.run(["git", "clean", "-fd", "--", "."], cwd=str(repo_root))
+            subprocess.run(["git", "clean", "-fd", "-e", ".lab/", "--", "."], cwd=str(repo_root))
         release_lock(lock_path)
 
     atexit.register(handler)
