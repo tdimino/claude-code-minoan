@@ -95,7 +95,10 @@ def acquire_lock(lock_path: Path, log: logging.Logger) -> None:
             os.kill(pid, 0)  # Signal 0: check if process is alive
             log.error(f"Lock held by active PID {pid}. Aborting.")
             sys.exit(1)
-        except (ValueError, ProcessLookupError, PermissionError):
+        except PermissionError:
+            log.error(f"PermissionError checking PID {pid_str}. Cannot determine if lock is stale. Aborting.")
+            sys.exit(1)
+        except (ValueError, ProcessLookupError):
             log.info(f"Stale lock (PID {pid_str}). Removing.")
             lock_path.unlink(missing_ok=True)
 
@@ -441,6 +444,8 @@ def log_result(
     log: logging.Logger,
 ) -> None:
     """Append one row to results.tsv and regenerate eval-report.md."""
+    # Sanitize description: newlines break TSV and experiment ID counting
+    description = description.replace("\n", " | ").replace("\r", "")[:200]
     write_header = not results_tsv.exists()
     with open(results_tsv, "a", newline="") as f:
         writer = csv.writer(f, delimiter="\t")
@@ -703,6 +708,20 @@ def main():
     log, log_file = _setup_logging(lab_dir)
     log.info(f"Autoresearch runner starting. repo={repo_root}, max_iterations={max_iterations}")
 
+    # --- Dirty tree check ---
+    dirty_check = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True, text=True, cwd=str(repo_root),
+    )
+    if dirty_check.stdout.strip():
+        log.error(
+            "Working tree is dirty. Commit or stash your changes before running "
+            "autoresearch — uncommitted edits would be swept into experiment commits "
+            "and lost on discard.\n"
+            f"  Dirty files:\n{dirty_check.stdout.rstrip()}"
+        )
+        sys.exit(1)
+
     # --- Lock ---
     acquire_lock(lock_path, log)
     _make_crash_handler(repo_root, lock_path, lambda msg: log.warning(msg))
@@ -831,11 +850,11 @@ def main():
         if delta >= keep_threshold:
             # KEEP* = primary improved but a secondary metric regressed (trade-off)
             status = "keep"
-            secondary = config.get("secondary_metrics", [])
+            secondary = cfg.get("secondary_metrics", [])
             if secondary and isinstance(score.get("per_gate"), dict):
                 for metric_name in secondary:
-                    prev = baseline.get("per_gate", {}).get(metric_name, {}).get("score", 0)
-                    curr = score.get("per_gate", {}).get(metric_name, {}).get("score", 0)
+                    prev = baseline.get("per_gate", {}).get(metric_name, 0)
+                    curr = score.get("per_gate", {}).get(metric_name, 0)
                     if curr < prev - 0.01:  # secondary regressed by >1%
                         status = "keep*"
                         log.warning(f"KEEP* — secondary metric '{metric_name}' regressed: {prev:.4f} -> {curr:.4f}")

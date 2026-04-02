@@ -352,8 +352,6 @@ def gate_clippy_release():
         gates.append('''@register_gate("build_artifacts", "t3", 0.15)
 def gate_build_artifacts():
     """T3: Package build produces dist/ artifacts."""
-    import shutil
-    shutil.rmtree(REPO_ROOT / "dist", ignore_errors=True)
     r = run_command(["python3", "-m", "build", "--wheel", "--no-isolation"], timeout=120)
     dist_dir = REPO_ROOT / "dist"
     wheels = list(dist_dir.glob("*.whl")) if dist_dir.exists() else []
@@ -379,11 +377,6 @@ def gate_install_smoke():
         gates.append('''@register_gate("build_artifacts", "t3", 0.15)
 def gate_build_artifacts():
     """T3: Build produces output in dist/ or build/ directory."""
-    import shutil
-    for out_dir in ["dist", "build", ".next", "out"]:
-        d = REPO_ROOT / out_dir
-        if d.exists():
-            shutil.rmtree(d)
     r = run_command(["npm", "run", "build"], timeout=300)
     if r.returncode != 0:
         return 0.0
