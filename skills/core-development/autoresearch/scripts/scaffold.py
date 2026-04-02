@@ -115,7 +115,9 @@ def run_baseline_eval(repo_root: Path, lab_dir: Path) -> dict | None:
         return None
 
     try:
-        results = json.loads(result.stdout)
+        # stdout may have JSON followed by a human-readable "Composite:" summary line
+        json_part = result.stdout.split("\nComposite:")[0].strip()
+        results = json.loads(json_part)
     except (json.JSONDecodeError, ValueError):
         print(f"  WARNING: Could not parse eval output: {result.stdout[:200]}")
         return None
@@ -123,11 +125,19 @@ def run_baseline_eval(repo_root: Path, lab_dir: Path) -> dict | None:
     return results
 
 
-def write_results_row(results_tsv: Path, exp_id: int, results: dict, branch: str = "main") -> None:
+def write_results_row(results_tsv: Path, exp_id: int, results: dict, branch: str = None) -> None:
     """Append a row to results.tsv matching runner's TSV schema.
 
     Schema: timestamp, experiment_id, branch, parent, commit, composite, status, duration_s, description
     """
+    if branch is None:
+        # Detect current branch instead of assuming "main"
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True, text=True,
+            cwd=str(results_tsv.parent.parent),
+        )
+        branch = result.stdout.strip() or "main"
     composite = results.get("composite", 0.0)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     row = f"{ts}\texp{exp_id:04d}\t{branch}\t—\tbaseline\t{composite:.4f}\tbaseline\t0.0\tInitial scaffold\n"
@@ -175,6 +185,22 @@ def main():
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
+
+    # Check if a runner is actively holding the lock
+    lock_path = repo_root / ".lab" / ".runner.lock"
+    if lock_path.exists():
+        pid_str = lock_path.read_text().strip()
+        try:
+            pid = int(pid_str)
+            os.kill(pid, 0)  # Signal 0: check if process is alive
+            print(
+                f"ERROR: Autoresearch runner is active (PID {pid}). "
+                "Cannot re-scaffold while a run is in progress.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        except (ValueError, ProcessLookupError):
+            pass  # Stale lock — safe to proceed
 
     # Verify git repo
     if not (repo_root / ".git").exists():
