@@ -210,8 +210,18 @@ def git_log_recent(repo_root: Path, n: int = 20) -> str:
 
 
 def git_commit(repo_root: Path, description: str, log: logging.Logger) -> str | None:
-    """Stage all changes and commit. Returns short hash or None on failure."""
-    subprocess.run(["git", "add", "-A"], cwd=str(repo_root))
+    """Stage all changes and commit. Returns short hash or None on failure.
+
+    Uses 'git add -A -- .' with pathspec to avoid staging .lab/ files.
+    Even though .lab/ is gitignored, 'git add -A' can stage it if the
+    subprocess (claude -p) modified .gitignore or if the gitignore entry
+    is missing on the experiment branch.
+    """
+    # Stage everything except .lab/ — use explicit pathspec exclusion
+    subprocess.run(
+        ["git", "add", "-A", "--", ".", ":!.lab/"],
+        cwd=str(repo_root),
+    )
     result = subprocess.run(
         ["git", "commit", "-m", f"autoresearch: {description}"],
         capture_output=True, text=True, cwd=str(repo_root),
