@@ -81,7 +81,7 @@ Using phone one-handed on the go. Frequently interrupted. Possibly on a slow con
 
 ## Project-Specific Personas
 
-When `.design-context.md` exists in the project root, derive 1-2 additional personas from the audience description:
+When `.design-context.md` or `DESIGN.md` exists in the project root, derive 1-2 additional personas from the audience description:
 
 1. Read the target audience
 2. Identify the primary archetype not covered by the 5 predefined personas
