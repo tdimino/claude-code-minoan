@@ -55,12 +55,14 @@ minoan-frontend-design/
 ├── SKILL.md                          947 words — syncretic-v3 creative core
 ├── README.md                         This file
 ├── LICENSE.txt                       Apache 2.0
-├── references/
+├── references/                       26 reference files across 6 domains
 │   ├── creative-arsenal.md           30+ named CSS techniques with code
 │   ├── design-dials.md               3 calibration scales (variance, motion, density)
 │   ├── editorial-patterns.md         Eval-derived patterns: grids, accents, photos, ghost text
 │   ├── design-system-checklist.md    Accessibility, tokens, responsive, component states
-│   └── vercel-web-interface-guidelines.md  Engineering standards from Vercel
+│   ├── color-science-deep.md         Color spaces, harmony, accessibility stats, pigment mixing
+│   ├── color-tools-palette.md        Palette generation, libraries, CSS Color 4/5, token architecture
+│   └── ...                           + 20 more (Stripe, Mintlify, Vercel, impeccable-* series)
 └── eval/
     ├── run_eval.py                   Blind A/B eval pipeline (~1400 lines)
     ├── prompts.json                  50 test prompts across 8 categories
@@ -138,6 +140,7 @@ uv run --with anthropic,playwright,scipy,httpx eval/run_eval.py \
 - **[Justin Wetch](https://www.linkedin.com/in/justinwetch/)** — rewrite, eval methodology, and baseline skill
 - **[Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill)** — design dials and creative arsenal concepts
 - **[Vercel](https://vercel.com/design/guidelines)** — Web Interface Guidelines and Geist design system
+- **[meodai/color-expert](https://github.com/meodai/skill.color-expert)** — color science reference corpus (144 files, ~286K words) distilled into `color-science-deep.md` and `color-tools-palette.md`
 
 ## License
 
