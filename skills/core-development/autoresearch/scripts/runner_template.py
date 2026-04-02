@@ -236,6 +236,60 @@ def git_commit(repo_root: Path, description: str, log: logging.Logger) -> str | 
     return hash_result.stdout.strip()
 
 
+def git_squash_to_base(repo_root: Path, base_branch: str, description: str, log: logging.Logger) -> str | None:
+    """Squash all commits since divergence from base_branch into one.
+
+    After a KEEP, the autoresearch branch may have accumulated multiple commits
+    (crashes, intermediate experiments). Squashing ensures each KEEP is a single
+    self-contained commit that can be cherry-picked cleanly to main.
+
+    Returns the new squash commit hash, or None on failure.
+    """
+    # Find the merge base
+    result = subprocess.run(
+        ["git", "merge-base", base_branch, "HEAD"],
+        capture_output=True, text=True, cwd=str(repo_root),
+    )
+    if result.returncode != 0:
+        log.warning(f"Could not find merge-base with {base_branch}: {result.stderr[:100]}")
+        return None
+
+    merge_base = result.stdout.strip()
+
+    # Count commits since merge base
+    count_result = subprocess.run(
+        ["git", "rev-list", "--count", f"{merge_base}..HEAD"],
+        capture_output=True, text=True, cwd=str(repo_root),
+    )
+    commit_count = int(count_result.stdout.strip()) if count_result.returncode == 0 else 0
+    if commit_count <= 1:
+        log.info("Only 1 commit since base — no squash needed.")
+        return None
+
+    # Soft reset to merge base, keeping all changes staged
+    subprocess.run(
+        ["git", "reset", "--soft", merge_base],
+        capture_output=True, text=True, cwd=str(repo_root),
+    )
+
+    # Re-commit as a single squashed commit
+    result = subprocess.run(
+        ["git", "commit", "-m", f"autoresearch(squash): {description}"],
+        capture_output=True, text=True, cwd=str(repo_root),
+    )
+    if result.returncode != 0:
+        log.error(f"Squash commit failed: {result.stderr[:200]}")
+        return None
+
+    hash_result = subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"],
+        capture_output=True, text=True, cwd=str(repo_root),
+    )
+    new_hash = hash_result.stdout.strip()
+    log.info(f"Squashed {commit_count} commits into {new_hash}")
+    return new_hash
+
+
 def git_revert(repo_root: Path, log: logging.Logger) -> None:
     """Revert the last commit (discard experiment)."""
     result = subprocess.run(
@@ -872,6 +926,13 @@ def main():
             log.info(f"{status.upper()} (delta {delta:+.4f} >= threshold {keep_threshold})")
             baseline = score
             keeps += 1
+
+            # Squash all accumulated commits into one cherry-pickable commit.
+            # Without this, crash experiments leave intermediate commits and
+            # cherry-pick to main only gets a partial diff.
+            squash_hash = git_squash_to_base(repo_root, "main", description, log)
+            if squash_hash:
+                commit_hash = squash_hash  # update for results logging
         elif delta >= 0:
             log.info(f"DISCARD (delta {delta:+.4f} < threshold {keep_threshold})")
             git_revert(repo_root, log)
