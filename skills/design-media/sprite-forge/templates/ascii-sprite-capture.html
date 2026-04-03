@@ -161,7 +161,7 @@ async function bundleAndDownload() {
   a.href = url
   a.download = `ascii-fire-${targetFrames}frames.zip`
   a.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
 
   statusEl.textContent = `Downloaded ${targetFrames} frames as ZIP.`
   captureBtn.disabled = false
