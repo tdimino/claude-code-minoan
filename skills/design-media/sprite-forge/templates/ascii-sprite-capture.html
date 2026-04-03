@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCII Sprite Capture — SDF Fire Effect</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0a; color: #ccc;
+  font-family: system-ui, sans-serif;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; gap: 20px;
+}
+canvas {
+  border: 1px solid #333;
+  image-rendering: pixelated;
+  width: 256px; height: 256px;
+}
+.controls {
+  display: flex; gap: 12px; align-items: center;
+}
+button {
+  padding: 8px 16px; border: 1px solid #555; border-radius: 4px;
+  background: #1e1e1e; color: #e0e0e0; font-size: 13px; cursor: pointer;
+}
+button:hover { background: #333; }
+button:disabled { opacity: 0.4; cursor: default; }
+input[type="number"] {
+  width: 60px; padding: 6px 8px; border: 1px solid #555;
+  border-radius: 4px; background: #1e1e1e; color: #e0e0e0;
+  font-size: 13px; text-align: center;
+}
+.status { font-size: 12px; color: #888; min-height: 16px; }
+.hint { font-size: 11px; color: #555; max-width: 400px; text-align: center; }
+@media (prefers-reduced-motion: reduce) {
+  canvas { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas" width="128" height="128"></canvas>
+
+<div class="controls">
+  <label>Frames: <input type="number" id="frameCount" value="8" min="4" max="32"></label>
+  <button id="captureBtn">Capture Frames</button>
+</div>
+<div class="status" id="status"></div>
+<div class="hint">
+  Export frames, then stitch:<br>
+  <code>python3 stitch_spritesheet.py --input-dir frames/ --cols 8 --atlas json</code>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+const captureBtn = document.getElementById('captureBtn')
+const frameCountInput = document.getElementById('frameCount')
+const statusEl = document.getElementById('status')
+
+// ─── Config ─────────────────────────────────────────────────────────
+
+const W = 128, H = 128
+const COLS = 16, ROWS = 16
+const CELL_W = W / COLS, CELL_H = H / ROWS
+const FONT_SIZE = Math.floor(CELL_H * 0.9)
+const DENSITY = '  .:-=+*#%@'  // light → heavy (hot = heavy)
+
+// ─── Buffer (heat field) ────────────────────────────────────────────
+
+const buffer = new Float32Array(COLS * ROWS)
+
+function pre() {
+  // Propagate heat upward with decay
+  for (let y = 0; y < ROWS - 1; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const below = buffer[x + (y + 1) * COLS]
+      const jitter = (Math.random() - 0.5) * 0.08
+      buffer[x + y * COLS] = Math.max(0, below * 0.84 + jitter)
+    }
+  }
+  // Inject heat at bottom row
+  for (let x = 0; x < COLS; x++) {
+    buffer[x + (ROWS - 1) * COLS] = 0.4 + Math.random() * 0.6
+  }
+}
+
+// ─── Per-cell: heat → character + color ─────────────────────────────
+
+function main(x, y) {
+  const heat = Math.max(0, Math.min(1, buffer[x + y * COLS]))
+  const idx = Math.min(Math.floor(heat * DENSITY.length), DENSITY.length - 1)
+  const char = DENSITY[idx]
+
+  // Color: dark → red → orange → yellow
+  const r = Math.min(255, Math.floor(heat * 510))
+  const g = Math.max(0, Math.floor(heat * 280 - 80))
+  const b = Math.max(0, Math.floor(heat * 200 - 160))
+
+  return { char, r, g, b }
+}
+
+// ─── Canvas render ──────────────────────────────────────────────────
+
+function renderFrame() {
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, W, H)
+  ctx.font = `${FONT_SIZE}px "Courier New", monospace`
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'center'
+
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const cell = main(x, y)
+      if (cell.char !== ' ') {
+        ctx.fillStyle = `rgb(${cell.r},${cell.g},${cell.b})`
+        ctx.fillText(cell.char, x * CELL_W + CELL_W / 2, y * CELL_H + CELL_H / 2)
+      }
+    }
+  }
+}
+
+// ─── Capture system ─────────────────────────────────────────────────
+
+let capturing = false
+let capturedBlobs = []
+let targetFrames = 8
+
+captureBtn.addEventListener('click', async () => {
+  targetFrames = parseInt(frameCountInput.value) || 8
+  capturedBlobs = []
+  captureBtn.disabled = true
+
+  // Deterministic capture: step simulation once per frame, wait for blob
+  for (let i = 0; i < targetFrames; i++) {
+    statusEl.textContent = `Capturing frame ${i + 1}/${targetFrames}...`
+    pre()
+    renderFrame()
+    await new Promise(resolve => {
+      canvas.toBlob(blob => { capturedBlobs.push(blob); resolve() }, 'image/png')
+    })
+  }
+
+  statusEl.textContent = 'Bundling ZIP...'
+  await bundleAndDownload()
+})
+
+async function bundleAndDownload() {
+  const zip = new JSZip()
+  capturedBlobs.forEach((blob, i) => {
+    const name = `frame_${String(i).padStart(4, '0')}.png`
+    zip.file(name, blob)
+  })
+
+  const content = await zip.generateAsync({ type: 'blob' })
+  const url = URL.createObjectURL(content)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ascii-fire-${targetFrames}frames.zip`
+  a.click()
+  URL.revokeObjectURL(url)
+
+  statusEl.textContent = `Downloaded ${targetFrames} frames as ZIP.`
+  captureBtn.disabled = false
+}
+
+// ─── Animation loop ─────────────────────────────────────────────────
+
+const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+
+function loop() {
+  requestAnimationFrame(loop)
+  pre()
+  renderFrame()
+}
+
+if (prefersReduced) {
+  // Single static frame
+  for (let i = 0; i < 30; i++) pre()  // warm up the fire
+  renderFrame()
+} else {
+  // Warm up buffer before first visible frame
+  for (let i = 0; i < 20; i++) pre()
+  loop()
+}
+</script>
+</body>
+</html>
