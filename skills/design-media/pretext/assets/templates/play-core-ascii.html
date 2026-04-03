@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>play.core ASCII — Plasma + SDF Cursor Glow</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; overflow: hidden; }
+#art {
+  position: fixed; inset: 0;
+  font-family: Georgia, Palatino, 'Times New Roman', serif;
+  font-size: 14px;
+  line-height: 17px;
+  color: rgba(196, 163, 90, 1);
+}
+.r { white-space: pre; overflow: hidden; height: 17px; }
+.w3 { font-weight: 300; } .w5 { font-weight: 500; } .w8 { font-weight: 800; }
+.it { font-style: italic; }
+.a1 { opacity: 0.08; } .a2 { opacity: 0.18; } .a3 { opacity: 0.28; }
+.a4 { opacity: 0.38; } .a5 { opacity: 0.50; } .a6 { opacity: 0.60; }
+.a7 { opacity: 0.70; } .a8 { opacity: 0.80; } .a9 { opacity: 0.90; }
+.a10 { opacity: 1.0; }
+#stats {
+  position: fixed; bottom: 8px; right: 12px;
+  font: 11px/1.4 monospace; color: rgba(196, 163, 90, 0.5);
+  pointer-events: none; user-select: none;
+}
+</style>
+</head>
+<body>
+<div id="art"></div>
+<div id="stats"></div>
+
+<script type="module">
+import {
+  prepare, prepareWithSegments, layout, layoutWithLines
+} from 'https://esm.sh/@chenglou/pretext@0.0.2'
+
+// ─── play.core module functions (inlined) ───────────────────────────
+
+function map(v, a, b, c, d) { return c + (d - c) * (v - a) / (b - a) }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)) }
+function fract(v) { return v - Math.floor(v) }
+
+function sdCircle(p, r) {
+  return Math.sqrt(p.x * p.x + p.y * p.y) - r
+}
+
+function sdBox(p, b) {
+  const dx = Math.abs(p.x) - b.x
+  const dy = Math.abs(p.y) - b.y
+  return Math.sqrt(Math.max(dx, 0) ** 2 + Math.max(dy, 0) ** 2) +
+         Math.min(Math.max(dx, dy), 0)
+}
+
+function css(r, g, b) {
+  return `rgb(${Math.floor(r)},${Math.floor(g)},${Math.floor(b)})`
+}
+
+// ─── Palette (pretext proportional brightness) ──────────────────────
+
+const CHARSET = ' .,:;!+-=*#@%&abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const WEIGHTS = [300, 500, 800]
+const STYLES = ['normal', 'italic']
+const FONT_SIZE = 14
+const LINE_HEIGHT = 17
+const FONT_FAMILY = 'Georgia, Palatino, "Times New Roman", serif'
+
+let palette = []
+let avgCharW = 8
+let aspect = 0.5
+
+function buildPalette() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 28; canvas.height = 28
+  const ctx = canvas.getContext('2d')
+  palette = []
+
+  for (const weight of WEIGHTS) {
+    for (const style of STYLES) {
+      const font = `${style} ${weight} ${FONT_SIZE}px ${FONT_FAMILY}`
+      for (const char of CHARSET) {
+        // Measure width via pretext (with canvas fallback)
+        let w
+        try {
+          const seg = prepareWithSegments(char, font)
+          w = seg.widths?.[0]
+        } catch {}
+        if (!w) {
+          ctx.font = font
+          w = ctx.measureText(char).width
+        }
+
+        // Estimate brightness via canvas
+        ctx.clearRect(0, 0, 28, 28)
+        ctx.font = font
+        ctx.fillStyle = '#fff'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(char, 2, 14)
+        const data = ctx.getImageData(0, 0, 28, 28).data
+        let sum = 0
+        for (let i = 3; i < data.length; i += 4) sum += data[i]
+        const brightness = sum / (28 * 28 * 255)
+
+        palette.push({ char, weight, style, font, width: w, brightness })
+      }
+    }
+  }
+
+  palette.sort((a, b) => a.brightness - b.brightness)
+  avgCharW = palette.reduce((s, p) => s + p.width, 0) / palette.length
+  aspect = avgCharW / LINE_HEIGHT
+}
+
+function lookupChar(targetBrightness) {
+  // Binary search
+  let lo = 0, hi = palette.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (palette[mid].brightness < targetBrightness) lo = mid + 1
+    else hi = mid
+  }
+
+  // Linear scan ±15 with dual scoring
+  let best = palette[lo]
+  let bestScore = Infinity
+  const start = Math.max(0, lo - 15)
+  const end = Math.min(palette.length - 1, lo + 15)
+  for (let i = start; i <= end; i++) {
+    const p = palette[i]
+    const bDiff = Math.abs(p.brightness - targetBrightness) * 2.5
+    const wDiff = Math.abs(p.width - avgCharW) / avgCharW
+    const score = bDiff + wDiff
+    if (score < bestScore) { bestScore = score; best = p }
+  }
+  return best
+}
+
+// ─── Grid state ─────────────────────────────────────────────────────
+
+let cols = 80, rows = 40
+let rowEls = []
+const artEl = document.getElementById('art')
+const statsEl = document.getElementById('stats')
+
+function resizeGrid() {
+  cols = Math.floor(window.innerWidth / avgCharW)
+  rows = Math.floor(window.innerHeight / LINE_HEIGHT)
+  artEl.innerHTML = ''
+  rowEls = []
+  for (let y = 0; y < rows; y++) {
+    const div = document.createElement('div')
+    div.className = 'r'
+    artEl.appendChild(div)
+    rowEls.push(div)
+  }
+}
+
+// ─── Cursor ─────────────────────────────────────────────────────────
+
+const cursor = { x: -1, y: -1 }
+
+window.addEventListener('pointermove', e => {
+  cursor.x = e.clientX / avgCharW
+  cursor.y = e.clientY / LINE_HEIGHT
+})
+
+// ─── play.core lifecycle ────────────────────────────────────────────
+
+// Plasma parameters (updated in pre)
+let t = 0
+
+function esc(c) {
+  if (c === '&') return '&amp;'
+  if (c === '<') return '&lt;'
+  if (c === '>') return '&gt;'
+  return c
+}
+
+function weightClass(w, s) {
+  const wc = w === 300 ? 'w3' : w === 500 ? 'w5' : 'w8'
+  return s === 'italic' ? wc + ' it' : wc
+}
+
+// pre(): per-frame shared state
+function pre(time) {
+  t = time * 0.001
+}
+
+// main(): per-cell — plasma + SDF cursor glow
+function main(x, y) {
+  const PI = Math.PI
+
+  // Normalized coordinates (aspect-corrected)
+  const m = Math.min(cols * aspect, rows)
+  const sx = 2.0 * (x - cols / 2) / m * aspect
+  const sy = 2.0 * (y - rows / 2) / m
+
+  // Plasma: layered sine interference
+  let v = 0
+  v += Math.sin(sx * 3.0 + t * 1.2)
+  v += Math.sin(sy * 4.0 - t * 0.8)
+  v += Math.sin((sx + sy) * 2.5 + t * 0.6)
+  v += Math.sin(Math.sqrt(sx * sx * 4 + sy * sy * 4) * 3.0 - t * 1.5)
+  v = (v + 4) / 8  // normalize to 0-1
+
+  // SDF cursor glow
+  let glow = 0
+  if (cursor.x >= 0) {
+    const cx = 2.0 * (cursor.x - cols / 2) / m * aspect
+    const cy = 2.0 * (cursor.y - rows / 2) / m
+    const dist = sdCircle({ x: sx - cx, y: sy - cy }, 0.15)
+    glow = Math.exp(-6.0 * Math.abs(dist))
+  }
+
+  // Blend plasma + glow
+  const brightness = clamp(v * 0.7 + glow * 0.5, 0, 1)
+
+  // Color: phase-offset sines from plasma value
+  const r = map(Math.sin(v * PI + t), -1, 1, 20, 196 + glow * 59)
+  const g = map(Math.sin(v * PI * 2/3 + t * 0.7), -1, 1, 10, 163 + glow * 92)
+  const b = map(Math.sin(v * PI * 4/3 - t * 0.5), -1, 1, 5, 90 + glow * 50)
+
+  return { brightness, r, g, b }
+}
+
+// ─── Render loop ────────────────────────────────────────────────────
+
+let frameCount = 0
+let lastFpsTime = 0
+let fps = 0
+
+function render(time) {
+  requestAnimationFrame(render)
+
+  pre(time)
+
+  // FPS tracking
+  frameCount++
+  if (time - lastFpsTime > 1000) {
+    fps = Math.round(frameCount * 1000 / (time - lastFpsTime))
+    frameCount = 0
+    lastFpsTime = time
+  }
+
+  // Render each row
+  for (let y = 0; y < rows; y++) {
+    let html = ''
+    for (let x = 0; x < cols; x++) {
+      const cell = main(x, y)
+      const best = lookupChar(cell.brightness)
+      const alphaClass = 'a' + Math.max(1, Math.min(10, Math.round(cell.brightness * 10)))
+      html += `<span class="${weightClass(best.weight, best.style)} ${alphaClass}" style="color:${css(cell.r, cell.g, cell.b)}">${esc(best.char)}</span>`
+    }
+    rowEls[y].innerHTML = html
+  }
+
+  // HUD
+  statsEl.textContent = `${cols}x${rows} | ${fps} fps | aspect ${aspect.toFixed(3)}`
+}
+
+// ─── Boot ───────────────────────────────────────────────────────────
+
+await document.fonts.ready
+await new Promise(r => requestAnimationFrame(r))
+await new Promise(r => requestAnimationFrame(r))
+await new Promise(r => requestAnimationFrame(r))
+
+buildPalette()
+resizeGrid()
+
+window.addEventListener('resize', () => {
+  resizeGrid()
+})
+
+requestAnimationFrame(render)
+</script>
+</body>
+</html>
