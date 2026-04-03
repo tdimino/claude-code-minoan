@@ -17,10 +17,6 @@ body { background: #0a0a0a; overflow: hidden; }
 .r { white-space: pre; overflow: hidden; height: 17px; }
 .w3 { font-weight: 300; } .w5 { font-weight: 500; } .w8 { font-weight: 800; }
 .it { font-style: italic; }
-.a1 { opacity: 0.08; } .a2 { opacity: 0.18; } .a3 { opacity: 0.28; }
-.a4 { opacity: 0.38; } .a5 { opacity: 0.50; } .a6 { opacity: 0.60; }
-.a7 { opacity: 0.70; } .a8 { opacity: 0.80; } .a9 { opacity: 0.90; }
-.a10 { opacity: 1.0; }
 #stats {
   position: fixed; bottom: 8px; right: 12px;
   font: 11px/1.4 monospace; color: rgba(196, 163, 90, 0.5);
@@ -250,8 +246,8 @@ function render(time) {
     for (let x = 0; x < cols; x++) {
       const cell = main(x, y)
       const best = lookupChar(cell.brightness)
-      const alphaClass = 'a' + Math.max(1, Math.min(10, Math.round(cell.brightness * 10)))
-      html += `<span class="${weightClass(best.weight, best.style)} ${alphaClass}" style="color:${css(cell.r, cell.g, cell.b)}">${esc(best.char)}</span>`
+      const a = Math.max(0.08, Math.min(1, cell.brightness))
+      html += `<span class="${weightClass(best.weight, best.style)}" style="color:rgba(${Math.floor(cell.r)},${Math.floor(cell.g)},${Math.floor(cell.b)},${a.toFixed(2)})">${esc(best.char)}</span>`
     }
     rowEls[y].innerHTML = html
   }
@@ -270,11 +266,20 @@ await new Promise(r => requestAnimationFrame(r))
 buildPalette()
 resizeGrid()
 
+let resizeTimer
 window.addEventListener('resize', () => {
-  resizeGrid()
+  clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(resizeGrid, 150)
 })
 
-requestAnimationFrame(render)
+// Respect reduced motion preference
+const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+if (prefersReduced) {
+  pre(0)
+  render(0)  // single static frame
+} else {
+  requestAnimationFrame(render)
+}
 </script>
 </body>
 </html>
