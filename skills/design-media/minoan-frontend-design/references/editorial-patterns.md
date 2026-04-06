@@ -62,3 +62,15 @@ From per-category win rates across all eval rounds:
 **Components (67%)**: Engineering awareness helps — semantic HTML, keyboard navigation, proper states. Wins come from working functionality paired with visual refinement.
 
 **Creative/edge prompts**: Boldness wins. The completeness mandate should not suppress creative risk. Push past the first satisfying idea.
+
+## Portfolio & Personal Site Patterns
+
+Patterns for portfolio sites, freelancer pages, and personal brand sites. See `rothenberg-portfolio-patterns.md` for the full "Dark Editorial Portfolio" archetype with CSS snippets.
+
+**Text-only CTA**: On personal sites, button chrome feels commercial. Use large editorial text with italic emphasis and a Unicode arrow (→) as the action affordance. The typography IS the button — no background, no border. Only works when surrounding content has built trust.
+
+**Section labels as monospace wayfinding**: Small monospace text (`0.75rem`, uppercase, `letter-spacing: 0.12em`, muted color) that orients without demanding attention. Functions as wayfinding ("I FREELANCE", "I WRITE WORDS"), not heading hierarchy. Precedes each content block.
+
+**Oversized body text as design statement**: Setting body prose at 32-40px (2-2.5rem) makes text the hero. No images needed. The constraint forces premium through font selection and spacing. Effective for portfolios where the person's voice is the product.
+
+**Link underline opacity**: Instead of changing link color, keep `color: inherit` and set `text-decoration-color` at 40% opacity, rising to 80% on hover. Maintains typographic rhythm — links don't break the reading flow. See `rothenberg-portfolio-patterns.md` for the full CSS snippet.
