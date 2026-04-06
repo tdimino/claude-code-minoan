@@ -2,7 +2,10 @@
 
 ## Overview
 
-A calligram fills a shape's interior with repeated characters from a word, using Pretext's `prepareWithSegments()` for precise proportional character spacing. Each character's position is determined by testing grid points against a signed distance function (SDF).
+A calligram fills a shape's interior with repeated characters from a word, using Pretext's `prepareWithSegments()` for precise proportional character spacing. Two techniques are available:
+
+1. **SDF (Signed Distance Function)** — mathematical shapes (heart, circle, star, wave, spiral). Best for geometric and custom combined shapes.
+2. **Pixel-Mask (Glyph-Mask)** — any font glyph as the calligram shape, using native canvas `fillText()` + `getImageData()` to create the mask. Best for letter-shaped calligrams, "letters made of letters," and alphabet galleries. Inspired by [Letterbox](https://www.letterbox.sh/) by Charlie Clark.
 
 ---
 
@@ -371,3 +374,199 @@ function frame() {
 
 requestAnimationFrame(frame)
 ```
+
+---
+
+## Pixel-Mask Technique (Glyph-Mask Calligrams)
+
+An alternative to SDF calligrams that works with **any font glyph** as the shape. Instead of defining a mathematical distance function, draw the large letter on an off-screen canvas and read the pixel data back as a binary mask. This technique was reverse-engineered from [Letterbox](https://www.letterbox.sh/) by Charlie Clark.
+
+**When to use pixel-mask instead of SDF:**
+- The shape is a font glyph (any character in any font)
+- Complex contours that resist SDF approximation (serifs, swashes, ligatures)
+- "Letters made of letters" / alphabet gallery effects
+- The shape needs to change dynamically (user-typed text)
+
+### Mask Creation Pipeline
+
+```js
+const MASK_SIZE = 500
+const maskCanvas = document.createElement('canvas')
+maskCanvas.width = MASK_SIZE
+maskCanvas.height = MASK_SIZE
+const maskCtx = maskCanvas.getContext('2d')
+
+function createGlyphMask(letter, font, fillLineHeight) {
+  maskCtx.clearRect(0, 0, MASK_SIZE, MASK_SIZE)
+  maskCtx.font = font  // e.g. 'italic bold 400px "Playfair Display"'
+  maskCtx.fillStyle = '#fff'
+  maskCtx.textBaseline = 'alphabetic'
+
+  // Center the letter horizontally
+  const metrics = maskCtx.measureText(letter)
+  const x = (MASK_SIZE - (metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight)) / 2
+        + metrics.actualBoundingBoxLeft
+  // Center vertically using ascent/descent
+  const ascent = metrics.actualBoundingBoxAscent
+  const descent = metrics.actualBoundingBoxDescent
+  const y = (MASK_SIZE - (ascent + descent)) / 2 + ascent
+
+  maskCtx.fillText(letter, x, y)
+
+  // Read pixel data and build row masks
+  const imageData = maskCtx.getImageData(0, 0, MASK_SIZE, MASK_SIZE).data
+  const rows = []
+
+  for (let rowY = 0; rowY < MASK_SIZE; rowY += fillLineHeight) {
+    const rowMask = new Uint8Array(MASK_SIZE)
+    const bandEnd = Math.min(rowY + fillLineHeight, MASK_SIZE)
+
+    // Mark columns where ANY pixel in this row band has alpha > 128
+    for (let scanY = rowY; scanY < bandEnd; scanY++) {
+      for (let col = 0; col < MASK_SIZE; col++) {
+        if (imageData[(scanY * MASK_SIZE + col) * 4 + 3] > 128) {
+          rowMask[col] = 1
+        }
+      }
+    }
+
+    // Extract contiguous fill regions (runs of 1s)
+    const regions = []
+    let start = -1
+    for (let col = 0; col <= MASK_SIZE; col++) {
+      if (col < MASK_SIZE && rowMask[col]) {
+        if (start === -1) start = col
+      } else if (start !== -1) {
+        if (col - start > 10) { // minimum region width
+          regions.push({ x: start, width: col - start })
+        }
+        start = -1
+      }
+    }
+
+    if (regions.length > 0) {
+      rows.push({ y: rowY, regions })
+    }
+  }
+
+  return rows
+}
+```
+
+### Fill Text Layout Within Mask
+
+```js
+function layoutFillText(maskRows, fillText, fillFont, ctx) {
+  const characters = []
+  let textIdx = 0
+  ctx.font = fillFont  // e.g. 'italic bold 11px "Playfair Display"'
+
+  for (const row of maskRows) {
+    for (const region of row.regions) {
+      let px = region.x
+      const regionEnd = region.x + region.width
+
+      while (px < regionEnd) {
+        const ch = fillText[textIdx % fillText.length]
+        const charWidth = ctx.measureText(ch).width
+        if (px + charWidth > regionEnd) break
+
+        characters.push({
+          char: ch,
+          hx: px,
+          hy: row.y,
+          dx: 0,
+          dy: 0
+        })
+
+        px += charWidth
+        textIdx++
+      }
+    }
+  }
+
+  return characters
+}
+```
+
+### Cursor Displacement
+
+Per-character spring physics driven by cursor proximity. Characters within a radius receive a radial push force that decays with distance. Damping bleeds velocity each frame so characters return to rest.
+
+```js
+function updateDisplacement(characters, pointer, config) {
+  const { radius = 100, force = 35, damping = 0.94 } = config
+  let needsFrame = false
+
+  for (const ch of characters) {
+    if (pointer) {
+      const rx = (ch.hx + ch.dx) - pointer.x
+      const ry = (ch.hy + ch.dy) - pointer.y
+      const dist = Math.sqrt(rx * rx + ry * ry)
+
+      if (dist < radius && dist > 0) {
+        const strength = (1 - dist / radius) * force
+        ch.dx += (rx / dist) * strength * 0.3
+        ch.dy += (ry / dist) * strength * 0.3
+      }
+    }
+
+    ch.dx *= damping
+    ch.dy *= damping
+
+    if (Math.abs(ch.dx) > 0.01 || Math.abs(ch.dy) > 0.01) {
+      needsFrame = true
+    }
+  }
+
+  return needsFrame
+}
+```
+
+Only run the rAF loop when `needsFrame` is true — this avoids burning CPU when the canvas is at rest.
+
+### Fill Text Models
+
+| Model | Fill text source |
+|-------|-----------------|
+| `self` | The word itself repeated (existing calligram behavior) |
+| `lorem` | Lorem ipsum dolor sit amet... (typographic poster effect) |
+| `alphabet` | ABCDEFGHIJKLMNOPQRSTUVWXYZ repeated (recursive "letters made of letters") |
+| `custom` | User-provided text string |
+
+Generate lorem fill text long enough to fill the mask — repeat the source if shorter than 2000 characters.
+
+### Letterbox Gallery Layout
+
+For "alphabet gallery" effects where each character gets its own canvas in a CSS grid:
+
+```html
+<div class="grid" style="
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  background: #1a1a1a;
+">
+  <!-- One per letter -->
+  <div style="position: relative; aspect-ratio: 1; background: #0a0a0a;">
+    <canvas width="1000" height="1000"
+            style="display: block; width: 100%; height: 100%;"></canvas>
+    <span style="position: absolute; bottom: 8px; right: 10px;
+                 font-size: 10px; color: rgba(255,255,255,0.15);
+                 pointer-events: none;">A</span>
+  </div>
+</div>
+```
+
+Each canvas is 1000x1000 physical pixels (500x500 logical at 2x DPR). The mask and fill layout run independently per canvas, so each letter has its own character array and mousemove handler.
+
+### SDF vs Pixel-Mask Decision
+
+| Criterion | SDF | Pixel-Mask |
+|-----------|-----|------------|
+| Shape source | Mathematical function | Any font glyph |
+| Custom shapes | Composable primitives (union, intersect) | Requires a rasterized image |
+| Edge quality | Infinite resolution | Limited by mask canvas size |
+| Setup cost | Define SDF function | Off-screen canvas + getImageData |
+| Font flexibility | None (shape is math) | Any installed/loaded font |
+| Best for | Hearts, stars, waves, spirals | Letter calligrams, alphabet galleries |

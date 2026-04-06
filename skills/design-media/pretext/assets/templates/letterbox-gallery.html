@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Letterbox Gallery</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a0a0a;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+#gallery {
+  display: grid;
+  gap: 3px;
+  background: #1a1a1a;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.cell {
+  position: relative;
+  aspect-ratio: 1;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.cell canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: crisp-edges;
+}
+
+.cell-label {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font: 700 10px/1 "Playfair Display", Georgia, serif;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+</style>
+</head>
+<body>
+<div id="gallery"></div>
+
+<script>
+// ─── Configuration ────────────────────────────────────────────────────────────
+const TEXT                = 'LETTERBOX'
+const FONT                = 'italic 700 400px "Playfair Display"'
+const FILL_FONT           = 'italic 700 11px "Playfair Display"'
+const FILL_TEXT           = 'LOREMIPSUMDOLORSITAMETCONSECTETURADIPISCINGELITSEDDOEIUSMODTEMPORINCIDIDUNTUTLABOREETDOLOREMAGNAALIQUAUTENIMADMINIMVENIAMQUISNOSTRUDEXERCITATIONULLAMCOLABORISNISIUTALIQUIPEXEACOMMODOCONSEQUATDUISAUTEIRUREDOLORINREPREHENDERITINVOLUPTATEVELITESSECILLUMDOLOREEUFUGIATNULLAPARIATUREXCEPTEURSINTOCCAECATCUPIDATATNONPROIDENTSUNTINCULPAQUIOFFICIADESERUNTMOLLITANIMIDESTLABORUMLOREMIPSUMDOLORSITAMET'
+const BG_COLOR            = '#0a0a0a'
+const FG_COLOR            = '#ededed'
+const GRID_COLS           = 3
+const INTERACTION_RADIUS  = 100
+const INTERACTION_FORCE   = 35
+const DAMPING             = 0.94
+
+// Physical canvas size (logical 500 * 2x DPR = 1000 physical pixels)
+const LOGICAL_SIZE = 500
+const FILL_LINE_HEIGHT = 14  // px — row scan interval (matches ~11px fill font + leading)
+const MIN_REGION_WIDTH = 10  // px — ignore pixel runs narrower than this
+
+// ─── Per-letter state ─────────────────────────────────────────────────────────
+const letters = []
+
+// ─── Pixel-mask glyph rendering ───────────────────────────────────────────────
+const maskCanvas = document.createElement('canvas')
+maskCanvas.width  = LOGICAL_SIZE
+maskCanvas.height = LOGICAL_SIZE
+const maskCtx = maskCanvas.getContext('2d')
+
+function buildGlyphMask(letter) {
+  maskCtx.clearRect(0, 0, LOGICAL_SIZE, LOGICAL_SIZE)
+  maskCtx.font = FONT
+  maskCtx.fillStyle = '#fff'
+  maskCtx.textBaseline = 'alphabetic'
+
+  const metrics = maskCtx.measureText(letter)
+  const glyphW   = metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight
+  const glyphH   = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
+  const drawX    = (LOGICAL_SIZE - glyphW) / 2 + metrics.actualBoundingBoxLeft
+  const drawY    = (LOGICAL_SIZE - glyphH) / 2 + metrics.actualBoundingBoxAscent
+
+  maskCtx.fillText(letter, drawX, drawY)
+
+  const imageData = maskCtx.getImageData(0, 0, LOGICAL_SIZE, LOGICAL_SIZE).data
+  const rows = []
+
+  for (let rowY = 0; rowY < LOGICAL_SIZE; rowY += FILL_LINE_HEIGHT) {
+    const rowMask = new Uint8Array(LOGICAL_SIZE)
+    const bandEnd = Math.min(rowY + FILL_LINE_HEIGHT, LOGICAL_SIZE)
+
+    for (let scanY = rowY; scanY < bandEnd; scanY++) {
+      for (let col = 0; col < LOGICAL_SIZE; col++) {
+        if (imageData[(scanY * LOGICAL_SIZE + col) * 4 + 3] > 128) {
+          rowMask[col] = 1
+        }
+      }
+    }
+
+    // Extract contiguous pixel runs
+    const regions = []
+    let start = -1
+    for (let col = 0; col <= LOGICAL_SIZE; col++) {
+      if (col < LOGICAL_SIZE && rowMask[col]) {
+        if (start === -1) start = col
+      } else if (start !== -1) {
+        if (col - start > MIN_REGION_WIDTH) {
+          regions.push({ x: start, width: col - start })
+        }
+        start = -1
+      }
+    }
+
+    if (regions.length > 0) {
+      rows.push({ y: rowY, regions })
+    }
+  }
+
+  return rows
+}
+
+function layoutFillText(maskRows, measureCtx) {
+  measureCtx.font = FILL_FONT
+  const characters = []
+  let textIdx = 0
+
+  for (const row of maskRows) {
+    for (const region of row.regions) {
+      let px = region.x
+      const regionEnd = region.x + region.width
+
+      while (px < regionEnd) {
+        const ch = FILL_TEXT[textIdx % FILL_TEXT.length]
+        const charWidth = measureCtx.measureText(ch).width
+        if (px + charWidth > regionEnd) break
+
+        characters.push({ char: ch, hx: px, hy: row.y, dx: 0, dy: 0 })
+        px += charWidth
+        textIdx++
+      }
+    }
+  }
+
+  return characters
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────────────
+function renderCanvas(state) {
+  const { ctx, characters, dpr } = state
+
+  ctx.clearRect(0, 0, LOGICAL_SIZE * dpr, LOGICAL_SIZE * dpr)
+  ctx.fillStyle = BG_COLOR
+  ctx.fillRect(0, 0, LOGICAL_SIZE * dpr, LOGICAL_SIZE * dpr)
+
+  ctx.font = FILL_FONT.replace(/(\d+)px/, (_, n) => `${parseInt(n) * dpr}px`)
+  ctx.fillStyle = FG_COLOR
+  ctx.textBaseline = 'top'
+
+  for (const ch of characters) {
+    ctx.fillText(ch.char, (ch.hx + ch.dx) * dpr, (ch.hy + ch.dy) * dpr)
+  }
+}
+
+// ─── Cursor displacement ──────────────────────────────────────────────────────
+function applyDisplacement(state) {
+  const { characters, pointer } = state
+  let needsFrame = false
+
+  for (const ch of characters) {
+    if (pointer) {
+      const rx = (ch.hx + ch.dx) - pointer.x
+      const ry = (ch.hy + ch.dy) - pointer.y
+      const dist = Math.sqrt(rx * rx + ry * ry)
+
+      if (dist < INTERACTION_RADIUS && dist > 0) {
+        const strength = (1 - dist / INTERACTION_RADIUS) * INTERACTION_FORCE
+        ch.dx += (rx / dist) * strength * 0.3
+        ch.dy += (ry / dist) * strength * 0.3
+      }
+    }
+
+    ch.dx *= DAMPING
+    ch.dy *= DAMPING
+
+    if (Math.abs(ch.dx) > 0.01 || Math.abs(ch.dy) > 0.01) {
+      needsFrame = true
+    }
+  }
+
+  return needsFrame
+}
+
+function scheduleFrame(state) {
+  if (state.rafId !== null) return
+  state.rafId = requestAnimationFrame(() => {
+    state.rafId = null
+    const needsMore = applyDisplacement(state)
+    renderCanvas(state)
+    if (needsMore) scheduleFrame(state)
+  })
+}
+
+// ─── Build a single letter cell ───────────────────────────────────────────────
+function buildCell(letter) {
+  const cell = document.createElement('div')
+  cell.className = 'cell'
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+  const canvas = document.createElement('canvas')
+  canvas.width  = LOGICAL_SIZE * dpr
+  canvas.height = LOGICAL_SIZE * dpr
+  cell.appendChild(canvas)
+
+  const label = document.createElement('span')
+  label.className = 'cell-label'
+  label.textContent = letter
+  cell.appendChild(label)
+
+  const ctx = canvas.getContext('2d')
+
+  const state = {
+    letter,
+    canvas,
+    ctx,
+    dpr,
+    characters: [],
+    pointer: null,
+    rafId: null
+  }
+
+  // Attach mousemove — translate canvas-relative coords to logical pixel space
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect()
+    state.pointer = {
+      x: (e.clientX - rect.left) * (LOGICAL_SIZE / rect.width),
+      y: (e.clientY - rect.top)  * (LOGICAL_SIZE / rect.height)
+    }
+    scheduleFrame(state)
+  })
+
+  canvas.addEventListener('mouseleave', () => {
+    state.pointer = null
+    scheduleFrame(state)
+  })
+
+  // Touch support
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault()
+    const rect = canvas.getBoundingClientRect()
+    const t = e.touches[0]
+    state.pointer = {
+      x: (t.clientX - rect.left) * (LOGICAL_SIZE / rect.width),
+      y: (t.clientY - rect.top)  * (LOGICAL_SIZE / rect.height)
+    }
+    scheduleFrame(state)
+  }, { passive: false })
+
+  canvas.addEventListener('touchend', () => {
+    state.pointer = null
+    scheduleFrame(state)
+  })
+
+  return { cell, state }
+}
+
+// ─── Measure + layout per letter (uses off-screen ctx for measureText) ────────
+function buildOffscreenCtx() {
+  const c = document.createElement('canvas')
+  c.width = 1; c.height = 1
+  return c.getContext('2d')
+}
+
+function initLetter(state) {
+  const maskRows  = buildGlyphMask(state.letter)
+  const measureCtx = buildOffscreenCtx()
+  state.characters = layoutFillText(maskRows, measureCtx)
+  renderCanvas(state)
+}
+
+// ─── Gallery construction ─────────────────────────────────────────────────────
+function buildGallery() {
+  const gallery = document.getElementById('gallery')
+  const chars   = TEXT.split('')
+
+  gallery.style.gridTemplateColumns = `repeat(${GRID_COLS}, 1fr)`
+
+  // Clear any prior cells
+  gallery.innerHTML = ''
+  letters.length = 0
+
+  for (const letter of chars) {
+    const { cell, state } = buildCell(letter)
+    gallery.appendChild(cell)
+    letters.push(state)
+  }
+
+  // Render each letter after DOM is ready
+  for (const state of letters) {
+    initLetter(state)
+  }
+}
+
+// ─── Resize handler ───────────────────────────────────────────────────────────
+let resizeTimer = null
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(() => {
+    // Re-render each letter at new DPR (DPR itself doesn't change on resize,
+    // but the canvas CSS size does — re-render ensures crisp output)
+    for (const state of letters) {
+      renderCanvas(state)
+    }
+  }, 120)
+})
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+document.fonts.ready.then(() => {
+  // Warm the mask canvas with the glyph font so it's loaded before measuring
+  maskCtx.font = FONT
+  maskCtx.measureText('M')
+  buildGallery()
+})
+</script>
+</body>
+</html>
