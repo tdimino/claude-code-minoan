@@ -20,13 +20,6 @@
     },
     {
       "extensions": ["py"],
-      "pattern": "subprocess\\.call\\(|subprocess\\.Popen\\(",
-      "message": "[security] Use subprocess.run() instead of .call()/.Popen() — better error handling and defaults",
-      "exclude_patterns": ["# nosec", "test"],
-      "_tag": "pack:python:subprocess-call"
-    },
-    {
-      "extensions": ["py"],
       "pattern": "from typing import.*Optional",
       "message": "[architecture] Use X | None instead of Optional[X] (Python 3.10+)",
       "exclude_patterns": ["# py39 compat", "test"],
@@ -34,7 +27,7 @@
     },
     {
       "extensions": ["py"],
-      "pattern": "except.*:\\s*pass",
+      "pattern": "except.*:\\s*pass\\s*(#|$)",
       "message": "[observability] Swallowed exception — log the error or handle it explicitly, never silently pass",
       "exclude_patterns": ["# intentionally", "# nosec"],
       "_tag": "pack:python:swallowed-exception",
@@ -90,19 +83,26 @@
     },
     {
       "extensions": ["py"],
-      "pattern": "typing\\.cast\\(",
-      "message": "[architecture] Unverified typing.cast — add assert isinstance() before cast to validate at runtime",
-      "exclude_patterns": ["test", "isinstance", "# cast ok"],
-      "_tag": "pack:python:unverified-cast",
-      "_source": "Dagster Engineering (dagster.io/blog), Seth Michael Larson (sethmlarson.dev)"
-    },
-    {
-      "extensions": ["py"],
       "pattern": "\\bassert\\s+(True|1)\\b",
       "message": "[testability] Meaningless assertion — assert True/1 always passes, test actual behavior instead",
       "exclude_patterns": [],
       "_tag": "pack:python:meaningless-assert",
       "_source": "Ned Batchelder (nedbatchelder.com)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "def\\s+\\w+\\(.*=\\s*(\\[\\]|\\{\\}|set\\(\\))",
+      "message": "[architecture] Mutable default argument — use None and assign inside the function body. Mutable defaults are shared across calls.",
+      "exclude_patterns": ["test", "spec"],
+      "_tag": "pack:python:mutable-default-arg"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "requests\\.(get|post|put|patch|delete)\\(",
+      "message": "[security] requests call without timeout — add timeout= parameter to prevent hanging forever on unresponsive servers",
+      "exclude_patterns": ["timeout", "test", "spec"],
+      "_tag": "pack:python:requests-no-timeout",
+      "_source": "Seth Michael Larson (sethmlarson.dev)"
     }
   ]
 }

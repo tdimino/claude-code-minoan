@@ -92,7 +92,7 @@ This produces three outputs:
 
 1. **`.claude/lint-rules.json`** — custom grep-based rules for the lint-on-write hook
    - Stack-specific rules (security, debugging residue, error boundaries, observability)
-   - Auto-includes matching rule packs from `rule-library/` (react, rust-workspace, python-cli)
+   - Auto-includes matching rule packs from `rule-library/` (react, rust-workspace, python-cli; functional-ts is opt-in only)
    - Merges with existing config if present (preserves user customizations)
    - Tagged rules (`_tag` field) enable idempotent re-runs
 
@@ -133,16 +133,27 @@ For each generated config, present it to the user and ask for approval before wr
 
 ## Rule Library
 
-Domain-specific rule packs in `rule-library/` are auto-loaded by generate.py based on detected frameworks and stack:
+44 rules across 4 domain-specific packs in `rule-library/`. Auto-loaded packs are selected by `generate.py` based on detected frameworks and stack. All patterns are single-line `grep -En` detectable.
 
-| Pack | Matches | Rules |
-|------|---------|-------|
-| `react.json` | react, next frameworks | fetch-in-effect, excessive-useState, inline-style, direct-DOM, indexOf |
-| `functional-ts.json` | react, next + typescript | 21 rules: immutability (array-mutation, sort-reverse, delete-operator), const-by-default (let-binding, var), declarative (for-loop, forEach, while, switch), React (class-component, class-state-props, effect-mutation), type safety (any-type), async (raw-promise), testability (nondeterministic-call, console-residue) |
-| `rust-workspace.json` | rust stack | chained-clone, box-dyn, allow-dead-code, todo-macro, relative-path-dep |
-| `python-cli.json` | python stack | os.path-vs-pathlib, bare-print, subprocess-call, Optional-vs-union |
+| Pack | Matches | Rules | Highlights |
+|------|---------|-------|------------|
+| `react.json` | react, next frameworks | 10 | disabled-exhaustive-deps, key-index, async-use-effect, disabled-hooks-rule, context-object-literal |
+| `rust-workspace.json` | rust stack | 8 | expect-empty-msg, anyhow-in-lib, dbg-macro, panic-outside-tests, println-residue |
+| `python-cli.json` | python stack | 13 | shell-true, insecure-deserialization, mutable-default-arg, requests-no-timeout, commonprefix |
+| `functional-ts.json` | **Opt-in only** | 13 | array-mutation, sort-reverse, delete-operator, any-type, enum-declaration, namespace-declaration |
 
-To add a custom rule pack, create a JSON file in `rule-library/` with `_frameworks` (list) and/or `_stack` (string) matching fields, plus a `rules` array. Pack rules use `pack:` prefix in `_tag` for dedup.
+### Opt-in packs
+
+Packs with `"_opt_in": true` are never auto-loaded. The **functional-ts** pack enforces strict-FP immutability patterns (Open Souls paradigm). To use it, manually copy its rules into your project's `.claude/lint-rules.json`.
+
+### Exclusion fields
+
+Rules support two exclusion mechanisms:
+
+- **`exclude_paths`** — glob-matched against file paths (e.g. `"*/bin/*"`, `"*/main.rs"`). Skips the file entirely before grep runs.
+- **`exclude_patterns`** — regex-matched against grep output line text (e.g. `"test"`, `"// nosec"`). Filters matched lines after grep runs.
+
+To add a custom rule pack, create a JSON file in `rule-library/` with `_frameworks` (list) and/or `_stack` (string) matching fields, plus a `rules` array. Set `"_opt_in": true` to prevent auto-loading. Pack rules use `pack:` prefix in `_tag` for dedup. See `rule-library/INDEX.md` for the full inventory.
 
 ## References
 
