@@ -1,12 +1,12 @@
 {
   "_pack": "python-cli",
-  "_description": "Python CLI and library anti-patterns",
+  "_description": "Python CLI and library anti-patterns — practitioner-informed rules from Dagster Engineering, Seth Larson, Trey Hunner, Hynek Schlawack, Brett Cannon, Glyph Lefkowitz, and Ned Batchelder",
   "_frameworks": [],
   "_stack": "python",
   "rules": [
     {
       "extensions": ["py"],
-      "pattern": "import\\s+os\\.path",
+      "pattern": "import\\s+os\\.path|from\\s+os\\.path\\s+import",
       "message": "[architecture] Use pathlib.Path instead of os.path for modern Python",
       "exclude_patterns": ["# compat", "test"],
       "_tag": "pack:python:ospath-vs-pathlib"
@@ -29,8 +29,80 @@
       "extensions": ["py"],
       "pattern": "from typing import.*Optional",
       "message": "[architecture] Use X | None instead of Optional[X] (Python 3.10+)",
-      "exclude_patterns": ["# py39 compat"],
+      "exclude_patterns": ["# py39 compat", "test"],
       "_tag": "pack:python:optional-vs-union"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "except.*:\\s*pass",
+      "message": "[observability] Swallowed exception — log the error or handle it explicitly, never silently pass",
+      "exclude_patterns": ["# intentionally", "# nosec"],
+      "_tag": "pack:python:swallowed-exception",
+      "_source": "Dagster Engineering (dagster.io/blog), Glyph Lefkowitz (blog.glyph.im)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "subprocess\\.(run|call|Popen)\\(.*shell\\s*=\\s*True",
+      "message": "[security] shell=True enables shell injection — use list arguments instead of shell strings",
+      "exclude_patterns": [],
+      "_tag": "pack:python:shell-true",
+      "_source": "Seth Michael Larson (sethmlarson.dev), Glyph Lefkowitz (blog.glyph.im)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "pickle\\.loads?\\(|yaml\\.load\\(",
+      "message": "[security] Insecure deserialization — pickle.load is arbitrary code execution, yaml.load needs Loader=SafeLoader",
+      "exclude_patterns": ["SafeLoader", "yaml\\.safe_load"],
+      "_tag": "pack:python:insecure-deserialization",
+      "_source": "Seth Michael Larson (sethmlarson.dev), Hynek Schlawack (hynek.me)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "re\\.match\\(",
+      "message": "[security] re.match() only checks the start of the string — use re.fullmatch() for input validation",
+      "exclude_patterns": ["fullmatch", "test", "# match ok"],
+      "_tag": "pack:python:match-not-fullmatch",
+      "_source": "Seth Michael Larson (sethmlarson.dev)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "class\\s+\\w+\\([^)]*\\b(dict|list)\\b",
+      "message": "[architecture] Don't inherit from dict/list — use UserDict/UserList or composition instead",
+      "exclude_patterns": ["test", "spec"],
+      "_tag": "pack:python:inherit-builtin",
+      "_source": "Trey Hunner (treyhunner.com), Hynek Schlawack (hynek.me)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "[Dd]ict\\[str,\\s*Any\\]",
+      "message": "[architecture] Untyped dict — use TypedDict, dataclass, or msgspec/pydantic model for structured data",
+      "exclude_patterns": ["test", "spec", "# dict ok", "kwargs"],
+      "_tag": "pack:python:untyped-dict",
+      "_source": "Brett Cannon (snarky.ca), Dagster Engineering (dagster.io/blog), Hilmar Gustafsson (hilmargustafs.com)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "os\\.path\\.commonprefix\\(",
+      "message": "[security] os.path.commonprefix is a string operation, not a path operation — use os.path.commonpath() instead",
+      "exclude_patterns": [],
+      "_tag": "pack:python:commonprefix",
+      "_source": "Seth Michael Larson (sethmlarson.dev)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "typing\\.cast\\(",
+      "message": "[architecture] Unverified typing.cast — add assert isinstance() before cast to validate at runtime",
+      "exclude_patterns": ["test", "isinstance", "# cast ok"],
+      "_tag": "pack:python:unverified-cast",
+      "_source": "Dagster Engineering (dagster.io/blog), Seth Michael Larson (sethmlarson.dev)"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "\\bassert\\s+(True|1)\\b",
+      "message": "[testability] Meaningless assertion — assert True/1 always passes, test actual behavior instead",
+      "exclude_patterns": [],
+      "_tag": "pack:python:meaningless-assert",
+      "_source": "Ned Batchelder (nedbatchelder.com)"
     }
   ]
 }

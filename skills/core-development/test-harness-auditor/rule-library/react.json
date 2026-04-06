@@ -1,6 +1,6 @@
 {
   "_pack": "react",
-  "_description": "React-specific anti-patterns for AI coding agents",
+  "_description": "React-specific anti-patterns for AI coding agents — practitioner-informed rules from TkDodo, Kent C. Dodds, Dan Abramov, Nadia Makarevich, Mark Erikson, and Tanner Linsley",
   "_frameworks": ["react", "next"],
   "rules": [
     {
@@ -35,8 +35,48 @@
       "extensions": ["tsx", "jsx"],
       "pattern": "\\.indexOf\\([^)]+\\)\\s*[>!=]=?\\s*-?[01]",
       "message": "[grep-ability] Use .includes() instead of .indexOf() comparison",
-      "exclude_patterns": [],
+      "exclude_patterns": ["test"],
       "_tag": "pack:react:indexof-vs-includes"
+    },
+    {
+      "extensions": ["tsx", "jsx", "ts", "js"],
+      "pattern": "eslint-disable.*exhaustive-deps",
+      "message": "[convention] Disabled exhaustive-deps — suppressing this rule causes stale closures and subtle bugs. Fix the dependency array or restructure the effect.",
+      "exclude_patterns": [],
+      "_tag": "pack:react:disabled-exhaustive-deps",
+      "_source": "TkDodo / Dominik Dorfmeister (tkdodo.eu), Sandor Farkas / Wolf-Tech (wolf-tech.io)"
+    },
+    {
+      "extensions": ["tsx", "jsx"],
+      "pattern": "\\.Provider\\s+value=\\{\\{",
+      "message": "[architecture] Object literal in Context Provider value — creates new reference every render, causing all consumers to re-render. Extract to useMemo or state.",
+      "exclude_patterns": ["test", "// stable"],
+      "_tag": "pack:react:context-object-literal",
+      "_source": "Mark Erikson (blog.isquaredsoftware.com), Nadia Makarevich (developerway.com)"
+    },
+    {
+      "extensions": ["tsx", "jsx", "ts", "js"],
+      "pattern": "afterEach\\(cleanup\\)",
+      "message": "[convention] Unnecessary cleanup — React Testing Library auto-runs cleanup since v9. Remove this call.",
+      "exclude_patterns": [],
+      "_tag": "pack:react:unnecessary-cleanup",
+      "_source": "Kent C. Dodds (kentcdodds.com)"
+    },
+    {
+      "extensions": ["tsx", "jsx", "ts", "js"],
+      "pattern": "container\\.querySelector",
+      "message": "[testability] Direct DOM query in tests — use Testing Library queries (getByRole, getByLabelText) instead of container.querySelector",
+      "exclude_patterns": ["// querySelector ok"],
+      "_tag": "pack:react:test-query-selector",
+      "_source": "Kent C. Dodds (kentcdodds.com)"
+    },
+    {
+      "extensions": ["tsx", "jsx", "ts", "js"],
+      "pattern": "from\\s+['\"]redux['\"]",
+      "message": "[architecture] Legacy Redux import — use @reduxjs/toolkit instead of raw redux for reducers, actions, and store setup",
+      "exclude_patterns": ["@reduxjs/toolkit", "test"],
+      "_tag": "pack:react:legacy-redux",
+      "_source": "Mark Erikson (blog.isquaredsoftware.com)"
     }
   ]
 }

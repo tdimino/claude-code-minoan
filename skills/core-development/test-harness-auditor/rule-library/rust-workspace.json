@@ -1,6 +1,6 @@
 {
   "_pack": "rust-workspace",
-  "_description": "Rust workspace and systems programming anti-patterns",
+  "_description": "Rust workspace and systems programming anti-patterns — practitioner-informed rules from BurntSushi, matklad, dtolnay, Amos (fasterthanlime), and Mara Bos",
   "_frameworks": [],
   "_stack": "rust",
   "rules": [
@@ -8,7 +8,7 @@
       "extensions": ["rs"],
       "pattern": "clone\\(\\)\\.",
       "message": "[architecture] Chained .clone() — consider borrowing or restructuring ownership",
-      "exclude_patterns": ["test", "#[cfg(test", "// clone needed"],
+      "exclude_patterns": ["test", "#\\[cfg\\(test", "// clone needed"],
       "_tag": "pack:rust:chained-clone"
     },
     {
@@ -27,10 +27,11 @@
     },
     {
       "extensions": ["rs"],
-      "pattern": "todo!\\(\\)|unimplemented!\\(",
-      "message": "[debugging-residue] todo!/unimplemented! macro — implement or remove before committing",
-      "exclude_patterns": ["test", "#[cfg(test"],
-      "_tag": "pack:rust:todo-macro"
+      "pattern": "todo!\\(\\)|unimplemented!\\(|//\\s*FIXME|//\\s*HACK",
+      "message": "[debugging-residue] todo!/unimplemented!/FIXME/HACK — implement or remove before committing",
+      "exclude_patterns": ["test", "#\\[cfg\\(test"],
+      "_tag": "pack:rust:todo-macro",
+      "_source": "matklad / Alex Kladov (matklad.github.io) — FIXME/HACK markers"
     },
     {
       "extensions": ["toml"],
@@ -38,6 +39,22 @@
       "message": "[architecture] Relative path dependency — use workspace dependencies or publish to registry",
       "exclude_patterns": ["# local dev"],
       "_tag": "pack:rust:relative-path-dep"
+    },
+    {
+      "extensions": ["rs"],
+      "pattern": "\\.expect\\(\"\"\\)",
+      "message": "[convention] Empty .expect(\"\") message — provide a descriptive panic message explaining the invariant",
+      "exclude_patterns": ["test", "#\\[cfg\\(test"],
+      "_tag": "pack:rust:expect-empty-msg",
+      "_source": "Andrew Gallant / BurntSushi (blog.burntsushi.net)"
+    },
+    {
+      "extensions": ["rs"],
+      "pattern": "anyhow::Result|anyhow::Error",
+      "message": "[architecture] anyhow in library code — use thiserror for typed errors in library public APIs, reserve anyhow for applications",
+      "exclude_patterns": ["test", "main.rs", "cli", "bin/"],
+      "_tag": "pack:rust:anyhow-in-lib",
+      "_source": "David Tolnay / dtolnay (docs.rs/dtolnay), Andrew Gallant / BurntSushi (blog.burntsushi.net)"
     }
   ]
 }
