@@ -48,6 +48,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `rlama` | Local RAG via [RLAMA](https://github.com/dontizi/rlama) with Ollama |
 | `firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) CLI + Agent API |
 | `exa-search` | Neural search via [Exa AI](https://exa.ai/) API |
+| `opencli` | Universal CLI for 80+ websites, desktop apps, browser automation via Chrome session reuse ([jackwener/opencli](https://github.com/jackwener/opencli)) |
 | `twitter` | Twitter/X — search/research via x-search (official API v2), posting via OAuth 1.0a, reading via [bird CLI](https://github.com/steipete/bird) |
 | `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
 | `speak-response` | Local TTS via [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS) |

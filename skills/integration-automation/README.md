@@ -23,4 +23,5 @@ Local ML inference, RAG, browser automation, messaging, telephony, and external 
 | `telnyx-api` | SMS/MMS and voice via Telnyx API |
 | `twilio-api` | SMS/MMS and voice via Twilio API |
 | `resend` | Send email via [Resend](https://resend.com/) API — text, HTML, attachments, CC/BCC, stdin pipe, sender aliases |
+| `opencli` | Universal CLI for 80+ websites, desktop apps, browser automation via Chrome session reuse ([jackwener/opencli](https://github.com/jackwener/opencli)) |
 | `twitter` | Twitter/X via bird CLI + x-search API + Smaug archival |
