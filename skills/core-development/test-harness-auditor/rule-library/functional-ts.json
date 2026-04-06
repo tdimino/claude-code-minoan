@@ -1,6 +1,6 @@
 {
   "_pack": "functional-ts",
-  "_description": "Functional programming anti-patterns for TypeScript/React — inspired by the Open Souls immutable WorkingMemory paradigm: const-by-default, pure functions, declarative transformations, no mutation",
+  "_description": "Functional programming anti-patterns for TypeScript/React — inspired by the Open Souls immutable WorkingMemory paradigm: const-by-default, pure functions, declarative transformations, no mutation. Additional rules from Matt Pocock, Christian Rackerseder, and Marek Honzal.",
   "_frameworks": ["react", "next"],
   "_stack": "typescript",
   "rules": [
@@ -136,6 +136,22 @@
       "message": "[convention] switch statement — consider an object lookup map or discriminated union with exhaustive matching for declarative dispatch",
       "exclude_patterns": ["test", "spec", "reducer", "// switch ok", ".test.", ".spec."],
       "_tag": "pack:functional-ts:switch-statement"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\benum\\s+\\w+",
+      "message": "[architecture] TypeScript enum — use 'as const' objects or string literal unions instead. Enums emit runtime code, have inconsistent behavior, and break with isolatedModules/bundlers (const enum is worse).",
+      "exclude_patterns": ["test", "spec", "\\.d\\.ts", "// enum ok", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:enum-declaration",
+      "_source": "Matt Pocock (totaltypescript.com), Christian Rackerseder (echooff.dev), Marek Honzal (marekhonzal.com)"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bnamespace\\s+\\w+",
+      "message": "[architecture] TypeScript namespace — use ES modules instead. Namespaces are a legacy pattern that adds non-erasable runtime code.",
+      "exclude_patterns": ["\\.d\\.ts", "test", "spec", "declare namespace", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:namespace-declaration",
+      "_source": "Christian Rackerseder (echooff.dev)"
     }
   ]
 }
