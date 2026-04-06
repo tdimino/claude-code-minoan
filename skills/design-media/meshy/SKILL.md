@@ -1,6 +1,6 @@
 ---
 name: meshy
-description: "Generate 3D models from text or images via 4 providers: Meshy (text-to-3D, texturing, batch), fal.ai Hunyuan3D Pro (high-fidelity image-to-3D with PBR, $0.225), WaveSpeedAI Rapid (budget image-to-3D at $0.0225), and Trellis 2 (poly count control). This skill should be used when creating 3D assets, converting images to 3D models, generating GLB files, texturing existing models, running batch 3D pipelines, or previewing models in the GLB viewer."
+description: "Generate 3D models from text or images via 5 providers: Meshy (text-to-3D, texturing, batch), fal.ai Hunyuan3D Pro (high-fidelity image-to-3D with PBR, $0.225), WaveSpeedAI Rapid (budget image-to-3D at $0.0225), Trellis 2 (poly count control), and Local Depth (free offline ONNX depth maps + mesh, from waydeeper). This skill should be used when creating 3D assets, converting images to 3D models, generating depth maps, generating GLB files, texturing existing models, running batch 3D pipelines, or previewing models in the GLB viewer."
 ---
 
 # 3D Model Generation (Multi-Provider)
@@ -15,6 +15,7 @@ Generate 3D models from text prompts, images, or apply textures to existing mode
 | **fal.ai Hunyuan3D** | `fal_hunyuan3d.py` | $0.225 | ~2 min | High-fidelity image-to-3D with PBR, text-to-3D |
 | **WaveSpeedAI Rapid** | `wavespeed_rapid.py` | $0.0225 | ~1 min | Bulk iteration, concept validation (16x cheaper) |
 | **Trellis 2** | `trellis2.py` | 15-55 credits | 30s-4 min | Precise poly count control, geometry-only fast runs |
+| **Local Depth** | `depth_local.py` | Free | ~5s | Offline depth maps, local mesh gen, preprocessing |
 
 **Decision guide:**
 - Quick concept check → WaveSpeedAI ($0.02, fastest)
@@ -22,6 +23,8 @@ Generate 3D models from text prompts, images, or apply textures to existing mode
 - Text-to-3D → Meshy (only provider with text prompt support + refine pipeline)
 - Specific poly budget → Trellis 2 (`--decimation 5000` for low-poly)
 - Batch generation → Meshy (`meshy_batch.py` with manifest)
+- Free offline depth/mesh → Local Depth (zero API cost, ONNX on-device)
+- Depth map as preprocessing → Local Depth + any cloud provider for texturing
 
 ## Prerequisites
 
@@ -228,6 +231,7 @@ For full flags, API contracts, and credit costs, see the corresponding reference
 - **fal.ai Hunyuan3D** → `references/fal-hunyuan3d.md` (credential: `FAL_KEY`)
 - **WaveSpeedAI Rapid** → `references/wavespeed-rapid.md` (credential: `WAVESPEED_API_KEY`)
 - **Trellis 2** → `references/trellis2.md` (credential: `THREEDAI_API_KEY`)
+- **Local Depth** → `references/depth-local.md` (no credential needed — free, local ONNX inference)
 
 All three accept local file paths (auto base64-encoded) or URLs. Run any script with `--help` for flags.
 
