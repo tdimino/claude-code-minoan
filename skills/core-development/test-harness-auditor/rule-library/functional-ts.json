@@ -1,0 +1,141 @@
+{
+  "_pack": "functional-ts",
+  "_description": "Functional programming anti-patterns for TypeScript/React — inspired by the Open Souls immutable WorkingMemory paradigm: const-by-default, pure functions, declarative transformations, no mutation",
+  "_frameworks": ["react", "next"],
+  "_stack": "typescript",
+  "rules": [
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\blet\\s+\\w+\\s*[=:]",
+      "message": "[convention] let binding — use const and reassign via spread/map/filter. let signals mutation intent",
+      "exclude_patterns": ["test", "spec", "// mut", ".test.", ".spec.", "e2e", "for\\s*\\("],
+      "_tag": "pack:functional-ts:let-binding"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bclass\\s+\\w+\\s+extends\\s+(React\\.(Component|PureComponent)|Component|PureComponent)",
+      "message": "[architecture] Class component — use functional components with hooks. Classes mix concerns and break composability",
+      "exclude_patterns": ["ErrorBoundary", "test", "spec"],
+      "_tag": "pack:functional-ts:class-component"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\.push\\(|\\.pop\\(|\\.shift\\(|\\.unshift\\(|\\.splice\\(",
+      "message": "[architecture] Mutating array method (.push/.pop/.shift/.unshift/.splice) — use spread, concat, filter, or slice to return new arrays",
+      "exclude_patterns": ["test", "spec", "// mut ok", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:array-mutation"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bdelete\\s+\\w+[\\.\\[]",
+      "message": "[architecture] delete operator mutates objects — use destructuring rest or Object.fromEntries(Object.entries().filter()) to create new objects",
+      "exclude_patterns": ["test", "spec"],
+      "_tag": "pack:functional-ts:delete-operator"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "Object\\.assign\\(",
+      "message": "[architecture] Object.assign — use spread { ...target, ...source } for immutability. Object.assign mutates its first argument unless it is {}",
+      "exclude_patterns": ["test", "spec", "Object\\.assign\\(\\{\\}", "// assign ok"],
+      "_tag": "pack:functional-ts:object-assign-mutation"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\.sort\\(|\\.reverse\\(",
+      "message": "[architecture] .sort()/.reverse() mutate in-place — use .toSorted()/.toReversed() (ES2023) or [...arr].sort()/[...arr].reverse()",
+      "exclude_patterns": ["test", "spec", "// in-place ok", "\\.toSorted", "\\.toReversed", "\\[\\.\\.\\.", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:sort-reverse-mutation"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "for\\s*\\(\\s*(let|var)\\s+\\w+\\s*(=|of|in)",
+      "message": "[convention] Imperative for loop — prefer .map/.filter/.reduce/.flatMap for declarative data transformation",
+      "exclude_patterns": ["test", "spec", "// perf", "for await", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:imperative-for-loop"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\.forEach\\(",
+      "message": "[convention] .forEach is imperative — use .map for transforms, .filter for selection, .reduce for accumulation, or for (const x of items) for side effects",
+      "exclude_patterns": ["test", "spec", "// side-effect", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:foreach-imperative"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bvar\\s+",
+      "message": "[convention] var declaration — use const (preferred) or let. var has function scope and hoisting bugs",
+      "exclude_patterns": ["test", "spec", "\\.d\\.ts"],
+      "_tag": "pack:functional-ts:var-declaration"
+    },
+    {
+      "extensions": ["tsx"],
+      "pattern": "this\\.state\\b|this\\.setState\\(|this\\.props\\b|this\\.forceUpdate\\(",
+      "message": "[architecture] Class-based state/props access — use useState/useReducer hooks in functional components",
+      "exclude_patterns": ["ErrorBoundary", "test", "spec", "// legacy"],
+      "_tag": "pack:functional-ts:class-state-props"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "new\\s+(WeakMap|WeakSet)\\(",
+      "message": "[convention] WeakMap/WeakSet — document the use case. These are rarely needed and often signal a workaround",
+      "exclude_patterns": ["test", "spec", "// weak ok", "cache", "Cache", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:weak-collections"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\+\\+\\w|\\w\\+\\+|--\\w|\\w--",
+      "message": "[convention] Increment/decrement operator mutates in place — use explicit const x = y + 1 for clarity",
+      "exclude_patterns": ["test", "spec", "for\\s*\\(", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:increment-decrement"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bMath\\.random\\(",
+      "message": "[testability] Math.random() is non-deterministic — inject as parameter or use a seeded PRNG for testability",
+      "exclude_patterns": ["test", "spec", "seed", "mock", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:nondeterministic-random"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "console\\.(log|warn|error|info|debug|trace)\\(",
+      "message": "[debugging-residue] console.* call — use a logger abstraction or remove before committing",
+      "exclude_patterns": ["test", "spec", "logger", "// keep", "scripts/", "cli", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:console-residue"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bas\\s+any\\b|:\\s*any\\b",
+      "message": "[architecture] Type assertion to any — defeats TypeScript's type safety. Use unknown, generics, or proper type narrowing",
+      "exclude_patterns": ["test", "spec", "\\.d\\.ts", "// any required", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:any-type"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bthrow\\s+new\\s+\\w*Error\\(",
+      "message": "[architecture] Thrown exceptions break functional control flow — consider Result types, Either patterns, or returning error objects",
+      "exclude_patterns": ["test", "spec", "middleware", "// throw ok", "invariant", "assert", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:throw-exception"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bnew\\s+Promise\\(",
+      "message": "[async-misuse] new Promise() constructor — prefer async/await or composing existing promises. Raw constructors often indicate callback-wrapping that async/await handles better",
+      "exclude_patterns": ["test", "spec", "// promise needed", "polyfill", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:raw-promise-constructor"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bwhile\\s*\\(",
+      "message": "[convention] while loop — usually replaceable with recursion, generators, or iterators for functional style",
+      "exclude_patterns": ["test", "spec", "// loop ok", "stream", "poll", "retry", "reader", "paginate", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:while-loop"
+    },
+    {
+      "extensions": ["ts", "tsx"],
+      "pattern": "\\bswitch\\s*\\([^)]+\\)\\s*\\{",
+      "message": "[convention] switch statement — consider an object lookup map or discriminated union with exhaustive matching for declarative dispatch",
+      "exclude_patterns": ["test", "spec", "reducer", "// switch ok", ".test.", ".spec."],
+      "_tag": "pack:functional-ts:switch-statement"
+    }
+  ]
+}

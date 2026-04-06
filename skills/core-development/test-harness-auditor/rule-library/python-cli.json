@@ -1,0 +1,36 @@
+{
+  "_pack": "python-cli",
+  "_description": "Python CLI and library anti-patterns",
+  "_frameworks": [],
+  "_stack": "python",
+  "rules": [
+    {
+      "extensions": ["py"],
+      "pattern": "import\\s+os\\.path",
+      "message": "[architecture] Use pathlib.Path instead of os.path for modern Python",
+      "exclude_patterns": ["# compat", "test"],
+      "_tag": "pack:python:ospath-vs-pathlib"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "print\\([^)]*\\)\\s*$",
+      "message": "[observability] Bare print() in library code — use logging module or click.echo for CLIs",
+      "exclude_patterns": ["test", "__main__", "cli.py", "if __name__"],
+      "_tag": "pack:python:bare-print"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "subprocess\\.call\\(|subprocess\\.Popen\\(",
+      "message": "[security] Use subprocess.run() instead of .call()/.Popen() — better error handling and defaults",
+      "exclude_patterns": ["# nosec", "test"],
+      "_tag": "pack:python:subprocess-call"
+    },
+    {
+      "extensions": ["py"],
+      "pattern": "from typing import.*Optional",
+      "message": "[architecture] Use X | None instead of Optional[X] (Python 3.10+)",
+      "exclude_patterns": ["# py39 compat"],
+      "_tag": "pack:python:optional-vs-union"
+    }
+  ]
+}

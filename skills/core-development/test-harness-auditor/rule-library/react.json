@@ -1,0 +1,42 @@
+{
+  "_pack": "react",
+  "_description": "React-specific anti-patterns for AI coding agents",
+  "_frameworks": ["react", "next"],
+  "rules": [
+    {
+      "extensions": ["tsx", "jsx"],
+      "pattern": "useEffect\\(\\s*\\(\\)\\s*=>\\s*\\{[^}]*fetch\\(",
+      "message": "[async-misuse] Data fetching in useEffect — use React Query, SWR, or server components",
+      "exclude_patterns": ["// legacy", "test"],
+      "_tag": "pack:react:fetch-in-effect"
+    },
+    {
+      "extensions": ["tsx", "jsx"],
+      "pattern": "useState\\([^)]*\\).*useState\\([^)]*\\).*useState\\([^)]*\\).*useState\\(",
+      "message": "[architecture] 4+ useState calls — consider useReducer or extracting a custom hook",
+      "exclude_patterns": ["test", "spec"],
+      "_tag": "pack:react:excessive-usestate"
+    },
+    {
+      "extensions": ["tsx", "jsx"],
+      "pattern": "style=\\{\\{",
+      "message": "[architecture] Inline style object — creates new reference each render, prefer className or useMemo",
+      "exclude_patterns": ["// dynamic", "test"],
+      "_tag": "pack:react:inline-style-object"
+    },
+    {
+      "extensions": ["tsx", "jsx", "ts", "js"],
+      "pattern": "document\\.getElementById|document\\.querySelector|document\\.createElement",
+      "message": "[architecture] Direct DOM manipulation in React — use refs or state instead",
+      "exclude_patterns": ["test", "spec", "e2e", "playwright"],
+      "_tag": "pack:react:direct-dom"
+    },
+    {
+      "extensions": ["tsx", "jsx"],
+      "pattern": "\\.indexOf\\([^)]+\\)\\s*[>!=]=?\\s*-?[01]",
+      "message": "[grep-ability] Use .includes() instead of .indexOf() comparison",
+      "exclude_patterns": [],
+      "_tag": "pack:react:indexof-vs-includes"
+    }
+  ]
+}

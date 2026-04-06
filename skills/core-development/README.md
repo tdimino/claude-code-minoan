@@ -12,6 +12,8 @@ SDK integration, code search, task tracking, project documentation, and developm
 | `claude-md-manager` | Create and maintain CLAUDE.md files |
 | `claude-usage` | Report token consumption and cost from JSONL session files |
 | `openrouter-usage` | Query OpenRouter API costs, credits, and usage by model/provider |
-| `osgrep-reference` | Semantic code search CLI reference (prefer over grep/rg) |
 | `react-best-practices` | React/Next.js performance optimization (40+ rules) |
 | `skill-optimizer` | Guide for creating and reviewing effective skills |
+| `stop-slop` | Remove AI writing patterns from prose (5 registers, 200+ patterns) |
+| `test-harness-auditor` | Audit repo test/lint/type-check/SA/build/debug infrastructure, generate agent configs with rule library |
+| `user-model-builder` | Build complete userModels with social dossiers and voice analysis |
