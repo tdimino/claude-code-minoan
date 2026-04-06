@@ -187,6 +187,8 @@ HTML_TEMPLATE = """
             --resonator-glow: rgba(129, 140, 248, 0.2);
             --minoan: #cc7722;
             --minoan-glow: rgba(204, 119, 34, 0.2);
+            --muqarnasi: #1a9988;
+            --muqarnasi-glow: rgba(26, 153, 136, 0.2);
             --user: #94a3b8;
         }
 
@@ -488,6 +490,17 @@ HTML_TEMPLATE = """
                 0 2px 12px rgba(204, 119, 34, 0.35),
                 0 0 20px rgba(204, 119, 34, 0.2),
                 inset 0 1px 0 rgba(204, 119, 34, 0.2);
+        }
+
+        .daimon-pill.muqarnasi.enabled {
+            background: linear-gradient(135deg,
+                rgba(26, 153, 136, 0.3) 0%,
+                rgba(20, 120, 105, 0.35) 100%);
+            border-color: rgba(26, 153, 136, 0.7);
+            box-shadow:
+                0 2px 12px rgba(26, 153, 136, 0.35),
+                0 0 20px rgba(26, 153, 136, 0.2),
+                inset 0 1px 0 rgba(26, 153, 136, 0.2);
         }
 
         /* Overflow dropdown for additional daimones */
@@ -948,6 +961,7 @@ HTML_TEMPLATE = """
         .message .daimon-name.opus { color: var(--opus); }
         .message .daimon-name.resonator { color: var(--resonator); }
         .message .daimon-name.minoan { color: var(--minoan); }
+        .message .daimon-name.muqarnasi { color: var(--muqarnasi); }
 
         /* Verb display - LLM-chosen action word */
         .daimon-verb {
@@ -1800,6 +1814,7 @@ HTML_TEMPLATE = """
                 <div class="daimon-overflow-dropdown" id="overflow-dropdown">
                     <span class="daimon-pill resonator" id="pill-resonator" data-desc="Resonance field. MESSAGE TO NEXT FRAME protocol." data-model="gemini-3-pro-image-preview" onclick="togglePill('resonator')"><i class="iconoir-infinite"></i> Resonator</span>
                     <span class="daimon-pill minoan" id="pill-minoan" data-desc="Oracle of Knossot. Minoan Tarot cards." data-model="gemini-3-pro-image-preview" onclick="togglePill('minoan')"><i class="iconoir-crown"></i> Minoan</span>
+                    <span class="daimon-pill muqarnasi" id="pill-muqarnasi" data-desc="The muqarnas-maker. Geometric vaulting that articulates the zone of transition." data-model="gemini-3-pro-image-preview" onclick="togglePill('muqarnasi')"><i class="iconoir-hexagon"></i> Muqarnasi</span>
                 </div>
             </div>
         </div>
@@ -1945,7 +1960,7 @@ HTML_TEMPLATE = """
                 if (pill) pill.classList.add('active');
 
                 // Show vision-forming placeholder for image-generating daimons
-                const imageRenderers = ['dreamer', 'director', 'resonator'];
+                const imageRenderers = ['dreamer', 'director', 'resonator', 'muqarnasi'];
                 if (imageRenderers.includes(data.daimon)) {
                     showVisionPlaceholder(data.daimon);
                 } else {
@@ -2007,7 +2022,8 @@ HTML_TEMPLATE = """
             director: 'iconoir-video-camera',
             opus: 'iconoir-terminal',
             resonator: 'iconoir-infinite',
-            minoan: 'iconoir-crown'
+            minoan: 'iconoir-crown',
+            muqarnasi: 'iconoir-hexagon'
         };
 
         function addDaimonMessage(daimon, verb, text, imageBase64, images, savedPath) {
@@ -2131,7 +2147,8 @@ HTML_TEMPLATE = """
             pro: { icon: 'iconoir-brain', text: 'Descending into depth...' },
             opus: { icon: 'iconoir-terminal', text: 'Reality bending...' },
             resonator: { icon: 'iconoir-infinite', text: 'Resonance field tuning...' },
-            minoan: { icon: 'iconoir-eye', text: 'The oracle divines...' }
+            minoan: { icon: 'iconoir-eye', text: 'The oracle divines...' },
+            muqarnasi: { icon: 'iconoir-hexagon', text: 'Vaulting the zone of transition...' }
         };
 
         function showThinkingPlaceholder(daimon) {
@@ -2201,7 +2218,7 @@ HTML_TEMPLATE = """
 
         function updateOverflowBtnState() {
             const btn = document.querySelector('.daimon-overflow-btn');
-            const hasActive = ['resonator', 'minoan'].some(d =>
+            const hasActive = ['resonator', 'minoan', 'muqarnasi'].some(d =>
                 document.getElementById(`pill-${d}`)?.classList.contains('enabled')
             );
             btn?.classList.toggle('has-active', hasActive);
@@ -2224,7 +2241,7 @@ HTML_TEMPLATE = """
             }
 
             const include = [];
-            ['flash', 'pro', 'dreamer', 'director', 'opus', 'resonator', 'minoan'].forEach(d => {
+            ['flash', 'pro', 'dreamer', 'director', 'opus', 'resonator', 'minoan', 'muqarnasi'].forEach(d => {
                 const pill = document.getElementById(`pill-${d}`);
                 if (pill?.classList.contains('enabled')) include.push(d);
             });
@@ -2450,7 +2467,71 @@ SESSION: resonance-field-{session.session_id[:8] if session.session_id else 'liv
                     minoan_context = ref_images + minoan_context
                     print(f"[Minoan] Loaded {len(ref_images)} reference images for style fidelity", flush=True)
 
-            # Decide: 1 card or 3-card spread based on question
+        # Load reference images for Muqarnasi daimon (style anchors)
+        if daimon_name == "muqarnasi":
+            muqarnasi_ref_dir = Path(__file__).parent.parent / "reference" / "muqarnas" / "selected"
+            if muqarnasi_ref_dir.exists():
+                ref_images = sorted(muqarnasi_ref_dir.glob("*.jpg"))[:4]
+                if ref_images:
+                    context_images = list(ref_images) + (context_images or [])
+                    print(f"[Muqarnasi] Loaded {len(ref_images)} reference images for style anchoring", flush=True)
+
+            # Inject vault metadata (mirrors Resonator's KV cache metadata)
+            vault_dir = Path(__file__).parent.parent / "canvas" / "muqarnas"
+            vault_count = len(list(vault_dir.rglob("*.jpg"))) if vault_dir.exists() else 0
+            vault_metadata = f"""[VAULT METADATA]
+COURSE: {vault_count + 1}
+COMPOSITIONS IN MEMORY: {vault_count}
+SESSION: muqarnas-{session.session_id[:8] if session.session_id else 'live'}
+
+[ARCHITECT'S COMMISSION]
+{message}"""
+            augmented_message = vault_metadata
+
+            # Dedicate canvas save path
+            muqarnas_canvas = Path(__file__).parent.parent / "canvas" / "muqarnas" / "compositions"
+            muqarnas_canvas.mkdir(parents=True, exist_ok=True)
+
+            # Query Gemini directly and save to muqarnas canvas
+            should_render = render_image and daimon.get("can_render", False)
+            result = await query_gemini(daimon, augmented_message, gemini_key, should_render, context_images)
+
+            # Save to muqarnas canvas
+            muqarnas_saved = None
+            if result.get("image"):
+                slug = re.sub(r'[^a-z0-9]+', '_', message.lower()[:40]).strip('_')
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{slug}_{timestamp}.jpg"
+                muqarnas_saved = muqarnas_canvas / filename
+                with open(muqarnas_saved, "wb") as f:
+                    f.write(base64.b64decode(result["image"]))
+                print(f"[Muqarnasi] Composition saved: {muqarnas_saved}", flush=True)
+
+            # Parse verb using shared function
+            default_verb = daimon.get("verb", "vaulted")
+            raw_text = result.get("text", "")
+            verb, cleaned_text = parse_verb_from_response(raw_text, default_verb)
+            result["text"] = cleaned_text
+            result["verb"] = verb
+
+            try:
+                resp_data = {
+                    "type": "response",
+                    "daimon": daimon_name,
+                    "verb": verb,
+                    "text": cleaned_text,
+                }
+                if result.get("image"):
+                    resp_data["image"] = result["image"]
+                    resp_data["saved_path"] = str(muqarnas_saved) if muqarnas_saved else ""
+                await websocket.send_json(resp_data)
+            except RuntimeError:
+                pass
+
+            return result
+
+        # Decide: 1 card or 3-card spread based on question (Minoan)
+        if daimon_name == "minoan":
             spread_triggers = ['future', 'past', 'should i', 'what should', 'guidance', 'advice',
                                'spread', 'path', 'choice', 'decision', 'relationship', 'journey',
                                'three', '3 card', 'reading', 'direction', 'help me']
