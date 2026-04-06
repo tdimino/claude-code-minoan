@@ -4,27 +4,6 @@
   "_frameworks": ["react", "next"],
   "rules": [
     {
-      "extensions": ["tsx", "jsx"],
-      "pattern": "useEffect\\(\\s*\\(\\)\\s*=>\\s*\\{[^}]*fetch\\(",
-      "message": "[async-misuse] Data fetching in useEffect — use React Query, SWR, or server components",
-      "exclude_patterns": ["// legacy", "test"],
-      "_tag": "pack:react:fetch-in-effect"
-    },
-    {
-      "extensions": ["tsx", "jsx"],
-      "pattern": "useState\\([^)]*\\).*useState\\([^)]*\\).*useState\\([^)]*\\).*useState\\(",
-      "message": "[architecture] 4+ useState calls — consider useReducer or extracting a custom hook",
-      "exclude_patterns": ["test", "spec"],
-      "_tag": "pack:react:excessive-usestate"
-    },
-    {
-      "extensions": ["tsx", "jsx"],
-      "pattern": "style=\\{\\{",
-      "message": "[architecture] Inline style object — creates new reference each render, prefer className or useMemo",
-      "exclude_patterns": ["// dynamic", "test"],
-      "_tag": "pack:react:inline-style-object"
-    },
-    {
       "extensions": ["tsx", "jsx", "ts", "js"],
       "pattern": "document\\.getElementById|document\\.querySelector|document\\.createElement",
       "message": "[architecture] Direct DOM manipulation in React — use refs or state instead",
@@ -77,6 +56,30 @@
       "exclude_patterns": ["@reduxjs/toolkit", "test"],
       "_tag": "pack:react:legacy-redux",
       "_source": "Mark Erikson (blog.isquaredsoftware.com)"
+    },
+    {
+      "extensions": ["tsx", "jsx"],
+      "pattern": "key=\\{(index|i|idx)\\}",
+      "message": "[architecture] Using array index as key — causes incorrect state preservation when list items reorder. Use a stable unique identifier.",
+      "exclude_patterns": ["test", "spec", "// index key ok"],
+      "_tag": "pack:react:key-index",
+      "_source": "Kent C. Dodds (kentcdodds.com), Dan Abramov (overreacted.io)"
+    },
+    {
+      "extensions": ["tsx", "jsx", "ts", "js"],
+      "pattern": "useEffect\\(async",
+      "message": "[async-misuse] async function passed directly to useEffect — useEffect callbacks must be synchronous. Define the async function inside and call it.",
+      "exclude_patterns": ["test", "spec"],
+      "_tag": "pack:react:async-use-effect",
+      "_source": "Dan Abramov (overreacted.io)"
+    },
+    {
+      "extensions": ["tsx", "jsx", "ts", "js"],
+      "pattern": "eslint-disable.*rules-of-hooks",
+      "message": "[convention] Disabled rules-of-hooks — this rule prevents calling hooks conditionally or in loops. Never suppress it; restructure the component instead.",
+      "exclude_patterns": [],
+      "_tag": "pack:react:disabled-hooks-rule",
+      "_source": "Dan Abramov (overreacted.io)"
     }
   ]
 }

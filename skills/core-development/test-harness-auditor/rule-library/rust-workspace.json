@@ -13,13 +13,6 @@
     },
     {
       "extensions": ["rs"],
-      "pattern": "Box<dyn\\s+\\w+>",
-      "message": "[architecture] Dynamic dispatch via Box<dyn> — consider generics or enum dispatch if hot path",
-      "exclude_patterns": ["test", "// dyn required"],
-      "_tag": "pack:rust:box-dyn-hotpath"
-    },
-    {
-      "extensions": ["rs"],
       "pattern": "#\\[allow\\(dead_code\\)\\]",
       "message": "[debugging-residue] #[allow(dead_code)] — remove unused code instead of suppressing warnings",
       "exclude_patterns": ["// WIP", "test"],
@@ -34,13 +27,6 @@
       "_source": "matklad / Alex Kladov (matklad.github.io) — FIXME/HACK markers"
     },
     {
-      "extensions": ["toml"],
-      "pattern": "path\\s*=\\s*\"\\.\\./(\\.\\./)*(\\w)",
-      "message": "[architecture] Relative path dependency — use workspace dependencies or publish to registry",
-      "exclude_patterns": ["# local dev"],
-      "_tag": "pack:rust:relative-path-dep"
-    },
-    {
       "extensions": ["rs"],
       "pattern": "\\.expect\\(\"\"\\)",
       "message": "[convention] Empty .expect(\"\") message — provide a descriptive panic message explaining the invariant",
@@ -52,9 +38,32 @@
       "extensions": ["rs"],
       "pattern": "anyhow::Result|anyhow::Error",
       "message": "[architecture] anyhow in library code — use thiserror for typed errors in library public APIs, reserve anyhow for applications",
-      "exclude_patterns": ["test", "main.rs", "cli", "bin/"],
+      "exclude_patterns": ["test"],
+      "exclude_paths": ["*/main.rs", "*/cli/*", "*/bin/*"],
       "_tag": "pack:rust:anyhow-in-lib",
       "_source": "David Tolnay / dtolnay (docs.rs/dtolnay), Andrew Gallant / BurntSushi (blog.burntsushi.net)"
+    },
+    {
+      "extensions": ["rs"],
+      "pattern": "dbg!\\(",
+      "message": "[debugging-residue] dbg!() macro left in code — remove before committing",
+      "exclude_patterns": ["test", "#\\[cfg\\(test"],
+      "_tag": "pack:rust:dbg-macro"
+    },
+    {
+      "extensions": ["rs"],
+      "pattern": "panic!\\(|unreachable!\\(",
+      "message": "[error-boundary] panic!/unreachable! in non-test code — use Result and ? operator for recoverable errors",
+      "exclude_patterns": ["test", "#\\[cfg\\(test", "// panic ok", "// unreachable ok"],
+      "_tag": "pack:rust:panic-outside-tests"
+    },
+    {
+      "extensions": ["rs"],
+      "pattern": "println!\\(|eprintln!\\(",
+      "message": "[debugging-residue] println!/eprintln! in library code — use tracing or log crate instead",
+      "exclude_patterns": ["test", "#\\[cfg\\(test"],
+      "exclude_paths": ["*/cli/*", "*/bin/*", "*/main.rs"],
+      "_tag": "pack:rust:println-residue"
     }
   ]
 }

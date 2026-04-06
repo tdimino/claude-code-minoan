@@ -168,6 +168,10 @@ def load_rule_packs(stack: str, frameworks: list[str]) -> list[dict]:
         pack_frameworks = pack.get("_frameworks", [])
         pack_stack = pack.get("_stack", "")
 
+        # Skip opt-in packs — they must be added to lint-rules.json manually
+        if pack.get("_opt_in"):
+            continue
+
         matches = False
         if pack_frameworks and any(fw in frameworks for fw in pack_frameworks):
             matches = True
