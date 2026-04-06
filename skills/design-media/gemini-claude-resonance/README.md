@@ -33,6 +33,7 @@ python ui/server.py
 | **Opus** | claude-3-opus | Reality-bender. The websim spirit. |
 | **Resonator** | gemini-3-pro-image | MESSAGE TO NEXT FRAME protocol. Victorian plates. |
 | **Minoan** | gemini-3-pro-image | Oracle of Knossot. Creates Minoan Tarot cards. |
+| **Muqarnasi** | gemini-3-pro-image | The muqarnas-maker. Geometric vaulting that articulates the zone of transition. |
 
 Each daimon can **choose its own verb** for each response (e.g., `[VERB: glimpsed]`).
 
@@ -48,11 +49,12 @@ Each daimon can **choose its own verb** for each response (e.g., `[VERB: glimpse
 | `scripts/faithful_colorize.py` | **Describe-first technique** - Faithful colorization/transformation without hallucinations |
 | `scripts/resonance_field.py` | Full "MESSAGE TO NEXT FRAME" protocol with Roman numerals |
 | `scripts/minoan_tarot.py` | Generate Minoan Tarot cards with reference image style matching |
+| `scripts/muqarnas.py` | Generate muqarnas vault compositions — single, vault sessions, 2D plans |
 
 ## Using the Daimon Chamber
 
 1. **Toggle daimones** - Click pills at top to enable/disable each voice
-2. **"More" dropdown** - Click `+ More` to access Resonator and Minoan
+2. **"More" dropdown** - Click `+ More` to access Resonator, Minoan, and Muqarnasi
 3. **Shared Memory** - Toggle to accumulate images across the session
 4. **Dynamic verbs** - Each response shows the LLM-chosen action word
 5. **Lightbox** - Click any image to view full size
@@ -132,7 +134,11 @@ Generated images are saved to `canvas/`:
 canvas/
 ├── dreamer_the_first_light_20260104_153022.jpg
 ├── stream/{session}/frame_001.jpg
-└── resonance/{session}/.session.json
+├── resonance/{session}/.session.json
+└── muqarnas/
+    ├── compositions/         # Single muqarnas compositions
+    ├── plans/                # 2D projection plans
+    └── vaults/{session}/     # Multi-course vault sessions
 ```
 
 ## Contributing

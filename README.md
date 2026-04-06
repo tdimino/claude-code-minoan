@@ -10,7 +10,7 @@
 
 # Minoan Claude Code Configuration
 
-A curated `~/.claude/` configuration for professional development workflows — skills, hooks, CLI tools, slash commands, MCP servers, and a VS Code extension.
+A curated `~/.claude/` configuration for professional development workflows — skills, hooks, CLI tools, slash commands, and MCP servers.
 
 <p align="center">
   <img src="public/images/be_minoan.jpg" alt="Minoan fresco" width="600"/>
@@ -32,7 +32,6 @@ claude-code-minoan/
 ├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
 ├── lib/                         # Shared libraries (tracker-utils.js)
-├── extensions/                  # VS Code Claude Session Tracker extension
 ├── ghostty/                     # Ghostty terminal config for Claude Code
 ├── sounds/                      # Notification audio
 └── docs/global-setup/          # Full ~/.claude/ structure reference
@@ -66,11 +65,6 @@ chmod +x ~/.claude/hooks/*.py ~/.claude/hooks/*.sh
 cp bin/* ~/.local/bin/
 mkdir -p ~/.claude/lib && cp lib/* ~/.claude/lib/
 
-# 7. Install VS Code extension
-cd extensions/claude-session-tracker
-npm install && npm run compile
-npx @vscode/vsce package --no-dependencies
-code --install-extension claude-session-tracker-*.vsix
 ```
 
 Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/README.md) for the full settings block.
@@ -201,17 +195,6 @@ echo "alias cplugins='python3 ~/.claude/scripts/claude-plugins.py'" >> ~/.zshrc
 ```
 
 Profiles are defined in `plugin-profiles.json`. Edit `AGENT_COUNTS` in the script when plugins change. Changes take effect on next session start.
-
----
-
-### [VS Code Extension](extensions/README.md) — Claude Session Tracker
-
-Track and resume Claude Code sessions across crashes, restarts, and multiple VS Code windows.
-
-- Cross-window tracking ("Claude Active (7)")
-- Quick resume: `Cmd+Shift+C`
-- Crash recovery with one-click resume
-- Session browser with AI-generated titles, model info, turn counts, cost
 
 ---
 
