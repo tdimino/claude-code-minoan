@@ -69,7 +69,7 @@ This documents the full structure of a production `~/.claude/` directory — the
 │   ├── block-websearch.sh           # Block WebSearch in certain contexts
 │   ├── update-agent-docs.sh         # Auto-update agent docs
 │   └── debug-hook-input.sh          # Debug hook input (development)
-├── commands/                        # 51 slash commands (markdown templates)
+├── commands/                        # 47 slash commands (markdown templates)
 ├── skills/                          # 71 custom skills (SKILL.md + scripts/)
 ├── scripts/                         # Utility scripts
 │   ├── batch-rename-plans.py        # Bulk plan file renaming

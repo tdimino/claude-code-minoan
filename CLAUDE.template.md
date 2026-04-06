@@ -10,6 +10,9 @@
 - Ground truth understanding before coding. Research, clarify, persist plan, execute.
 - Building from scratch can beat adapting legacy code with architectural baggage.
 - When user defines constraints ("never X", "always Y"), persist to project's CLAUDE.md.
+- **Keep generated artifacts in-repo, not /tmp.** Create scripts, HTML, or generation artifacts within the project repo (e.g. `scripts/gen/`) and index them. Artifacts in /tmp disappear across sessions.
+- **Update the task tracker.** When you complete a task, mark it completed immediately. Don't batch updates—close each task as you finish it.
+- **Be patient with subagents.** When background agents are running, wait for all to complete before synthesizing. Don't poll, don't rush, don't duplicate their work.
 
 ## Coding Workflow
 - **Explain before implement.** Before writing or modifying code, explain what the change does, why it's needed, and how it works. Then implement.
@@ -20,16 +23,21 @@
 - **Test-driven bug fixing.** When there's a bug, start by writing a test that reproduces it, then fix it until the test passes.
 - **Learn from corrections.** Every time you're corrected, reflect on what went wrong and plan to avoid repeating it.
 - **Grep before writing any utility.** Before writing any helper function, search the entire codebase for existing implementations. Duplication signals you didn't read the code.
+- **Worthy addition review for upstream PRs.** Before committing to a fork intended for upstream PR, read the repo's best code to identify its quality bar (naming, error handling, doc style), compare your additions against it, and fix shortcomings before committing.
 
 ## Tools
-<!-- Uncomment if you maintain your own agent_docs/tools.md -->
+<!-- Uncomment to load your full tool reference on-demand from agent_docs/.
+     Copy the starter template: cp docs/global-setup/agent_docs/tools.md ~/.claude/agent_docs/
+     Then customize with your actual tools and API key locations. -->
 <!-- @agent_docs/tools.md -->
-- Firecrawl or Jina for scraping (`jina` for Twitter/X). OSGrep over grep. Beads (`bd`) for tasks.
+- Firecrawl or Jina for scraping (`jina` for Twitter/X).
+- **portless** for dev servers: `portless <name> <cmd>` assigns a port + `.localhost` URL. `portless list` for active routes.
+- **ports** (port-whisperer) for port inspection: `ports` shows dev servers, `ports kill <port>` to free ports, `ports clean` for orphaned servers.
 - `beautiful-mermaid` for Mermaid diagrams: `node ~/.claude/skills/beautiful-mermaid/scripts/mermaid.mjs --help`
 - `nano-banana-pro` for image generation/editing (Gemini 3 Pro Image)—visual assets, colorization
 - `gemini-claude-resonance` for cross-model visual dialogue—Gemini dreams in light, Claude speaks in words; together they resonate
 - Python: use uv for everything (`uv run`, `uv pip`, `uv venv`)
-- `dabarat` (`md_preview_and_annotate`) for Markdown preview, commenting, and annotation—run `dabarat <file.md>` (or `dbrt`, `mdpreview`, `mdp`). Supports comments, questions, suggestions, bookmarks, replies.
+- `dabarat` for Markdown preview, commenting, annotation, and PDF export—run `dabarat <file.md>` (or `dbrt`, `mdp`). PDF export: `dabarat --export-pdf <file.md> [-o output.pdf] [--theme <theme>]`. Themes: `mocha` (dark, default), `latte` (light), `rose-pine`, `tokyo-storm`. Supports comments, questions, suggestions, bookmarks, replies.
 - `grip` for GitHub-flavored README preview—run `grip <file.md> [port]` to render markdown exactly as GitHub would. Use before committing READMEs.
 - **RLAMA**: Always use retrieve-only mode (`rlama_retrieve.py`)—Claude synthesizes from raw chunks. Never route through Qwen when Claude is in the loop. `rlama run` is fallback only.
 
@@ -44,7 +52,8 @@
 - **Plan files**: `~/.claude/plans/{project-name}-{date}-{topic}.md` — include project path for linking.
 
 ## Always Loaded
-<!-- Point these at your own agent_docs if you maintain them -->
+<!-- Copy starter templates first: cp docs/global-setup/agent_docs/*.md ~/.claude/agent_docs/
+     Then uncomment the references below. See docs/guides/progressive-disclosure.md for the pattern. -->
 <!-- @agent_docs/active-projects.md -->
 <!-- @agent_docs/skills.md -->
 
@@ -56,13 +65,19 @@
 <!-- - `~/.claude/agent_docs/mcp-servers.md` — MCP server setup & config -->
 
 ## Session Continuity
+<!-- The triple-handoff system is currently disabled and under re-assessment.
+     With Opus 4.6's 1M context, compaction is less frequent, but model reliability
+     degrades past ~20-30% of the window. Cost and firing frequency are being re-evaluated.
+     Enable the hooks below if you want handoff support. See docs/guides/session-continuity.md. -->
 - **Handoffs**: `~/.claude/handoffs/INDEX.md` — auto-maintained index of recent sessions (date, project, trigger, summary)
 - On session start or after crash, read INDEX.md to recover context from prior sessions
 - Individual handoff YAMLs: `~/.claude/handoffs/{session_id}.yaml` (objective, completed, decisions, blockers, next_steps)
-- Triggers: `compact` (context full), `stop` (every 5 min), `prompt_input_exit`/`other` (graceful exit)
+- Triggers: `compact` (context full), `stop` (3-min cooldown, 10-min idle gate), `prompt_input_exit`/`other` (graceful exit)
 
 ## Infrastructure
 - `~/.claude/` is a git repo. Commit notable changes periodically.
-- Hooks in `~/.claude/hooks/` (see `settings.json` for bindings)
-- Custom commands in `~/.claude/commands/` (tracker suite, workflows, review)
+- Every curated folder with more than one file should have an `INDEX.md`.
+- Hooks in `~/.claude/hooks/` — see `settings.json` for bindings, `hooks/INDEX.md` for inventory.
+- Custom commands in `~/.claude/commands/` (tracker suite, workflows, review).
+- **Lint-on-write**: PostToolUse hook runs ESLint/Clippy/Ruff after every Edit/Write, feeding violations back as `additionalContext` for self-correction. Opt in per-repo with `.claude/lint-rules.json`.
 - Model & agent config: see `~/.claude/agent_docs/claude-code-config.md`
