@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-71-green.svg" alt="Skills"></a>
-  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-51-purple.svg" alt="Commands"></a>
+  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-47-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-44-orange.svg" alt="Hooks"></a>
 </p>
 
@@ -27,7 +27,7 @@ claude-code-minoan/
 │   ├── research/                #   Academic, web search, scraping
 │   └── planning-productivity/   #   Session tracking, swarms, iteration loops
 ├── hooks/                       # 44 lifecycle hooks (handoffs, terminal UX, lint-on-write, mycelium)
-├── commands/                    # 51 slash commands (workflows, planning, code review)
+├── commands/                    # 47 slash commands (workflows, planning, code review)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
@@ -134,7 +134,7 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
 
 ---
 
-### [Commands](commands/README.md) — 49 slash commands
+### [Commands](commands/README.md) — 47 slash commands
 
 Markdown templates invoked as `/command-name`. Key workflows:
 
@@ -247,20 +247,24 @@ Pair with **ccstatusline** (`npm install -g ccstatusline`) and **lazygit** (`bre
 
 ## Teammate Onboarding
 
+**Start here**: Read [`ARCHITECTURE.md`](ARCHITECTURE.md) for a bird's-eye view of the repo structure, then follow the steps below.
+
 **[`CLAUDE.template.md`](CLAUDE.template.md)** — A teammate-ready global config with all tooling conventions and no personal details.
 
 ```bash
 cp CLAUDE.template.md ~/.claude/CLAUDE.md
+cp -r docs/global-setup/agent_docs/*.md ~/.claude/agent_docs/
 ```
 
 Then customize:
-- **Identity**: Create `~/.claude/userModels/{yourname}/{yourname}Model.md` and uncomment the `@reference`
-- **Always Loaded**: Uncomment `@agent_docs/` references you want active in every session
+- **Identity**: Create `~/.claude/userModels/{yourname}/{yourname}Model.md` and uncomment the `@reference`. See the [userModel guide](docs/guides/usermodel-guide.md).
+- **Always Loaded**: Uncomment `@agent_docs/` references you want active in every session. See [progressive disclosure](docs/guides/progressive-disclosure.md).
 - **On-Demand References**: Add paths to docs Claude should read when relevant
+- **Agent docs**: The starter templates in `docs/global-setup/agent_docs/` give you active-projects, skills inventory, tools reference, and MCP server docs to customize.
 
 See [`docs/global-setup/README.md`](docs/global-setup/README.md) for the full `~/.claude/` structure reference, including userModel examples.
 
-The template includes: engineering principles, tool preferences (OSGrep, firecrawl, uv, RLAMA retrieve-only default), interaction conventions, planning patterns, session continuity via handoffs, and infrastructure notes.
+The template includes: engineering principles, tool preferences (firecrawl, uv, RLAMA retrieve-only default), interaction conventions, planning patterns, and infrastructure notes.
 
 ---
 
@@ -331,7 +335,7 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 
 ---
 
-**Skills**: 71 | **Commands**: 51 | **Hooks**: 44 | **CLI Tools**: 10
+**Skills**: 71 | **Commands**: 47 | **Hooks**: 44 | **CLI Tools**: 10
 
 ---
 

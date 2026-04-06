@@ -6,6 +6,8 @@ This document describes the layout of `claude-code-minoan` and the reasoning beh
 
 `claude-code-minoan` is a curated configuration layer for Claude Code--the Anthropic CLI. Claude Code reads a fixed set of discovery paths at startup: `~/.claude/skills/*/SKILL.md`, `~/.claude/commands/*.md`, and `~/.claude/settings.json`. This repo is structured so that its contents install cleanly into those paths.
 
+The repo currently ships 71 skills across 5 categories, 44 lifecycle hooks, 47 slash commands, and 10 CLI tools.
+
 The repo does not extend Claude Code programmatically. It works entirely through Claude Code's documented extension points: skills loaded as context, slash commands invoked by the user, hooks wired to lifecycle events, and MCP servers registered in `settings.json`.
 
 ## Directory Layout
@@ -23,9 +25,9 @@ claude-code-minoan/
 ├── commands/                  # Slash command markdown files
 ├── agents/                    # Custom subagent role definitions
 ├── bin/                       # CLI tools (cc, ccls, claude-tracker, etc.)
-├── lib/                       # Shared JS libraries
+├── lib/                       # Shared libraries (JS + Python)
 ├── scripts/                   # Utility and maintenance scripts
-├── extensions/                # VS Code extension source + .vsix
+├── extensions/                # VS Code extension (claude-session-tracker .vsix builds)
 ├── docs/                      # Guides and references
 ├── ghostty/                   # Terminal emulator config
 ├── sounds/                    # Notification audio
@@ -121,7 +123,41 @@ There are two `CLAUDE.md` files with distinct roles:
 | `claude-tracker-resume` | Search then resume in one step |
 | `claude-tmux-status` | Emit session info for tmux statusline |
 
-All tools that read session data share `lib/tracker-utils.js`. This library parses Claude Code's `~/.claude/projects/` directory and reads `sessions-index.json` and JSONL transcript files. The library is copied to `~/.claude/lib/tracker-utils.js` at install time and required via absolute path by the bin tools.
+All tools that read session data share `lib/tracker-utils.js`.
+
+### Shared Libraries (`lib/`)
+
+| File | ~Lines | Purpose |
+|------|--------|---------|
+| `tracker-utils.js` | 850 | Session parsing--reads `~/.claude/projects/`, `sessions-index.json`, JSONL transcripts. Shared by all `bin/` tools. Installed to `~/.claude/lib/`. |
+| `claudicle_memory.py` | 300 | Bridge between Claudicle's soul memory and Claude Code hooks. Reads/writes the canonical memory.db. |
+| `usermodel_resolver.py` | 180 | Resolves phone numbers and names to userModel persona files via YAML frontmatter scanning. Used by SMS/Slack response hooks. |
+
+### Scripts (`scripts/`)
+
+Standalone utilities not loaded by Claude Code's extension system:
+
+| Script | Purpose |
+|--------|---------|
+| `sync-to-repo.sh` | Sync private `~/.claude/` content into this repo using `.sync-config.json` |
+| `claude-plugins.py` | Plugin profile manager (`cplugins`)--keeps agent count under the ~40 limit |
+| `update-active-projects.py` | Auto-generates `agent_docs/active-projects.md` from session data |
+| `screenshot-rename/` | Daemon that renames screenshots using LLM vision (launchd, OpenRouter) |
+| `syspeek/` | System metrics daemon for statusline integration |
+| `cc-sessions-fzf.sh` | fzf-based interactive session picker |
+| `migrate_to_canonical.py` | One-time migration of SMS/Slack memory to canonical DB |
+
+### Documentation (`docs/`)
+
+| Path | Purpose |
+|------|---------|
+| `global-setup/README.md` | Full `~/.claude/` directory reference--the canonical onboarding doc |
+| `global-setup/agent_docs/` | Starter templates for `~/.claude/agent_docs/` (4 files) |
+| `guides/usermodel-guide.md` | The userModel persona system |
+| `guides/progressive-disclosure.md` | The `agent_docs/` pattern and 6-tier memory hierarchy |
+| `guides/session-continuity.md` | Triple-handoff system (currently disabled, under re-assessment) |
+| `ecosystem.md` | Companion projects: Claudicle, Dabarat, ClipLog, claude-peers |
+| `tmux-claude-workflow.md` | Multi-session tmux workflow |
 
 ## Data Flow
 
@@ -169,11 +205,29 @@ Session resumes
 
 6. **Flat install is authoritative.** The category subdirectory inside the repo is a source-of-truth organizational artifact. The installed flat path is what Claude Code and all users interact with. Any documentation, hook, or command that references a skill uses the flat name (`firecrawl`, not `research/firecrawl`).
 
+## Cross-Cutting Concerns
+
+### Session Tracking
+
+Session awareness spans three layers: `bin/` CLI tools (claude-tracker, ccls, ccresume) read session data, `hooks/` (git-track.sh, stop-handoff.py, session-tags-infer.py) write session data, and `lib/tracker-utils.js` (~850 lines) is the shared parser they both depend on. The VS Code extension in `extensions/` provides a GUI view of the same data. Any change to Claude Code's `sessions-index.json` schema affects all of these.
+
+### Private-to-Public Sync
+
+This repo is the public subset of a private `~/.claude/` directory. The sync workflow (`.sync-config.json` + `scripts/sync-to-repo.sh`) copies skills, hooks, and commands from the private install to the repo, using a category map and exclusion list. Personal data (phone numbers, absolute paths, API keys) must be sanitized before commit--the `.sync-config.json` `excluded_skills` list keeps private skills out, and the `.gitignore` blocks `.env` files and nested `.git/` directories.
+
+### Hook Key Files
+
+| Hook | ~Lines | Event | Purpose |
+|------|--------|-------|---------|
+| `precompact-handoff.py` | 430 | PreCompact, SessionEnd | Summarize session via OpenRouter, write handoff YAML |
+| `lint-on-write.py` | 510 | PostToolUse (Write/Edit) | Run linters, return violations as additionalContext |
+| `stop-handoff.py` | 90 | Stop | Throttled heartbeat checkpoint (3-min cooldown) |
+
 ## Where to Start
 
 - Understanding what a skill does: read `skills/{category}/{name}/SKILL.md`
 - Understanding how hooks run: read `hooks/INDEX.md` for the full event map
 - Understanding session handoff: read `hooks/precompact-handoff.py` and `hooks/stop-handoff.py`
-- Understanding the install: run `setup.sh --help` or read `docs/global-setup/README.md`
+- Understanding the install: read `setup.sh` or `docs/global-setup/README.md`
 - Adding a new skill: copy an existing skill directory, update `SKILL.md` frontmatter, place executables in `scripts/`
 - Wiring a new hook: add the script to `hooks/`, document it in `hooks/INDEX.md`, register it in your local `settings.json`
