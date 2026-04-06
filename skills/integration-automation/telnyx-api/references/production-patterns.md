@@ -422,7 +422,7 @@ GROUP BY error_type;
 
 -- Find errors for specific phone number
 SELECT * FROM processing_errors
-WHERE phone_number = '+17327595647'
+WHERE phone_number = '+15551234567'
 ORDER BY created_at DESC;
 ```
 

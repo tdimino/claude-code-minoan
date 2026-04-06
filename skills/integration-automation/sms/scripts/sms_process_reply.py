@@ -6,7 +6,7 @@ Replaces 9 separate python3 -c invocations in the /sms-respond pipeline.
 
 Usage:
     python3 sms_process_reply.py \
-        --phone "+17327595647" \
+        --phone "+15551234567" \
         --our-number "+18557066006" \
         --message-id "SM0334c637c6017dbf84eae2a7fd824abd" \
         --message-text "Hmm, how's that poller" \
@@ -18,7 +18,7 @@ Usage:
 
     # With user model and soul state updates:
     python3 sms_process_reply.py \
-        --phone "+17327595647" \
+        --phone "+15551234567" \
         --our-number "+18557066006" \
         --message-id "SM..." \
         --message-text "original text" \

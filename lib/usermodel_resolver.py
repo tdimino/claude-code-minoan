@@ -50,7 +50,7 @@ def _normalize_phone(phone: str) -> str:
 def build_phone_index() -> dict[str, Path]:
     """Scan ~/.claude/userModels/*/ for phone: fields in frontmatter.
 
-    Returns: {"+17327595647": Path("~/.claude/userModels/tom/tomModel.md"), ...}
+    Returns: {"+15551234567": Path("~/.claude/userModels/alice/aliceModel.md"), ...}
     """
     index: dict[str, Path] = {}
     if not USER_MODELS_DIR.is_dir():
@@ -105,7 +105,7 @@ def _ensure_indexes():
 def resolve_by_phone(phone: str) -> Optional[str]:
     """Return the full userModel markdown for a phone number, or None.
 
-    Phone number should be E.164 format (e.g. +17327595647).
+    Phone number should be E.164 format (e.g. +15551234567).
     """
     _ensure_indexes()
     normalized = _normalize_phone(phone)

@@ -5,9 +5,9 @@
     "version": 3,
     "lines": [
       [
-        { "id": "ensouled-widget", "type": "custom-command", "commandPath": "/Users/tomdimino/.claude/hooks/ensouled-status.sh", "color": "brightBlue", "timeout": 1000 },
+        { "id": "ensouled-widget", "type": "custom-command", "commandPath": "~/.claude/hooks/ensouled-status.sh", "color": "brightBlue", "timeout": 1000 },
         { "id": "ensouled-sep", "type": "separator" },
-        { "id": "soul-name-widget", "type": "custom-command", "commandPath": "/Users/tomdimino/.claude/hooks/soul-name.sh", "color": "brightYellow", "timeout": 1000 }
+        { "id": "soul-name-widget", "type": "custom-command", "commandPath": "~/.claude/hooks/soul-name.sh", "color": "brightYellow", "timeout": 1000 }
       ],
       [
         { "id": "8447355e-caf8-4c36-af1f-489e3a0e7414", "type": "session-clock", "color": "brightGreen" },
