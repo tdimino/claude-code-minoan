@@ -32,7 +32,7 @@ def check_skill_seekers():
         home / "Skill_Seekers",
         home / "Projects" / "Skill_Seekers",
         home / "Documents" / "Skill_Seekers",
-        Path("/Users/tomdimino/Desktop/Programming/Skill_Seekers"),  # Current cloned location
+        home / "Desktop" / "Programming" / "Skill_Seekers",  # Common cloned location
     ]
 
     # Check if Skill_Seekers exists in any common location

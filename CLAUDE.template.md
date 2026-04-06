@@ -11,6 +11,16 @@
 - Building from scratch can beat adapting legacy code with architectural baggage.
 - When user defines constraints ("never X", "always Y"), persist to project's CLAUDE.md.
 
+## Coding Workflow
+- **Explain before implement.** Before writing or modifying code, explain what the change does, why it's needed, and how it works. Then implement.
+- **Approach first, code second.** Describe your approach and wait for approval before writing any code.
+- **Ambiguity stops work.** If requirements are ambiguous, ask clarifying questions before writing any code.
+- **Scope gates.** If a task requires changes to more than 3 files, stop and break it into smaller tasks first.
+- **Edge cases are deliverables.** After finishing any code, list the edge cases and suggest test cases to cover them.
+- **Test-driven bug fixing.** When there's a bug, start by writing a test that reproduces it, then fix it until the test passes.
+- **Learn from corrections.** Every time you're corrected, reflect on what went wrong and plan to avoid repeating it.
+- **Grep before writing any utility.** Before writing any helper function, search the entire codebase for existing implementations. Duplication signals you didn't read the code.
+
 ## Tools
 <!-- Uncomment if you maintain your own agent_docs/tools.md -->
 <!-- @agent_docs/tools.md -->

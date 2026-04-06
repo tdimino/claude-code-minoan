@@ -42,9 +42,9 @@
     "version": 3,
     "lines": [
       [
-        { "id": "session-name-widget", "type": "custom-command", "commandPath": "/Users/tomdimino/.claude/hooks/session-name.sh", "color": "hex:CC5C3A", "timeout": 1000 },
+        { "id": "session-name-widget", "type": "custom-command", "commandPath": "~/.claude/hooks/session-name.sh", "color": "hex:CC5C3A", "timeout": 1000 },
         { "id": "session-name-sep", "type": "separator" },
-        { "id": "1", "type": "custom-command", "commandPath": "/Users/tomdimino/.claude/hooks/crab-model.sh", "color": "brightMagenta", "timeout": 1000 },
+        { "id": "1", "type": "custom-command", "commandPath": "~/.claude/hooks/crab-model.sh", "color": "brightMagenta", "timeout": 1000 },
         { "id": "2", "type": "separator" },
         { "id": "3", "type": "context-length", "color": "brightWhite" },
         { "id": "4", "type": "separator" },

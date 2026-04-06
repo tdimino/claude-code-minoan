@@ -18,7 +18,7 @@ This documents the full structure of a production `~/.claude/` directory — the
 │   ├── INDEX.md                     # Agent docs index
 │   ├── active-projects.md           # Current projects, sessions, branches
 │   ├── skills.md                    # Skill inventory
-│   ├── tools.md                     # Tool reference (Firecrawl, OSGrep, Beads)
+│   ├── tools.md                     # Tool reference (Firecrawl, browser automation, ports)
 │   ├── directories.md               # Project directory references
 │   ├── claude-code-config.md        # Model & agent configuration
 │   ├── claude-code-repos.md         # Skill repo sync workflows
@@ -32,7 +32,7 @@ This documents the full structure of a production `~/.claude/` directory — the
 │   └── references/                  # Additional reference docs
 ├── agents/                          # Custom subagents
 │   └── librarian.md                 # GitHub repo explorer via gh CLI
-├── hooks/                           # 30 lifecycle event scripts
+├── hooks/                           # 44 lifecycle event scripts
 │   ├── INDEX.md                     # Hooks index
 │   │                                # — Session Handoffs —
 │   ├── precompact-handoff.py        # Session handoff (PreCompact + SessionEnd)
@@ -69,8 +69,8 @@ This documents the full structure of a production `~/.claude/` directory — the
 │   ├── block-websearch.sh           # Block WebSearch in certain contexts
 │   ├── update-agent-docs.sh         # Auto-update agent docs
 │   └── debug-hook-input.sh          # Debug hook input (development)
-├── commands/                        # 10 slash commands (markdown templates)
-├── skills/                          # 54+ custom skills (SKILL.md + scripts/)
+├── commands/                        # 51 slash commands (markdown templates)
+├── skills/                          # 71 custom skills (SKILL.md + scripts/)
 ├── scripts/                         # Utility scripts
 │   ├── batch-rename-plans.py        # Bulk plan file renaming
 │   ├── update-active-projects.py    # Refresh active-projects.md
@@ -117,7 +117,7 @@ The root configuration file. Loaded at the start of every session. Uses `@refere
 
 ## Tools
 @agent_docs/tools.md
-- Firecrawl or Jina for scraping. OSGrep over grep. Beads for tasks.
+- Firecrawl or Jina for scraping (`jina` for Twitter/X).
 - beautiful-mermaid, nano-banana-pro, gemini-claude-resonance
 - dabarat for Markdown preview
 - grip for GitHub-flavored README preview
@@ -154,7 +154,7 @@ Soul entities carry persistent imagery in assets/ folders...
 
 ## Infrastructure
 - ~/.claude/ is a git repo. Commit notable changes periodically.
-- 30 hooks in ~/.claude/hooks/
+- 44 hooks in ~/.claude/hooks/
 - 10 custom commands in ~/.claude/commands/
 ```
 
@@ -166,50 +166,129 @@ Soul entities carry persistent imagery in assets/ folders...
 
 Defines who Claude is working with — intellectual style, communication preferences, working patterns, values. This is one of the highest-leverage files in the entire config. It turns Claude from a generic assistant into a collaborator calibrated to your thinking style.
 
-The `userModels/` directory can also hold supplementary dossiers (social media voice profiles, domain-specific knowledge) alongside the core model file.
+The `userModels/` directory holds a core model file plus supplementary dossiers (social voice, domain expertise, content archives). Multiple people can have models — the `@` reference in CLAUDE.md selects the active one.
 
 ```
 userModels/
-└── tom/
-    ├── tomModel.md                    # Core model
-    ├── twitter-voice-and-identity.md  # Social dossier: posting voice
-    ├── twitter-intellectual-network.md # Following graph analysis
-    ├── twitter-public-positions.md    # Stated positions
-    └── twitter-bookmarks-taxonomy.md  # Categorized bookmarks
+├── tom/
+│   ├── tomModel.md                    # Core model (always loaded via @reference)
+│   ├── intellectual-biography.md      # Career arc, knowledge genealogy
+│   ├── twitter-voice-and-identity.md  # Social dossier: posting voice, registers
+│   ├── twitter-intellectual-network.md # Following graph, engagement patterns
+│   ├── twitter-public-positions.md    # Stated positions by domain
+│   ├── twitter-bookmarks-taxonomy.md  # 14-category bookmark taxonomy
+│   ├── poetry-shirat-ha-kotharot.md   # Original multilingual poetry collection
+│   ├── academic-thera-knossos-minos.md # Research voice analysis
+│   ├── thera-hypotheses/              # 28 self-contained hypothesis docs
+│   ├── artifacts/                     # Visual artifacts (collages, photography)
+│   └── archive/                       # Full scraped content
+├── mary/
+│   └── maryModel.md                   # Partner's model
+├── andrew-ryan/
+│   └── andrewRyanModel.md             # Mentor's model
+└── minoan-mystery-llc/
+    └── minoan-mystery-llc.md          # Business entity model
 ```
 
-**Core model structure:**
+**Core model structure** (expanded example based on the `tomModel.md` pattern):
 
 ```markdown
 # Your Name
 
+You are modeling the mind of [Name].
+
 ## Persona
-Background, domains, working context.
+Background, domains, current working context. What you do, what you're building,
+what you care about professionally. Include career arc if it shapes how you think.
+Languages, tools, communities. 3-6 sentences.
+
+## Worldview
+The intellectual commitments that shape every conversation:
+- What you believe about your field that others don't
+- Which scholars, thinkers, or traditions you follow
+- Foundational influences and how they connect to current work
+- What "periphery preserves center" means in your domain
 
 ## Intellectual Style
-- First-principles thinker. Distrusts received wisdom.
-- Pattern-recognizer across domains.
-- Builder's epistemology: understanding = ability to build.
-- Benchmark, don't estimate. Run the experiment before forming the opinion.
+- First-principles thinker. Re-derives from primary sources.
+- Pattern-recognizer across domains. Akkadian phonology ↔ React architecture.
+- Etymological instinct. Traces words to roots. Names repos after Semitic roots.
+- Benchmark, don't estimate. Validates at small scale before committing.
+- Builder's epistemology. If you can't implement it, you don't understand it yet.
+
+## Writing Voice
+Declarative, zero-hedging prose. Connected em dashes, clause stacking, bold for
+key claims, tricolon with variation. Document the register map — how voice shifts
+between technical, academic, creative, and casual modes.
 
 ## Communication Style
 - Direct and concise. Says what he means without hedging.
 - Low tolerance for filler or performative uncertainty.
-- Prefers a wrong confident answer that can be corrected over a vague one.
 - Uses imperatives naturally. "OCR this." "Add it to the RAG." "Give me the link."
+- Comfortable with technical depth in multiple fields simultaneously.
+- Will challenge a claim immediately if it doesn't track, but is open to evidence.
 
 ## Working Patterns
-- Autonomous executor. Asks for help only at genuine blockers.
-- Parallel thinker. Multiple research threads simultaneously.
+- Autonomous executor. Once aligned on direction, prefers to work without interruption.
+- Parallel thinker. Runs multiple research threads simultaneously.
+- Session continuity matters. Builds context across sessions and expects it maintained.
 - Tools-first. If a task can be scripted, it should be.
-- When he says "never X" or "always Y," he means it as a durable rule.
+- Constraint-driven design. "Never X" and "always Y" are durable rules, not suggestions.
+
+## Values
+- Assumptions are the enemy. The strongest conviction about methodology.
+- Co-authorship with AI is real authorship. Not delegation, not generation.
+- Knowledge should be shared. Gives away workflows and prompt patterns.
+
+## Triggers & Sensitivities
+- Gets energized by unexpected cross-domain connections.
+- Gets frustrated by tools that don't work as documented, by paywalls, by AI that hedges.
+- Deeply motivated by the feeling that a piece of knowledge is about to click into place.
 
 ## Relationship with AI
-- Treats Claude as a scholarly research partner, not a tool.
+- Treats Claude as a scholarly research partner and engineering collaborator, not a tool.
 - Expects: initiative, pushback, memory, craft, brevity.
+- The name he gives his Claude instance is a deliberate identity marker, not ironic.
+
+## Online Presence
+| Platform | Handle / URL |
+|----------|-------------|
+| Twitter/X | @handle |
+| GitHub | @username |
+| Substack | blog-name |
 ```
 
-The userModel shapes every interaction — tone, initiative level, when to ask vs. decide, how much to explain. Write yours to match how you actually think and work.
+**Supplementary dossiers** — each is a standalone document referenced on-demand:
+
+| Dossier Type | What It Contains | When Claude Reads It |
+|-------------|------------------|---------------------|
+| `twitter-voice-and-identity.md` | 5 posting registers, sentence mechanics, handle etymology, calibration quotes | When drafting tweets or matching social voice |
+| `twitter-intellectual-network.md` | Following graph analysis, engagement patterns, who influences whom | When researching topics the user discusses online |
+| `twitter-public-positions.md` | 12+ position categories, idea genealogy, stated commitments | When the user references a prior stance |
+| `intellectual-biography.md` | 20-year career arc, mentor relationships, voice continuity analysis | When understanding motivations or career context |
+| `academic-*.md` | Research voice, adversarial thesis posture, domain-specific registers | When working on academic writing or research |
+| `poetry-*.md` | Multilingual collection, voice analysis, compositional patterns | When creative writing or translation is needed |
+| `artifacts/` | Visual artifacts — collages, photography, AI-generated imagery | When visual style references are needed |
+
+**Business and relationship models** — userModels aren't limited to the primary user. You can model anyone you collaborate with:
+
+- **Business entities**: An LLC or company model captures services, rates, address, entity structure — used when generating invoices, contracts, or business correspondence.
+- **Collaborators**: A partner, mentor, or colleague's model calibrates tone when drafting messages to them, or when they're the context for a task.
+- **Contacts**: Lightweight models with phone, email, and relationship context for communication skills (SMS, Slack, Telegram).
+
+### UserModels as Proto-Daimones
+
+A userModel is the seed of something more. In the [Claudicle](https://github.com/tdimino/claudicle) soul framework, a sufficiently rich userModel — one with voice analysis, intellectual genealogy, value commitments, and behavioral patterns — is the raw material for a **daimon**: an autonomous agent personality that persists across sessions, maintains its own memory, and operates channels (Slack, SMS, Telegram) in character.
+
+The progression:
+
+1. **userModel** (this repo) — static markdown file that calibrates Claude's responses. No memory, no persistence, no autonomy. Loaded via `@reference` in CLAUDE.md.
+2. **Soul profile** (Claudicle) — the userModel becomes the Identity layer of a 4-layer soul (Identity, Cognition, Memory, Channels). The soul activates via hooks, registers with a daemon, and maintains behavioral continuity.
+3. **Daimon** — a named, ensouled agent with its own working memory, episodic memory, and channel presence. It doesn't just respond *like* you — it operates *as* an intermediary intelligence shaped by the model.
+
+The `user-model-builder` skill builds models at stage 1. The `soul-activate.py` hook in this repo bridges to stage 2. [Claudicle](https://github.com/tdimino/claudicle) handles stage 3.
+
+The userModel shapes every interaction — tone, initiative level, when to ask vs. decide, how much to explain. Write yours to match how you actually think and work. See `docs/guides/usermodel-guide.md` for the standalone guide.
 
 ---
 
@@ -221,7 +300,7 @@ Documents loaded on demand to keep base context small. Each file covers one doma
 |------|---------|-------------|
 | `active-projects.md` | Current projects, sessions, branches | **Always** (via `@reference`) |
 | `skills.md` | Full skill inventory with descriptions | **Always** (via `@reference`) |
-| `tools.md` | Tool preferences (Firecrawl, OSGrep, Beads) | **Always** (via `@reference`) |
+| `tools.md` | Tool preferences (Firecrawl, browser automation, ports) | **Always** (via `@reference`) |
 | `directories.md` | Project directory references | **Always** (via `@reference` from active-projects) |
 | `claude-code-config.md` | Model routing, agent configuration | When configuring Claude Code |
 | `claude-code-repos.md` | Skill repo sync between minoan + aldea | When syncing repos |
@@ -234,6 +313,8 @@ Documents loaded on demand to keep base context small. Each file covers one doma
 | `slack-access.md` | Slack workspace credentials | When using Slack integration |
 
 **Pattern**: "Always Loaded" files are small and high-signal. "On-Demand" files are detailed references that would waste context if loaded every session.
+
+**Getting started**: Copy the starter templates from `docs/global-setup/agent_docs/` into `~/.claude/agent_docs/` and customize them. See the [agent_docs README](agent_docs/README.md) for setup instructions and the full pattern guide at `docs/guides/progressive-disclosure.md`.
 
 ---
 
@@ -277,7 +358,7 @@ The runtime configuration. Key sections:
 }
 ```
 
-**Hook events used** (7 of 7 available):
+**Hook events used** (10 of 18 available):
 
 | Event | Hooks | Purpose |
 |-------|-------|---------|
@@ -381,7 +462,7 @@ argument-hint: <query>
 Search for Claude Code sessions matching "$ARGUMENTS"...
 ```
 
-**10 commands:**
+**Key commands** (51 total, see `commands/README.md` for full list):
 
 | Command | Purpose |
 |---------|---------|
@@ -421,7 +502,7 @@ skills/
 └── workflow/               # Planning patterns
 ```
 
-Currently 54+ skills installed. Toggle with `./skills/skill-toggle.sh`. Disabled skills listed in `~/.claude/disabled-skills.md`.
+Currently 71 skills in the distribution repo. Toggle with `skill-toggle.py`. Disabled skills tracked in `~/.claude/disabled-skills.md`.
 
 ---
 

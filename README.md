@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-66-green.svg" alt="Skills"></a>
-  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-49-purple.svg" alt="Commands"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-71-green.svg" alt="Skills"></a>
+  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-51-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-44-orange.svg" alt="Hooks"></a>
 </p>
 
@@ -20,14 +20,14 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 66 custom skills across 5 categories
+├── skills/                      # 71 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
 │   ├── research/                #   Academic, web search, scraping
 │   └── planning-productivity/   #   Session tracking, swarms, iteration loops
 ├── hooks/                       # 44 lifecycle hooks (handoffs, terminal UX, lint-on-write, mycelium)
-├── commands/                    # 49 slash commands (workflows, planning, code review)
+├── commands/                    # 51 slash commands (workflows, planning, code review)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
@@ -43,7 +43,7 @@ Each folder has its own README with setup instructions, examples, and credits.
 
 ```bash
 # 1. Clone
-git clone https://github.com/your-org/claude-code-minoan.git
+git clone https://github.com/tdimino/claude-code-minoan.git
 cd claude-code-minoan
 
 # 2. Start with the global CLAUDE.md template
@@ -73,7 +73,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 66 skills across 5 categories
+### [Skills](skills/README.md) — 71 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -81,10 +81,10 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
-| Core Development | 11 | `skill-optimizer`, `claude-agent-sdk`, `claude-md-manager`, `autoresearch`, `claude-usage`, `architecture-md-builder` |
-| Integration & Automation | 24 | `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator` |
+| Core Development | 13 | `skill-optimizer`, `claude-agent-sdk`, `claude-md-manager`, `autoresearch`, `claude-usage`, `architecture-md-builder`, `stop-slop`, `test-harness-auditor`, `user-model-builder` |
+| Integration & Automation | 26 | `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator` |
 | Design & Media | 17 | `minoan-frontend-design` (70% win rate), `gemini-forge`, `sprite-forge`, `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy` |
-| Research | 6 | `academic-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling` |
+| Research | 7 | `academic-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling`, `openplanter` |
 | Planning & Productivity | 8 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
@@ -112,7 +112,7 @@ PostToolUse ───────→ git-track-post.sh           (Bash: capture 
                    → mycelium-context.py         (Read: surface git notes for files being read)
 SubagentStart ─────→ mycelium-subagent.py        (inject mycelium spore protocol)
 SessionStart ──────→ mycelium-arrive.sh          (announce arrival to mycelium substrate)
-Stop ──────────────→ on-ready.sh + stop-handoff.py (🟢 title:subtitle + 5-min checkpoint)
+Stop ──────────────→ on-ready.sh + stop-handoff.py (🟢 title:subtitle + 3-min checkpoint)
                    → mycelium-depart.sh          (leave departure note on modified files)
 PreCompact ────────→ precompact-handoff.py       (full handoff before compaction, 1M context)
 SessionEnd ────────→ precompact-handoff.py       (handoff on graceful exit)
@@ -331,7 +331,7 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 
 ---
 
-**Skills**: 66 | **Commands**: 49 | **Hooks**: 44 | **CLI Tools**: 10
+**Skills**: 71 | **Commands**: 51 | **Hooks**: 44 | **CLI Tools**: 10
 
 ---
 

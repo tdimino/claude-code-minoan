@@ -1,8 +1,8 @@
-# Contributing to Aldea Claude Code Configuration
+# Contributing to Minoan Claude Code Configuration
 
-Thank you for contributing to the Aldea team's Claude Code setup! This guide will help you add new skills, slash commands, and MCP servers.
+This guide covers how to add new skills, slash commands, hooks, and MCP servers to the repo.
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Contributing Skills](#contributing-skills)
 - [Contributing Hooks](#contributing-hooks)
@@ -11,7 +11,7 @@ Thank you for contributing to the Aldea team's Claude Code setup! This guide wil
 - [Pull Request Process](#pull-request-process)
 - [Code Review Guidelines](#code-review-guidelines)
 
-## 🎯 Contributing Skills
+## Contributing Skills
 
 ### Skill Structure
 
@@ -20,22 +20,21 @@ A skill must follow this directory structure:
 ```
 skills/
 └── your-skill-name/
-    ├── skill.md          # Required: Main skill definition
-    ├── README.md         # Optional: Documentation
-    └── examples/         # Optional: Example usage
-        └── example.md
+    ├── SKILL.md          # Required: Main skill definition
+    ├── scripts/          # Optional: Executable scripts
+    ├── references/       # Optional: Additional docs loaded on demand
+    └── README.md         # Optional: Documentation
 ```
 
 ### Creating a New Skill
 
-1. **Use the skill template**:
+1. **Copy an existing skill** as a starting point (e.g. `skills/research/firecrawl/`):
 
 ```bash
-mkdir -p skills/your-skill-name
-cp skills/.template/skill.md skills/your-skill-name/skill.md
+cp -r skills/research/firecrawl skills/your-category/your-skill-name
 ```
 
-2. **Edit `skill.md`** with this structure:
+2. **Edit `SKILL.md`** with this structure:
 
 ```markdown
 ---
@@ -112,7 +111,7 @@ EOF
 - Duplicate existing skill functionality
 - Skip documentation
 
-## 🪝 Contributing Hooks
+## Contributing Hooks
 
 ### What Are Hooks?
 
@@ -214,7 +213,7 @@ if __name__ == "__main__":
 | `session-tags-infer.py` | Stop (async) | Infer session tags via OpenRouter |
 | `soul-subagent-inject.py` | SubagentStart | Inject soul context into subdaimones |
 
-## ⚡ Contributing Slash Commands
+## Contributing Slash Commands
 
 ### Command Structure
 
@@ -283,7 +282,7 @@ Add your command to the "Popular Slash Commands" section in README.md.
 - Be descriptive: `security-scan.md` not `scan.md`
 - Avoid abbreviations unless common: `refactor.md` not `rfctr.md`
 
-## 🔧 Contributing MCP Servers
+## Contributing MCP Servers
 
 ### Adding a New MCP Server
 
@@ -355,7 +354,7 @@ Use placeholders:
 - `REPLACE_WITH_YOUR_TOKEN`
 - `YOUR_PROJECT_ID_HERE`
 
-## 🔄 Pull Request Process
+## Pull Request Process
 
 ### Before Submitting
 
@@ -397,7 +396,7 @@ Show how to use the new feature:
 - **Docs**: `docs: update [section] documentation`
 - **Fix**: `fix: resolve [issue description]`
 
-## 👀 Code Review Guidelines
+## Code Review Guidelines
 
 ### What Reviewers Look For
 
@@ -427,7 +426,7 @@ Show how to use the new feature:
 4. Approves or requests changes
 5. Maintainer merges approved PRs
 
-## 🏷️ Versioning
+## Versioning
 
 We use semantic versioning for this repository:
 
@@ -435,7 +434,7 @@ We use semantic versioning for this repository:
 - **Minor** (0.1.0): New skills, commands, or servers
 - **Patch** (0.0.1): Bug fixes, documentation updates
 
-## 📝 Commit Message Format
+## Commit Message Format
 
 Use conventional commits:
 
@@ -462,17 +461,13 @@ fix(mcp): correct perplexity server configuration
 docs: update README with new MCP server setup
 ```
 
-## 🆘 Getting Help
+## Getting Help
 
 - Review existing skills/commands for examples
 - Check [Claude Code docs](https://docs.claude.com/en/docs/claude-code)
 - Ask in team chat
 - Create an issue for discussion
 
-## 📄 License
+## License
 
-All contributions are internal to Aldea and follow company guidelines.
-
----
-
-Thank you for contributing! 🎉
+All contributions are licensed under MIT (see [LICENSE](LICENSE)).

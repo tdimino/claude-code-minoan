@@ -1,100 +1,42 @@
 # Claude-Code-Minoan
 
-Curated Claude Code configuration: skills, MCP servers, slash commands, CLI tools, and VS Code extensions.
+Curated `~/.claude/` configuration for Claude Code: 71 skills, 44 hooks, 51 commands, CLI tools, and a VS Code extension.
+
+## Architecture
+@ARCHITECTURE.md
 
 ## Structure
 
-- `/skills` - Custom skills organized by category (copy to `~/.claude/skills/`)
-- `/commands` - Slash commands (copy to `~/.claude/commands/`)
-- `/bin` - CLI tools: `cc`, `ccls`, `ccpick`, `cckill`, `claude-tracker`, `claude-tracker-search`, `claude-tracker-resume`
-- `/lib` - Shared libraries (`tracker-utils.js`)
-- `/extensions` - VS Code extensions (`claude-session-tracker`)
-- `/hooks` - Terminal title, session handoff, lint-on-write, automation scripts
-- `/sounds` - Notification audio
-- `.mcp.json` - MCP server configurations
-- `tmux.conf.example` - Optimized tmux config for Claude Code
-
-## Setup
-
-```bash
-cp -r skills/* ~/.claude/skills/
-cp -r commands/* ~/.claude/commands/
-cp bin/* ~/.local/bin/
-mkdir -p ~/.claude/lib && cp lib/* ~/.claude/lib/
+```
+skills/{category}/{name}/  →  installs flat to ~/.claude/skills/{name}/
+hooks/                     →  ~/.claude/hooks/ (wire in settings.json)
+commands/                  →  ~/.claude/commands/
+bin/                       →  ~/.local/bin/
+lib/                       →  ~/.claude/lib/
 ```
 
-## Key Skills
+## Contributing
 
-- **minoan-swarm** - Agent Teams orchestration with Minoan-Semitic naming. 5 team templates, 30+ named teammates, auto-discovers project context. Requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
-- **osgrep-reference** - Semantic code search. ALWAYS prefer `osgrep` over grep/rg
-- **claude-agent-sdk** - Build AI agents with Claude Agent SDK
-- **codex-orchestrator** - Delegate to specialized Codex CLI subagents (reviewer, debugger, architect, security)
-- **super-ralph-wiggum** - Autonomous iteration loops (HITL/AFK modes)
-- **llama-cpp** / **rlama** / **parakeet** / **smolvlm** / **speak-response** - Local ML stack (inference, RAG, STT, vision, TTS)
-  - **RLAMA default**: Always use retrieve-only mode (`rlama_retrieve.py`)—Claude synthesizes from raw chunks. Never route through Qwen when Claude is in the loop. `rlama run` is fallback only.
-- **image-forge** - Precision image editing via ImageMagick 7, sips, rembg, Pillow. Three-tier routing: deterministic (magick), AI semantic (Gemini/nano-banana-pro), vision analysis (Claude). JSON pipeline specs, batch ops, smart crop, montage builder.
-- **component-gallery** - Encyclopedic UI pattern research: 60 components, 95 design systems, 8,692 RAG chunks from [component.gallery](https://component.gallery/). Query before building any UI component. Pairs with `minoan-frontend-design` (research → design workflow). Static indexes in `references/`, semantic search via `query.py`.
-- **firecrawl** / **scrapling** / **exa-search** - Web scraping and search
-- **claude-md-manager** - Create and optimize CLAUDE.md files
+- Skills must be self-contained--no cross-skill imports
+- Hooks must wrap `json.load` in try/except--malformed input must not crash
+- No API keys in the repo--use placeholders
+- Flat skill names are authoritative--never reference category paths in code
 
-## Key Commands
+See `CONTRIBUTING.md` for full guidelines.
 
-- `/workflows:review` - Multi-agent code review (12+ parallel agents)
-- `/workflows:work` - Execute plans with quality checks
-- `/workflows:plan` - Feature planning with architecture analysis
-- `/requirements-start` - Extensive project planning workflow
-- `/audit-plans` - Audit plans for completeness
+## Quick Reference
 
-## OSGrep Quick Reference
-
-```bash
-osgrep "query"              # Semantic search (25 results)
-osgrep trace "function"     # Call graph
-osgrep skeleton <file>      # Compressed structure (~85% token reduction)
-osgrep index --reset        # Full re-index if stale
-```
-
-## VS Code Extension
-
-**Claude Session Tracker** — Track and resume sessions across VS Code windows and crashes.
-
-```bash
-cd extensions/claude-session-tracker
-npm run compile && npx vsce package
-code --install-extension claude-session-tracker-*.vsix
-```
-
-`Cmd+Shift+C` to quick-resume last session.
-
-## tmux + Claude
-
-```bash
-cp bin/cc bin/ccls bin/ccpick bin/cckill bin/claude-tmux-status ~/.local/bin/
-```
-
-| Command | Description |
-|---------|-------------|
-| `cc [name]` | Create/attach tmux session with Claude |
-| `ccls` | List sessions with Claude status |
-| `ccpick` | fzf picker with tmux + Claude history |
-| `cckill` | Kill idle sessions (preserves running Claude) |
-
-Prefix: `Ctrl+A`. See `docs/tmux-claude-workflow.md` for keybindings.
-
-## MCP Servers
-
-Core: playwright, chrome-devtools, figma, shadcn, supabase, context7, arxiv, perplexity
-
-## Teammate Quick Start
-
-Copy `CLAUDE.template.md` to `~/.claude/CLAUDE.md` and customize:
-- Add your `## Identity` section (or remove it)
-- Uncomment `## Always Loaded` references you want active
-- Add your own `## On-Demand References`
+- Setup: `./setup.sh` or see `README.md` Quick Start
+- Sync from private: `./scripts/sync-to-repo.sh [--dry-run]`
+- Sync config: `.sync-config.json` (category map, exclusions)
+- Skill counts: `find skills -name SKILL.md -not -path '*/_archive/*' | wc -l`
 
 ## Guides
 
-- `CLAUDE.template.md` - **Teammate-ready global CLAUDE.md** (no personal details)
-- `docs/tmux-claude-workflow.md` - tmux session management
-- `CONTRIBUTING.md` - Contribution guidelines
-- `README.md` - Full setup, all skills, all commands
+- `ARCHITECTURE.md` -- Repo layout, skill anatomy, hook wiring, invariants
+- `docs/ecosystem.md` -- Companion projects (Claudicle, Dabarat, ClipLog, claude-peers)
+- `docs/guides/usermodel-guide.md` -- The userModel persona system
+- `docs/guides/progressive-disclosure.md` -- The agent_docs pattern
+- `docs/guides/session-continuity.md` -- Triple-handoff system
+- `docs/global-setup/README.md` -- Full `~/.claude/` structure reference
+- `CLAUDE.template.md` -- Teammate-ready global CLAUDE.md (no personal details)
