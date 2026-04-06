@@ -2,7 +2,7 @@
 
 Ground-truth token usage and cost reporting for Claude Code sessions.
 
-**Last updated:** 2026-02-21
+**Last updated:** 2026-04-06
 
 **Reflects:** Empirical accuracy investigation of ccusage v18.0.5 (10.6k stars) conducted on 2026-02-20, plus a streaming chunk deduplication overhaul on 2026-02-21. ccusage undercounts output tokens by 77-94% for heavy Agent Teams users. This skill parses every JSONL file—parent sessions and subagent sidechains—with last-wins message ID deduplication and generation-specific pricing to produce correct numbers.
 
@@ -79,6 +79,24 @@ python3 ~/.claude/skills/claude-usage/scripts/claude_usage.py --since 7d --csv
 
 # Compare against ccusage (shows delta)
 python3 ~/.claude/skills/claude-usage/scripts/claude_usage.py --compare
+
+# Per-subagent breakdown
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage.py --by subagent --since 7d
+
+# Top 20 most expensive sessions
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage.py --by session --since 30d --top 20
+
+# Top 10 most expensive subagents
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage.py --by subagent --since 30d --top 10
+
+# Extract all human prompts (last 7 days)
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage.py --prompts --since 7d
+
+# Prompts for one project
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage.py --prompts --project worldwarwatcher --since 30d
+
+# Prompts as JSON
+python3 ~/.claude/skills/claude-usage/scripts/claude_usage.py --prompts --since 7d --json
 ```
 
 ---
@@ -124,6 +142,19 @@ Uses `Path.iterdir()` (not `rglob`) to avoid descending into unrelated `tool-res
 | `session` | Session UUID (resolved to summary) | `8a6c801a  Working on Claudicle...` |
 | `model` | Model name | `claude-opus-4-6` |
 | `project` | Project directory (decoded to path) | `~/Desktop/Programming` |
+| `subagent` | Agent ID within parent session | `8a6c801a/abc46e1be8833208` |
+
+### Top-N Ranking (`--top N`)
+
+Sort any aggregation by total tokens (descending) and show only the top N entries. Most useful with `--by session` or `--by subagent` to find the costliest sessions or agents.
+
+When used with `--by session`, the output includes first-prompt previews showing what each session was about.
+
+### Prompt Extraction (`--prompts`)
+
+Extract all human prompts from JSONL session files, grouped by project. Filters out tool results, sidechain messages, and tool-type user entries—only genuine human input.
+
+Composes with `--since`, `--until`, `--project` for filtering, and `--json` for structured output.
 
 ---
 
@@ -187,6 +218,12 @@ Uses Playwright/Chromium for pixel-perfect CSS rendering—same engine as the Al
 - Cache write pricing uses the 1-hour rate by default (Claude Code's caching mode). When JSONL provides per-TTL breakdowns, rates are split accordingly.
 - Synthetic entries (`model: "<synthetic>"`) and billing error entries (all-zero token counts) are automatically filtered.
 - Session names resolve from `sessions-index.json`. Sessions not yet indexed show raw UUIDs.
+
+---
+
+## Attribution
+
+The subagent aggregation (`--by subagent`), top-N ranking (`--top`), and prompt extraction (`--prompts`) features were inspired by [Kieran Klaassen's Claude Code token usage analyzer](https://gist.github.com/kieranklaassen/7b2ebb39cbbb78cc2831497605d76cc6). The feature concepts—subagent cost ranking, session leaderboards with prompt previews, and per-project prompt extraction—were adapted into this skill's existing architecture (deduplication, timezone-aware filtering, cost estimation).
 
 ---
 
