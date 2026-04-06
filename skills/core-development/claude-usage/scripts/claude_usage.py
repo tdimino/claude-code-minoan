@@ -72,6 +72,7 @@ PRICING_VERIFIED = "2026-02-21"
 
 PROJECTS_DIR = pathlib.Path.home() / ".claude" / "projects"
 _warned_models = set()
+_session_first_prompts = {}  # session_id -> first human prompt text (truncated)
 
 
 # ─────────────────────────────────────────────
@@ -135,6 +136,59 @@ def get_pricing_metadata() -> dict:
                        "cache_write_1h": v[3], "cache_read": v[4]}
                   for k, v in PRICING.items()},
     }
+
+
+# ─────────────────────────────────────────────
+# PROMPT EXTRACTION HELPERS
+# ─────────────────────────────────────────────
+
+def _extract_text_content(content):
+    """Extract text from message content (string or list of content blocks)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                if item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+            elif isinstance(item, str):
+                parts.append(item)
+        return "\n".join(parts).strip()
+    return ""
+
+
+def _is_human_prompt(obj):
+    """Check if a user-type JSONL entry is a genuine human prompt.
+
+    Excludes: tool results, sidechain messages, tool-type userType,
+    meta entries, task notifications, command wrappers, and skill payloads.
+    """
+    if obj.get("isSidechain", False):
+        return False
+    if obj.get("userType") == "tool":
+        return False
+    if obj.get("isMeta", False):
+        return False
+    origin = obj.get("origin", {})
+    if isinstance(origin, dict) and origin.get("kind") == "task-notification":
+        return False
+    content = obj.get("message", {}).get("content", "")
+    if isinstance(content, list):
+        types = [i.get("type") for i in content if isinstance(i, dict)]
+        if types and all(t == "tool_result" for t in types):
+            return False
+    # Filter command wrappers and system boilerplate
+    text = _extract_text_content(content)
+    if text and (
+        text.startswith("<command-message>")
+        or text.startswith("<command-name>")
+        or text.startswith("<local-command-caveat>")
+        or text.startswith("<task-notification>")
+        or text.startswith("[Request interrupted")
+    ):
+        return False
+    return True
 
 
 # ─────────────────────────────────────────────
@@ -208,11 +262,12 @@ def decode_project_path(encoded: str) -> str:
 # JSONL PARSING
 # ─────────────────────────────────────────────
 
-def parse_jsonl(path, since_dt, until_dt, local_tz):
+def parse_jsonl(path, since_dt, until_dt, local_tz, collect_prompts=False):
     """
     Stream-parse a JSONL file line by line (O(1) memory for 300MB+ files).
-    Returns (records, stats) where records is a list of token records from
-    assistant entries only and stats has parse metadata.
+    Returns (records, stats, prompts) where records is a list of token records
+    from assistant entries, stats has parse metadata, and prompts is a list of
+    human prompt dicts (only populated when collect_prompts=True).
 
     Deduplicates by message ID using last-wins strategy — Claude Code writes
     one JSONL entry per content block (thinking, text, tool_use), all sharing
@@ -220,11 +275,15 @@ def parse_jsonl(path, since_dt, until_dt, local_tz):
     (first chunk often has output_tokens: 1, last chunk has the real value),
     so we keep the LAST entry per message ID.
 
-    Skips: non-assistant entries, synthetic models, all-zero usage, entries
-    outside the date window.
+    Also captures the first human prompt per session into _session_first_prompts
+    (lightweight, always active — used for --top session ranking).
+
+    Skips: non-assistant entries (except user for prompts), synthetic models,
+    all-zero usage, entries outside the date window.
     """
     pending_by_msg_id = {}  # msg_id -> record dict (last-wins dedup)
     non_dedup_records = []  # entries without a message ID
+    prompts = []  # human prompts (only when collect_prompts=True)
     skipped_json = 0
     skipped_dupes = 0
     is_sidechain = "subagents" in str(path)
@@ -249,7 +308,40 @@ def parse_jsonl(path, since_dt, until_dt, local_tz):
                     skipped_json += 1
                     continue
 
-                if obj.get("type") != "assistant":
+                msg_type = obj.get("type")
+
+                # Capture human prompts (lightweight: always grab first prompt
+                # per session for --top ranking; full list only when requested)
+                if msg_type == "user" and _is_human_prompt(obj):
+                    text = _extract_text_content(obj.get("message", {}).get("content", ""))
+                    if text:
+                        sid = obj.get("sessionId", path.stem)
+                        # Parse timestamp for window check (also used for first-prompt)
+                        ts_str = obj.get("timestamp", "")
+                        prompt_ts = None
+                        if ts_str:
+                            try:
+                                prompt_ts = datetime.fromisoformat(
+                                    ts_str.replace("Z", "+00:00")
+                                ).astimezone(local_tz)
+                            except ValueError:
+                                pass
+                        in_window = prompt_ts and (
+                            (not since_dt or prompt_ts >= since_dt)
+                            and (not until_dt or prompt_ts <= until_dt)
+                        )
+                        # Only capture first prompt if it falls within the date window
+                        if in_window and sid not in _session_first_prompts:
+                            _session_first_prompts[sid] = text[:120]
+                        if collect_prompts and not is_sidechain and in_window:
+                            prompts.append({
+                                "text": text,
+                                "timestamp": prompt_ts,
+                                "session_id": sid,
+                                "project": project_encoded,
+                            })
+
+                if msg_type != "assistant":
                     continue
 
                 msg = obj.get("message", {})
@@ -311,7 +403,7 @@ def parse_jsonl(path, since_dt, until_dt, local_tz):
     # Merge: deduped records (last-wins per msg_id) + non-dedup records
     records = list(pending_by_msg_id.values()) + non_dedup_records
     stats = {"skipped_json": skipped_json, "skipped_dupes": skipped_dupes}
-    return records, stats
+    return records, stats, prompts
 
 
 # ─────────────────────────────────────────────
@@ -358,7 +450,7 @@ def new_bucket():
 
 
 def aggregate(records, by):
-    """Aggregate records by: day | week | month | session | model | project."""
+    """Aggregate records by: day | week | month | session | model | project | subagent."""
     groups = defaultdict(new_bucket)
 
     for r in records:
@@ -376,6 +468,9 @@ def aggregate(records, by):
             key = r["model"]
         elif by == "project":
             key = r["project"]
+        elif by == "subagent":
+            agent = r.get("agent_id") or "parent"
+            key = f"{r['session_id'][:8]}/{agent}" if agent != "parent" else f"{r['session_id'][:8]}/parent"
         else:
             key = ts.strftime("%Y-%m-%d")
 
@@ -432,6 +527,9 @@ def format_table(groups, by, total_records, session_names):
         col1_w = 36
     elif by == "session":
         col1 = "Session"
+        col1_w = 36
+    elif by == "subagent":
+        col1 = "Agent"
         col1_w = 36
     else:
         col1 = by.capitalize()
@@ -630,13 +728,18 @@ def main():
   claude_usage.py --by project --since 7d Per-project breakdown
   claude_usage.py --project Thera        Filter to one project
   claude_usage.py --json                 Machine-readable JSON
-  claude_usage.py --compare              Show delta vs ccusage""",
+  claude_usage.py --compare              Show delta vs ccusage
+  claude_usage.py --by subagent --since 7d  Per-subagent breakdown
+  claude_usage.py --by session --top 5   Top 5 costliest sessions
+  claude_usage.py --prompts --since 7d   Extract human prompts""",
     )
     p.add_argument("--since", help="Start date: YYYY-MM-DD or Nd (default: today)")
     p.add_argument("--until", help="End date: YYYY-MM-DD (default: now)")
-    p.add_argument("--by", choices=["day", "week", "month", "session", "model", "project"],
+    p.add_argument("--by", choices=["day", "week", "month", "session", "model", "project", "subagent"],
                    default="day", help="Aggregation dimension (default: day)")
     p.add_argument("--project", help="Filter to projects whose path contains this string")
+    p.add_argument("--top", type=int, metavar="N", help="Show only the top N entries by total tokens (desc)")
+    p.add_argument("--prompts", action="store_true", help="Extract human prompts from sessions")
     p.add_argument("--json", action="store_true", dest="json_out", help="JSON output")
     p.add_argument("--csv", action="store_true", dest="csv_out", help="CSV output")
     p.add_argument("--compare", action="store_true", help="Show delta vs ccusage")
@@ -653,8 +756,16 @@ def main():
     else:
         local_tz = datetime.now().astimezone().tzinfo
 
+    if args.top is not None and args.top <= 0:
+        print("Error: --top requires a positive integer.", file=sys.stderr)
+        sys.exit(1)
+
     since_dt = resolve_since(args.since, local_tz)
     until_dt = resolve_until(args.until, local_tz)
+
+    # Clear module-level state from any prior call in the same process
+    _session_first_prompts.clear()
+    _warned_models.clear()
 
     # Discover files
     jsonl_files = iter_all_jsonl(project_filter=args.project)
@@ -664,6 +775,7 @@ def main():
 
     # Parse all files
     all_records = []
+    all_prompts = []
     files_scanned = 0
     parent_files = 0
     subagent_files = 0
@@ -671,8 +783,11 @@ def main():
     total_skipped_dupes = 0
 
     for path in jsonl_files:
-        records, stats = parse_jsonl(path, since_dt, until_dt, local_tz)
+        records, stats, prompts = parse_jsonl(
+            path, since_dt, until_dt, local_tz, collect_prompts=args.prompts
+        )
         all_records.extend(records)
+        all_prompts.extend(prompts)
         files_scanned += 1
         total_skipped_json += stats["skipped_json"]
         total_skipped_dupes += stats["skipped_dupes"]
@@ -680,6 +795,49 @@ def main():
             subagent_files += 1
         else:
             parent_files += 1
+
+    # --prompts mode: output extracted human prompts and exit
+    if args.prompts:
+        if not all_prompts:
+            print("No human prompts found in the specified range.", file=sys.stderr)
+            sys.exit(0)
+
+        # Group prompts by project, sort by timestamp within each
+        by_project = defaultdict(list)
+        for prompt in all_prompts:
+            by_project[prompt["project"]].append(prompt)
+
+        if args.json_out:
+            output = []
+            for proj, plist in sorted(by_project.items()):
+                plist.sort(key=lambda x: x["timestamp"])
+                for prompt in plist:
+                    output.append({
+                        "project": decode_project_path(proj),
+                        "session_id": prompt["session_id"],
+                        "timestamp": str(prompt["timestamp"]),
+                        "text": prompt["text"],
+                    })
+            print(json.dumps(output, indent=2, default=str))
+        else:
+            count = 0
+            for proj in sorted(by_project.keys()):
+                plist = by_project[proj]
+                plist.sort(key=lambda x: x["timestamp"])
+                proj_name = decode_project_path(proj)
+                print(f"\n# Prompts: {proj_name}")
+                print(f"  {len(plist)} prompts\n")
+                for prompt in plist:
+                    count += 1
+                    ts_str = prompt["timestamp"].strftime("%Y-%m-%d %H:%M")
+                    print(f"## {count}. [{ts_str}] Session `{prompt['session_id'][:8]}`")
+                    text = prompt["text"]
+                    if len(text) > 500:
+                        text = text[:500] + "..."
+                    print(f"{text}\n")
+            print(f"  {count} prompts across {len(by_project)} projects")
+            print(f"  {files_scanned} files scanned ({parent_files} parent, {subagent_files} subagent)")
+        sys.exit(0)
 
     if not all_records:
         since_str = since_dt.strftime("%Y-%m-%d")
@@ -690,8 +848,14 @@ def main():
 
     # Aggregate
     groups = aggregate(all_records, args.by)
+    session_names = load_session_names() if args.by in ("session", "subagent") else {}
+
+    # --top N: sort by total_tokens desc and slice
+    if args.top:
+        sorted_items = sorted(groups.items(), key=lambda x: x[1]["total_tokens"], reverse=True)
+        groups = dict(sorted_items[:args.top])
+
     gt = grand_total(groups)
-    session_names = load_session_names() if args.by == "session" else {}
 
     metadata = {
         "since": str(since_dt),
@@ -716,6 +880,18 @@ def main():
         print(format_csv(groups, args.by), end="")
     else:
         print(format_table(groups, args.by, len(all_records), session_names))
+
+        # For --top with --by session, show first-prompt previews
+        if args.top and args.by == "session":
+            print("\n  First prompts:")
+            for key in groups:
+                preview = _session_first_prompts.get(key, "")
+                name = session_names.get(key, "")
+                label = name[:40] if name else key[:8]
+                if preview:
+                    print(f"    {label}: {preview[:80]}")
+            print()
+
         print(f"  {files_scanned} files scanned ({parent_files} parent, {subagent_files} subagent)")
         if total_skipped_dupes:
             print(f"  {total_skipped_dupes:,} duplicate streaming chunks deduplicated")
