@@ -54,7 +54,7 @@ These are all achievable without Pretext or opentype.js.
 | **Animated Obstacles** | `layoutNextLine` + `carveTextLineSlots` | Moving creatures/orbs that displace text at 60fps — slot-carving fills BOTH sides of obstacle |
 | **Typographic ASCII** | `prepareWithSegments` (char measurement) | Fluid simulations, 3D wireframes, particle systems rendered as proportional characters |
 | **Calligrams** | `prepareWithSegments` + SDF | Words rendered as shapes using their own letters — hearts, stars, spirals |
-| **Glyph-Mask Calligrams** | `prepareWithSegments` + Canvas pixel mask | Any font glyph as calligram shape — fill a large letter with small text using pixel-mask technique (no SDF needed) |
+| **Glyph-Mask Calligrams** | Canvas `measureText` + `getImageData` pixel mask | Any font glyph as calligram shape — fill a large letter with small text using pixel-mask technique (no SDF needed, no opentype.js) |
 | **Letterbox Gallery** | Glyph-mask + per-letter `<canvas>` grid | Each character in a string gets its own canvas with text fill, cursor displacement, and independent interaction |
 | **Multi-column Editorial** | All rich APIs combined | Magazine-style layouts with headline fitting, pull quotes, drop caps, column flow |
 
@@ -177,7 +177,7 @@ Import only the functions you need. Pin the version. opentype.js cannot parse `.
 | Fill columns | 1–4 | 1 |
 | Grid columns (gallery) | 2–6 | 3 |
 | Cursor displacement radius | 50–250px | 100 |
-| Cursor displacement force | 10–105 | 35 |
+| Cursor displacement force | 10–50 | 35 |
 | Displacement damping | 0.85–0.98 | 0.94 |
 
 ### opentype.js + flubber — Glyph Morphing

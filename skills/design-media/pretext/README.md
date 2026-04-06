@@ -1,6 +1,6 @@
 # Pretext
 
-Text effects impossible with CSS alone — powered by [@chenglou/pretext](https://github.com/nicklockwood/pretext) and [opentype.js](https://opentype.js.org/).
+Text effects impossible with CSS alone — powered by [@chenglou/pretext](https://www.npmjs.com/package/@chenglou/pretext) and [opentype.js](https://opentype.js.org/).
 
 Single-file HTML output. No build step. No framework.
 
