@@ -156,6 +156,7 @@ Standalone utilities not loaded by Claude Code's extension system:
 | `guides/usermodel-guide.md` | The userModel persona system |
 | `guides/progressive-disclosure.md` | The `agent_docs/` pattern and 6-tier memory hierarchy |
 | `guides/session-continuity.md` | Triple-handoff system (currently disabled, under re-assessment) |
+| `guides/subagent-filesystem.md` | Subagent filesystem sandbox boundary, relay pattern, permission config |
 | `ecosystem.md` | Companion projects: Claudicle, Dabarat, ClipLog, claude-peers |
 | `tmux-claude-workflow.md` | Multi-session tmux workflow |
 

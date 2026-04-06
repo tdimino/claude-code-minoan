@@ -13,6 +13,7 @@
 - **Keep generated artifacts in-repo, not /tmp.** Create scripts, HTML, or generation artifacts within the project repo (e.g. `scripts/gen/`) and index them. Artifacts in /tmp disappear across sessions.
 - **Update the task tracker.** When you complete a task, mark it completed immediately. Don't batch updates—close each task as you finish it.
 - **Be patient with subagents.** When background agents are running, wait for all to complete before synthesizing. Don't poll, don't rush, don't duplicate their work.
+- **Subagents can't write outside the project root.** The Agent tool's filesystem sandbox is scoped to `cwd`—`bypassPermissions` and `additionalDirectories` do not propagate. For out-of-project writes, use the relay pattern: subagent writes to `.subdaimon-output/`, main context relays to the target path. See `docs/guides/subagent-filesystem.md`.
 
 ## Coding Workflow
 - **Explain before implement.** Before writing or modifying code, explain what the change does, why it's needed, and how it works. Then implement.
