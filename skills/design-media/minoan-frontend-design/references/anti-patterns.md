@@ -12,6 +12,12 @@ These patterns signal AI-generated design. Avoid all of them:
 - **Content**: "Elevate your workflow," John Doe, 99.99%, emoji avatars, SVG-egg placeholders, repeating the same information (redundant headers, intros that restate the heading)
 - **Decoration**: Large icons with rounded corners above every heading (templated look), rounded elements with thick colored border on one side (lazy accent), sparklines as decoration (look sophisticated, convey nothing), monospace typography as lazy shorthand for "technical/developer" vibes
 - **Hierarchy**: Making every button primary — use ghost buttons, text links, secondary styles; hierarchy matters
+- **Portfolio sites**:
+  - Three-column card grid for portfolio items — use timeline lists or logo grids
+  - Gradient CTA buttons on personal sites — use text-only CTAs
+  - Stock hero image behind name — let typography be the hero
+  - "Skills" section with progress bars
+  - Animated statistics counters
 
 ## Typography
 

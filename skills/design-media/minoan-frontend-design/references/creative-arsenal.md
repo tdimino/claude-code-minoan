@@ -107,3 +107,11 @@ Serif headlines over clean data tables, generous whitespace between metric group
 
 **Command Center** — Dense functional layout, sidebar + main + detail.
 Three-column layout, collapsible sidebar, resizable panels via CSS `resize: horizontal`, contextual right panel, keyboard-navigable.
+
+## Prose Components
+
+**Inline Brand Badge** — Logo + company name pill flowing inside prose sentences. See `rothenberg-portfolio-patterns.md`.
+
+**Monochrome Logo Grid** — Desaturated logo wall with gap-as-border trick. See `rothenberg-portfolio-patterns.md`.
+
+**Timeline Article List** — Title + year rows with border-top separators. See `rothenberg-portfolio-patterns.md`.
