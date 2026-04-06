@@ -514,6 +514,8 @@ Custom subagents in `~/.claude/agents/`. Read-only research agents invoked via t
 |-------|-------|---------|
 | `librarian` | sonnet | GitHub repo exploration via `gh` CLI. Caches to `/tmp/claude-librarian/`. |
 
+**Filesystem boundary**: Subagents cannot write files outside the project root directory, regardless of `bypassPermissions` mode. This is a hardcoded sandbox restriction--`additionalDirectories` and permission settings do not propagate to spawned agents. For out-of-project writes, use the relay pattern: subagent writes to `.subdaimon-output/` inside the project, main context relays to the target path. See [subagent-filesystem.md](../guides/subagent-filesystem.md).
+
 ---
 
 ## Plugins
