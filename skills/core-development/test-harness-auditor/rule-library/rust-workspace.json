@@ -1,0 +1,43 @@
+{
+  "_pack": "rust-workspace",
+  "_description": "Rust workspace and systems programming anti-patterns",
+  "_frameworks": [],
+  "_stack": "rust",
+  "rules": [
+    {
+      "extensions": ["rs"],
+      "pattern": "clone\\(\\)\\.",
+      "message": "[architecture] Chained .clone() — consider borrowing or restructuring ownership",
+      "exclude_patterns": ["test", "#[cfg(test", "// clone needed"],
+      "_tag": "pack:rust:chained-clone"
+    },
+    {
+      "extensions": ["rs"],
+      "pattern": "Box<dyn\\s+\\w+>",
+      "message": "[architecture] Dynamic dispatch via Box<dyn> — consider generics or enum dispatch if hot path",
+      "exclude_patterns": ["test", "// dyn required"],
+      "_tag": "pack:rust:box-dyn-hotpath"
+    },
+    {
+      "extensions": ["rs"],
+      "pattern": "#\\[allow\\(dead_code\\)\\]",
+      "message": "[debugging-residue] #[allow(dead_code)] — remove unused code instead of suppressing warnings",
+      "exclude_patterns": ["// WIP", "test"],
+      "_tag": "pack:rust:allow-dead-code"
+    },
+    {
+      "extensions": ["rs"],
+      "pattern": "todo!\\(\\)|unimplemented!\\(",
+      "message": "[debugging-residue] todo!/unimplemented! macro — implement or remove before committing",
+      "exclude_patterns": ["test", "#[cfg(test"],
+      "_tag": "pack:rust:todo-macro"
+    },
+    {
+      "extensions": ["toml"],
+      "pattern": "path\\s*=\\s*\"\\.\\./(\\.\\./)*(\\w)",
+      "message": "[architecture] Relative path dependency — use workspace dependencies or publish to registry",
+      "exclude_patterns": ["# local dev"],
+      "_tag": "pack:rust:relative-path-dep"
+    }
+  ]
+}

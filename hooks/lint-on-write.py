@@ -357,15 +357,59 @@ def run_legacy_custom_lint(file_path: str, project_name: str) -> list[str]:
 
 # --- Output ---
 
+# Severity tiers for custom rule categories (extracted from [category] prefix).
+# Tier 1 = fix first (blocking), Tier 2 = fix next, Tier 3 = when convenient.
+# Based on CodeRabbit data: I/O perf issues 8x, security 2.74x more in AI PRs.
+SEVERITY_TIERS = {
+    1: {"security", "error-boundary"},
+    2: {"observability", "debugging-residue", "async-misuse"},
+    3: {"architecture", "testability", "grep-ability", "convention"},
+}
+_CATEGORY_TO_TIER = {}
+for _tier, _cats in SEVERITY_TIERS.items():
+    for _cat in _cats:
+        _CATEGORY_TO_TIER[_cat] = _tier
+TIER_LABELS = {1: "BLOCKING", 2: "HIGH", 3: "MEDIUM"}
+
+
+def _extract_category(violation: str) -> str:
+    """Extract [category] from a violation message like '42: [custom] [security] ...'"""
+    m = re.search(r"\[([a-z][\w-]*)\]", violation)
+    return m.group(1) if m else ""
+
+
 def format_output(file_path: str, violations: list[str]) -> str:
-    """Format violations into additionalContext string."""
+    """Format violations into additionalContext string, grouped by severity tier."""
     basename = os.path.basename(file_path)
     total = len(violations)
     shown = violations[:MAX_VIOLATIONS]
 
+    # Group by severity tier
+    tiered: dict[int, list[str]] = {1: [], 2: [], 3: [], 4: []}
+    for v in shown:
+        cat = _extract_category(v)
+        tier = _CATEGORY_TO_TIER.get(cat, 4)
+        tiered[tier].append(v)
+
+    # If all violations are in the same tier (or no categories), skip tier headers
+    non_empty_tiers = [t for t in tiered if tiered[t]]
+    use_tiers = len(non_empty_tiers) > 1
+
     lines = [f"Lint violations in {basename} ({total} issues):"]
-    for i, v in enumerate(shown, 1):
-        lines.append(f"  {i}. {v}")
+
+    if use_tiers:
+        idx = 1
+        for tier in [1, 2, 3, 4]:
+            if not tiered[tier]:
+                continue
+            label = TIER_LABELS.get(tier, "LOW")
+            lines.append(f"  --- {label} ---")
+            for v in tiered[tier]:
+                lines.append(f"  {idx}. {v}")
+                idx += 1
+    else:
+        for i, v in enumerate(shown, 1):
+            lines.append(f"  {i}. {v}")
 
     if total > MAX_VIOLATIONS:
         lines.append(f"  ...and {total - MAX_VIOLATIONS} more. Fix the above first.")
