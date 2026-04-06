@@ -502,7 +502,7 @@ skills/
 └── workflow/               # Planning patterns
 ```
 
-Currently 71 skills in the distribution repo. Toggle with `skill-toggle.py`. Disabled skills tracked in `~/.claude/disabled-skills.md`.
+Currently 72 skills in the distribution repo. Toggle with `skill-toggle.py`. Disabled skills tracked in `~/.claude/disabled-skills.md`.
 
 ---
 
