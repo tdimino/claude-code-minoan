@@ -9,7 +9,7 @@ Generate game-ready sprites, SVG characters, ASCII art, animated mascots, and is
 | **Isometric Turnaround** | 8-way directional sprites from a single reference image | `isometric_pipeline.py` |
 | **Sprite Sheet** | Game-ready sheets with JSON/XML atlas metadata from video | `video_to_spritesheet.py` |
 | **SVG Character** | Clean vector SVGs (Gemini code-gen) or pixel-art rect SVGs | `pixel_art_generator.py` |
-| **ASCII Art** | Terminal-renderable grayscale, color half-block, or jp2a output | `image_to_ascii.py` |
+| **ASCII Art** | Static (image-to-ASCII) + animated (frame-based React TSX components) | `image_to_ascii.py` |
 | **Animated Mascot** | GSAP-animated pixel-art characters (HTML/React/SVG) | `animation_builder.py` |
 
 ## Quick Start
@@ -38,7 +38,7 @@ python3 scripts/chroma_key.py --input sprite.png --output sprite_alpha.png --des
 
 ## Inventory
 
-**9 scripts** | **10 references** | **1 template**
+**9 scripts** | **11 references** | **1 template** | **1 asset**
 
 ### Scripts
 
@@ -68,6 +68,7 @@ python3 scripts/chroma_key.py --input sprite.png --output sprite_alpha.png --des
 | `gsap-timeline-patterns.md` | GSAP animation recipes and easing functions |
 | `ayotomcs-deconstruction.md` | ayotomcs.me reference system reverse-engineering |
 | `lil-agents-character-spec.md` | macOS dock companion video format spec |
+| `ascii-animation-components.md` | Frame-based ASCII animation React components (shadcn pattern) |
 
 ## Dependencies
 

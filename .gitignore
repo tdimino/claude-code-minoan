@@ -25,6 +25,11 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 
+# Staging / cache (RAG crawls, mesh3d cache, etc.)
+.staging/
+*/.staging/
+**/.staging/
+
 # Editor directories
 .idea/
 *.swp
