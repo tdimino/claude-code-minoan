@@ -134,12 +134,12 @@ def _is_soul_active_for_parent():
 
 
 def _get_soul_state():
-    """Get condensed soul state from memory.db."""
+    """Get condensed soul state from the unified soul_state module."""
     try:
         sys.path.insert(0, SOUL_MEMORY_DIR)
-        from memory import soul_memory
-        state = soul_memory.format_for_prompt()
-        soul_memory.close()
+        from memory import soul_state
+        state = soul_state.format_for_prompt()
+        soul_state.close()
         return state
     except (ImportError, Exception):
         return ""
