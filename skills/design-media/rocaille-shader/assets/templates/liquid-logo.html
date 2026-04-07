@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquid Logo - Rocaille Shader</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a0a0a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        #error {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: #e8e8e8;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+        }
+        #error a { color: #8ecaff; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="error"></div>
+
+    <script>
+        // Liquid Logo — WebGL2 runtime for the rocaille-shader skill.
+        // Inspired by LiquidLogo by Gustav WF (https://gustavwf.supply/product/liquidlogo).
+        // Reimplemented from scratch — not a port of that Framer component.
+        //
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        // Override defaults via URL query string, e.g.
+        //   liquid-logo.html?logo=my-logo.png&distortion=0.5&chroma=0.02
+        const params = new URLSearchParams(location.search);
+        const CONFIG = {
+            logo:       params.get('logo')       || 'logo.png',
+            distortion: parseFloat(params.get('distortion') ?? '0.40'),
+            radius:     parseFloat(params.get('radius')     ?? '0.25'),
+            decay:      parseFloat(params.get('decay')      ?? '3.0'),
+            chroma:     parseFloat(params.get('chroma')     ?? '0.015'),
+            idleOn:     params.get('idle') !== 'off',
+            idleAmp:    parseFloat(params.get('idleAmp')    ?? '0.012'),
+            idleSpeed:  parseFloat(params.get('idleSpeed')  ?? '0.6'),
+        };
+
+        const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reducedMotion) {
+            CONFIG.idleAmp *= 0.25;
+            CONFIG.distortion *= 0.5;
+        }
+
+        const canvas = document.getElementById('canvas');
+        const errorEl = document.getElementById('error');
+        const gl = canvas.getContext('webgl2', { premultipliedAlpha: false, alpha: true });
+
+        function fail(msg) {
+            errorEl.innerHTML = msg;
+            errorEl.style.display = 'flex';
+            throw new Error(msg);
+        }
+
+        if (!gl) fail('WebGL2 is not available in this browser.');
+
+        // ============================================
+        // SHADERS
+        // ============================================
+        const vertexSource = `#version 300 es
+            in vec2 aPosition;
+            out vec2 vUv;
+            void main() {
+                vUv = aPosition * 0.5 + 0.5;
+                gl_Position = vec4(aPosition, 0.0, 1.0);
+            }
+        `;
+
+        const fragmentSource = `#version 300 es
+            precision highp float;
+
+            uniform sampler2D uLogo;
+            uniform vec2  uResolution;
+            uniform vec2  uLogoSize;
+            uniform vec2  uMouse;               // In UV space, (0,0)=bottom-left
+            uniform float uTime;
+            uniform float uTimeSinceInteract;   // Seconds since last pointermove
+
+            in  vec2 vUv;
+            out vec4 fragColor;
+
+            const float DISTORTION = float(${CONFIG.distortion});
+            const float RADIUS     = float(${CONFIG.radius});
+            const float DECAY      = float(${CONFIG.decay});
+            const float CHROMA     = float(${CONFIG.chroma});
+            const int   IDLE_ON    = int(${CONFIG.idleOn ? 1 : 0});
+            const float IDLE_AMP   = float(${CONFIG.idleAmp});
+            const float IDLE_SPEED = float(${CONFIG.idleSpeed});
+
+            void main() {
+                float asp = uResolution.x / uResolution.y;
+
+                // Contain the logo inside the canvas preserving aspect ratio.
+                float logoAsp = uLogoSize.x / max(uLogoSize.y, 1.0);
+                vec2  scale   = (logoAsp > asp)
+                    ? vec2(1.0, asp / logoAsp)
+                    : vec2(logoAsp / asp, 1.0);
+                vec2 centered = (vUv - 0.5) / scale + 0.5;
+
+                // Aspect-corrected displacement cursor -> pixel.
+                vec2  d  = vec2((vUv.x - uMouse.x) * asp, vUv.y - uMouse.y);
+                float r2 = dot(d, d);
+
+                // Gaussian falloff × exponential release decay.
+                float w = exp(-r2 / (RADIUS * RADIUS))
+                        * exp(-uTimeSinceInteract * DECAY);
+
+                // Idle Lissajous warp (skipped when IDLE_ON == 0).
+                vec2 idle = vec2(0.0);
+                if (IDLE_ON == 1) {
+                    vec2 iv = centered;
+                    iv += sin(iv.yx * 3.0 + uTime * IDLE_SPEED) * IDLE_AMP;
+                    iv += sin(iv.yx * 1.7 - uTime * IDLE_SPEED * 0.8) * IDLE_AMP * 0.6;
+                    idle = iv - centered;
+                }
+
+                // Pull the sample UV toward the cursor.
+                vec2 pullUv   = vec2(d.x / asp, d.y) * (DISTORTION * w);
+                vec2 sampleUv = centered - pullUv + idle;
+
+                // Chromatic aberration along the cursor-to-pixel direction.
+                vec2 chromaDir = (r2 > 1e-6) ? normalize(d) : vec2(0.0);
+                vec2 chromaOff = vec2(chromaDir.x / asp, chromaDir.y) * (CHROMA * w);
+
+                // Per-channel guard. Chroma-offset sample UVs can leave the
+                // logo rect even when sampleUv itself is inside, so each
+                // channel needs its own bounds check — otherwise CLAMP_TO_EDGE
+                // bleeds a colored fringe along the logo's silhouette.
+                vec2 uvR = sampleUv - chromaOff;
+                vec2 uvB = sampleUv + chromaOff;
+                vec2 gR = step(vec2(0.0), uvR)      * step(uvR,      vec2(1.0));
+                vec2 gG = step(vec2(0.0), sampleUv) * step(sampleUv, vec2(1.0));
+                vec2 gB = step(vec2(0.0), uvB)      * step(uvB,      vec2(1.0));
+                float insideR = gR.x * gR.y;
+                float insideG = gG.x * gG.y;
+                float insideB = gB.x * gB.y;
+
+                float r = texture(uLogo, uvR).r;
+                vec4  g = texture(uLogo, sampleUv);
+                float b = texture(uLogo, uvB).b;
+
+                fragColor = vec4(r * insideR, g.g * insideG, b * insideB, g.a * insideG);
+            }
+        `;
+
+        // ============================================
+        // GL BOILERPLATE
+        // ============================================
+        function compile(type, source) {
+            const s = gl.createShader(type);
+            gl.shaderSource(s, source);
+            gl.compileShader(s);
+            if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+                const log = gl.getShaderInfoLog(s);
+                gl.deleteShader(s);
+                fail('Shader compile error:<br><pre>' + log + '</pre>');
+            }
+            return s;
+        }
+
+        const vs = compile(gl.VERTEX_SHADER, vertexSource);
+        const fs = compile(gl.FRAGMENT_SHADER, fragmentSource);
+        const program = gl.createProgram();
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            fail('Program link error: ' + gl.getProgramInfoLog(program));
+        }
+
+        // Full-screen quad (triangle strip).
+        const quad = new Float32Array([-1, -1,  1, -1, -1,  1,  1,  1]);
+        const vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+
+        const vao = gl.createVertexArray();
+        gl.bindVertexArray(vao);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+        const uLogo               = gl.getUniformLocation(program, 'uLogo');
+        const uResolution         = gl.getUniformLocation(program, 'uResolution');
+        const uLogoSize           = gl.getUniformLocation(program, 'uLogoSize');
+        const uMouse              = gl.getUniformLocation(program, 'uMouse');
+        const uTime               = gl.getUniformLocation(program, 'uTime');
+        const uTimeSinceInteract  = gl.getUniformLocation(program, 'uTimeSinceInteract');
+
+        // ============================================
+        // TEXTURE LOAD
+        // ============================================
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+            new Uint8Array([0, 0, 0, 0]));
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        let logoSize = [1, 1];
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+            logoSize = [img.naturalWidth, img.naturalHeight];
+        };
+        img.onerror = () => fail(
+            `Could not load logo from "${CONFIG.logo}". ` +
+            `Drop an image next to this HTML file or pass <code>?logo=...</code> in the URL.`
+        );
+        img.src = CONFIG.logo;
+
+        // ============================================
+        // POINTER + IDLE
+        // ============================================
+        const state = {
+            mouse:       [0.5, 0.5],   // UV space, starts at center
+            lastMoveAt:  performance.now(),
+            idleStartAt: performance.now(),
+        };
+
+        function setMouseFromEvent(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            state.mouse[0] = (clientX - rect.left) / rect.width;
+            state.mouse[1] = 1.0 - (clientY - rect.top) / rect.height;
+            state.lastMoveAt = performance.now();
+        }
+
+        canvas.addEventListener('pointermove', (e) => setMouseFromEvent(e.clientX, e.clientY));
+        canvas.addEventListener('pointerleave', () => {
+            state.lastMoveAt = performance.now() - 1e6; // force decay
+            state.idleStartAt = performance.now();
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length) setMouseFromEvent(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+
+        // ============================================
+        // RESIZE
+        // ============================================
+        function resize() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width  = Math.floor(window.innerWidth  * dpr);
+            canvas.height = Math.floor(window.innerHeight * dpr);
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // ============================================
+        // RENDER LOOP
+        // ============================================
+        const startTime = performance.now();
+        let rafId = null;
+
+        function render() {
+            rafId = null;
+            if (document.hidden) return; // paused; visibilitychange re-arms
+
+            const now  = performance.now();
+            const tSec = (now - startTime) * 0.001;
+
+            // When the pointer has been idle for > 500ms, drive uMouse from a
+            // slow Lissajous so the logo keeps breathing without interaction.
+            let mx = state.mouse[0];
+            let my = state.mouse[1];
+            const idleFor = (now - state.lastMoveAt) * 0.001;
+            if (idleFor > 0.5) {
+                const it = (now - state.idleStartAt) * 0.0005;
+                mx = 0.5 + 0.22 * Math.cos(it * 1.3);
+                my = 0.5 + 0.22 * Math.sin(it * 1.7);
+            }
+
+            gl.useProgram(program);
+            gl.bindVertexArray(vao);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            gl.uniform1i(uLogo, 0);
+            gl.uniform2f(uResolution, canvas.width, canvas.height);
+            gl.uniform2f(uLogoSize, logoSize[0], logoSize[1]);
+            gl.uniform2f(uMouse, mx, my);
+            gl.uniform1f(uTime, tSec);
+            gl.uniform1f(uTimeSinceInteract, Math.max(0, idleFor - 0.5));
+
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            rafId = requestAnimationFrame(render);
+        }
+
+        function start() { if (rafId === null) rafId = requestAnimationFrame(render); }
+        function stop()  { if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; } }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stop(); else start();
+        });
+
+        start();
+    </script>
+</body>
+</html>
