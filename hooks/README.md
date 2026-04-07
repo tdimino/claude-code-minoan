@@ -440,6 +440,96 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
 
 ---
 
+### `subagent-spawn-log.py` / `subagent-stop-log.py` — Subagent Lifecycle Logger
+
+Pure observability hooks for subagent spawning and completion. Built after a usage audit revealed 10,546 subagents spawned in 14 days with extreme outliers (one session spawned 466). The audit also found that **40% of subagents had at least one tool error** — a failure mode that was previously invisible.
+
+Both hooks are async (`async: true`) — they never block the agentic loop. They write JSONL entries to `~/.claude/agent-spawn.log`.
+
+**Fires on**:
+- `subagent-spawn-log.py` → SubagentStart (every spawn)
+- `subagent-stop-log.py` → SubagentStop (every completion)
+
+#### What gets captured
+
+**Start entries** include a per-session counter (atomic, fcntl-locked, self-expiring after 6 hours), `agent_type`, `task_preview`, and `cwd`. The counter answers "how many subagents has this session spawned so far?" — critical for spotting runaway sessions before they balloon.
+
+**Stop entries** include `last_message_chars`, `total_output_tokens`, `n_tool_calls`, `n_tool_errors`, and an `issues` array with up to 7 failure flags:
+
+| Flag | Trigger |
+|------|---------|
+| `empty_output` | `last_assistant_message` is empty |
+| `tiny_output` | `last_assistant_message` < 100 chars |
+| `no_assistant_message` | Field missing entirely |
+| `max_tokens_truncation` | Subagent transcript ended with `stop_reason: "max_tokens"` (hit the 32K subagent output cap) |
+| `output_at_cap` | Aggregate `output_tokens` ≥ 30,000 (near the cap) |
+| `high_tool_error_rate` | >50% of tool calls returned `is_error` (≥4 calls) |
+| `transcript_unreadable` | Couldn't open `agent_transcript_path` (race condition with JSONL flush) |
+
+**Defensive field reads**: Both hooks fall back through `agent_type` → `subagent_type` → `subagent_name` and `agent_id` → `subagent_id` to survive Claude Code field-name drift across versions. The pattern matches `soul-subagent-inject.py`.
+
+**Loop guard**: `subagent-stop-log.py` reads `stop_hook_active` and skips logging if true, preventing recursive hook firings.
+
+#### Tool error detection schema
+
+Tool errors live in user messages with content blocks:
+```json
+{"type": "user", "message": {"content": [
+  {"type": "tool_result", "is_error": true, "tool_use_id": "toolu_...",
+   "content": "<tool_use_error>InputValidationError: ..."}
+]}}
+```
+
+The hook walks the subagent's transcript JSONL, counts every `tool_result` block, and increments `n_tool_errors` whenever `is_error` is `true`. Common causes seen in real transcripts: parameter validation failures, file-not-found, sibling-tool-errored cascades.
+
+#### Triage queries
+
+```bash
+# All flagged subagents (excluding the benign transcript_unreadable)
+jq 'select((.issues - ["transcript_unreadable"]) | length > 0)' ~/.claude/agent-spawn.log
+
+# Tool error rate distribution by agent type
+jq -r 'select(.event=="stop" and .n_tool_calls>0) |
+  "\(.n_tool_errors)/\(.n_tool_calls) \(.agent_type)"' ~/.claude/agent-spawn.log \
+  | sort | uniq -c | sort -rn
+
+# Sessions ranked by spawn count
+jq -r 'select(.event=="start") | "\(.session_id) \(.session_count)"' ~/.claude/agent-spawn.log \
+  | awk '!seen[$1] || $2 > seen[$1] {seen[$1]=$2} END {for (s in seen) print seen[s], s}' \
+  | sort -rn | head
+```
+
+#### Storage and privacy
+
+~250 bytes per entry. At ~750 spawns/day, ~190 KB/day, ~5.5 MB/month. The log contains task descriptions (max 120 chars per `task_preview` and `last_message_preview`). Stays local — exclude from any backup/sync repos.
+
+#### Wiring
+
+```json
+{
+  "SubagentStart": [{
+    "matcher": "",
+    "hooks": [
+      {"type": "command", "command": "python3 ~/.claude/hooks/soul-subagent-inject.py"},
+      {"type": "command", "command": "python3 ~/.claude/hooks/mycelium-subagent.py"},
+      {"type": "command", "command": "python3 ~/.claude/hooks/subagent-spawn-log.py", "async": true}
+    ]
+  }],
+  "SubagentStop": [{
+    "matcher": "",
+    "hooks": [
+      {"type": "command", "command": "python3 ~/.claude/hooks/subagent-stop-log.py", "async": true}
+    ]
+  }]
+}
+```
+
+**Counter file**: `/tmp/claude-subagent-count-{session_id}` (self-expires after 6h)
+**Log file**: `~/.claude/agent-spawn.log` (JSONL, append-only)
+**Cost**: Zero. Pure local file I/O.
+
+---
+
 ## Handoff Coverage
 
 | Scenario | Hook | Caught? |
@@ -461,6 +551,9 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
 | Soul daemon registration | SessionStart (soul-activate) | Yes |
 | Soul daemon cleanup | SessionEnd (soul-deregister) | Yes |
 | Slack channel notification | Stop (slack-stop-hook) | Yes |
+| Subagent spawn count per session | SubagentStart (subagent-spawn-log) | Yes |
+| Subagent output truncation (32K cap) | SubagentStop (subagent-stop-log) | Yes |
+| Subagent tool error rate | SubagentStop (subagent-stop-log) | Yes |
 | Idle session | Stop | Skipped (by design) |
 | SIGKILL / force quit | — | No (5-min max gap) |
 | System panic / OOM | — | No (5-min max gap) |
@@ -514,6 +607,24 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
         "matcher": "",
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/precompact-handoff.py"}
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/soul-subagent-inject.py"},
+          {"type": "command", "command": "python3 ~/.claude/hooks/mycelium-subagent.py"},
+          {"type": "command", "command": "python3 ~/.claude/hooks/subagent-spawn-log.py", "async": true}
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/subagent-stop-log.py", "async": true}
         ]
       }
     ],

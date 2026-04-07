@@ -34,6 +34,7 @@ See `CONTRIBUTING.md` for full guidelines.
 ## Guides
 
 - `ARCHITECTURE.md` -- Repo layout, skill anatomy, hook wiring, invariants
+- `hooks/README.md` -- All 46 hooks explained, including the SubagentStart/Stop loggers (`subagent-spawn-log.py` + `subagent-stop-log.py`) that catch silent subagent failures (tool errors, 32K output truncation, empty responses). Read when investigating subagent costs or unexplained agent behavior.
 - `docs/ecosystem.md` -- Companion projects (Claudicle, Dabarat, ClipLog, claude-peers)
 - `docs/guides/usermodel-guide.md` -- The userModel persona system
 - `docs/guides/progressive-disclosure.md` -- The agent_docs pattern
