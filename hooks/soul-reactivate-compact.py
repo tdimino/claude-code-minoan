@@ -34,9 +34,9 @@ def _read_soul_md():
 def _get_soul_state():
     try:
         sys.path.insert(0, SOUL_MEMORY_DIR)
-        from memory import soul_memory
-        state = soul_memory.format_for_prompt()
-        soul_memory.close()
+        from memory import soul_state
+        state = soul_state.format_for_prompt()
+        soul_state.close()
         return state
     except (ImportError, Exception):
         return ""

@@ -76,10 +76,12 @@ def main():
     screenshot_path = os.path.join(screenshot_dir, "latest.png")
 
     try:
-        subprocess.run(
+        result = subprocess.run(
             ["node", CDP_SCRIPT, "shot", target, screenshot_path],
             capture_output=True, timeout=10,
         )
+        if result.returncode != 0:
+            return
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return
 

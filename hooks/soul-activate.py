@@ -38,12 +38,12 @@ def _read_soul_md():
 
 
 def _get_soul_state():
-    """Get formatted soul state from memory.db via soul_memory module."""
+    """Get formatted soul state from the unified soul_state module."""
     try:
         sys.path.insert(0, SOUL_MEMORY_DIR)
-        from memory import soul_memory
-        state = soul_memory.format_for_prompt()
-        soul_memory.close()
+        from memory import soul_state
+        state = soul_state.format_for_prompt()
+        soul_state.close()
         return state
     except ImportError:
         return ""  # daemon not installed — expected during initial setup

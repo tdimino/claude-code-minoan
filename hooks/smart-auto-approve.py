@@ -8,82 +8,82 @@ Decision matrix:
   - PASS:  everything else → normal permission dialog
 
 Only applies to Bash commands. Non-Bash tool permissions pass through.
+
+Patterns are loaded from ~/.claude/config/auto-approve-whitelist.json if it exists,
+falling back to hardcoded defaults. Edit the JSON file to add/remove patterns
+without touching this script.
 """
 
 import json
+import os
 import re
 import sys
 
+CONFIG_PATH = os.path.expanduser("~/.claude/config/auto-approve-whitelist.json")
 
-# Patterns that are ALWAYS safe to auto-approve (anchored to command start)
-ALLOW_PATTERNS = [
-    # Git read-only
+# Hardcoded fallbacks (used when config file is missing or malformed)
+_FALLBACK_ALLOW = [
     r"^git\s+(status|diff|log|show|branch|tag|stash\s+list|remote|config\s+--get|rev-parse|describe)",
     r"^git\s+ls-files",
     r"^git\s+blame\b",
-
-    # File inspection (read-only)
     r"^(ls|stat|file|wc|du|df|head|tail|cat|less|more)\s",
     r"^(find|fd)\s",
     r"^(grep|rg|ag|ack)\s",
-
-    # Test runners
     r"^(npm|npx|bun|bunx)\s+(test|run\s+test|vitest|jest)",
     r"^(uv\s+run\s+)?pytest\b",
     r"^(uv\s+run\s+)?python3?\s+-m\s+pytest\b",
-
-    # Package info (read-only)
     r"^(npm|bun)\s+(list|ls|outdated|info|view|why)\b",
     r"^(uv\s+)?pip\s+(list|show|freeze)\b",
-
-    # Process inspection
     r"^lsof\s+-i\b",
     r"^ps\s+(aux|ef|a)\b",
     r"^(which|where|command\s+-v|type)\s",
-
-    # System info
     r"^(pwd|whoami|hostname|uname|date|uptime|sw_vers)\b",
     r"^echo\s+\$",
-
-    # Node/Python version checks
     r"^(node|python3?|ruby|go|rustc|cargo|bun|deno)\s+(-v|--version)\b",
 ]
 
-# Patterns that should ALWAYS be denied
-DENY_PATTERNS = [
-    # Destructive system commands
+_FALLBACK_DENY = [
     r"sudo\b",
     r"rm\s+-rf\s+/\s*$",
-    r"rm\s+-rf\s+/[^.]",  # rm -rf /usr, /etc, etc.
-    r"rm\s+-rf\s+~",       # rm -rf ~ (home directory)
-    r"rm\s+-rf\s+\.\s*$",  # rm -rf . (current directory)
+    r"rm\s+-rf\s+/[^.]",
+    r"rm\s+-rf\s+~",
+    r"rm\s+-rf\s+\.\s*$",
     r"chmod\s+777\b",
-    r"chown\s+-R\b.*/$",  # recursive chown on root
-    r"^\s*eval\s",         # eval with arbitrary input
-    r"^\s*dd\s",           # dd can overwrite disks
-    r"python3?\s+-c\s",    # arbitrary Python execution
-
-    # Code execution from network
+    r"chown\s+-R\b.*/$",
+    r"^\s*eval\s",
+    r"^\s*dd\s",
+    r"python3?\s+-c\s",
     r"curl\s.*\|\s*(ba)?sh",
     r"wget\s.*\|\s*(ba)?sh",
     r"curl\s.*\|\s*python",
-
-    # Fork bombs and dangerous shell constructs
     r":\(\)\s*\{",
     r"\|\s*xargs\s+rm\b",
-
-    # Git dangerous without confirmation
     r"git\s+push\s+.*--force(?!-with-lease)",
     r"git\s+reset\s+--hard\b",
     r"git\s+clean\s+-f",
     r"--no-verify\b",
     r"--no-gpg-sign\b",
-
-    # Database destructive
     r"DROP\s+(TABLE|DATABASE)\b",
     r"TRUNCATE\s+TABLE\b",
-    r"DELETE\s+FROM\s+\w+\s*;?\s*$",  # DELETE without WHERE
+    r"DELETE\s+FROM\s+\w+\s*;?\s*$",
 ]
+
+
+def load_patterns():
+    """Load allow/deny patterns from JSON config, falling back to hardcoded defaults."""
+    if not os.path.exists(CONFIG_PATH):
+        return _FALLBACK_ALLOW, _FALLBACK_DENY
+
+    try:
+        with open(CONFIG_PATH) as f:
+            config = json.load(f)
+        allow = [entry["pattern"] for entry in config.get("allow", [])]
+        deny = [entry["pattern"] for entry in config.get("deny", [])]
+        if not allow and not deny:
+            return _FALLBACK_ALLOW, _FALLBACK_DENY
+        return allow or _FALLBACK_ALLOW, deny or _FALLBACK_DENY
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return _FALLBACK_ALLOW, _FALLBACK_DENY
 
 
 def main():
@@ -111,8 +111,10 @@ def main():
     if re.search(r'[;|&`]|\$\(|>\s|>>', command):
         sys.exit(0)
 
+    allow_patterns, deny_patterns = load_patterns()
+
     # Check deny list first (safety takes priority)
-    for pattern in DENY_PATTERNS:
+    for pattern in deny_patterns:
         if re.search(pattern, command, re.IGNORECASE):
             output = {
                 "hookSpecificOutput": {
@@ -125,7 +127,7 @@ def main():
             sys.exit(0)
 
     # Check allow list
-    for pattern in ALLOW_PATTERNS:
+    for pattern in allow_patterns:
         if re.search(pattern, command, re.IGNORECASE):
             output = {
                 "hookSpecificOutput": {
