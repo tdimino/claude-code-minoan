@@ -55,10 +55,11 @@ minoan-frontend-design/
 ├── SKILL.md                          947 words — syncretic-v3 creative core
 ├── README.md                         This file
 ├── LICENSE.txt                       Apache 2.0
-├── references/                       26 reference files across 6 domains
+├── references/                       27 reference files across 6 domains
 │   ├── creative-arsenal.md           30+ named CSS techniques with code
 │   ├── design-dials.md               3 calibration scales (variance, motion, density)
 │   ├── editorial-patterns.md         Eval-derived patterns: grids, accents, photos, ghost text
+│   ├── astryx-hero.md                Depth-parallax hero anatomy + fluid-dom sibling links
 │   ├── design-system-checklist.md    Accessibility, tokens, responsive, component states
 │   ├── color-science-deep.md         Color spaces, harmony, accessibility stats, pigment mixing
 │   ├── color-tools-palette.md        Palette generation, libraries, CSS Color 4/5, token architecture

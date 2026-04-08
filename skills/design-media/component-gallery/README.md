@@ -95,7 +95,9 @@ component-gallery/
 │   ├── component-index.md
 │   ├── component-taxonomy.md
 │   ├── design-system-index.md
-│   └── index.json
+│   ├── index.json
+│   ├── astryx-hero-pattern.md        Depth-parallax editorial hero pattern
+│   └── fluid-dom-pattern.md          Stable fluid simulation over live DOM
 └── scripts/
     ├── ingest.py          # Crawl + build RAG collection
     ├── build_indexes.py   # Generate static reference files
