@@ -240,6 +240,7 @@ def cmd_list_partners(data: dict, args: argparse.Namespace) -> None:
 
 
 def main():
+    global PARSED_FILE
     parser = argparse.ArgumentParser(description="Search LinkedIn messages")
     parser.add_argument("--person", "-p", help="Filter by person name (case-insensitive)")
     parser.add_argument("--keyword", "-k", help="Filter by keyword in content/subject")
@@ -255,7 +256,6 @@ def main():
     args = parser.parse_args()
 
     if args.data:
-        global PARSED_FILE
         PARSED_FILE = Path(args.data)
 
     data = load_data()

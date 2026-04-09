@@ -301,6 +301,7 @@ def cmd_export(data: dict, fmt: str, output: str | None) -> None:
 
 
 def main():
+    global PARSED_FILE
     parser = argparse.ArgumentParser(description="LinkedIn connection network analysis")
     parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
     parser.add_argument("--data", help=f"Path to parsed.json (default: {PARSED_FILE})")
@@ -328,7 +329,6 @@ def main():
     args = parser.parse_args()
 
     if args.data:
-        global PARSED_FILE
         PARSED_FILE = Path(args.data)
 
     data = load_data()
