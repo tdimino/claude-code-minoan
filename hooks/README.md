@@ -14,6 +14,7 @@ User types message ──→ UserPromptSubmit ────→ multi-response-pro
 
 Claude uses a tool ──→ PreToolUse ──────────→ on-thinking.sh (🔴 tab title)
                                             → block-websearch.sh / block-webfetch.sh (guards)
+                                            → image-optimize.py (resize + JPEG convert)
 
 Claude responds ─────→ Stop ────────────────→ on-ready.sh (🟢 tab + sound + notification)
                                             → propagate-rename.py (sync /rename → caches)
@@ -31,6 +32,9 @@ Frontend file edit ──→ PostToolUse ────────→ auto-screen
 
 Any code file edit ─→ PostToolUse ────────→ lint-on-write.py (ESLint/Clippy/Ruff + custom rules)
   (Write/Edit on .ts/.tsx/.js/.rs/.py/.css)    → custom-lint.sh (grep-based project conventions)
+
+Image file read ────→ PostToolUse ────────→ image-budget.py (token budget tracking + warnings)
+  (Read on image files)                      depends on image-optimize.py (PreToolUse) for state
 
 Context full ────────→ PreCompact ──────────→ precompact-handoff.py (full handoff)
 
@@ -440,6 +444,71 @@ PreToolUse guards that intercept WebSearch and WebFetch calls, allowing you to r
 
 ---
 
+### `image-optimize.py` — Screenshot Token Optimizer
+
+PreToolUse guard that intercepts image file reads, optimizes oversized images, and injects token estimates into `additionalContext`. Addresses the fact that Claude's vision API charges `(width × height) / 750` tokens per image, auto-resizes at 1568px long edge, and silently caps resolution to 2000×2000px when >20 images are in a request.
+
+**Fires on**: PreToolUse/Read (only image files: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.tiff`, `.heic`)
+
+**How it works**:
+1. Guard: file extension must be an image type
+2. Guard: file must exist and not already be in the cache directory
+3. Get dimensions via `/usr/bin/sips` (macOS native, ~50ms)
+4. Decision matrix:
+   - Long edge > 1568px → resize + convert to JPEG
+   - PNG > 500KB → convert to JPEG (no resize)
+   - Short edge < 200px → passthrough only (optimization degrades quality at this size)
+   - Otherwise → passthrough with token estimate only
+5. Optimized copies go to `~/.claude/.screenshot-cache/opt-{hash}.jpg` (keyed by path + mtime, idempotent)
+6. Updates session state file for `image-budget.py` to read
+
+**Output** (JSON on stdout):
+```json
+{
+  "additionalContext": "[screenshot.png: optimized (resized 2560x1600 -> 1568x980, PNG -> JPEG), ~2043 tokens (was ~5461), saved 63%]\nOptimized copy: ~/.claude/.screenshot-cache/opt-a1b2c3d4.jpg\nRead the optimized file instead to save tokens."
+}
+```
+
+**Key numbers**:
+- Token formula: `(width × height) / 750`
+- 1568px max edge = API's auto-resize target (zero quality loss pre-resizing)
+- PNG → JPEG at quality 80 typically saves 60–80% file size (varies by image content)
+- Typical Retina screenshot: 2560×1600 = ~5,461 tokens → 1568×980 = ~2,043 tokens (63% savings)
+
+**Cost**: Zero. No LLM calls — pure local `sips` subprocess.
+
+---
+
+### `image-budget.py` — Image Token Budget Tracker
+
+PostToolUse hook that tracks cumulative image token consumption per session and warns when approaching dangerous thresholds. The critical threshold is 20 images — the API silently switches to a 2000×2000px resolution limit that can permanently brick sessions.
+
+**Fires on**: PostToolUse/Read (image files), PostToolUse/mcp__computer-use__screenshot, PostToolUse/mcp__claude-in-chrome__screenshot
+
+**How it works**:
+1. For **Read**: reads session state written by `image-optimize.py` (PreToolUse)
+2. For **MCP screenshots**: directly increments the session state (no PreToolUse companion needed). Estimates ~2,000 tokens per MCP screenshot (API auto-resizes to 1568px max edge).
+3. Checks cumulative image count and token total against thresholds
+4. Emits `additionalContext` warnings when thresholds are crossed
+
+**Note**: `additionalContext` is broken for MCP tools (anthropics/claude-code#24788). MCP screenshot warnings are tracked in session state but only surface to the agent on the next Read tool call.
+
+**Thresholds**:
+
+| Level | Trigger | Message |
+|-------|---------|---------|
+| Silent | < 15 images, < 20K tokens | Track only |
+| WARNING | ≥ 15 images OR ≥ 20K tokens | Advises caution, suggests text descriptions |
+| CRITICAL | ≥ 20 images OR ≥ 40K tokens | Warns of API resolution cap, recommends `/compact` |
+
+**Cooldown**: 5 images between warnings (prevents context spam).
+
+**State file**: `~/.claude/.screenshot-cache/session-state.json` (shared with `image-optimize.py`)
+
+**Cost**: Zero. Pure local file I/O.
+
+---
+
 ### `subagent-spawn-log.py` / `subagent-stop-log.py` — Subagent Lifecycle Logger
 
 Pure observability hooks for subagent spawning and completion. Built after a usage audit revealed 10,546 subagents spawned in 14 days with extreme outliers (one session spawned 466). The audit also found that **40% of subagents had at least one tool error** — a failure mode that was previously invisible.
@@ -554,6 +623,8 @@ jq -r 'select(.event=="start") | "\(.session_id) \(.session_count)"' ~/.claude/a
 | Subagent spawn count per session | SubagentStart (subagent-spawn-log) | Yes |
 | Subagent output truncation (32K cap) | SubagentStop (subagent-stop-log) | Yes |
 | Subagent tool error rate | SubagentStop (subagent-stop-log) | Yes |
+| Image read optimization | PreToolUse/Read (image-optimize) | Yes |
+| Image token budget tracking | PostToolUse/Read (image-budget) | Yes |
 | Idle session | Stop | Skipped (by design) |
 | SIGKILL / force quit | — | No (5-min max gap) |
 | System panic / OOM | — | No (5-min max gap) |
@@ -648,6 +719,12 @@ jq -r 'select(.event=="start") | "\(.session_id) \(.session_count)"' ~/.claude/a
         ]
       },
       {
+        "matcher": "Read",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/image-optimize.py", "timeout": 8000}
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {"type": "command", "command": "~/.claude/hooks/on-thinking.sh"}
@@ -675,6 +752,24 @@ jq -r 'select(.event=="start") | "\(.session_id) \(.session_count)"' ~/.claude/a
         "hooks": [
           {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000},
           {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
+        ]
+      },
+      {
+        "matcher": "mcp__computer-use__screenshot",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
+        ]
+      },
+      {
+        "matcher": "mcp__claude-in-chrome__screenshot",
+        "hooks": [
+          {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
         ]
       }
     ]
