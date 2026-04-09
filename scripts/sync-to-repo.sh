@@ -113,10 +113,22 @@ sync_skills() {
       fi
     else
       mkdir -p "${dest_dir}"
+      # Protect rules (`P`) prevent --delete from wiping files that exist
+      # only in the repo. Useful for READMEs and for skills whose canonical
+      # source lives outside ~/.claude/skills/ (e.g. claude-peers MCP server
+      # in ~/tools/claude-peers-mcp/, qwen3-tts scripts in ~/Desktop/
+      # Programming/qwen3-tts/). Files matching these patterns are still
+      # copied FROM source TO destination when present — protection only
+      # affects --delete behavior.
       rsync -a --checksum --delete \
         --exclude='*.pyc' --exclude='__pycache__' --exclude='.DS_Store' \
         --exclude='*.db' --exclude='*.sqlite' --exclude='node_modules' \
         --exclude='.git' \
+        --filter='P README.md' \
+        --filter='P mcp-server/***' \
+        --filter='P qwen3-tts/***' \
+        --filter='P workflows/***' \
+        --filter='P canvas/***' \
         "${skill_path%/}/" "${dest_dir}/"
     fi
 

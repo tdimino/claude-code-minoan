@@ -478,6 +478,89 @@ document.querySelectorAll('.card').forEach(card => {{
     return output_path
 
 
+def format_tunnel(results: list[ImageResult], query: str, output_path: Path | None = None) -> Path:
+    """
+    Generate a 3D scrollable tunnel gallery by injecting search-result URLs
+    into the threejs-particle-canvas skill's Mode 3 template.
+
+    Reads the sibling skill's `tunnel-gallery-source.html` template, replaces
+    the `IMAGE_MANIFEST` sentinel line with a real URL array, and writes the
+    result to `output_path` (default: ~/.cache/image-well/tunnel.html).
+
+    Raises FileNotFoundError with a clear install hint if the threejs-particle-canvas
+    skill isn't present on this machine.
+    """
+    if output_path is None:
+        output_path = Path.home() / ".cache" / "image-well" / "tunnel.html"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    canvas_assets = (
+        Path.home() / ".claude" / "skills" / "threejs-particle-canvas" / "assets"
+    )
+    template_path = canvas_assets / "tunnel-gallery-source.html"
+    fx_module_path = canvas_assets / "phosphor-vigil.js"
+
+    if not template_path.exists():
+        raise FileNotFoundError(
+            f"Tunnel template not found at {template_path}. "
+            f"Install the threejs-particle-canvas skill to use --format tunnel."
+        )
+    if not fx_module_path.exists():
+        raise FileNotFoundError(
+            f"Required FX module not found at {fx_module_path}. "
+            f"Reinstall threejs-particle-canvas — phosphor-vigil.js is missing from assets/."
+        )
+
+    template = template_path.read_text(encoding="utf-8")
+
+    # Build the manifest array — use full URLs, fall back to thumbnail if full is absent
+    def _pick_url(r: ImageResult) -> str:
+        raw = (r.url or r.thumbnail_url or "").strip()
+        if raw.lower().startswith(("http://", "https://")):
+            return raw
+        return ""
+
+    urls = [u for u in (_pick_url(r) for r in results) if u]
+    if not urls:
+        raise ValueError("No usable image URLs in results — nothing to inject into tunnel.")
+
+    # JSON-encoded list — safe for direct JS embedding
+    manifest_json = json.dumps(urls, ensure_ascii=False, indent=2)
+    replacement = f"const IMAGE_MANIFEST = {manifest_json};"
+
+    # Replace the single sentinel line. The template declares:
+    #     const IMAGE_MANIFEST = null;  // Replaced by injection; null → seed mode
+    if "const IMAGE_MANIFEST = null;" not in template:
+        raise RuntimeError(
+            "Tunnel template sentinel not found. Expected exact line "
+            "'const IMAGE_MANIFEST = null;'. The template may have been modified."
+        )
+
+    injected = template.replace(
+        "const IMAGE_MANIFEST = null;",
+        replacement,
+        1,
+    )
+
+    # Update the title so the generated file identifies itself
+    safe_query = query.strip() or "Image Well Tunnel"
+    injected = injected.replace(
+        "<title>Infinite Gallery Tunnel</title>",
+        f"<title>{safe_query} — Image Well Tunnel</title>",
+        1,
+    )
+
+    output_path.write_text(injected, encoding="utf-8")
+
+    # The template imports './phosphor-vigil.js' as a static ES module —
+    # the import resolves regardless of CONFIG.fx, so the FX module must
+    # exist as a sibling of the output HTML or the page won't load.
+    fx_dest = output_path.parent / "phosphor-vigil.js"
+    fx_dest.write_text(fx_module_path.read_text(encoding="utf-8"), encoding="utf-8")
+
+    return output_path
+
+
 def warn(msg: str) -> None:
     """Print warning to stderr."""
     print(f"  \u26a0 {msg}", file=sys.stderr)
