@@ -6,7 +6,7 @@ Replaces 9 separate python3 -c invocations in the /sms-respond pipeline.
 
 Usage:
     python3 sms_process_reply.py \
-        --phone "+15551234567" \
+        --phone "+17327595647" \
         --our-number "+18557066006" \
         --message-id "SM0334c637c6017dbf84eae2a7fd824abd" \
         --message-text "Hmm, how's that poller" \
@@ -18,7 +18,7 @@ Usage:
 
     # With user model and soul state updates:
     python3 sms_process_reply.py \
-        --phone "+15551234567" \
+        --phone "+17327595647" \
         --our-number "+18557066006" \
         --message-id "SM..." \
         --message-text "original text" \
@@ -34,6 +34,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -108,6 +109,16 @@ def main():
 
     # 2. Log inbound message to working memory
     m.add_working_memory(args.phone, args.our_number, "userMessage", args.message_text)
+
+    # 2a. Extract and log any URLs as link entries
+    urls = re.findall(r'https?://[^\s<>"\']+', args.message_text)
+    for url in urls:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc
+        m.add_working_memory(args.phone, args.our_number, "link", url,
+                             metadata={"domain": domain, "source_message_id": args.message_id})
+    if urls:
+        print(f"  Extracted {len(urls)} link(s)")
 
     # 3. Log internal monologue
     m.add_working_memory(args.phone, args.our_number, "internalMonologue",
