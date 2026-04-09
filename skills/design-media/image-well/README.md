@@ -31,9 +31,10 @@ Tier 1 sources work with zero API keys. Tier 2/3 keys are optional and go in `~/
 ```
 image-well/
 ├── SKILL.md                       # Skill definition and workflows
+├── README.md                      # This file
 ├── scripts/
 │   ├── well.py                    # Main CLI (argparse, async orchestrator)
-│   ├── _well_utils.py             # ImageResult, credentials, cache, license normalizer
+│   ├── _well_utils.py             # ImageResult, credentials, cache, license normalizer, formatters
 │   └── sources/
 │       ├── __init__.py            # Registry, presets, tier lists
 │       ├── base.py                # Abstract ImageSource class
@@ -76,12 +77,58 @@ uv run scripts/well.py search "landscape" --format download --output ./images/
 # JSON output for piping
 uv run scripts/well.py search "cat" --format json
 
+# HTML preview gallery (auto-opens on macOS)
+uv run scripts/well.py search "bronze statue" --format html
+
+# 3D scrollable tunnel gallery (auto-opens, copies FX module sibling)
+uv run scripts/well.py search "Aegean fresco" --preset museum \
+    --format tunnel --output ~/Desktop/aegean-corridor.html
+
 # Check source status
 uv run scripts/well.py sources
 
 # Cache management
 uv run scripts/well.py cache stats
 uv run scripts/well.py cache clear
+```
+
+## Output Formats
+
+| `--format` | What it does | Notes |
+|---|---|---|
+| `table` (default) | ASCII table to stdout | Source, title, dimensions, license, URL |
+| `json` | JSON array to stdout | Pipeable into other tools |
+| `urls` | One URL per line | Pipeable into `xargs curl` etc. |
+| `download` | Download files + metadata sidecars | Uses `--output` as the directory |
+| `html` | Preview gallery in `~/.cache/image-well/preview.html` | Auto-opens on macOS |
+| `tunnel` | 3D scrollable corridor with images on the walls | See bridge section below |
+
+## threejs-particle-canvas Bridge
+
+`--format tunnel` injects the search-result URLs into the **Mode 3 (Infinite Gallery Tunnel)** template from the `threejs-particle-canvas` skill, producing a self-contained scrollable 3D corridor where each image is embedded on one of four walls.
+
+**How the bridge works:**
+
+1. Reads `~/.claude/skills/threejs-particle-canvas/assets/tunnel-gallery-source.html`
+2. Replaces the `IMAGES_INJECTION_POINT` sentinel (`const IMAGE_MANIFEST = null;`) with a JS array of the URLs
+3. Updates the HTML `<title>` to include the search query
+4. **Copies `assets/phosphor-vigil.js` as a sibling of the output HTML.** The template imports the FX module as a static ES module — the import resolves regardless of `CONFIG.fx`, so the file must exist next to the HTML even when the CRT effect is disabled.
+
+If `--output` is the default download directory (`./well-images`), the tunnel writes to `~/.cache/image-well/tunnel.html`. Pass an explicit `--output some-name.html` to control the location.
+
+**Requirements:**
+
+- The `threejs-particle-canvas` skill must be installed (the bridge raises a clear `FileNotFoundError` with install instructions otherwise)
+- A modern browser with WebGL support (Chrome, Safari, Firefox, Edge — all recent versions)
+
+**Workflow example:**
+
+```bash
+# Search the museum preset, get a CC0-only filter, open the result as a 3D corridor
+uv run ~/.claude/skills/image-well/scripts/well.py search "Minoan pottery" \
+    --preset museum --license cc0 --limit 30 \
+    --format tunnel --output ~/Desktop/minoan.html
+# (auto-opens in default browser)
 ```
 
 ## Presets
@@ -102,6 +149,7 @@ uv run scripts/well.py cache clear
 - **PEP 723** inline script metadata—`uv run` auto-resolves dependencies
 - **24-hour file cache** at `~/.cache/image-well/` keyed on query+sources+license
 - **No auto-integration** with image-forge—search and download only (Unix philosophy)
+- **Cross-skill bridge for tunnel format** — single one-directional dependency on `threejs-particle-canvas`. Bridge reads template files only; canvas skill has zero knowledge of image-well.
 
 ## API Key Registration
 
@@ -122,6 +170,9 @@ echo 'export PEXELS_API_KEY="your_key"' >> ~/.config/env/secrets.env
 echo 'export PIXABAY_API_KEY="your_key"' >> ~/.config/env/secrets.env
 echo 'export UNSPLASH_ACCESS_KEY="your_key"' >> ~/.config/env/secrets.env
 echo 'export EUROPEANA_API_KEY="your_key"' >> ~/.config/env/secrets.env
+
+# For --format tunnel, also install the threejs-particle-canvas skill
+cp -R threejs-particle-canvas/ ~/.claude/skills/threejs-particle-canvas/
 ```
 
 The skill is model-invocable and triggers automatically on image search, stock photo, museum image, or CC-licensed image intents.

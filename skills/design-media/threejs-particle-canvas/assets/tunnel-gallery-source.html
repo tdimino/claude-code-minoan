@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Gallery Tunnel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            overflow: hidden;
+            background: #050508;
+            font-family: 'Space Mono', monospace;
+            color: #e8e8f0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #scroll-hint {
+            position: fixed;
+            bottom: 28px;
+            left: 28px;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            opacity: 0.45;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        #scroll-hint .desktop { display: inline; }
+        #scroll-hint .mobile { display: none; }
+
+        #theme-toggle {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 10px 16px;
+            background: rgba(232, 232, 240, 0.06);
+            border: 1px solid rgba(232, 232, 240, 0.15);
+            color: inherit;
+            font: inherit;
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            z-index: 3;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        #theme-toggle:hover {
+            background: rgba(232, 232, 240, 0.12);
+            border-color: rgba(232, 232, 240, 0.3);
+        }
+
+        #webgl-fallback {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            font-size: 13px;
+            line-height: 1.8;
+            letter-spacing: 0.05em;
+            z-index: 50;
+        }
+
+        #webgl-fallback.visible {
+            display: flex;
+        }
+
+        body.light {
+            background: #fafafa;
+            color: #1a1a20;
+        }
+
+        body.light #theme-toggle {
+            background: rgba(26, 26, 32, 0.06);
+            border-color: rgba(26, 26, 32, 0.15);
+        }
+
+        body.light #theme-toggle:hover {
+            background: rgba(26, 26, 32, 0.12);
+            border-color: rgba(26, 26, 32, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            #scroll-hint .desktop { display: none; }
+            #scroll-hint .mobile { display: inline; }
+            #scroll-hint { font-size: 9px; bottom: 20px; left: 20px; }
+            #theme-toggle { font-size: 9px; padding: 8px 12px; top: 16px; right: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <button id="theme-toggle" aria-label="Toggle theme">THEME</button>
+
+    <div id="scroll-hint">
+        <span class="desktop">SCROLL · ARROWS · DRIFT</span>
+        <span class="mobile">SWIPE TO EXPLORE</span>
+    </div>
+
+    <div id="webgl-fallback">
+        <div>
+            WebGL is required to render this corridor.<br>
+            Please enable WebGL in your browser, or try a different browser.
+        </div>
+    </div>
+
+    <!-- ES module import map — Three.js r175 from jsdelivr -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.175.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        // ═══════════════════════════════════════════════════════════════════════
+        // INFINITE GALLERY TUNNEL — Mode 3
+        // ═══════════════════════════════════════════════════════════════════════
+        //
+        // Vanilla port of thebuggeddev/Infinitor (MIT). React Three Fiber
+        // stripped; physics, path generation, and shader preserved verbatim.
+        // Adds: keyboard scroll, drift-to-stop signature moment, phosphor-vigil
+        // FX option, resize handling, WebGL fallback.
+        //
+        // ═══════════════════════════════════════════════════════════════════════
+
+        import * as THREE from 'three';
+        import { PhosphorVigil } from './phosphor-vigil.js';
+
+        // ─── Config ────────────────────────────────────────────────────────
+        const CONFIG = {
+            tubularSegments: 300,
+            radius: 10,
+            pointSpacing: 20,
+            imageDensity: 0.6,        // Probability a ring spawns images
+            maxImagesPerRing: 3,
+            gridScale: [20.0, 1.0],
+            fogStart: 50,
+            fogEnd: 300,
+            scrollSpeed: 0.15,
+            scrollEasing: 0.08,
+            theme: 'dark',            // 'dark' | 'light'
+            fx: 'none',               // 'none' | 'phosphor-vigil'
+            imageSource: (seed) => `https://picsum.photos/seed/${seed}/800/800`,
+
+            // ═══════════════════════════════════════════════════════════════
+            // IMAGES_INJECTION_POINT
+            // Leave this sentinel in place. `image-well --format tunnel` will
+            // replace the next line with `const IMAGE_MANIFEST = [...];`
+            // ═══════════════════════════════════════════════════════════════
+            images: null,
+        };
+
+        const IMAGE_MANIFEST = null;  // Replaced by injection; null → seed mode
+
+        // ─── Global state ──────────────────────────────────────────────────
+        let scene, camera, renderer, clock;
+        let tunnelMesh, tunnelGeometry, tunnelMaterial;
+        let imageManager;
+        let fx = null;
+        const sharedVelocity = new THREE.Vector2(0, 0);
+
+        let currentDist = 0;
+        let targetDist = 0;
+        let lastDist = 0;
+
+        const clampLow = (v) => Math.max(0, v);
+
+        // ─── Path generator ────────────────────────────────────────────────
+        // Catmull-Rom-interpolated infinite path, lazily generated as needed.
+        const POINT_SPACING = CONFIG.pointSpacing;
+        const pathPoints = [];
+        let pathYaw = 0;
+        let pathPitch = 0;
+        let pathPos = new THREE.Vector3(0, 0, 0);
+        let pathUp = new THREE.Vector3(0, 1, 0);
+
+        function generateNextPoint() {
+            pathYaw += (Math.random() - 0.5) * 0.8;
+            pathPitch += (Math.random() - 0.5) * 0.6;
+            pathPitch = Math.max(-0.6, Math.min(0.6, pathPitch));
+
+            const dir = new THREE.Vector3(
+                Math.sin(pathYaw) * Math.cos(pathPitch),
+                Math.sin(pathPitch),
+                -Math.cos(pathYaw) * Math.cos(pathPitch)
+            ).normalize();
+
+            pathPos.add(dir.clone().multiplyScalar(POINT_SPACING));
+
+            let roll = 0;
+            if (Math.random() < 0.15) roll = (Math.random() - 0.5) * Math.PI / 3;
+
+            let right = new THREE.Vector3().crossVectors(dir, pathUp).normalize();
+            if (right.lengthSq() < 0.01) {
+                right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(1, 0, 0)).normalize();
+            }
+            let up = new THREE.Vector3().crossVectors(right, dir).normalize();
+            up.applyAxisAngle(dir, roll);
+            right.applyAxisAngle(dir, roll);
+            pathUp.copy(up);
+
+            pathPoints.push({
+                pos: pathPos.clone(),
+                dir: dir.clone(),
+                up: up.clone(),
+                right: right.clone(),
+            });
+        }
+
+        // Seed the path
+        for (let i = 0; i < 200; i++) generateNextPoint();
+
+        function catmullRom(p0, p1, p2, p3, t) {
+            const t2 = t * t;
+            const t3 = t2 * t;
+            const v0 = (p2 - p0) * 0.5;
+            const v1 = (p3 - p1) * 0.5;
+            return (2 * (p1 - p2) + v0 + v1) * t3
+                 + (-3 * (p1 - p2) - 2 * v0 - v1) * t2
+                 + v0 * t + p1;
+        }
+
+        function getInterpolatedData(d) {
+            const index = Math.floor(d / POINT_SPACING);
+            const t = (d % POINT_SPACING) / POINT_SPACING;
+
+            while (index + 3 >= pathPoints.length) generateNextPoint();
+
+            const p0 = pathPoints[Math.max(0, index - 1)];
+            const p1 = pathPoints[index];
+            const p2 = pathPoints[index + 1];
+            const p3 = pathPoints[index + 2];
+
+            const pos = new THREE.Vector3(
+                catmullRom(p0.pos.x, p1.pos.x, p2.pos.x, p3.pos.x, t),
+                catmullRom(p0.pos.y, p1.pos.y, p2.pos.y, p3.pos.y, t),
+                catmullRom(p0.pos.z, p1.pos.z, p2.pos.z, p3.pos.z, t)
+            );
+            const dir = new THREE.Vector3().lerpVectors(p1.dir, p2.dir, t).normalize();
+            const up = new THREE.Vector3().lerpVectors(p1.up, p2.up, t).normalize();
+            const right = new THREE.Vector3().lerpVectors(p1.right, p2.right, t).normalize();
+
+            return { pos, dir, up, right };
+        }
+
+        // ─── Tunnel mesh ───────────────────────────────────────────────────
+        function createTunnel() {
+            const segs = CONFIG.tubularSegments;
+            const vertices = new Float32Array((segs + 1) * 5 * 3);
+            const uvs = new Float32Array((segs + 1) * 5 * 2);
+            const indices = [];
+
+            for (let i = 0; i < segs; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const a = i * 5 + j;
+                    const b = i * 5 + j + 1;
+                    const c = (i + 1) * 5 + j + 1;
+                    const d = (i + 1) * 5 + j;
+                    indices.push(a, b, c, a, c, d);
+                }
+            }
+
+            tunnelGeometry = new THREE.BufferGeometry();
+            tunnelGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            tunnelGeometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+            tunnelGeometry.setIndex(indices);
+
+            const isDark = CONFIG.theme === 'dark';
+            const bgHex = isDark ? 0x050508 : 0xfafafa;
+            const gridHex = isDark ? 0xffffff : 0x1a1a20;
+
+            tunnelMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    color:    { value: new THREE.Color(gridHex) },
+                    bgColor:  { value: new THREE.Color(bgHex) },
+                    thickness: { value: 0.015 },
+                    gridScale: { value: new THREE.Vector2(...CONFIG.gridScale) },
+                    fogStart:  { value: CONFIG.fogStart },
+                    fogEnd:    { value: CONFIG.fogEnd },
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying float vDepth;
+                    void main() {
+                        vUv = uv;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        vDepth = -mvPosition.z;
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    varying vec2 vUv;
+                    varying float vDepth;
+                    uniform vec3 color;
+                    uniform vec3 bgColor;
+                    uniform float thickness;
+                    uniform vec2 gridScale;
+                    uniform float fogStart;
+                    uniform float fogEnd;
+
+                    void main() {
+                        vec2 uv = vUv * gridScale;
+                        vec2 grid = fract(uv);
+                        float lineX = min(grid.x, 1.0 - grid.x);
+                        float lineY = min(grid.y, 1.0 - grid.y);
+                        float line = min(lineX, lineY);
+
+                        float alpha = 1.0 - smoothstep(thickness, thickness + 0.005, line);
+                        float glow = 1.0 - smoothstep(thickness, thickness + 0.1, line);
+                        float lineWeight = clamp(alpha + glow * 0.6, 0.0, 1.0);
+
+                        float fogFactor = smoothstep(fogStart, fogEnd, vDepth);
+                        lineWeight *= (1.0 - fogFactor);
+
+                        vec3 finalColor = mix(bgColor, color, lineWeight);
+                        gl_FragColor = vec4(finalColor, 1.0);
+                    }
+                `,
+                side: THREE.BackSide,
+            });
+
+            tunnelMesh = new THREE.Mesh(tunnelGeometry, tunnelMaterial);
+            tunnelMesh.frustumCulled = false;
+            scene.add(tunnelMesh);
+        }
+
+        function updateTunnel() {
+            const segs = CONFIG.tubularSegments;
+            const radius = CONFIG.radius;
+            const startDist = currentDist - 50;
+            const endDist = currentDist + 600;
+            const distStep = (endDist - startDist) / segs;
+
+            const positions = tunnelGeometry.attributes.position.array;
+            const uvs = tunnelGeometry.attributes.uv.array;
+
+            for (let i = 0; i <= segs; i++) {
+                const d = startDist + i * distStep;
+                const data = getInterpolatedData(clampLow(d));
+
+                const rScaled = data.right.clone();
+                const uScaled = data.up.clone();
+
+                const v0 = data.pos.clone().add(rScaled.clone().multiplyScalar(-radius)).add(uScaled.clone().multiplyScalar(radius));
+                const v1 = data.pos.clone().add(rScaled.clone().multiplyScalar(radius)).add(uScaled.clone().multiplyScalar(radius));
+                const v2 = data.pos.clone().add(rScaled.clone().multiplyScalar(radius)).add(uScaled.clone().multiplyScalar(-radius));
+                const v3 = data.pos.clone().add(rScaled.clone().multiplyScalar(-radius)).add(uScaled.clone().multiplyScalar(-radius));
+
+                const verts = [v0, v1, v2, v3, v0];
+                for (let j = 0; j < 5; j++) {
+                    positions[(i * 5 + j) * 3 + 0] = verts[j].x;
+                    positions[(i * 5 + j) * 3 + 1] = verts[j].y;
+                    positions[(i * 5 + j) * 3 + 2] = verts[j].z;
+                    uvs[(i * 5 + j) * 2 + 0] = j * 0.25;
+                    uvs[(i * 5 + j) * 2 + 1] = d / 4.0;
+                }
+            }
+
+            tunnelGeometry.attributes.position.needsUpdate = true;
+            tunnelGeometry.attributes.uv.needsUpdate = true;
+        }
+
+        // ─── Image manager ─────────────────────────────────────────────────
+        class ImageManager {
+            constructor() {
+                this.images = [];
+                this.lastGeneratedDist = 0;
+                this.manifestIndex = 0;
+                this.textureLoader = new THREE.TextureLoader();
+                this.textureLoader.crossOrigin = 'anonymous';
+            }
+
+            // Next image URL: from manifest cycle or seeded imageSource function
+            nextUrl() {
+                const manifest = IMAGE_MANIFEST || CONFIG.images;
+                if (Array.isArray(manifest) && manifest.length > 0) {
+                    const url = manifest[this.manifestIndex % manifest.length];
+                    this.manifestIndex += 1;
+                    return typeof url === 'string' ? url : url.url;
+                }
+                const seed = Math.random().toString(36).substring(7);
+                return CONFIG.imageSource(seed);
+            }
+
+            update() {
+                // Generate new rings ahead of the camera
+                if (currentDist + 500 > this.lastGeneratedDist) {
+                    let d = Math.floor(this.lastGeneratedDist / 4) * 4;
+                    if (d < currentDist - 50) d = Math.floor((currentDist - 50) / 4) * 4;
+
+                    while (d < currentDist + 500) {
+                        if (Math.random() < CONFIG.imageDensity) {
+                            const numImages = Math.floor(Math.random() * CONFIG.maxImagesPerRing) + 1;
+                            const used = new Set();
+
+                            for (let i = 0; i < numImages; i++) {
+                                const wallIndex = Math.floor(Math.random() * 4);
+                                const cellOffset = Math.floor(Math.random() * 5) - 2;
+                                const slot = `${wallIndex}_${cellOffset}`;
+                                if (used.has(slot)) continue;
+                                used.add(slot);
+                                this.spawn(d + 2, wallIndex, cellOffset);
+                            }
+                        }
+                        d += 4;
+                    }
+                    this.lastGeneratedDist = d;
+                }
+
+                // Cull images behind the camera
+                for (let i = this.images.length - 1; i >= 0; i--) {
+                    if (this.images[i].distance < currentDist - 50) {
+                        const img = this.images[i];
+                        scene.remove(img.mesh);
+                        img.mesh.geometry.dispose();
+                        if (img.mesh.material.map) img.mesh.material.map.dispose();
+                        img.mesh.material.dispose();
+                        this.images.splice(i, 1);
+                    }
+                }
+            }
+
+            spawn(distance, wallIndex, cellOffset) {
+                const segs = 4;
+                const padding = 0.1;
+                const halfSize = 2.0 - padding;
+                const radius = CONFIG.radius - 0.05;
+
+                const verts = [];
+                const uvArr = [];
+                const inds = [];
+
+                for (let y = 0; y <= segs; y++) {
+                    const yd = y / segs;
+                    const d = distance + halfSize - yd * (halfSize * 2);
+                    const data = getInterpolatedData(d);
+
+                    for (let x = 0; x <= segs; x++) {
+                        const xd = x / segs;
+                        const lat = cellOffset * 4 - halfSize + xd * (halfSize * 2);
+
+                        const p = data.pos.clone();
+                        if (wallIndex === 0) {
+                            p.add(data.up.clone().multiplyScalar(radius));
+                            p.add(data.right.clone().multiplyScalar(lat));
+                        } else if (wallIndex === 1) {
+                            p.add(data.right.clone().multiplyScalar(radius));
+                            p.add(data.up.clone().multiplyScalar(-lat));
+                        } else if (wallIndex === 2) {
+                            p.add(data.up.clone().multiplyScalar(-radius));
+                            p.add(data.right.clone().multiplyScalar(-lat));
+                        } else {
+                            p.add(data.right.clone().multiplyScalar(-radius));
+                            p.add(data.up.clone().multiplyScalar(lat));
+                        }
+
+                        verts.push(p.x, p.y, p.z);
+                        uvArr.push(xd, 1 - yd);
+                    }
+                }
+
+                for (let y = 0; y < segs; y++) {
+                    for (let x = 0; x < segs; x++) {
+                        const a = y * (segs + 1) + x;
+                        const b = a + 1;
+                        const c = a + (segs + 1);
+                        const d = c + 1;
+                        inds.push(a, c, b, b, c, d);
+                    }
+                }
+
+                const geo = new THREE.BufferGeometry();
+                geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+                geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvArr), 2));
+                geo.setIndex(inds);
+                geo.computeBoundingSphere();
+
+                const url = this.nextUrl();
+                const texture = this.textureLoader.load(url);
+                const material = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    color: 0xffffff,
+                    side: THREE.DoubleSide,
+                });
+
+                const mesh = new THREE.Mesh(geo, material);
+                mesh.frustumCulled = true;
+                scene.add(mesh);
+
+                this.images.push({ mesh, distance, wallIndex, cellOffset });
+            }
+        }
+
+        // ─── Init ──────────────────────────────────────────────────────────
+        function init() {
+            scene = new THREE.Scene();
+            const isDark = CONFIG.theme === 'dark';
+            scene.background = new THREE.Color(isDark ? 0x050508 : 0xfafafa);
+            scene.fog = new THREE.FogExp2(isDark ? 0x050508 : 0xfafafa, 0.015);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+
+            try {
+                renderer = new THREE.WebGLRenderer({
+                    antialias: true,
+                    powerPreference: 'default',
+                    failIfMajorPerformanceCaveat: false,
+                });
+            } catch (e) {
+                showWebGLError();
+                return;
+            }
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+
+            createTunnel();
+            imageManager = new ImageManager();
+
+            if (CONFIG.fx === 'phosphor-vigil') {
+                fx = new PhosphorVigil(renderer, {
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                });
+            }
+
+            setupEventListeners();
+            animate();
+        }
+
+        // ─── Event listeners ───────────────────────────────────────────────
+        // Touch handlers are scoped to the canvas (not window) and use
+        // { passive: false } so preventDefault() can consume the event.
+        // When this HTML is inlined into a parent document that doesn't set
+        // touch-action: none on its root, passive listeners can't block the
+        // page from scrolling underneath — producing dual-motion nausea as
+        // both the tunnel AND the page scroll simultaneously. Single-finger
+        // guard prevents pinch-zoom from yanking the camera forward.
+        function setupEventListeners() {
+            const canvas = renderer.domElement;
+
+            window.addEventListener('wheel', (e) => {
+                targetDist += e.deltaY * CONFIG.scrollSpeed;
+                if (targetDist < 0) targetDist = 0;
+            }, { passive: true });
+
+            let touchStartY = 0;
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                touchStartY = e.touches[0].clientY;
+                e.preventDefault();
+            }, { passive: false });
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.touches.length !== 1) return;
+                const deltaY = touchStartY - e.touches[0].clientY;
+                targetDist += deltaY * 0.5;
+                if (targetDist < 0) targetDist = 0;
+                touchStartY = e.touches[0].clientY;
+                e.preventDefault();
+            }, { passive: false });
+
+            window.addEventListener('keydown', (e) => {
+                const step = 20;
+                if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                    targetDist += step;
+                } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                    targetDist = Math.max(0, targetDist - step);
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                if (fx) fx.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+        }
+
+        function toggleTheme() {
+            CONFIG.theme = CONFIG.theme === 'dark' ? 'light' : 'dark';
+            const isDark = CONFIG.theme === 'dark';
+            document.body.classList.toggle('light', !isDark);
+            const bgHex = isDark ? 0x050508 : 0xfafafa;
+            const gridHex = isDark ? 0xffffff : 0x1a1a20;
+            scene.background.setHex(bgHex);
+            scene.fog.color.setHex(bgHex);
+            tunnelMaterial.uniforms.color.value.setHex(gridHex);
+            tunnelMaterial.uniforms.bgColor.value.setHex(bgHex);
+        }
+
+        // ─── Animation loop ────────────────────────────────────────────────
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Smooth scroll interpolation
+            currentDist += (targetDist - currentDist) * CONFIG.scrollEasing;
+
+            // Scroll velocity (UV-space approximation for the FX channel).
+            // Clamp the per-frame delta so a hard scroll within 100ms of
+            // page load can't produce a single-frame magenta halo through
+            // the phosphor-vigil feedback shader. Low-pass the result into
+            // sharedVelocity so motion eases in rather than jumping.
+            const rawVel = currentDist - lastDist;
+            lastDist = currentDist;
+            const velocity = Math.max(-50, Math.min(50, rawVel));
+            const targetSharedVel = velocity * 0.003;
+            sharedVelocity.x += (targetSharedVel - sharedVelocity.x) * 0.3;
+
+            updateTunnel();
+            imageManager.update();
+
+            // Camera follows the path 10 units ahead
+            const camData = getInterpolatedData(clampLow(currentDist));
+            const lookData = getInterpolatedData(clampLow(currentDist + 10));
+            camera.position.copy(camData.pos);
+            camera.lookAt(lookData.pos);
+
+            const elapsed = clock.getElapsedTime();
+
+            if (fx) {
+                fx.setVelocity(sharedVelocity);
+                fx.render(scene, camera, elapsed);
+            } else {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function showWebGLError() {
+            document.getElementById('webgl-fallback').classList.add('visible');
+        }
+
+        // ─── Boot ──────────────────────────────────────────────────────────
+        init();
+    </script>
+</body>
+</html>
