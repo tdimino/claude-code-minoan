@@ -3,8 +3,8 @@
 Generate UI: React/HTML/CSS code generation with Gemini 3.1 Pro.
 
 Generates frontend code from natural language task descriptions.
-Injects condensed minoan-frontend-creative and minoan-frontend-engineering
-directives as a system prompt for design-aware output.
+Injects condensed minoan-frontend-design directives as a system prompt
+for design-aware output.
 
 Usage:
     # Simple component
@@ -32,7 +32,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from gemini_text import GeminiForgeClient
 
 
-# Condensed from minoan-frontend-creative + minoan-frontend-engineering + syncretic-v3
+# Condensed from minoan-frontend-design + syncretic-v3
 SYSTEM_PROMPT = """You are a world-class frontend engineer and designer. Generate complete, immediately runnable code.
 
 CREATIVE DIRECTION:
@@ -169,8 +169,7 @@ def main():
     for path in saved:
         print(f"  {path}")
     print()
-    print("  Next: Read the output, then polish with minoan-frontend-creative")
-    print("  and minoan-frontend-engineering standards.")
+    print("  Next: Read the output, then polish with minoan-frontend-design standards.")
 
 
 if __name__ == "__main__":
