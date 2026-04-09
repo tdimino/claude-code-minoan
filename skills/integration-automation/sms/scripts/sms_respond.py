@@ -30,8 +30,10 @@ from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "shared"))
 
 import sms_memory as memory
+from usermodel_resolver import resolve_by_phone
 from _sms_utils import (
     read_inbox, mark_inbox_handled,
     twilio_request, log_message, normalize_e164,
@@ -44,6 +46,12 @@ DEFAULT_OUR_NUMBER = DEFAULT_TWILIO_FROM  # +18557066006
 MAX_REPLY_LENGTH = 480  # 3 SMS segments
 COOLDOWN_SECONDS = 30
 CLAUDE_TIMEOUT = 120  # seconds
+
+# Debouncer config (daemon mode only)
+DEBOUNCE_SECONDS = 10   # quiet period before processing a batch
+MAX_BATCH_WAIT = 60     # hard timeout — never wait longer than this
+MAX_BATCH_SIZE = 50     # cap messages per sender per batch
+MAX_BATCH_RETRIES = 3  # dead-letter after this many failures per sender
 CLAUDE_CWD = str(Path.home() / "Desktop" / "Programming")
 CLAUDE_ALLOWED_TOOLS = "Read,Glob,Grep,WebFetch,WebSearch"
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -53,6 +61,55 @@ RESPONDER_LOG = DATA_DIR / "responder.log"
 # Soul state update interval (every N interactions per sender)
 SOUL_STATE_UPDATE_INTERVAL = 5
 _per_sender_interaction_count: dict[str, int] = {}
+
+# Dead-letter fallback: track last apology time per sender to rate-limit
+_last_apology_sent: dict[str, float] = {}
+_APOLOGY_COOLDOWN = 3600  # max one apology SMS per sender per hour
+
+# ── Message Classification ───────────────────────────────────────────────
+
+_URL_PATTERN = re.compile(
+    r'https?://[^\s<>\"\']+|(?:www\.)[^\s<>\"\']+',
+    re.IGNORECASE,
+)
+_TWITTER_DOMAINS = {"x.com", "twitter.com", "t.co"}
+
+
+def classify_message(body: str) -> dict:
+    """Classify an SMS message by content type using regex heuristics.
+
+    Returns: {
+        "type": "bare_url" | "url_with_text" | "text",
+        "urls": [str, ...],
+        "is_twitter": bool,
+        "text_portion": str,
+    }
+    """
+    urls = _URL_PATTERN.findall(body)
+    # Strip URLs from body to see if there's meaningful text remaining
+    text_portion = _URL_PATTERN.sub("", body).strip()
+    # Collapse whitespace left behind
+    text_portion = re.sub(r"\s+", " ", text_portion).strip()
+
+    is_twitter = any(
+        url.split("//", 1)[-1].split("/", 1)[0].split("?", 1)[0].lower() in _TWITTER_DOMAINS
+        for url in urls
+    )
+
+    if not urls:
+        msg_type = "text"
+    elif not text_portion:
+        msg_type = "bare_url"
+    else:
+        msg_type = "url_with_text"
+
+    return {
+        "type": msg_type,
+        "urls": urls,
+        "is_twitter": is_twitter,
+        "text_portion": text_portion,
+    }
+
 
 # ── Soul Loading ─────────────────────────────────────────────────────────
 
@@ -228,11 +285,18 @@ def build_prompt(
         if soul_state_text:
             parts.append(f"\n{soul_state_text}")
 
-    # 3. User model — conditional injection (Samantha-Dreams pattern)
-    entries = memory.get_recent_memory(their_number, limit=5)
+    # 3. User model injection
+    # Known contacts (with a userModel file): always inject — no gate.
+    # Unknown numbers: use Samantha-Dreams pattern (inject on first turn
+    # or when last mentalQuery("user model") was true).
     user_model = memory.ensure_user_model(their_number)
-    if _should_inject_user_model(entries):
+    is_known = resolve_by_phone(their_number) is not None
+    if is_known:
         parts.append(f"\n## User Model\n\n{user_model}")
+    else:
+        entries = memory.get_recent_memory(their_number, limit=5)
+        if _should_inject_user_model(entries):
+            parts.append(f"\n## User Model\n\n{user_model}")
 
     # 4. Cognitive instructions
     instructions = _COGNITIVE_INSTRUCTIONS.replace("{max_chars}", str(MAX_REPLY_LENGTH))
@@ -328,20 +392,25 @@ def parse_response(
     raw: str,
     their_number: str,
     our_number: str,
+    store_decisions: bool = True,
 ) -> dict:
     """Parse XML-tagged cognitive response, store entries in working memory.
+
+    When store_decisions=False (e.g. bare-URL batches), skip storing
+    internalMonologue and mentalQuery entries to prevent memory pollution.
+    externalDialog and user_model_update are always stored.
 
     Returns dict with external_dialogue text and parsed metadata.
     """
     # Extract internal monologue
     monologue_content, monologue_verb = _extract_tag(raw, "internal_monologue")
-    if monologue_content:
+    if monologue_content and store_decisions:
         memory.add_working_memory(
             their_number, our_number, "internalMonologue",
             monologue_content, verb=monologue_verb or "thought",
         )
 
-    # Extract external dialogue
+    # Extract external dialogue (always stored)
     dialogue_content, dialogue_verb = _extract_tag(raw, "external_dialogue")
     if dialogue_content:
         memory.add_working_memory(
@@ -354,11 +423,12 @@ def parse_response(
     user_model_updated = False
     if model_check_raw:
         check_result = model_check_raw.strip().lower() == "true"
-        memory.add_working_memory(
-            their_number, our_number, "mentalQuery",
-            "Should the user model be updated?",
-            metadata={"result": check_result},
-        )
+        if store_decisions:
+            memory.add_working_memory(
+                their_number, our_number, "mentalQuery",
+                "Should the user model be updated?",
+                metadata={"result": check_result},
+            )
         if check_result:
             update_content, _ = _extract_tag(raw, "user_model_update")
             if update_content:
@@ -437,12 +507,18 @@ def process_message(msg: dict, dry_run: bool = False, no_soul: bool = False) -> 
         mark_inbox_handled(msg_id)
         return False
 
-    # Cooldown check
+    # Cooldown check — re-queue into buffer (same pattern as process_batch)
     recent = memory.get_recent_memory(their_number, limit=1)
     if recent and recent[-1].get("entry_type") == "externalDialog":
         elapsed = time.time() - recent[-1].get("created_at", 0)
         if elapsed < COOLDOWN_SECONDS:
-            print(f"  Cooldown active ({elapsed:.0f}s < {COOLDOWN_SECONDS}s), skipping")
+            print(f"  Cooldown active ({elapsed:.0f}s < {COOLDOWN_SECONDS}s), re-queuing")
+            _message_buffer[their_number] = {
+                "messages": [msg],
+                "staged_ids": {msg_id},
+                "first_seen": time.time(),
+                "last_seen": time.time(),
+            }
             return False
 
     ts = time.strftime("%H:%M:%S")
@@ -498,6 +574,257 @@ def process_message(msg: dict, dry_run: bool = False, no_soul: bool = False) -> 
     return True
 
 
+# ── Message Batching (daemon mode) ───────────────────────────────────────
+
+# Per-sender message buffer: {phone: {"messages": [...], "first_seen": float, "last_seen": float}}
+_message_buffer: dict[str, dict] = {}
+
+
+def _stage_messages() -> int:
+    """Read inbox and stage new messages into per-sender buffer. Returns count staged."""
+    messages = read_inbox(filter_handled=True)
+    if not messages:
+        return 0
+
+    # Sort chronologically (read_inbox returns newest-first)
+    messages.sort(key=lambda m: m.get("received_at", m.get("timestamp", "")))
+
+    staged = 0
+    now = time.time()
+    for msg in messages:
+        their_number = normalize_e164(msg.get("from", ""))
+        if not their_number:
+            continue
+
+        body = msg.get("body", "").strip()
+        if not body:
+            mark_inbox_handled(msg.get("id", "?"))
+            continue
+
+        msg_id = msg.get("id", "?")
+        if memory.was_replied(msg_id):
+            mark_inbox_handled(msg_id)
+            continue
+
+        if their_number not in _message_buffer:
+            _message_buffer[their_number] = {
+                "messages": [],
+                "staged_ids": set(),
+                "first_seen": now,
+                "last_seen": now,
+            }
+
+        buf = _message_buffer[their_number]
+        if msg_id in buf["staged_ids"]:
+            continue  # Already buffered from a prior poll cycle
+        if len(buf["messages"]) < MAX_BATCH_SIZE:
+            buf["messages"].append(msg)
+            buf["staged_ids"].add(msg_id)
+            buf["last_seen"] = now
+            staged += 1
+
+    return staged
+
+
+def _dead_letter(phone: str, msgs: list[dict], reason: str):
+    """Mark messages as handled after exhausting retries (dead-letter).
+
+    Sends a single apology SMS to the sender, rate-limited to one per hour
+    to prevent spam during systemic outages.
+    """
+    ts = time.strftime("%H:%M:%S")
+    print(f"[{ts}] Dead-lettering {len(msgs)} message(s) from {phone}: {reason}",
+          file=sys.stderr, flush=True)
+    for msg in msgs:
+        mark_inbox_handled(msg.get("id", "?"))
+
+    # Send apology SMS, rate-limited per sender
+    now = time.time()
+    last_apology = _last_apology_sent.get(phone, 0)
+    if now - last_apology >= _APOLOGY_COOLDOWN:
+        our_number = normalize_e164(msgs[0].get("to", DEFAULT_OUR_NUMBER))
+        try:
+            send_reply(phone,
+                       "Sorry, I'm having trouble processing right now. "
+                       "I'll get back to you shortly.",
+                       from_number=our_number)
+            _last_apology_sent[phone] = now
+            print(f"  Sent apology SMS to {phone}", flush=True)
+        except SMSError as e:
+            print(f"  Failed to send apology SMS: {e}", file=sys.stderr, flush=True)
+
+
+def _flush_ready_batches(dry_run: bool = False, no_soul: bool = False) -> int:
+    """Process batches that are ready (debounce expired or max wait reached). Returns replies sent."""
+    now = time.time()
+    ready_senders = []
+
+    for phone, buf in _message_buffer.items():
+        quiet_time = now - buf["last_seen"]
+        total_wait = now - buf["first_seen"]
+        if quiet_time >= DEBOUNCE_SECONDS or total_wait >= MAX_BATCH_WAIT:
+            ready_senders.append(phone)
+
+    count = 0
+    for phone in ready_senders:
+        buf = _message_buffer[phone]  # peek, don't pop
+        msgs = buf["messages"]
+        retries = buf.get("retries", 0)
+
+        success = False
+        if len(msgs) == 1:
+            success = process_message(msgs[0], dry_run=dry_run, no_soul=no_soul)
+        else:
+            success = process_batch(msgs, dry_run=dry_run, no_soul=no_soul)
+
+        if success:
+            _message_buffer.pop(phone, None)
+            count += 1
+        elif _message_buffer.get(phone) is not buf:
+            # process_batch replaced the buffer (cooldown re-queue) — leave it alone
+            pass
+        else:
+            retries += 1
+            if retries >= MAX_BATCH_RETRIES:
+                _message_buffer.pop(phone, None)
+                _dead_letter(phone, msgs, f"failed {retries} times")
+            else:
+                buf["retries"] = retries
+                # Reset timers to allow one more debounce cycle before next attempt
+                buf["first_seen"] = now
+                buf["last_seen"] = now
+                print(f"  Retry {retries}/{MAX_BATCH_RETRIES} for {phone} "
+                      f"({len(msgs)} msgs)", flush=True)
+
+    return count
+
+
+def _build_batch_prompt(their_number: str, messages: list[dict], no_soul: bool = False) -> tuple[str, list[dict]]:
+    """Build a single prompt for a batch of messages from one sender.
+
+    Returns (prompt_text, classifications) where classifications is the list of
+    classify_message() results for each message (same order as messages).
+    """
+    classified = [(msg, classify_message(msg.get("body", "").strip())) for msg in messages]
+
+    # Separate text messages from bare URLs
+    text_msgs = [(msg, c) for msg, c in classified if c["type"] in ("text", "url_with_text")]
+    url_msgs = [(msg, c) for msg, c in classified if c["type"] == "bare_url"]
+
+    all_urls = []
+    for _, c in classified:
+        all_urls.extend(c["urls"])
+    twitter_count = sum(1 for _, c in classified if c["is_twitter"])
+
+    # Build the message content section
+    content_parts = []
+
+    if text_msgs:
+        content_parts.append("## Text Messages\n")
+        for msg, c in text_msgs:
+            body = msg.get("body", "").strip()
+            content_parts.append(f"- {body}")
+
+    if url_msgs:
+        total_urls = sum(len(c["urls"]) for _, c in url_msgs)
+        content_parts.append(f"\n## Shared Links ({total_urls} URLs, no commentary)")
+        if twitter_count:
+            content_parts.append(f"({twitter_count} Twitter/X links — content not fetchable via SMS)")
+        for _, c in url_msgs:
+            for url in c["urls"]:
+                content_parts.append(f"- {url}")
+
+    batch_body = "\n".join(content_parts)
+
+    # Use build_prompt but with a synthetic batch message
+    batch_instruction = (
+        f"The user sent {len(messages)} messages in rapid succession. "
+        f"Acknowledge receipt briefly. Don't address each URL individually. "
+        f"If there are text messages, respond to those. "
+        f"For bare links, a brief acknowledgment is sufficient."
+    )
+    combined_text = f"{batch_instruction}\n\n{batch_body}"
+    return build_prompt(their_number, combined_text, no_soul=no_soul), [c for _, c in classified]
+
+
+def process_batch(messages: list[dict], dry_run: bool = False, no_soul: bool = False) -> bool:
+    """Process a batch of messages from one sender. Returns True if reply was sent."""
+    first_msg = messages[0]
+    their_number = normalize_e164(first_msg.get("from", ""))
+    our_number = normalize_e164(first_msg.get("to", DEFAULT_OUR_NUMBER))
+
+    # Cooldown check — re-queue into buffer if still cooling down
+    recent = memory.get_recent_memory(their_number, limit=1)
+    if recent and recent[-1].get("entry_type") == "externalDialog":
+        elapsed = time.time() - recent[-1].get("created_at", 0)
+        if elapsed < COOLDOWN_SECONDS:
+            print(f"  Cooldown active for batch ({elapsed:.0f}s < {COOLDOWN_SECONDS}s), re-queuing")
+            _message_buffer[their_number] = {
+                "messages": messages,
+                "staged_ids": {m.get("id", "?") for m in messages},
+                "first_seen": time.time(),
+                "last_seen": time.time(),
+            }
+            return False
+
+    ts = time.strftime("%H:%M:%S")
+    print(f"[{ts}] Processing batch: {their_number} ({len(messages)} messages)")
+
+    # Log all inbound messages to working memory
+    for msg in messages:
+        body = msg.get("body", "").strip()
+        memory.add_working_memory(their_number, our_number, "userMessage", body)
+
+    # Build batch prompt and invoke claude -p
+    prompt, classifications = _build_batch_prompt(their_number, messages, no_soul=no_soul)
+    session_id = memory.get_session(their_number)
+
+    claude_result = invoke_claude(prompt, session_id=session_id)
+
+    if claude_result["is_error"]:
+        print(f"  Claude error (batch): {claude_result['result']}", file=sys.stderr)
+        return False
+
+    new_session_id = claude_result.get("session_id")
+    if new_session_id:
+        memory.save_session(their_number, new_session_id)
+
+    raw_response = claude_result["result"]
+    if not raw_response:
+        print(f"  Empty response from Claude (batch), skipping")
+        for msg in messages:
+            mark_inbox_handled(msg.get("id", "?"))
+        return False
+
+    # Use classifications from _build_batch_prompt() to decide whether to store cognitive noise
+    all_bare_urls = all(c["type"] == "bare_url" for c in classifications)
+    parsed = parse_response(raw_response, their_number, our_number, store_decisions=not all_bare_urls)
+    reply_text = parsed["text"]
+
+    if not reply_text:
+        print(f"  No external_dialogue in batch response, skipping send")
+        for msg in messages:
+            mark_inbox_handled(msg.get("id", "?"))
+        return False
+
+    if dry_run:
+        print(f"  [DRY RUN] Would send batch reply: \"{reply_text[:80]}\"")
+    else:
+        try:
+            send_result = send_reply(their_number, reply_text, from_number=our_number)
+            print(f"  Sent batch reply ({send_result['status']}): \"{reply_text[:60]}\"")
+        except SMSError as e:
+            print(f"  Send error (batch): {e}", file=sys.stderr)
+            return False
+
+    # Mark all messages as handled
+    for msg in messages:
+        mark_inbox_handled(msg.get("id", "?"))
+        memory.mark_replied(msg.get("id", "?"))
+
+    return True
+
+
 # ── Main Loop ────────────────────────────────────────────────────────────
 
 def process_inbox(dry_run: bool = False, no_soul: bool = False) -> int:
@@ -533,9 +860,15 @@ def daemon_loop(interval: int, dry_run: bool = False, no_soul: bool = False):
 
     while not stop:
         try:
-            count = process_inbox(dry_run=dry_run, no_soul=no_soul)
+            # Phase 1: Stage new messages into per-sender buffer
+            staged = _stage_messages()
+            if staged:
+                print(f"  Staged {staged} message(s) into buffer", flush=True)
+
+            # Phase 2: Flush batches where debounce/timeout expired
+            count = _flush_ready_batches(dry_run=dry_run, no_soul=no_soul)
             if count:
-                print(f"  Processed {count} message(s)", flush=True)
+                print(f"  Processed {count} batch(es)", flush=True)
         except Exception as e:
             print(f"[{time.strftime('%H:%M:%S')}] Error: {e}", file=sys.stderr, flush=True)
 

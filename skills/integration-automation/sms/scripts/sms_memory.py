@@ -205,6 +205,16 @@ def format_working_memory(entries: list[dict], soul_name: str = "Claudius") -> s
                     lines.append(f'{soul_name} evaluated: "{content}"')
             else:
                 lines.append(f'{soul_name} evaluated: "{content}"')
+        elif et == "link":
+            if meta:
+                try:
+                    m_parsed = json.loads(meta) if isinstance(meta, str) else meta
+                    domain = m_parsed.get("domain", "")
+                    lines.append(f'They shared a link: {content} ({domain})')
+                except (json.JSONDecodeError, TypeError):
+                    lines.append(f'They shared a link: {content}')
+            else:
+                lines.append(f'They shared a link: {content}')
         else:
             lines.append(content)
     return "\n".join(lines)
@@ -217,6 +227,71 @@ def cleanup_working_memory(max_age_hours: Optional[int] = None) -> int:
     cursor = conn.execute("DELETE FROM working_memory WHERE created_at < ?", (cutoff,))
     conn.commit()
     return cursor.rowcount
+
+
+def prune_working_memory(
+    phone_number: str,
+    entry_types: Optional[list[str]] = None,
+    content_pattern: Optional[str] = None,
+    date: Optional[str] = None,
+    dry_run: bool = False,
+) -> int:
+    """Selectively prune working memory entries by type, content pattern, or date.
+
+    Args:
+        phone_number: E.164 phone number (e.g. '+17327595647')
+        entry_types: List of entry types to match (e.g. ['mentalQuery', 'decision'])
+        content_pattern: SQL LIKE pattern to match content (e.g. '%twitter%')
+        date: ISO date string (YYYY-MM-DD) to restrict to a single day
+        dry_run: If True, return count without deleting
+
+    Returns:
+        Number of entries deleted (or would be deleted if dry_run)
+
+    Usage:
+        # Preview what would be pruned
+        prune_working_memory('+17327595647', entry_types=['mentalQuery'], dry_run=True)
+        # Delete all decision entries from a specific date
+        prune_working_memory('+17327595647', entry_types=['decision'], date='2026-03-18')
+        # Delete entries matching a content pattern
+        prune_working_memory('+17327595647', content_pattern='%can\\'t fetch%')
+    """
+    # Build query for both local and canonical DBs
+    conditions = ["phone_number = ?"]
+    params: list = [phone_number]
+
+    if entry_types:
+        placeholders = ",".join("?" for _ in entry_types)
+        conditions.append(f"entry_type IN ({placeholders})")
+        params.extend(entry_types)
+
+    if content_pattern:
+        conditions.append("content LIKE ?")
+        params.append(content_pattern)
+
+    if date:
+        # Convert date to epoch range
+        import datetime as _dt
+        day_start = _dt.datetime.strptime(date, "%Y-%m-%d").timestamp()
+        day_end = day_start + 86400
+        conditions.append("created_at >= ? AND created_at < ?")
+        params.extend([day_start, day_end])
+
+    where = " AND ".join(conditions)
+
+    # Prune from local DB
+    conn = _get_conn()
+    if dry_run:
+        row = conn.execute(f"SELECT COUNT(*) as cnt FROM working_memory WHERE {where}", params).fetchone()
+        count = row["cnt"] if row else 0
+    else:
+        cursor = conn.execute(f"DELETE FROM working_memory WHERE {where}", params)
+        conn.commit()
+        count = cursor.rowcount
+
+    # Also prune from canonical DB if available
+    canonical_count = _cm.prune_working_memory(phone_number, entry_types, content_pattern, date, dry_run)
+    return count + canonical_count
 
 
 # ── User Models ──────────────────────────────────────────────────────────
@@ -251,13 +326,34 @@ def get_display_name(phone_number: str) -> Optional[str]:
     return row["display_name"] if row else None
 
 
-def ensure_user_model(phone_number: str, display_name: Optional[str] = None) -> str:
+def ensure_user_model(
+    phone_number: str,
+    display_name: Optional[str] = None,
+    max_chars: Optional[int] = None,
+) -> str:
+    """Ensure a user model exists, creating a blank template if needed.
+
+    Args:
+        max_chars: If set, truncate the returned model to approximately this many
+            characters. Keeps complete lines up to the budget. Useful for SMS
+            context where a 6,500-char model would dominate the prompt.
+    """
     model = get_user_model(phone_number)
-    if model is not None:
-        return model
-    name = display_name or phone_number
-    model = USER_MODEL_TEMPLATE.replace("{display_name}", name)
-    save_user_model(phone_number, model, display_name)
+    if model is None:
+        name = display_name or phone_number
+        model = USER_MODEL_TEMPLATE.replace("{display_name}", name)
+        save_user_model(phone_number, model, display_name)
+    if max_chars and len(model) > max_chars:
+        # Truncate to complete lines within budget
+        lines = model.split("\n")
+        kept = []
+        total = 0
+        for line in lines:
+            if total + len(line) + 1 > max_chars:
+                break
+            kept.append(line)
+            total += len(line) + 1
+        model = "\n".join(kept)
     return model
 
 
@@ -366,6 +462,11 @@ def get_all_soul() -> dict[str, str]:
 
 
 def format_soul_state() -> str:
+    # Try unified soul_state renderer first (includes topic stack, relative times)
+    canonical = _cm.format_soul_state()
+    if canonical is not None:
+        return canonical
+    # Fallback to local DB rendering
     state = get_all_soul()
     has_content = any(
         state.get(k) and state.get(k) != SOUL_MEMORY_DEFAULTS.get(k)
