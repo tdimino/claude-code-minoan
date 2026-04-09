@@ -1,4 +1,136 @@
 {
-  "groups": {},
-  "aliases": {}
+  "groups": {
+    "geopolitics": {
+      "accounts": [
+        {
+          "username": "imetatronink",
+          "label": "Will"
+        },
+        {
+          "username": "Megatron_ron"
+        },
+        {
+          "username": "disclosetv"
+        },
+        {
+          "username": "WSWS_Updates",
+          "label": "World Socialist Website"
+        },
+        {
+          "username": "DD_Geopolitics",
+          "label": "Structural power"
+        },
+        {
+          "username": "tparsi",
+          "label": "Israeli ideology"
+        },
+        {
+          "username": "infolibnews",
+          "label": "Israeli ideology/geo"
+        },
+        {
+          "username": "apocalypseos",
+          "label": "Russian geo"
+        },
+        {
+          "username": "Glenn_Diesen",
+          "label": "Macro-historical"
+        },
+        {
+          "username": "WarFrontIntel",
+          "label": "Geo commentary"
+        },
+        {
+          "username": "RogueKite",
+          "label": "Multi-polar"
+        },
+        {
+          "username": "e_galv",
+          "label": "Anti-establishment"
+        },
+        {
+          "username": "suchnerve",
+          "label": "Political commentary"
+        },
+        {
+          "username": "warfareanalysis",
+          "label": "Iran OSINT, military analysis"
+        },
+        {
+          "username": "MaxBlumenthal",
+          "label": "Grayzone, anti-war journalist"
+        },
+        {
+          "username": "muhammadshehad2",
+          "label": "Iran/Palestine structural analysis"
+        },
+        {
+          "username": "IranObserver0",
+          "label": "Iran breaking news"
+        },
+        {
+          "username": "araghchi",
+          "label": "Iranian FM, official voice"
+        }
+      ],
+      "description": "Geopolitics, world affairs, anti-empire analysis"
+    },
+    "palestine": {
+      "accounts": [
+        {
+          "username": "MariamBarghouti",
+          "label": "Witness testimony"
+        },
+        {
+          "username": "NerdeenKiswani",
+          "label": "Palestine solidarity"
+        },
+        {
+          "username": "NizMhani",
+          "label": "US empire collapse"
+        }
+      ],
+      "description": "Palestine solidarity & witness accounts"
+    },
+    "wareconomy": {
+      "accounts": [
+        {
+          "username": "JavierBlas",
+          "label": "Bloomberg energy/commodities columnist"
+        },
+        {
+          "username": "TankerTrackers",
+          "label": "Satellite tanker tracking, Hormuz transits"
+        },
+        {
+          "username": "JKempEnergy",
+          "label": "Reuters energy columnist, oil markets"
+        },
+        {
+          "username": "SalehaMohsin",
+          "label": "Bloomberg economics/Treasury reporter"
+        },
+        {
+          "username": "RecordedFuture",
+          "label": "Cyber threat intelligence, Iranian APT tracking"
+        },
+        {
+          "username": "LloydsList",
+          "label": "Maritime shipping/insurance, JWC war risk"
+        },
+        {
+          "username": "PeterZeihan",
+          "label": "Geopolitics, demographics, supply chains"
+        }
+      ],
+      "description": "War economy: energy markets, shipping/insurance disruption, sanctions, cyber threats, supply chains"
+    }
+  },
+  "aliases": {
+    "all-feeds": [
+      "geopolitics",
+      "palestine",
+      "wareconomy"
+    ]
+  }
 }
