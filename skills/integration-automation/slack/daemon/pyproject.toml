@@ -1,0 +1,18 @@
+[project]
+name = "slack-daemon"
+version = "0.1.0"
+description = "Socket Mode daemon for Slack @mention → Claude Code routing"
+requires-python = ">=3.10"
+dependencies = [
+    "slack_bolt>=1.20.0",
+    "slack_sdk>=3.30.0",
+    "textual>=1.0.0",
+    "psutil>=6.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
