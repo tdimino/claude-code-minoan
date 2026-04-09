@@ -1,0 +1,10 @@
+.env
+memory.db
+sessions.db
+inbox.jsonl
+listener.pid
+__pycache__/
+*.pyc
+.venv/
+logs/
+uv.lock
