@@ -124,6 +124,9 @@ sync_skills() {
         --exclude='*.pyc' --exclude='__pycache__' --exclude='.DS_Store' \
         --exclude='*.db' --exclude='*.sqlite' --exclude='node_modules' \
         --exclude='.git' \
+        --exclude='*.jsonl' --exclude='*.pid' --exclude='logs/' \
+        --exclude='.spotify-cache' --exclude='.syncignore' \
+        --filter=':- .syncignore' \
         --filter='P README.md' \
         --filter='P mcp-server/***' \
         --filter='P qwen3-tts/***' \
