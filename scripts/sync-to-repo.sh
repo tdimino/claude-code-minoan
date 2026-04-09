@@ -123,7 +123,7 @@ sync_skills() {
       rsync -a --checksum --delete \
         --exclude='*.pyc' --exclude='__pycache__' --exclude='.DS_Store' \
         --exclude='*.db' --exclude='*.sqlite' --exclude='node_modules' \
-        --exclude='.git' \
+        --exclude='.git' --exclude='.env' --exclude='.env.*' \
         --exclude='*.jsonl' --exclude='*.pid' --exclude='logs/' \
         --exclude='.spotify-cache' --exclude='.syncignore' \
         --filter=':- .syncignore' \

@@ -30,10 +30,10 @@ if [ -z "$DESCRIPTION" ]; then
     exit 1
 fi
 
-# Generate designed voice using Qwen3-TTS VoiceDesign model (--fast enables bfloat16 on M4+)
+# Generate designed voice using Qwen3-TTS VoiceDesign model
 # design.py takes positional args: text instruct
 echo "Designing voice: $DESCRIPTION" >&2
-qwen-tts design "$TEXT" "$DESCRIPTION" -o "$OUTPUT" --fast 2>/dev/null
+qwen-tts design "$TEXT" "$DESCRIPTION" -o "$OUTPUT" 2>/dev/null
 
 echo "Designed voice saved to: $OUTPUT"
 echo ""
