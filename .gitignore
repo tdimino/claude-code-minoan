@@ -24,6 +24,7 @@ yarn-error.log*
 ehthumbs.db
 Thumbs.db
 Desktop.ini
+Icon?
 
 # Staging / cache (RAG crawls, mesh3d cache, etc.)
 .staging/
