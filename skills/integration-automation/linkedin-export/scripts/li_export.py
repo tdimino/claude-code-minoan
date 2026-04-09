@@ -526,13 +526,200 @@ def export_rlama(data: dict, output_dir: Path) -> int:
             f.write("\n".join(lines))
         file_count += 1
 
-    # 7. INDEX.md
+    # 7. Comments activity
+    comments = data.get("comments", [])
+    if comments:
+        lines = [
+            f"CATEGORY: LinkedIn Activity — Comments",
+            f"OWNER: {my_name}",
+            f"TOTAL COMMENTS: {len(comments)}",
+            "",
+            "---",
+            "",
+        ]
+
+        for c in sorted(comments, key=lambda x: x.get("date") or "", reverse=True):
+            date = (c.get("date") or "")[:10]
+            message = c.get("message", "").strip()
+            link = c.get("link", "")
+            if message:
+                lines.append(f"COMMENT [{date}]: {message}")
+                if link:
+                    lines.append(f"  LINK: {link}")
+                lines.append("")
+                lines.append("---")
+                lines.append("")
+
+        filepath = output_dir / "comments-activity.md"
+        with open(filepath, "w") as f:
+            f.write("\n".join(lines))
+        file_count += 1
+
+    # 8. Projects, honors, volunteering, organizations
+    projects = data.get("projects", [])
+    honors = data.get("honors", [])
+    volunteering = data.get("volunteering", [])
+    organizations = data.get("organizations", [])
+
+    if projects or honors or volunteering or organizations:
+        lines = [
+            f"CATEGORY: LinkedIn Identity — Projects, Honors, Volunteering, Organizations",
+            f"OWNER: {my_name}",
+            "",
+            "---",
+            "",
+        ]
+
+        if projects:
+            lines.append("SECTION: Projects")
+            lines.append("")
+            for p in projects:
+                lines.append(f"PROJECT: {p.get('title', '')}")
+                if p.get("description"):
+                    lines.append(f"  {p['description']}")
+                if p.get("url"):
+                    lines.append(f"  URL: {p['url']}")
+                start = (p.get("started_on") or "")[:7]
+                end = (p.get("finished_on") or "Present")[:7]
+                if start:
+                    lines.append(f"  DATES: {start} to {end}")
+                lines.append("")
+                lines.append("---")
+                lines.append("")
+
+        if honors:
+            lines.append("SECTION: Honors & Awards")
+            lines.append("")
+            for h in honors:
+                lines.append(f"HONOR: {h.get('title', '')}")
+                if h.get("description"):
+                    lines.append(f"  {h['description']}")
+                if h.get("issued_on"):
+                    lines.append(f"  ISSUED: {h['issued_on'][:10]}")
+                lines.append("")
+                lines.append("---")
+                lines.append("")
+
+        if volunteering:
+            lines.append("SECTION: Volunteering")
+            lines.append("")
+            for v in volunteering:
+                lines.append(f"VOLUNTEER: {v.get('role', '')} at {v.get('company', '')}")
+                if v.get("cause"):
+                    lines.append(f"  CAUSE: {v['cause']}")
+                if v.get("description"):
+                    lines.append(f"  {v['description']}")
+                lines.append("")
+                lines.append("---")
+                lines.append("")
+
+        if organizations:
+            lines.append("SECTION: Organizations")
+            lines.append("")
+            for o in organizations:
+                lines.append(f"ORGANIZATION: {o.get('name', '')}")
+                if o.get("position"):
+                    lines.append(f"  ROLE: {o['position']}")
+                if o.get("description"):
+                    lines.append(f"  {o['description']}")
+                lines.append("")
+                lines.append("---")
+                lines.append("")
+
+        filepath = output_dir / "projects-honors-volunteering.md"
+        with open(filepath, "w") as f:
+            f.write("\n".join(lines))
+        file_count += 1
+
+    # 9. Languages, events, member follows, job applications
+    languages = data.get("languages", [])
+    events = data.get("events", [])
+    member_follows = data.get("member_follows", [])
+    job_applications = data.get("job_applications", [])
+    recommendations_given = data.get("recommendations_given", [])
+    inferences = data.get("inferences", [])
+
+    lines = [
+        f"CATEGORY: LinkedIn Metadata — Languages, Events, Follows, Applications",
+        f"OWNER: {my_name}",
+        "",
+        "---",
+        "",
+    ]
+
+    if languages:
+        lines.append("SECTION: Languages")
+        for lang in languages:
+            lines.append(f"  - {lang.get('name', '')}: {lang.get('proficiency', '')}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    if events:
+        lines.append("SECTION: Events")
+        for e in events:
+            date = (e.get("time") or "")[:10]
+            lines.append(f"  - [{date}] {e.get('name', '')} ({e.get('status', '')})")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    if member_follows:
+        lines.append(f"SECTION: Member Follows ({len(member_follows)} people)")
+        for mf in sorted(member_follows, key=lambda x: x.get("date") or "", reverse=True)[:200]:
+            date = (mf.get("date") or "")[:10]
+            lines.append(f"  - {mf.get('full_name', '')} ({date})")
+        if len(member_follows) > 200:
+            lines.append(f"  ... +{len(member_follows) - 200} more")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    if job_applications:
+        lines.append(f"SECTION: Job Applications ({len(job_applications)} total)")
+        lines.append("")
+        for ja in sorted(job_applications, key=lambda x: x.get("date") or "", reverse=True):
+            date = (ja.get("date") or "")[:10]
+            lines.append(f"APPLICATION [{date}]: {ja.get('title', '')} at {ja.get('company', '')}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    if recommendations_given:
+        lines.append("SECTION: Recommendations Given")
+        lines.append("")
+        for r in recommendations_given:
+            name = f"{r.get('first_name', '')} {r.get('last_name', '')}".strip()
+            lines.append(f"RECOMMENDATION FOR: {name} ({r.get('company', '')})")
+            if r.get("body"):
+                lines.append(f"  {r['body']}")
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+
+    if inferences:
+        lines.append("SECTION: LinkedIn's Inferences About You")
+        for inf in inferences:
+            lines.append(f"  - [{inf.get('category', '')}] {inf.get('type', '')}: {inf.get('inference', '')}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    filepath = output_dir / "metadata-languages-events-follows.md"
+    with open(filepath, "w") as f:
+        f.write("\n".join(lines))
+    file_count += 1
+
+    # 10. INDEX.md
     lines = [
         f"# LinkedIn RLAMA Collection — {my_name}",
         "",
         f"**Parsed**: {data.get('parse_date', 'unknown')[:10]}",
         f"**Messages**: {data.get('messages', {}).get('total_messages', 0)}",
         f"**Connections**: {data.get('connections', {}).get('total', 0)}",
+        f"**Comments**: {len(data.get('comments', []))}",
+        f"**Job Applications**: {len(data.get('job_applications', []))}",
+        f"**Member Follows**: {len(data.get('member_follows', []))}",
         "",
         "## Files",
         "",
@@ -595,6 +782,7 @@ def cmd_rlama(data: dict, output: str) -> None:
 
 
 def main():
+    global PARSED_FILE
     parser = argparse.ArgumentParser(description="Export LinkedIn data to Markdown")
     parser.add_argument("--data", help=f"Path to parsed.json (default: {PARSED_FILE})")
 
@@ -615,7 +803,6 @@ def main():
     args = parser.parse_args()
 
     if args.data:
-        global PARSED_FILE
         PARSED_FILE = Path(args.data)
 
     data = load_data()

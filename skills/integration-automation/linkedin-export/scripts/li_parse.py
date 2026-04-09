@@ -29,12 +29,37 @@ def strip_bom(text: str) -> str:
 
 
 def parse_csv_from_zip(zf: zipfile.ZipFile, filename: str) -> list[dict]:
-    """Extract and parse a CSV file from the ZIP, returning list of dicts."""
+    """Extract and parse a CSV file from the ZIP, returning list of dicts.
+
+    Handles LinkedIn's special format where some CSVs (e.g. Connections.csv)
+    have preamble lines before the actual CSV header.
+    """
     try:
         raw = zf.read(filename).decode("utf-8-sig")
         raw = strip_bom(raw)
+
+        # Try standard parse first
         reader = csv.DictReader(io.StringIO(raw))
-        return [row for row in reader]
+        rows = list(reader)
+
+        # Detect LinkedIn's preamble format: if the first field name looks
+        # like a note (e.g. "Notes:") and has only 1 column, scan for the
+        # real header line containing multiple comma-separated columns.
+        if rows and len(reader.fieldnames or []) <= 1:
+            lines = raw.split("\n")
+            for i, line in enumerate(lines):
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                # Real CSV headers have multiple commas
+                if stripped.count(",") >= 2:
+                    rejoined = "\n".join(lines[i:])
+                    reader2 = csv.DictReader(io.StringIO(rejoined))
+                    rows2 = list(reader2)
+                    if rows2 and len(reader2.fieldnames or []) > 1:
+                        return rows2
+
+        return rows
     except KeyError:
         return []
     except Exception as e:
@@ -70,18 +95,45 @@ def find_csv_files(zf: zipfile.ZipFile) -> dict[str, str]:
         "member_follows": "member_follows",
         "search_queries": "search_queries",
         "registration": "registration",
+        # New types
+        "comments": "comments",
+        "projects": "projects",
+        "honors": "honors",
+        "organizations": "organizations",
+        "volunteering": "volunteering",
+        "languages": "languages",
+        "events": "events",
+        "recommendations_given": "recommendations_given",
+        "inferences_about_you": "inferences",
+        "hashtag_follows": "hashtag_follows",
+        "votes": "votes",
+        "instantreposts": "instant_reposts",
+        "saved_items": "saved_items",
+        "endorsement_given_info": "endorsements_given",
     }
 
     for csv_path in csv_files:
         basename = Path(csv_path).stem.lower()
+        # Normalize: strip trailing _1, _2 etc. (LinkedIn splits large CSVs)
+        basename_norm = basename.rstrip("_0123456789") if basename != basename.rstrip("_0123456789") else basename
+        matched = False
         for pattern, key in known.items():
-            if pattern in basename:
-                if key in mapping:
-                    print(f"Warning: Multiple CSVs match '{key}': {mapping[key]} and {csv_path} (using latter)", file=sys.stderr)
-                mapping[key] = csv_path
+            # Prefer exact match on basename or normalized basename
+            if basename == pattern or basename_norm == pattern:
+                if key not in mapping:
+                    mapping[key] = csv_path
+                matched = True
                 break
-        else:
-            # Store unknown CSVs under their basename
+        if not matched:
+            # Fallback: substring match but only if pattern equals the full basename
+            # This prevents "messages" from matching "guide_messages"
+            for pattern, key in known.items():
+                if basename == pattern or basename.replace(" ", "_") == pattern:
+                    if key not in mapping:
+                        mapping[key] = csv_path
+                    matched = True
+                    break
+        if not matched:
             mapping[f"_unknown_{basename}"] = csv_path
 
     return mapping
@@ -102,6 +154,7 @@ def parse_date_flexible(date_str: str) -> str | None:
         "%d %b %Y",  # 15 Jan 2024
         "%b %d, %Y",  # Jan 15, 2024
         "%m/%d/%Y",  # 01/15/2024
+        "%m/%d/%y, %I:%M %p",  # 3/20/20, 12:31 PM (LinkedIn job apps)
         "%m/%d/%y",  # 01/15/24
         "%b %Y",  # Jan 2024
         "%Y",  # 2024
@@ -118,7 +171,7 @@ def parse_date_flexible(date_str: str) -> str | None:
 
 def col(row: dict, *candidates: str) -> str:
     """Get column value by trying multiple possible column names (case-insensitive)."""
-    lower_row = {k.lower().strip(): v for k, v in row.items()}
+    lower_row = {k.lower().strip(): v for k, v in row.items() if k is not None}
     for c in candidates:
         val = lower_row.get(c.lower().strip(), "")
         if val:
@@ -357,6 +410,152 @@ def parse_certifications(rows: list[dict]) -> list[dict]:
     ]
 
 
+def parse_comments(rows: list[dict]) -> list[dict]:
+    """Parse Comments.csv."""
+    return [
+        {
+            "date": parse_date_flexible(col(row, "date", "timestamp")),
+            "link": col(row, "link", "url"),
+            "message": col(row, "message", "comment", "text"),
+        }
+        for row in rows
+    ]
+
+
+def parse_projects(rows: list[dict]) -> list[dict]:
+    """Parse Projects.csv."""
+    return [
+        {
+            "title": col(row, "title", "name"),
+            "description": col(row, "description"),
+            "url": col(row, "url"),
+            "started_on": parse_date_flexible(col(row, "started on", "startedon")),
+            "finished_on": parse_date_flexible(col(row, "finished on", "finishedon")),
+        }
+        for row in rows
+    ]
+
+
+def parse_honors(rows: list[dict]) -> list[dict]:
+    """Parse Honors.csv."""
+    return [
+        {
+            "title": col(row, "title", "name"),
+            "description": col(row, "description"),
+            "issued_on": parse_date_flexible(col(row, "issued on", "issuedon", "date")),
+        }
+        for row in rows
+    ]
+
+
+def parse_organizations(rows: list[dict]) -> list[dict]:
+    """Parse Organizations.csv."""
+    return [
+        {
+            "name": col(row, "name", "organization"),
+            "description": col(row, "description"),
+            "position": col(row, "position", "title"),
+            "started_on": parse_date_flexible(col(row, "started on", "startedon")),
+            "finished_on": parse_date_flexible(col(row, "finished on", "finishedon")),
+        }
+        for row in rows
+    ]
+
+
+def parse_volunteering(rows: list[dict]) -> list[dict]:
+    """Parse Volunteering.csv."""
+    return [
+        {
+            "company": col(row, "company name", "companyname", "company"),
+            "role": col(row, "role", "title"),
+            "cause": col(row, "cause"),
+            "started_on": parse_date_flexible(col(row, "started on", "startedon")),
+            "finished_on": parse_date_flexible(col(row, "finished on", "finishedon")),
+            "description": col(row, "description"),
+        }
+        for row in rows
+    ]
+
+
+def parse_languages(rows: list[dict]) -> list[dict]:
+    """Parse Languages.csv."""
+    return [
+        {
+            "name": col(row, "name", "language"),
+            "proficiency": col(row, "proficiency"),
+        }
+        for row in rows
+    ]
+
+
+def parse_events(rows: list[dict]) -> list[dict]:
+    """Parse Events.csv."""
+    return [
+        {
+            "name": col(row, "event name", "eventname", "name"),
+            "time": parse_date_flexible(col(row, "event time", "eventtime", "time", "date")),
+            "status": col(row, "status"),
+            "url": col(row, "external url", "externalurl", "url"),
+        }
+        for row in rows
+    ]
+
+
+def parse_member_follows(rows: list[dict]) -> list[dict]:
+    """Parse Member_Follows.csv."""
+    return [
+        {
+            "full_name": col(row, "fullname", "full name", "name"),
+            "date": parse_date_flexible(col(row, "date", "timestamp")),
+            "status": col(row, "status"),
+        }
+        for row in rows
+    ]
+
+
+def parse_job_applications(rows: list[dict]) -> list[dict]:
+    """Parse Job Applications.csv (may be merged from multiple files)."""
+    return [
+        {
+            "date": parse_date_flexible(col(row, "application date", "applicationdate", "date")),
+            "company": col(row, "company name", "companyname", "company"),
+            "title": col(row, "job title", "jobtitle", "title"),
+            "url": col(row, "job url", "joburl", "url"),
+            "resume": col(row, "resume name", "resumename"),
+        }
+        for row in rows
+    ]
+
+
+def parse_recommendations_given(rows: list[dict]) -> list[dict]:
+    """Parse Recommendations_Given.csv."""
+    return [
+        {
+            "first_name": col(row, "first name", "firstname"),
+            "last_name": col(row, "last name", "lastname"),
+            "company": col(row, "company"),
+            "title": col(row, "job title", "jobtitle", "title"),
+            "body": col(row, "text", "body", "recommendation"),
+            "date": parse_date_flexible(col(row, "creation date", "creationdate", "date")),
+            "status": col(row, "status"),
+        }
+        for row in rows
+    ]
+
+
+def parse_inferences(rows: list[dict]) -> list[dict]:
+    """Parse Inferences_about_you.csv."""
+    return [
+        {
+            "category": col(row, "category"),
+            "type": col(row, "type of inference", "typeofinference", "type"),
+            "description": col(row, "description"),
+            "inference": col(row, "inference"),
+        }
+        for row in rows
+    ]
+
+
 def parse_export(zip_path: str, output_path: str | None = None) -> dict:
     """Main entry point: parse LinkedIn export ZIP into structured JSON."""
     zip_path = Path(zip_path).expanduser().resolve()
@@ -394,6 +593,20 @@ def parse_export(zip_path: str, output_path: str | None = None) -> dict:
                 raw[key] = parse_csv_from_zip(zf, path)
                 print(f"  Parsed {key}: {len(raw[key])} rows")
 
+        # Merge multi-file Job Applications (LinkedIn splits at 200 rows)
+        job_app_rows: list[dict] = []
+        all_names = zf.namelist()
+        job_app_files = sorted(
+            n for n in all_names
+            if "job application" in n.lower() and n.lower().endswith(".csv")
+        )
+        for jaf in job_app_files:
+            rows = parse_csv_from_zip(zf, jaf)
+            job_app_rows.extend(rows)
+            print(f"  Parsed job_applications ({jaf}): {len(rows)} rows")
+        if job_app_rows:
+            print(f"  Total job applications: {len(job_app_rows)}")
+
         # Build structured output
         result = {
             "export_file": str(zip_path),
@@ -401,6 +614,7 @@ def parse_export(zip_path: str, output_path: str | None = None) -> dict:
             "parse_date": datetime.now().isoformat(),
             "csv_files_found": {k: v for k, v in csv_map.items() if not k.startswith("_unknown_")},
             "unknown_csv_files": {k.replace("_unknown_", ""): v for k, v in csv_map.items() if k.startswith("_unknown_")},
+            # Original types
             "messages": parse_messages(raw.get("messages", [])),
             "connections": parse_connections(raw.get("connections", [])),
             "profile": parse_profile(raw.get("profile", [])),
@@ -413,6 +627,18 @@ def parse_export(zip_path: str, output_path: str | None = None) -> dict:
             "shares": parse_shares(raw.get("shares", [])),
             "reactions": parse_reactions(raw.get("reactions", [])),
             "certifications": parse_certifications(raw.get("certifications", [])),
+            # New types
+            "comments": parse_comments(raw.get("comments", [])),
+            "projects": parse_projects(raw.get("projects", [])),
+            "honors": parse_honors(raw.get("honors", [])),
+            "organizations": parse_organizations(raw.get("organizations", [])),
+            "volunteering": parse_volunteering(raw.get("volunteering", [])),
+            "languages": parse_languages(raw.get("languages", [])),
+            "events": parse_events(raw.get("events", [])),
+            "member_follows": parse_member_follows(raw.get("member_follows", [])),
+            "job_applications": parse_job_applications(job_app_rows),
+            "recommendations_given": parse_recommendations_given(raw.get("recommendations_given", [])),
+            "inferences": parse_inferences(raw.get("inferences", [])),
         }
 
     # Write output
@@ -453,6 +679,17 @@ def parse_export(zip_path: str, output_path: str | None = None) -> dict:
     print(f"  Shares: {len(result['shares'])}")
     print(f"  Reactions: {len(result['reactions'])}")
     print(f"  Certifications: {len(result['certifications'])}")
+    print(f"  Comments: {len(result['comments'])}")
+    print(f"  Projects: {len(result['projects'])}")
+    print(f"  Honors: {len(result['honors'])}")
+    print(f"  Organizations: {len(result['organizations'])}")
+    print(f"  Volunteering: {len(result['volunteering'])}")
+    print(f"  Languages: {len(result['languages'])}")
+    print(f"  Events: {len(result['events'])}")
+    print(f"  Member Follows: {len(result['member_follows'])}")
+    print(f"  Job Applications: {len(result['job_applications'])}")
+    print(f"  Recommendations Given: {len(result['recommendations_given'])}")
+    print(f"  Inferences: {len(result['inferences'])}")
     print(f"{'='*60}")
     print(f"Output: {output}")
 
