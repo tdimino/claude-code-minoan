@@ -1,14 +1,14 @@
 # Browser Control with Claude Agent SDK
 
 Control web browsers programmatically using the Claude Agent SDK via the Chrome
-extension or agent-browser skill. Claude Agent SDK can use Claude Code skills natively.
+extension or dev-browser skill. Claude Agent SDK can use Claude Code skills natively.
 
 ## Overview: Two Approaches
 
 | Approach | Headless | Persistent State | Best For |
 |----------|----------|------------------|----------|
 | Chrome Extension | No | Yes (your session) | Interactive testing, auth'd apps |
-| agent-browser skill | Default | Yes (session-based) | Automation, scripting, E2E tests |
+| dev-browser skill | Optional | Yes (server-managed) | Automation, scripting, E2E tests |
 
 ## Approach 1: Claude Code Chrome Extension
 
@@ -118,109 +118,100 @@ async function testLoginFlow() {
 - Chain browser actions with terminal commands
 
 
-## Approach 2: agent-browser Skill (Vercel CLI)
+## Approach 2: dev-browser Skill (Playwright)
 
-The agent-browser skill provides CLI-based browser automation using Vercel's `agent-browser` tool.
-Uses ref-based selection (@e1, @e2) from accessibility snapshots - optimal for LLM agents.
+The dev-browser skill provides Playwright-based browser automation with **persistent page state**.
+Pages survive script executions - perfect for multi-step workflows.
 
-**Claude Agent SDK can invoke this skill natively.** Simple Bash commands instead of scripts.
+**Claude Agent SDK can invoke this skill natively.** The skill can be copied into any skills
+folder and used by agents directly.
 
 ### Installation
 
-```bash
-npm install -g agent-browser
-agent-browser install  # Downloads Chromium
-```
+The dev-browser skill is available as a marketplace plugin. To use it:
 
-### Core Workflow
+1. Install from marketplace: `~/.claude/plugins/marketplaces/dev-browser-marketplace/`
+2. Or copy the skill folder into your project's skills directory
 
-The snapshot + ref pattern is optimal for LLMs:
+### Setup
 
-```bash
-# 1. Open URL
-agent-browser open https://example.com
-
-# 2. Get interactive elements with refs
-agent-browser snapshot -i
-
-# 3. Interact using refs
-agent-browser click @e1
-agent-browser fill @e2 "search query"
-
-# 4. Re-snapshot after changes
-agent-browser snapshot -i
-```
-
-### Key Commands
+Start the dev-browser server:
 
 ```bash
-# Navigation
-agent-browser open <url>       # Navigate to URL
-agent-browser back             # Go back
-agent-browser forward          # Go forward
-agent-browser reload           # Reload page
-agent-browser close            # Close browser
-
-# Snapshots (essential for AI)
-agent-browser snapshot              # Full accessibility tree
-agent-browser snapshot -i           # Interactive elements only (recommended)
-agent-browser snapshot -i --json    # JSON output for parsing
-
-# Interactions
-agent-browser click @e1                    # Click element
-agent-browser fill @e1 "text"              # Clear and fill input
-agent-browser type @e1 "text"              # Type without clearing
-agent-browser press Enter                  # Press key
-agent-browser check @e1                    # Check checkbox
-agent-browser select @e1 "option"          # Select dropdown option
-agent-browser scroll down 500              # Scroll
-
-# Get information
-agent-browser get text @e1          # Get element text
-agent-browser get html @e1          # Get element HTML
-agent-browser get value @e1         # Get input value
-agent-browser get title             # Get page title
-agent-browser get url               # Get current URL
-
-# Screenshots
-agent-browser screenshot                      # Viewport screenshot
-agent-browser screenshot --full               # Full page
-agent-browser screenshot output.png           # Save to file
-
-# Wait
-agent-browser wait @e1              # Wait for element
-agent-browser wait 2000             # Wait milliseconds
+./skills/dev-browser/server.sh &
+# Wait for "Ready" message
+# Use --headless for headless mode
 ```
+
+Server runs on `http://localhost:9222`.
+
+### Basic Usage
+
+Write inline scripts with heredocs:
+
+```bash
+cd skills/dev-browser && bun x tsx <<'EOF'
+import { connect, waitForPageLoad } from "@/client.js";
+
+const client = await connect("http://localhost:9222");
+const page = await client.page("main"); // get or create a named page
+
+await page.goto("https://example.com");
+await waitForPageLoad(page);
+
+const title = await page.title();
+console.log({ title, url: page.url() });
+
+await client.disconnect(); // Page stays alive on server
+EOF
+```
+
+### Client API
+
+```typescript
+const client = await connect("http://localhost:9222");
+const page = await client.page("name");     // Get or create named page
+const pages = await client.list();          // List all page names
+await client.close("name");                 // Close a page
+await client.disconnect();                  // Disconnect (pages persist)
+
+// ARIA Snapshot for element discovery
+const snapshot = await client.getAISnapshot("name");
+const element = await client.selectSnapshotRef("name", "e5");
+```
+
+### Key Principles
+
+1. **Small scripts**: Each script does ONE thing (navigate, click, fill, check)
+2. **Evaluate state**: Always log/return state at the end
+3. **Use page names**: Descriptive names like `"checkout"`, `"login"`, `"search-results"`
+4. **Disconnect to exit**: Pages persist on server after disconnect
 
 ### ARIA Snapshot (Element Discovery)
 
-Interactive elements with refs:
+Use when you don't know the page layout:
 
-```bash
-agent-browser snapshot -i
-# Output:
-# - button "Submit" [ref=e1]
-# - textbox "Email" [ref=e2]
-# - link "Sign up" [ref=e3]
+```typescript
+const snapshot = await client.getAISnapshot("main");
+console.log(snapshot);
+// Output:
+// - banner:
+//   - link "Hacker News" [ref=e1]
+//   - navigation:
+//     - link "new" [ref=e2]
+//     - link "submit" [ref=e6]
+// ...
+
+// Interact by ref
+const element = await client.selectSnapshotRef("main", "e2");
+await element.click();
 ```
 
-### Sessions (Parallel Browsers)
+### Screenshots
 
-```bash
-# Run multiple independent browser sessions
-agent-browser --session browser1 open https://site1.com
-agent-browser --session browser2 open https://site2.com
-
-# List active sessions
-agent-browser session list
-```
-
-### Debug Mode
-
-```bash
-# Run with visible browser window
-agent-browser --headed open https://example.com
-agent-browser --headed snapshot -i
+```typescript
+await page.screenshot({ path: "tmp/screenshot.png" });
+await page.screenshot({ path: "tmp/full.png", fullPage: true });
 ```
 
 
@@ -280,40 +271,52 @@ async def test_google_docs():
     print(content["result"])
 ```
 
-### Pattern 4: agent-browser Workflow Loop
+### Pattern 4: dev-browser Workflow Loop
 
 ```bash
 # 1. Navigate
-agent-browser open https://myapp.com/login
+cd skills/dev-browser && bun x tsx <<'EOF'
+import { connect, waitForPageLoad } from "@/client.js";
+const client = await connect("http://localhost:9222");
+const page = await client.page("test");
+await page.goto("https://myapp.com/login");
+await waitForPageLoad(page);
+console.log("At:", page.url());
+await client.disconnect();
+EOF
 
 # 2. Discover elements
-agent-browser snapshot -i
-# Shows: textbox "Email" [ref=e1], textbox "Password" [ref=e2], button "Sign in" [ref=e3]
+cd skills/dev-browser && bun x tsx <<'EOF'
+import { connect } from "@/client.js";
+const client = await connect("http://localhost:9222");
+const snapshot = await client.getAISnapshot("test");
+console.log(snapshot);
+await client.disconnect();
+EOF
 
 # 3. Interact
-agent-browser fill @e1 "user@example.com"
-agent-browser fill @e2 "password123"
-agent-browser click @e3
-
-# 4. Verify
-agent-browser wait 2000
-agent-browser snapshot -i  # Check logged in state
+cd skills/dev-browser && bun x tsx <<'EOF'
+import { connect } from "@/client.js";
+const client = await connect("http://localhost:9222");
+const element = await client.selectSnapshotRef("test", "e5");
+await element.click();
+await client.disconnect();
+EOF
 ```
 
 
 ## Comparison: When to Use What
 
-| Use Case | Chrome Extension | agent-browser |
-|----------|------------------|---------------|
+| Use Case | Chrome Extension | dev-browser |
+|----------|------------------|-------------|
 | Testing authenticated apps | ✅ (your session) | ❌ (separate browser) |
-| Headless automation | ❌ | ✅ (default) |
-| Persistent sessions | ✅ (Chrome) | ✅ (`--session` flag) |
-| Multiple parallel browsers | ❌ | ✅ (named sessions) |
+| Headless automation | ❌ | ✅ (`--headless` flag) |
+| Persistent page state | ✅ (Chrome) | ✅ (server-managed) |
+| Multiple named pages | ❌ | ✅ |
 | CI/CD pipelines | ❌ (needs display) | ✅ |
-| Interactive debugging | ✅ | ✅ (`--headed` flag) |
+| Interactive debugging | ✅ | ✅ |
 | Visual inspection | ✅ | ✅ (screenshots) |
 | ARIA snapshot discovery | ❌ | ✅ |
-| Simple Bash-based workflow | ❌ | ✅ |
 
 
 ## Error Handling
@@ -340,16 +343,23 @@ def safe_browser_action(prompt: str, timeout: int = 60) -> dict:
         return {"error": f"Failed to parse response: {e}", "success": False}
 ```
 
-### agent-browser
+### dev-browser
 
-```bash
-# Debug by taking screenshot and checking state
-agent-browser screenshot debug.png
-agent-browser get url
-agent-browser get title
+```typescript
+import { connect } from "@/client.js";
 
-# Get JSON output for structured debugging
-agent-browser snapshot -i --json
+const client = await connect("http://localhost:9222");
+const page = await client.page("main");
+
+// Debug by taking screenshot and checking state
+await page.screenshot({ path: "tmp/debug.png" });
+console.log({
+  url: page.url(),
+  title: await page.title(),
+  bodyText: await page.textContent("body").then((t) => t?.slice(0, 200)),
+});
+
+await client.disconnect();
 ```
 
 
@@ -358,5 +368,4 @@ agent-browser snapshot -i --json
 - [Claude Code Chrome Docs](https://code.claude.com/docs/en/chrome)
 - [Claude Code Headless Docs](https://code.claude.com/docs/en/headless)
 - [Claude in Chrome Extension](https://chromewebstore.google.com/detail/claude-in-chrome)
-- [Vercel agent-browser](https://github.com/vercel/agent-browser)
-- agent-browser skill: `~/.claude/skills/agent-browser/`
+- dev-browser skill: `~/.claude/plugins/marketplaces/dev-browser-marketplace/`
