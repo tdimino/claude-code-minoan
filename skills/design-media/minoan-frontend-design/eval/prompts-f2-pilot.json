@@ -1,0 +1,77 @@
+[
+  {
+    "id": "landing-01",
+    "category": "landing",
+    "prompt": "Build a landing page for a SaaS product that helps remote teams run async standups and weekly check-ins"
+  },
+  {
+    "id": "landing-02",
+    "category": "landing",
+    "prompt": "Design a restaurant website homepage for an upscale ramen shop in Brooklyn with an online reservation system"
+  },
+  {
+    "id": "landing-03",
+    "category": "landing",
+    "prompt": "Build a nonprofit landing page for an ocean conservation organization with a donation call-to-action"
+  },
+  {
+    "id": "landing-04",
+    "category": "landing",
+    "prompt": "Design an event landing page for a three-day electronic music festival in the desert"
+  },
+  {
+    "id": "landing-05",
+    "category": "landing",
+    "prompt": "Create a landing page for a DeFi protocol that lets users stake tokens and earn yield"
+  },
+  {
+    "id": "dashboard-01",
+    "category": "dashboard",
+    "prompt": "Design an analytics dashboard showing website traffic, conversion funnels, and user engagement metrics"
+  },
+  {
+    "id": "dashboard-02",
+    "category": "dashboard",
+    "prompt": "Build a project management dashboard with kanban boards, team workload view, and deadline tracking"
+  },
+  {
+    "id": "dashboard-03",
+    "category": "dashboard",
+    "prompt": "Create a social media analytics dashboard showing follower growth, engagement rates, and content performance across platforms"
+  },
+  {
+    "id": "dashboard-04",
+    "category": "dashboard",
+    "prompt": "Design a personal health tracker dashboard displaying sleep, exercise, nutrition, and mood data over time"
+  },
+  {
+    "id": "dashboard-05",
+    "category": "dashboard",
+    "prompt": "Build a financial portfolio dashboard showing asset allocation, performance charts, and transaction history"
+  },
+  {
+    "id": "creative-01",
+    "category": "creative",
+    "prompt": "Create a band website for an indie rock group with tour dates, music player, merch store, and photo gallery"
+  },
+  {
+    "id": "creative-02",
+    "category": "creative",
+    "prompt": "Create a podcast player interface with episode list, waveform visualizer, playback controls, and show notes"
+  },
+  {
+    "id": "creative-03",
+    "category": "creative",
+    "prompt": "Design a creative 404 error page that entertains while guiding users back to useful content"
+  },
+  {
+    "id": "creative-04",
+    "category": "creative",
+    "prompt": "Design a scroll-triggered portfolio that reveals project cards with staggered fade-in animations as you scroll down the page"
+  },
+  {
+    "id": "creative-05",
+    "category": "creative",
+    "prompt": "Build a set of interactive hover cards that respond to cursor position with 3D tilt, spotlight glow, and depth shadow effects"
+  }
+]
