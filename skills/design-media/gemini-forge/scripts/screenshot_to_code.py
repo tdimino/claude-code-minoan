@@ -260,8 +260,7 @@ def main():
     for path in saved:
         print(f"  {path}")
     print()
-    print("  Next: Read the output, then polish with minoan-frontend-creative")
-    print("  and minoan-frontend-engineering standards.")
+    print("  Next: Read the output, then polish with minoan-frontend-design standards.")
 
 
 if __name__ == "__main__":

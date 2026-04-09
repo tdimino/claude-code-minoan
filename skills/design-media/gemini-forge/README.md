@@ -68,7 +68,7 @@ Gemini drafts at $2/MTok. Claude polishes at $15/MTok:
 
 1. Run a gemini-forge script → output to `./output/`
 2. Claude reads the generated file
-3. Claude applies minoan-frontend-creative (aesthetics) + minoan-frontend-engineering (production standards)
+3. Claude applies minoan-frontend-design standards (aesthetics + production engineering)
 4. Claude writes the polished output to the project
 
 ## Screenshot-to-Code Pipeline
