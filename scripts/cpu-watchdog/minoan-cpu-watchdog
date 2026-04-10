@@ -1,0 +1,3 @@
+#!/bin/sh
+# Shell wrapper for launchd — gives the process a readable name
+exec python3 /Users/tomdimino/.claude/scripts/cpu-watchdog/phroura.py --daemon

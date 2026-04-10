@@ -29,5 +29,6 @@
 | Directory | Description |
 |-----------|-------------|
 | `clean-browser-screenshot/` | Take browser screenshots with no toolbar or UI chrome via CleanShot X fullscreen capture |
+| `cpu-watchdog/` | **phroura** — launchd daemon detecting runaway processes (>90% CPU sustained), alerts via `alerter` + Telegram, Claude session enrichment (session ID, revoked FDs) |
 | `screenshot-rename/` | macOS launchd service for auto-renaming screenshots with AI-generated descriptions |
 | `syspeek/` | macOS system resource monitor — categorized processes, Kothar-compatible JSON, Claudicle memory integration, launchd daemon |
