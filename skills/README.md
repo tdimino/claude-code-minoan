@@ -71,6 +71,9 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `image-forge` | Precision image editing via [ImageMagick](https://imagemagick.org/) 7, sips, rembg, Pillow — JSON pipeline specs, batch ops, smart crop, montage builder |
 | `pretext` | Text effects impossible with CSS — kinetic typography, flowing text around animated obstacles, calligrams, shrinkwrap bubbles, typographic ASCII art, glyph path animation, variable font waves, glyph morphing. Powered by [@chenglou/pretext](https://github.com/chenglou/pretext) + [opentype.js](https://opentype.js.org/). 10 templates, 5 references, validation script. |
 | `rocaille-shader` | Procedural shader generation for WebGL/GLSL |
+| `grainient` | 16 composable dark-mode effects: WebGL2 aurora shader, vignette overlays, 9-layer box shadows, smooth scroll, spring animations, hover zoom, ticker marquee, glassmorphism, 3D card flip, bento grid, gradient CTAs. 5 modes, generator, validator |
+| `threejs-particle-canvas` | Interactive Three.js particle canvases: narrative phase cycles, WebGPU spinners, infinite gallery tunnels, behavior-driven glTF specimens |
+| `sprite-forge` | Game sprites, SVG characters, ASCII art, animated mascots, isometric turnarounds — 5 output modes |
 
 ### Research (`research/`)
 | Skill | Description |

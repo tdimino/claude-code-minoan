@@ -43,7 +43,7 @@ The satellite skills adapt patterns from [Impeccable](https://github.com/pbakaus
 | `threejs-particle-canvas` | Interactive Three.js canvases in four modes: narrative particle phase cycles (Mode 1), WebGPU + TSL spinner/loaders (Mode 2, 9 curve types), infinite scrollable image tunnels (Mode 3), and behavior-driven glTF specimen scenes (Mode 4). Ships a shared Phosphor Vigil FX module |
 | `pretext` | Text effects impossible with CSS alone — kinetic typography, calligrams, shrinkwrap bubbles, typographic ASCII art, glyph morphing, illuminated manuscripts. Uses `@chenglou/pretext` |
 | `sprite-forge` | Game sprites, SVG characters, ASCII art (static + animated), animated mascots, isometric turnarounds — 5 output modes with chongdashu pipeline, video-to-spritesheet, Gemini SVG-as-code, GSAP animation |
-| `grainient` | Recreate grainient.supply's 16 dark-mode effects: WebGL aurora shader, vignette overlays, 9-layer box shadows, Lenis-style smooth scroll, spring animations, hover zoom, ticker marquee, glassmorphism |
+| `grainient` | 16 composable dark-mode effects: WebGL2 aurora shader, vignette overlays, 9-layer box shadows, Lenis-style smooth scroll, spring animations, hover zoom, ticker marquee, glassmorphism, 3D card flip, bento grid, gradient CTAs. 5 modes, generator script, validator |
 
 ## Component Libraries
 
