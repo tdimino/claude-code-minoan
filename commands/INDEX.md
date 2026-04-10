@@ -12,6 +12,7 @@
 | `claude-tracker-resume.md` | `/claude-tracker-resume` | Resume a session by number from tracker output |
 | `session-report.md` | `/session-report` | Generate Markdown dashboard of recent sessions with git activity |
 | `spawn.md` | `/spawn` | Start a new session (interactive, prompt-driven, or headless) |
+| `tag.md` | `/tag` | Attach manual keyword metatags to the current session for search recall |
 
 ## Soul & Identity
 
