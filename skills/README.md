@@ -61,7 +61,11 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 ### Design & Media (`design-media/`)
 | Skill | Description |
 |-------|-------------|
-| `minoan-frontend-design` | Eval-validated frontend design (70% vs baseline in blind A/B) — bold typography, committed palettes, unexpected layouts. 5 reference files, progressive disclosure. |
+| `minoan-frontend-design` | Eval-validated frontend design (70% vs baseline in blind A/B). Context protocol, font reflex-reject procedure, OKLCH-first color, absolute CSS bans. 32 reference files, progressive disclosure. |
+| `shape` | Pre-code design brief through structured discovery interview. Produces `.design-context.md` with audience, brand personality, aesthetic direction, design dials. |
+| `design-audit` | Technical quality checks: 5 dimensions scored /20 (a11y, performance, responsive, theming, anti-patterns). P0-P3 severity. Report-only. |
+| `design-critique` | UX review: Nielsen's 10 heuristics scored /40, cognitive load, persona-based testing, AI Slop Test. Report-only. |
+| `design-polish` | Final quality pass: alignment, spacing, 8 interaction states, transitions, WCAG contrast, code cleanup. Makes changes. |
 | `gemini-claude-resonance` | Cross-model dialogue between Claude and [Gemini](https://deepmind.google/technologies/gemini/) |
 | `nano-banana-pro` | Image generation via [Gemini 3 Pro](https://deepmind.google/technologies/gemini/) |
 | `image-forge` | Precision image editing via [ImageMagick](https://imagemagick.org/) 7, sips, rembg, Pillow — JSON pipeline specs, batch ops, smart crop, montage builder |
@@ -117,4 +121,6 @@ skill-name/
 - **[@chenglou/pretext](https://github.com/chenglou/pretext)** by Cheng Lou — DOM-free text measurement and layout (24.5K stars)
 - **[opentype.js](https://opentype.js.org/)** — JavaScript font parser for per-glyph SVG path rendering
 - **[flubber](https://github.com/veltman/flubber)** by Noah Veltman — SVG shape morphing for glyph interpolation
+- **[Impeccable](https://github.com/pbakaus/impeccable)** by Paul Bakaus — decomposed design command architecture, font reflex-reject protocol, CSS anti-pattern bans
+- **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** — color science, OKLCH decision matrices, palette generation
 - **[Open Souls](https://github.com/opensouls/opensouls)** — the AI souls paradigm that shapes our agent architecture

@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-72-green.svg" alt="Skills"></a>
-  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-47-purple.svg" alt="Commands"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-76-green.svg" alt="Skills"></a>
+  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-16-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-44-orange.svg" alt="Hooks"></a>
 </p>
 
@@ -20,14 +20,14 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 72 custom skills across 5 categories
+├── skills/                      # 76 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
 │   ├── research/                #   Academic, web search, scraping
 │   └── planning-productivity/   #   Session tracking, swarms, iteration loops
 ├── hooks/                       # 44 lifecycle hooks (handoffs, terminal UX, lint-on-write, mycelium)
-├── commands/                    # 47 slash commands (workflows, planning, code review)
+├── commands/                    # 16 slash commands (session tracking, design, soul, workflows)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
@@ -73,7 +73,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 72 skills across 5 categories
+### [Skills](skills/README.md) — 76 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -134,7 +134,7 @@ SessionEnd ────────→ precompact-handoff.py       (handoff on g
 
 ---
 
-### [Commands](commands/README.md) — 47 slash commands
+### [Commands](commands/README.md) — 16 slash commands
 
 Markdown templates invoked as `/command-name`. Key workflows:
 
