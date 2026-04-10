@@ -20,6 +20,7 @@ Local ML inference, RAG, browser automation, messaging, telephony, and external 
 | `slack` | Slack workspace integration — post, read, search, react, upload |
 | `slack-respond` | Process Slack messages as Claudicle with persistent memory |
 | `supabase-skill` | Supabase project management via MCP |
+| `telegram` | Telegram Bot API — send (text, Markdown, inline keyboards), check inbox, callback queries, bot/listener health, memory context. REST-based (no asyncio). Supports approval gates with tappable buttons. |
 | `telnyx-api` | SMS/MMS and voice via Telnyx API |
 | `twilio-api` | SMS/MMS and voice via Twilio API |
 | `resend` | Send email via [Resend](https://resend.com/) API — text, HTML, attachments, CC/BCC, stdin pipe, sender aliases |
