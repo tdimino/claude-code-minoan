@@ -216,8 +216,8 @@ def main():
         if result:
             opt_path, new_w, new_h = result
             new_tokens = calc_tokens(new_w, new_h)
-            saved_pct = round((1 - new_tokens / orig_tokens) * 100) if orig_tokens > 0 else 0
             opt_size = os.path.getsize(opt_path)
+            bytes_saved_pct = round((1 - opt_size / file_size) * 100) if file_size > 0 else 0
 
             update_session_state(file_path, new_tokens, session_id)
 
@@ -226,14 +226,15 @@ def main():
                 reasons.append(f"resized {w}x{h} -> {new_w}x{new_h}")
             if ext == ".png":
                 reasons.append("PNG -> JPEG")
-            if too_large_file and not should_resize:
-                reasons.append(f"{file_size // 1024}KB -> {opt_size // 1024}KB")
+            reasons.append(f"{file_size // 1024}KB -> {opt_size // 1024}KB on the wire")
 
+            # Token count is pixel-bound and format-independent — Anthropic resizes server-side
+            # to 1568px max edge regardless. Pre-resizing saves upload bandwidth and TTFT, not tokens.
             context = (
                 f"[{basename}: optimized ({', '.join(reasons)}), "
-                f"~{new_tokens} tokens (was ~{orig_tokens}), saved {saved_pct}%]\n"
+                f"~{new_tokens} tokens, {bytes_saved_pct}% smaller payload]\n"
                 f"Optimized copy: {opt_path}\n"
-                f"Read the optimized file instead to save tokens."
+                f"Read the optimized file for faster time-to-first-token."
             )
             output = {"additionalContext": context}
             print(json.dumps(output))

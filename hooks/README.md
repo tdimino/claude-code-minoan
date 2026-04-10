@@ -465,17 +465,41 @@ PreToolUse guard that intercepts image file reads, optimizes oversized images, a
 **Output** (JSON on stdout):
 ```json
 {
-  "additionalContext": "[screenshot.png: optimized (resized 2560x1600 -> 1568x980, PNG -> JPEG), ~2043 tokens (was ~5461), saved 63%]\nOptimized copy: ~/.claude/.screenshot-cache/opt-a1b2c3d4.jpg\nRead the optimized file instead to save tokens."
+  "additionalContext": "[screenshot.png: optimized (resized 2560x1600 -> 1568x980, PNG -> JPEG, 7400KB -> 280KB on the wire), ~2043 tokens, 96% smaller payload]\nOptimized copy: ~/.claude/.screenshot-cache/opt-a1b2c3d4.jpg\nRead the optimized file for faster time-to-first-token."
 }
 ```
 
+**What this actually saves** — token count is **unchanged**. Anthropic resizes server-side regardless (`tokens = (w × h) / 750`, capped at 1568px long edge). The real wins are:
+
+- **Upload bandwidth**: A 7.4MB Retina PNG drops to ~280KB JPEG (96% smaller on the wire). Across 15 screenshots in a session that's ~110MB of avoided transfer.
+- **Time-to-first-token**: Per [Anthropic's vision docs](https://docs.anthropic.com/en/docs/build-with-claude/vision): *"If your input image is too large and needs to be resized, it increases latency of time-to-first-token, with no benefit to output quality."*
+- **Session resilience**: The >20 images / 5MB base64 / 20MB request limits are all byte-bound. Client-side resize is the difference between a working session and one that's permanently bricked (see [#34566](https://github.com/anthropics/claude-code/issues/34566)).
+- **Pre-context defense**: Claude Code's internal `sharp` pipeline can fail silently and pass the raw unresized image into context. This hook intercepts *before* that pipeline runs.
+
 **Key numbers**:
-- Token formula: `(width × height) / 750`
-- 1568px max edge = API's auto-resize target (zero quality loss pre-resizing)
+- Token formula: `(width × height) / 750` (pixel-based, format-independent)
+- 1568px max edge = Anthropic's server-side resize target (more aggressive than Claude Code's 2000px client target)
 - PNG → JPEG at quality 80 typically saves 60–80% file size (varies by image content)
-- Typical Retina screenshot: 2560×1600 = ~5,461 tokens → 1568×980 = ~2,043 tokens (63% savings)
+- Typical Retina screenshot: 2560×1600 (~7.4MB PNG) → 1568×980 (~280KB JPEG), same token count
 
 **Cost**: Zero. No LLM calls — pure local `sips` subprocess.
+
+#### Why not rely on Claude Code's built-in resize?
+
+Claude Code does resize images internally using [`sharp`/libvips](https://sharp.pixelplumbing.com/) with a 2000×2000px target ([#34566](https://github.com/anthropics/claude-code/issues/34566) confirms `WB=2000, ZB=2000`, still current as of v2.1.97). The [v2.1.97 changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md) unified pasted/attached image compression to match the Read-tool budget — a real improvement.
+
+So why bother with a client-side hook? **Several failure modes the built-in pipeline does not cover:**
+
+- **[#34566](https://github.com/anthropics/claude-code/issues/34566) — Sharp silently fails on oversized images.** When `sharp` errors out (missing native module, Vips error, etc.), the *raw unresized image* passes into context. The session is then permanently bricked because the oversized bytes are re-sent on every turn. Our hook intercepts *before* `sharp` runs, so failures are survivable.
+- **[#39194](https://github.com/anthropics/claude-code/issues/39194) — `sharp` native module missing on darwin-arm64** in the VSCode extension. Our hook uses `sips` (always present on macOS) and has no native-module dependency.
+- **[#31208](https://github.com/anthropics/claude-code/issues/31208) — MCP `ImageContent` treated as text** (10–20x token waste, 15,000–25,000 tokens per image instead of ~1,600). Our `image-budget.py` tracks MCP screenshots against the same 20-image budget so you get a warning before the session bricks, even though the hook can't fix the root cause.
+- **[#37418](https://github.com/anthropics/claude-code/issues/37418) — Session JSONL grows unboundedly from MCP screenshots** (117 screenshots → 64MB session file). Byte-bound, not token-bound.
+- **[#27869](https://github.com/anthropics/claude-code/issues/27869) — Chrome MCP screenshots drain 17% of a Max plan in five turns.** Budget tracking catches this before it compounds.
+- **[#42256](https://github.com/anthropics/claude-code/issues/42256) — Oversized images re-sent every turn.** Pre-resize caps the per-turn re-send cost at the 1568px optimum.
+
+**The critical point:** the failure modes that brick sessions are **byte-bound, not token-bound**. The 5MB base64 per-image limit, the 20MB request size limit, and the 20-images-before-2000×2000px-cap are all about bytes on the wire. Server-side resize can't save you from any of them — the oversized bytes have to travel first. Pre-resizing client-side is the difference between a working session and one that's permanently broken.
+
+Our 1568px target is also more aggressive than Claude Code's 2000px target — 1568 matches [Anthropic's documented server-side resize target](https://docs.anthropic.com/en/docs/build-with-claude/vision) exactly, so we avoid two resize passes on the same image.
 
 ---
 
