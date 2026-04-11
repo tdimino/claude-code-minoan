@@ -1,6 +1,6 @@
 # Integration & Automation Skills
 
-Local ML inference, RAG, browser automation, messaging, telephony, and external service integrations.
+Local ML inference, RAG, browser automation, messaging, telephony, physical media, and external service integrations.
 
 | Skill | Description |
 |-------|-------------|
@@ -10,6 +10,7 @@ Local ML inference, RAG, browser automation, messaging, telephony, and external 
 | `claude-peers` | Peer discovery, messaging, and lifecycle management between Claude Code and Codex CLI via Unix socket MCP |
 | `codex-cto` | Codex CLI as CTO: GPT-5.4-Pro plans, GPT-5.4 reviews, Claude Code executes |
 | `codex-orchestrator` | Orchestrate OpenAI Codex CLI subagents (GPT-5.4/5.4-Pro) — 10 profiles |
+| `disc-forge` | Burn Red Book audio CDs on macOS via [cdrdao](https://cdrdao.sourceforge.net/) with CD-Text from ID3 tags — works with USB burners `drutil` labels "Unsupported" |
 | `figma-mcp` | Convert Figma designs to production code via MCP |
 | `linkedin-export` | Parse, search, analyze LinkedIn GDPR data exports (23 CSV types) |
 | `llama-cpp` | Direct llama.cpp access: GGUF models, LoRA hot-loading, benchmarking |
