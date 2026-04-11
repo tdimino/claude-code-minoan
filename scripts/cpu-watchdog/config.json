@@ -44,5 +44,23 @@
     "ollama",
     "llama-server",
     "llama-cli"
+  ],
+
+  "enable_ram_watchdog": true,
+  "rss_window_samples": 20,
+  "rss_warn_mb": 800,
+  "rss_alert_mb": 1200,
+  "rss_critical_mb": 2000,
+  "rss_claude_floor_mb": 100,
+  "rss_growth_mb_per_min": 60,
+  "rss_growth_min_samples": 5,
+  "rss_cooldown_min": 60,
+
+  "enable_orphan_mcp_watchdog": true,
+  "orphan_mcp_threshold": 15,
+  "orphan_mcp_cooldown_min": 60,
+  "orphan_mcp_excludes": [
+    "claude-peers",
+    "claude-plugins-mcp"
   ]
 }
