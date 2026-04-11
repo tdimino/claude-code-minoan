@@ -32,7 +32,7 @@ import signal
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -73,6 +73,23 @@ DEFAULT_CONFIG = {
         # Local LLM inference
         "ollama", "llama-server", "llama-cli",
     ],
+    # --- RAM watchdog (Claude Code memory leak detection) ---
+    "enable_ram_watchdog": True,
+    "rss_window_samples": 20,            # 10 min rolling window at 30s poll
+    "rss_warn_mb": 800,                  # Log-only (shows up in status.sh + logs)
+    "rss_alert_mb": 1200,                # macOS + Telegram (sustained consecutive_checks)
+    "rss_critical_mb": 2000,             # Louder alert, suggests kill -9
+    "rss_claude_floor_mb": 100,          # Skip RAM tracking for tiny helpers
+    "rss_growth_mb_per_min": 60,         # Growth-slope alert threshold
+    "rss_growth_min_samples": 5,         # Minimum samples before slope is trusted
+    "rss_cooldown_min": 60,              # Cooldown shared across RAM alert types
+    # --- Orphan MCP cluster detection ---
+    "enable_orphan_mcp_watchdog": True,
+    "orphan_mcp_threshold": 15,          # Alert when reparented MCP count > threshold
+    "orphan_mcp_cooldown_min": 60,       # Independent of RAM cooldown
+    "orphan_mcp_excludes": [             # Legitimate PPID=1 daemons to ignore
+        "claude-peers", "claude-plugins-mcp",
+    ],
 }
 
 
@@ -99,7 +116,7 @@ class ProcessInfo:
 
 @dataclass
 class PIDTrackingState:
-    """Rolling CPU state for a single PID."""
+    """Rolling CPU + RAM state for a single PID."""
     pid: int
     hot_count: int = 0
     total_checks: int = 0
@@ -109,12 +126,27 @@ class PIDTrackingState:
     last_alert_time: Optional[str] = None
     cwd: Optional[str] = None
     session_id: Optional[str] = None
+    # --- RAM tracking (extension) ---
+    rss_samples: list = field(default_factory=list)      # [(iso_ts, rss_kb), ...]
+    rss_hot_count: int = 0                               # consecutive checks over rss_alert_mb
+    last_rss_kb: int = 0
+    peak_rss_kb: int = 0
+    last_rss_alert_time: Optional[str] = None            # highest-tier RSS alert cooldown
+    last_rss_severity: Optional[str] = None              # "warn" | "alert" | "critical"
+    last_growth_alert_time: Optional[str] = None         # growth-slope alert cooldown
 
 
 # ─── Process Discovery ────────────────────────────────────────────────────
 
 # Always exclude these — internal Claude infrastructure, not sessions
 CLAUDE_INFRA_EXCLUDE = re.compile(r"claude-peers|claude-plugins|grep.*claude")
+
+# Heuristic for MCP server command-line fragments. Matches the
+# anthropics/claude-code #33947 / #26658 orphan-accumulation pattern.
+MCP_HINTS_RE = re.compile(
+    r"@modelcontextprotocol/|/mcp-server|/mcp/|"
+    r"\bclaude[- ]mcp\b|\bmcp-proxy\b|\bmcp_server\b"
+)
 
 
 def _is_claude_session(command: str) -> bool:
@@ -254,6 +286,56 @@ class ProcessPoller:
 
         return proc
 
+    def find_orphan_mcp_processes(self, config: dict) -> list[dict]:
+        """Return list of PPID=1 node/python MCP servers that look reparented.
+
+        Each entry: {pid, rss_kb, command}. Uses a single `ps` scan and
+        filters the excludes list (claude-peers, claude-plugins-mcp, etc.).
+        """
+        excludes = set(config.get("orphan_mcp_excludes", []))
+        orphans: list[dict] = []
+
+        try:
+            result = subprocess.run(
+                ["ps", "-eo", "pid=,ppid=,rss=,command="],
+                capture_output=True, text=True, timeout=10,
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            return orphans
+
+        for line in result.stdout.strip().split("\n"):
+            parts = line.split(None, 3)
+            if len(parts) < 4:
+                continue
+            try:
+                pid = int(parts[0])
+                ppid = int(parts[1])
+                rss_kb = int(parts[2])
+            except ValueError:
+                continue
+            if ppid != 1:
+                continue
+            command = parts[3]
+
+            # Exclude legit long-running PPID=1 daemons
+            basename = _command_basename(command)
+            if basename in excludes:
+                continue
+            if any(ex in command for ex in excludes):
+                continue
+
+            # Must look like an MCP server — node or python process
+            # whose command matches the hint regex.
+            if not MCP_HINTS_RE.search(command):
+                continue
+
+            orphans.append({
+                "pid": pid,
+                "rss_kb": rss_kb,
+                "command": command[:200],
+            })
+        return orphans
+
 
 # ─── State Tracker ────────────────────────────────────────────────────────
 
@@ -264,14 +346,40 @@ class StateTracker:
         self.state_file = state_file
         self.max_pids = max_pids
         self.states: dict[int, PIDTrackingState] = {}
+        # System-wide cooldown stamps keyed by alert-type (orphan-MCP, etc.).
+        self.global_state: dict[str, str] = {}
         self._load()
 
     def _load(self):
         if self.state_file.exists():
             try:
                 data = json.loads(self.state_file.read_text())
-                for pid_str, s in data.items():
+                # The new schema stores per-PID state under "pids" with a
+                # sibling "global" blob for system-wide signals. Legacy state
+                # files stored PIDs at the top level — detect and migrate.
+                if "pids" in data and isinstance(data["pids"], dict):
+                    pid_blob = data["pids"]
+                    self.global_state = data.get("global", {})
+                else:
+                    pid_blob = data
+                    self.global_state = {}
+
+                for pid_str, s in pid_blob.items():
+                    if not pid_str.isdigit():
+                        continue
                     pid = int(pid_str)
+                    # rss_samples stored as [[ts, rss_kb], ...] in JSON.
+                    # Tolerate corrupt samples (non-int, None, missing fields)
+                    # rather than crashing the whole state load.
+                    raw_samples = s.get("rss_samples") or []
+                    samples: list = []
+                    for pair in raw_samples:
+                        if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                            continue
+                        try:
+                            samples.append((str(pair[0]), int(pair[1])))
+                        except (TypeError, ValueError):
+                            continue
                     self.states[pid] = PIDTrackingState(
                         pid=pid,
                         hot_count=s.get("hot_count", 0),
@@ -282,14 +390,26 @@ class StateTracker:
                         last_alert_time=s.get("last_alert_time"),
                         cwd=s.get("cwd"),
                         session_id=s.get("session_id"),
+                        rss_samples=samples,
+                        rss_hot_count=s.get("rss_hot_count", 0),
+                        last_rss_kb=s.get("last_rss_kb", 0),
+                        peak_rss_kb=s.get("peak_rss_kb", 0),
+                        last_rss_alert_time=s.get("last_rss_alert_time"),
+                        last_rss_severity=s.get("last_rss_severity"),
+                        last_growth_alert_time=s.get("last_growth_alert_time"),
                     )
-            except (json.JSONDecodeError, KeyError):
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+                # Corrupt state file — start clean rather than crashing the daemon.
                 self.states = {}
+                self.global_state = {}
+        else:
+            self.global_state = {}
 
     def save(self):
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self._prune_dead()
-        data = {str(pid): asdict(s) for pid, s in self.states.items()}
+        pid_blob = {str(pid): asdict(s) for pid, s in self.states.items()}
+        data = {"pids": pid_blob, "global": self.global_state}
         # Atomic write: temp file + rename (safe under SIGKILL)
         tmp = self.state_file.with_suffix(".tmp")
         tmp.write_text(json.dumps(data, indent=2))
@@ -321,7 +441,12 @@ class StateTracker:
             )
             self.states = dict(sorted_states[: self.max_pids])
 
-    def update(self, proc: "ProcessInfo", threshold: float) -> PIDTrackingState:
+    def update(
+        self,
+        proc: "ProcessInfo",
+        cpu_threshold: float,
+        config: Optional[dict] = None,
+    ) -> PIDTrackingState:
         now = datetime.now().isoformat()
 
         if proc.pid not in self.states:
@@ -337,10 +462,27 @@ class StateTracker:
         state.cwd = proc.cwd or state.cwd
         state.session_id = proc.session_id or state.session_id
 
-        if proc.cpu_pct >= threshold:
+        if proc.cpu_pct >= cpu_threshold:
             state.hot_count += 1
         else:
             state.hot_count = 0
+
+        # --- RAM sampling ---
+        state.last_rss_kb = proc.rss_kb
+        if proc.rss_kb > state.peak_rss_kb:
+            state.peak_rss_kb = proc.rss_kb
+
+        state.rss_samples.append((now, int(proc.rss_kb)))
+        window = int((config or {}).get("rss_window_samples", 20))
+        if len(state.rss_samples) > window:
+            # Drop oldest until we fit (FIFO). Slicing is cheap at this scale.
+            state.rss_samples = state.rss_samples[-window:]
+
+        rss_alert_kb = int((config or {}).get("rss_alert_mb", 1200)) * 1024
+        if proc.rss_kb >= rss_alert_kb:
+            state.rss_hot_count += 1
+        else:
+            state.rss_hot_count = 0
 
         return state
 
@@ -362,6 +504,139 @@ class StateTracker:
     def mark_alerted(self, pid: int):
         if pid in self.states:
             self.states[pid].last_alert_time = datetime.now().isoformat()
+
+    # ─── RAM detection ────────────────────────────────────────────────────
+
+    _SEVERITY_RANK = {"warn": 0, "alert": 1, "critical": 2}
+
+    def classify_rss_severity(
+        self, state: PIDTrackingState, config: dict
+    ) -> Optional[str]:
+        """Return 'warn' | 'alert' | 'critical' | None for this process.
+
+        Picks the highest tier whose threshold is breached. The `alert`
+        and `critical` tiers require `rss_hot_count >= consecutive_checks`
+        (sustained breach), while `warn` fires on any single sample above
+        the warn line.
+
+        All three tiers share a single cooldown (`rss_cooldown_min`) and
+        the tier-rank map: a cooldown suppresses only same-or-lower-tier
+        re-alerts, so an escalation from `alert` to `critical` still fires.
+        """
+        rss_kb = state.last_rss_kb
+        warn_kb = int(config.get("rss_warn_mb", 800)) * 1024
+        alert_kb = int(config.get("rss_alert_mb", 1200)) * 1024
+        critical_kb = int(config.get("rss_critical_mb", 2000)) * 1024
+        consecutive = int(config.get("consecutive_checks", 3))
+
+        # Highest tier first — "critical" wins when multiple thresholds apply.
+        if rss_kb >= critical_kb and state.rss_hot_count >= consecutive:
+            severity = "critical"
+        elif rss_kb >= alert_kb and state.rss_hot_count >= consecutive:
+            severity = "alert"
+        elif rss_kb >= warn_kb:
+            severity = "warn"
+        else:
+            return None
+
+        # Cooldown suppression: rank-based so escalation always fires.
+        # Example: last was "alert", now "critical" → rank 2 > rank 1 → fire.
+        #          last was "critical", now "alert" → rank 1 < rank 2 → suppress.
+        #          last was "warn", now "warn" → rank 0 == rank 0 → suppress.
+        if state.last_rss_alert_time:
+            try:
+                last = datetime.fromisoformat(state.last_rss_alert_time)
+                cooldown = timedelta(minutes=int(config.get("rss_cooldown_min", 60)))
+                if datetime.now() - last < cooldown:
+                    prev = state.last_rss_severity or ""
+                    prev_rank = self._SEVERITY_RANK.get(prev, -1)
+                    cur_rank = self._SEVERITY_RANK.get(severity, 0)
+                    if prev_rank >= cur_rank:
+                        return None
+            except (ValueError, TypeError):
+                pass
+
+        return severity
+
+    def mark_rss_alerted(self, pid: int, severity: str):
+        if pid in self.states:
+            st = self.states[pid]
+            st.last_rss_alert_time = datetime.now().isoformat()
+            st.last_rss_severity = severity
+
+    def rss_growth_slope(
+        self, state: PIDTrackingState, config: dict
+    ) -> Optional[float]:
+        """MB/minute slope across the oldest→newest sample pair, or None.
+
+        Returns None when we lack enough samples or the elapsed window is
+        too narrow to compute a meaningful slope.
+        """
+        min_samples = int(config.get("rss_growth_min_samples", 5))
+        if len(state.rss_samples) < min_samples:
+            return None
+
+        first_ts, first_kb = state.rss_samples[0]
+        last_ts, last_kb = state.rss_samples[-1]
+        try:
+            t0 = datetime.fromisoformat(first_ts)
+            t1 = datetime.fromisoformat(last_ts)
+            seconds = (t1 - t0).total_seconds()
+        except (ValueError, TypeError):
+            # TypeError catches mixed naive/aware datetimes (e.g., from a
+            # state.json written by a different Python version). Silently
+            # skip slope for this cycle rather than crashing the poll.
+            return None
+
+        if seconds < 30:
+            return None  # window too short (or clock moved backward)
+
+        delta_mb = (last_kb - first_kb) / 1024.0
+        minutes = seconds / 60.0
+        return delta_mb / minutes
+
+    def should_alert_rss_growth(
+        self, state: PIDTrackingState, config: dict, slope_mb_per_min: float
+    ) -> bool:
+        if slope_mb_per_min < float(config.get("rss_growth_mb_per_min", 60)):
+            return False
+
+        if state.last_growth_alert_time:
+            try:
+                last = datetime.fromisoformat(state.last_growth_alert_time)
+                cooldown = timedelta(minutes=int(config.get("rss_cooldown_min", 60)))
+                if datetime.now() - last < cooldown:
+                    return False
+            except ValueError:
+                pass
+        return True
+
+    def mark_growth_alerted(self, pid: int):
+        if pid in self.states:
+            self.states[pid].last_growth_alert_time = datetime.now().isoformat()
+
+    # ─── Orphan MCP detection ─────────────────────────────────────────────
+
+    def should_alert_orphan_mcp(self, orphan_count: int, config: dict) -> bool:
+        threshold = int(config.get("orphan_mcp_threshold", 15))
+        if orphan_count < threshold:
+            return False
+
+        last_ts = self.global_state.get("last_orphan_mcp_alert_time")
+        if last_ts:
+            try:
+                last = datetime.fromisoformat(last_ts)
+                cooldown = timedelta(
+                    minutes=int(config.get("orphan_mcp_cooldown_min", 60))
+                )
+                if datetime.now() - last < cooldown:
+                    return False
+            except (ValueError, TypeError):
+                pass
+        return True
+
+    def mark_orphan_mcp_alerted(self):
+        self.global_state["last_orphan_mcp_alert_time"] = datetime.now().isoformat()
 
 
 # ─── Alerter ──────────────────────────────────────────────────────────────
@@ -398,6 +673,118 @@ class Alerter:
         msg = self._format_orphan_message(proc)
         body = f"Terminal closed, process persists.\nkill -9 {proc.pid}"
         self._dispatch(msg, f"Phroura: Claude {proc.pid} orphaned", body, "Purr")
+
+    # ─── RAM alerts ───────────────────────────────────────────────────────
+
+    def alert_rss(
+        self, proc: ProcessInfo, state: PIDTrackingState, severity: str
+    ):
+        """Absolute-RSS alert.
+
+        severity='warn'    → log only, no notification (observe in logs)
+        severity='alert'   → log + macOS + Telegram (Basso)
+        severity='critical'→ log + macOS + Telegram (Sosumi), louder title
+        """
+        rss_mb = proc.rss_kb // 1024
+        peak_mb = state.peak_rss_kb // 1024
+        label = "Claude" if proc.is_claude else _command_basename(proc.command)[:40]
+
+        lines = [
+            f"RAM {severity.upper()}: {label} PID {proc.pid} at {rss_mb} MB",
+            f"  Peak: {peak_mb} MB  |  CPU: {proc.cpu_pct:.0f}%",
+            f"  Elapsed: {proc.elapsed}",
+        ]
+        if not proc.is_claude and proc.command:
+            lines.append(f"  Command: {proc.command[:120]}")
+        if proc.cwd:
+            lines.append(f"  CWD: {proc.cwd.replace(str(Path.home()), '~')}")
+        if proc.session_id:
+            lines.append(f"  Session: {proc.session_id[:8]}")
+        if proc.version:
+            lines.append(f"  Version: {proc.version}")
+        if severity == "critical":
+            lines.append(f"  Action: kill -9 {proc.pid}")
+        msg = "\n".join(lines)
+
+        if severity == "warn":
+            # Log-only — shows up in cpu-watchdog.log and status.sh trails.
+            self.logger.info(msg)
+            return
+
+        title_prefix = "CRITICAL" if severity == "critical" else ""
+        title = (
+            f"Phroura: {title_prefix} {label} {proc.pid} RAM {rss_mb} MB"
+        ).strip()
+        body_lines = [f"RSS {rss_mb} MB (peak {peak_mb} MB)"]
+        if proc.cwd:
+            body_lines.append(f"CWD: {proc.cwd.replace(str(Path.home()), '~')}")
+        if severity == "critical":
+            body_lines.append(f"kill -9 {proc.pid}")
+        sound = "Sosumi" if severity == "critical" else "Basso"
+        self._dispatch(msg, title, "\n".join(body_lines), sound)
+
+    def alert_rss_growth(
+        self,
+        proc: ProcessInfo,
+        state: PIDTrackingState,
+        slope_mb_per_min: float,
+    ):
+        """Growth-rate alert — catches leaks before they reach the ceiling."""
+        rss_mb = proc.rss_kb // 1024
+        label = "Claude" if proc.is_claude else _command_basename(proc.command)[:40]
+
+        # Rough window span for context in the message.
+        first_ts = state.rss_samples[0][0] if state.rss_samples else ""
+        window_mb_start = (
+            state.rss_samples[0][1] // 1024 if state.rss_samples else rss_mb
+        )
+
+        lines = [
+            f"RAM LEAK: {label} PID {proc.pid} growing +{slope_mb_per_min:.0f} MB/min",
+            f"  Current: {rss_mb} MB  |  Window start: {window_mb_start} MB",
+            f"  Samples: {len(state.rss_samples)} (since {first_ts[:19]})",
+        ]
+        if proc.cwd:
+            lines.append(f"  CWD: {proc.cwd.replace(str(Path.home()), '~')}")
+        if proc.session_id:
+            lines.append(f"  Session: {proc.session_id[:8]}")
+        msg = "\n".join(lines)
+
+        body = (
+            f"+{slope_mb_per_min:.0f} MB/min\n"
+            f"Now: {rss_mb} MB  (start: {window_mb_start} MB)"
+        )
+        self._dispatch(
+            msg, f"Phroura: {label} {proc.pid} RAM leak (+{slope_mb_per_min:.0f} MB/min)",
+            body, "Basso",
+        )
+
+    def alert_orphan_mcp(self, orphans: list[dict]):
+        """Orphan MCP cluster alert (advisory — no pkill suggestion)."""
+        count = len(orphans)
+        total_mb = sum(o["rss_kb"] for o in orphans) // 1024
+        sample_pids = ", ".join(str(o["pid"]) for o in orphans[:8])
+
+        lines = [
+            f"ORPHAN MCP CLUSTER: {count} reparented MCP servers ({total_mb} MB total)",
+            f"  Sample PIDs: {sample_pids}" + ("..." if count > 8 else ""),
+        ]
+        # Show a couple of representative command strings so Tom can
+        # spot which MCP is leaking.
+        for o in orphans[:3]:
+            lines.append(
+                f"  PID {o['pid']}: {o['rss_kb']//1024} MB  {o['command'][:100]}"
+            )
+        msg = "\n".join(lines)
+
+        body = (
+            f"{count} orphan MCP servers, {total_mb} MB total\n"
+            f"PIDs: {sample_pids}"
+        )
+        self._dispatch(
+            msg, f"Phroura: {count} orphaned MCP servers ({total_mb} MB)",
+            body, "Purr",
+        )
 
     def _format_message(self, proc: ProcessInfo, state: PIDTrackingState) -> str:
         interval = self.config["poll_interval_sec"]
@@ -546,11 +933,13 @@ class Phroura:
     def run_once(self):
         """Single poll-check-alert cycle."""
         processes = self.poller.poll(self.config)
-        threshold = self.config["cpu_threshold_pct"]
+        cpu_threshold = self.config["cpu_threshold_pct"]
+        ram_enabled = self.config.get("enable_ram_watchdog", True)
+        rss_floor_kb = int(self.config.get("rss_claude_floor_mb", 100)) * 1024
 
         for proc in processes:
             proc = self.poller.enrich(proc, self.config)
-            state = self.tracker.update(proc, threshold)
+            state = self.tracker.update(proc, cpu_threshold, self.config)
 
             # Sustained high CPU alert
             if self.tracker.should_alert(state, self.config):
@@ -571,6 +960,30 @@ class Phroura:
                 if cooldown_ok:
                     self.alerter.alert_orphaned(proc)
                     self.tracker.mark_alerted(proc.pid)
+
+            # --- RAM checks (absolute + growth) ---
+            # Skip processes below the floor to avoid log spam from tiny helpers.
+            if ram_enabled and proc.rss_kb >= rss_floor_kb:
+                severity = self.tracker.classify_rss_severity(state, self.config)
+                if severity:
+                    self.alerter.alert_rss(proc, state, severity)
+                    # Stamp cooldown for every tier including warn — otherwise
+                    # a process parked at 850 MB logs every poll forever.
+                    self.tracker.mark_rss_alerted(proc.pid, severity)
+
+                slope = self.tracker.rss_growth_slope(state, self.config)
+                if slope is not None and self.tracker.should_alert_rss_growth(
+                    state, self.config, slope
+                ):
+                    self.alerter.alert_rss_growth(proc, state, slope)
+                    self.tracker.mark_growth_alerted(proc.pid)
+
+        # --- Global orphan-MCP sweep (once per cycle) ---
+        if self.config.get("enable_orphan_mcp_watchdog", True):
+            orphans = self.poller.find_orphan_mcp_processes(self.config)
+            if self.tracker.should_alert_orphan_mcp(len(orphans), self.config):
+                self.alerter.alert_orphan_mcp(orphans)
+                self.tracker.mark_orphan_mcp_alerted()
 
         self.tracker.save()
 
@@ -614,6 +1027,17 @@ class Phroura:
         lines.append(
             f"Active: {claude_count} Claude sessions, {other_count} other tracked"
         )
+
+        # Orphan MCP summary (cheap single scan)
+        if self.config.get("enable_orphan_mcp_watchdog", True):
+            orphans = self.poller.find_orphan_mcp_processes(self.config)
+            if orphans:
+                total_mb = sum(o["rss_kb"] for o in orphans) // 1024
+                lines.append(
+                    f"Orphan MCPs: {len(orphans)} ({total_mb} MB total)"
+                )
+            else:
+                lines.append("Orphan MCPs: 0")
         lines.append("")
 
         if not self.tracker.states:
@@ -627,15 +1051,33 @@ class Phroura:
             else:
                 hot_indicator = f"{state.hot_count}/{threshold}"
             cwd = (state.cwd or "?").replace(str(Path.home()), "~")
+            rss_mb = state.last_rss_kb // 1024
+            peak_mb = state.peak_rss_kb // 1024
             lines.append(
                 f"  PID {pid:>6}  CPU: {state.last_cpu:5.1f}%  "
-                f"Hot: {hot_indicator}  Checks: {state.total_checks}  "
-                f"CWD: {cwd}"
+                f"RSS: {rss_mb:>5} MB (peak {peak_mb} MB)  "
+                f"Hot: {hot_indicator}  Checks: {state.total_checks}"
             )
+            lines.append(f"           CWD: {cwd}")
+
+            # Growth slope (if we have enough samples)
+            slope = self.tracker.rss_growth_slope(state, self.config)
+            if slope is not None and abs(slope) >= 1.0:
+                arrow = "+" if slope >= 0 else ""
+                lines.append(
+                    f"           Growth: {arrow}{slope:.0f} MB/min "
+                    f"({len(state.rss_samples)} samples)"
+                )
+
             if state.session_id:
                 lines.append(f"           Session: {state.session_id[:8]}")
             if state.last_alert_time:
-                lines.append(f"           Last alert: {state.last_alert_time}")
+                lines.append(f"           Last CPU alert: {state.last_alert_time}")
+            if state.last_rss_alert_time:
+                lines.append(
+                    f"           Last RAM alert: {state.last_rss_alert_time} "
+                    f"({state.last_rss_severity})"
+                )
 
         return "\n".join(lines)
 
@@ -687,6 +1129,10 @@ def main():
                         help="Disable Telegram alerts")
     parser.add_argument("--toggle-telegram", action="store_true",
                         help="Toggle Telegram alerts on/off in config.json")
+    parser.add_argument("--toggle-ram-watchdog", action="store_true",
+                        help="Toggle RAM watchdog on/off in config.json")
+    parser.add_argument("--toggle-orphan-mcp", action="store_true",
+                        help="Toggle orphan MCP detection on/off in config.json")
     args = parser.parse_args()
 
     config = load_config()
@@ -701,6 +1147,14 @@ def main():
 
     if args.toggle_telegram:
         toggle_config("enable_telegram")
+        return
+
+    if args.toggle_ram_watchdog:
+        toggle_config("enable_ram_watchdog")
+        return
+
+    if args.toggle_orphan_mcp:
+        toggle_config("enable_orphan_mcp_watchdog")
         return
 
     if args.config:
