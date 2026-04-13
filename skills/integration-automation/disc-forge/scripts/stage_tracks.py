@@ -3,18 +3,18 @@
 stage_tracks.py — Stage audio tracks into a local working directory for burning.
 
 Two source modes:
-    1. Remote: `--source music-server:"/Volumes/Music Library/Album/"`
+    1. Remote: `--source mac-mini-ts:"/Volumes/Hoodrat HDD/Musica/Album/"`
        Uses tar-over-SSH because Apple's bundled rsync (openrsync 2.6.9)
-       splits remote paths on spaces and is unusable against whitespace paths.
+       splits remote paths on spaces and is unusable against Hoodrat HDD.
     2. Local: `--source ~/Music/SomeAlbum/`
        Straight `cp` with a format filter.
 
 Filters to a single audio format per track (default: mp3) to avoid the
-MP3/WMA/M4A duplicates common in legacy libraries. Skips Folder.jpg,
-AlbumArt*, and desktop.ini cruft automatically.
+MP3/WMA/M4A duplicates common on Hoodrat HDD. Skips Folder.jpg, AlbumArt*,
+and desktop.ini cruft automatically.
 
 Usage:
-    stage_tracks.py --source "music-server:/Volumes/Music/BSG Season 1 - OST/" --dest BSG-S1
+    stage_tracks.py --source "mac-mini-ts:/Volumes/Hoodrat HDD/Musica/BSG.S1 - OST/" --dest BSG-S1
     stage_tracks.py --source ~/Downloads/mixtape --dest my-mixtape --format mp3
     stage_tracks.py --source ... --dest ... --staging-root /custom/path
 """

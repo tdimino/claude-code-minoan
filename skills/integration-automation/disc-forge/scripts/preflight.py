@@ -65,10 +65,17 @@ def check_cdrdao_drive() -> Check:
 
 
 def check_blank_media() -> Check:
-    r = run(["drutil", "status"])
-    if r.returncode != 0:
-        return Check("drutil status", False, "command failed", "Insert a blank CD-R or CD-RW")
-    out = r.stdout
+    import time
+    # drutil returns a sparse status (no Writability line) for ~1-2s after
+    # cdrdao drive-info releases the drive. Retry until the line appears.
+    for attempt in range(6):
+        r = run(["drutil", "status"])
+        if r.returncode != 0:
+            return Check("drutil status", False, "command failed", "Insert a blank CD-R or CD-RW")
+        out = r.stdout
+        if any(ln for ln in out.splitlines() if "Writability" in ln):
+            break
+        time.sleep(0.5)
     if "Media Is Not Present" in out or "Type: None" in out:
         return Check("drutil status", False, "no disc inserted", "Insert a blank CD-R or CD-RW")
     if "Type: Media Is Busy" in out:

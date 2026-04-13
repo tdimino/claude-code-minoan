@@ -200,7 +200,19 @@ function searchByName() {
   for (const session of sessions) {
     const slug = utils.readSessionSlug(session.fullPath);
     const regEntry = registry[session.sessionId] || {};
-    const tagsArr = regEntry.display_tags || regEntry.tags || [];
+    // Merge all tag sources: display_tags, auto-tags, and user-tags (case-insensitive dedupe)
+    const rawTags = [
+      ...(regEntry.display_tags || []),
+      ...(regEntry.tags || []),
+      ...(regEntry.user_tags || []),
+    ].map(t => (t || '').trim()).filter(Boolean);
+    const seenTags = new Set();
+    const tagsArr = rawTags.filter(t => {
+      const k = t.toLowerCase();
+      if (seenTags.has(k)) return false;
+      seenTags.add(k);
+      return true;
+    });
     const tagsStr = tagsArr.join(' ');
 
     // Read user-assigned custom title from JSONL (/rename)
@@ -364,10 +376,19 @@ async function main() {
 
   let resultCount = 0;
   const escapedTerm = utils.escapeRegex(searchTerm);
+  // Build alternation regex for multi-token highlighting
+  const tokenPattern = escapedTerm.split(/\s+/).filter(Boolean).join('|');
+
+  // Phase 2: metadata pre-pass — collect tag/title/summary matches from registry
+  // before body-scanning JSONLs. This surfaces sessions where the search term
+  // appears in metadata but not in the transcript body (the motivating case).
+  const metaResults = searchByName();
+  const metaMap = new Map(metaResults.map(r => [r.sessionId, r]));
 
   for (const file of allFiles) {
     const projectPath = utils.decodeProjectPath(file.projectDir);
     const projectName = projectPath.split('/').pop();
+    const sessionId = path.basename(file.filePath, '.jsonl');
 
     // Pre-read custom title (user rename) from JSONL tail — survives line limit
     const preReadTitle = utils.readCustomTitle(file.filePath);
@@ -379,7 +400,6 @@ async function main() {
     }
     // Synthesize a result for title-only matches (no body content matched)
     if (!result && preReadTitle && preReadTitle.toLowerCase().includes(searchTerm)) {
-      const sessionId = path.basename(file.filePath, '.jsonl');
       result = {
         sessionId,
         projectPath,
@@ -390,6 +410,27 @@ async function main() {
         matches: [],
       };
     }
+
+    // Merge metadata hit if body scan missed this session
+    const metaHit = metaMap.get(sessionId);
+    if (!result && metaHit) {
+      result = {
+        sessionId,
+        projectPath,
+        timestamp: await getFirstLineTimestamp(file.filePath),
+        sessionSlug: metaHit.slug || utils.readSessionSlug(file.filePath),
+        sessionSummary: '',
+        customTitle: '',
+        matches: [],
+        metadataHits: metaHit.matchedFields,
+      };
+    } else if (result && metaHit) {
+      // Body matched too — attach metadata fields for richer display
+      result.metadataHits = metaHit.matchedFields;
+    }
+    // Consume from map so we don't double-print
+    if (metaHit) metaMap.delete(sessionId);
+
     if (result) {
       resultCount++;
       const gitRemote = utils.getGitRemote(projectPath);
@@ -418,6 +459,18 @@ async function main() {
       console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
       console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
 
+      // Show metadata match indicators (tag/title/summary from registry)
+      if (result.metadataHits && result.metadataHits.length > 0) {
+        result.metadataHits.forEach(({ field, value }) => {
+          const label = field.charAt(0).toUpperCase() + field.slice(1);
+          const highlighted = value.replace(
+            new RegExp('(' + tokenPattern + ')', 'gi'),
+            '\x1b[43m\x1b[30m$1\x1b[0m'
+          );
+          console.log('    \x1b[32m›\x1b[0m \x1b[90m' + label + ':\x1b[0m ' + highlighted);
+        });
+      }
+
       result.matches.forEach((match) => {
         const highlighted = match.replace(
           new RegExp('(' + escapedTerm + ')', 'gi'),
@@ -436,6 +489,30 @@ async function main() {
         return;
       }
     }
+  }
+
+  // Flush remaining metadata-only matches not covered by the JSONL file scan
+  // (sessions whose project dir encoding didn't match, edge case)
+  for (const meta of metaMap.values()) {
+    if (resultCount >= maxResults) break;
+    resultCount++;
+    console.log(
+      '\x1b[33m[' + resultCount + ']\x1b[0m \x1b[1m' + meta.projectName +
+      '\x1b[0m \x1b[90m(' + utils.formatAge(meta.fileMtime) + ')\x1b[0m'
+    );
+    meta.matchedFields.forEach(({ field, value }) => {
+      const label = field.charAt(0).toUpperCase() + field.slice(1);
+      const highlighted = value.replace(
+        new RegExp('(' + tokenPattern + ')', 'gi'),
+        '\x1b[43m\x1b[30m$1\x1b[0m'
+      );
+      console.log('    \x1b[32m›\x1b[0m \x1b[90m' + label + ':\x1b[0m ' + highlighted);
+    });
+    if (meta.slug) console.log('    \x1b[90mSession:\x1b[0m ' + meta.slug);
+    console.log('    \x1b[90mDir:\x1b[0m ' + meta.projectPath);
+    console.log('    \x1b[90mID:\x1b[0m ' + meta.sessionId);
+    console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + meta.projectPath + ' && claude --resume ' + meta.sessionId + '\x1b[0m');
+    console.log('');
   }
 
   if (resultCount === 0) {

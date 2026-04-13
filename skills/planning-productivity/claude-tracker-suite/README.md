@@ -2,7 +2,7 @@
 
 Session management for Claude Code. Search, resume, spawn, and open sessions across projects---with cmux/Ghostty terminal integration, crash recovery, git-aware tracking, weighted search ranking, and new machine bootstrapping.
 
-**Last updated:** 2026-04-10
+**Last updated:** 2026-03-26
 
 **Terminal targets:** cmux (preferred, deterministic CLI), Ghostty (AppleScript fallback), VS Code, Cursor
 
@@ -35,7 +35,6 @@ claude-tracker-suite/
     detect-projects.js                     # Project discovery and CLAUDE.md scaffolding
     new-session.sh                         # Start new interactive/prompt-driven/headless session
     resume-in-vscode.sh                    # Legacy: AppleScript-based terminal launch
-    tag-session.js                         # Manual session metatags (add/remove/list/clear)
 ```
 
 ---
@@ -52,47 +51,6 @@ Both `open-sessions.js` and `resume-session.sh` support multiple terminal backen
 | **Cursor** | `--cursor` | Opens project in editor + resumes in terminal | Editor-open only; terminal via cmux/Ghostty |
 
 Auto-detect order: cmux (if `cmux ping` succeeds) > Ghostty > print resume command.
-
----
-
-## What's New (2026-04-10)
-
-### Manual session metatags --- `/tag` and `tag-session.js`
-
-Sessions now support user-authored keyword tags that supplement the auto-generated Qwen tags. Three layers are merged and searchable:
-
-1. **`display_tags`** (3) --- Qwen's top picks, shown in statusline
-2. **`tags`** (up to 10) --- Qwen's full pool
-3. **`user_tags`** (unlimited) --- yours, via `/tag` or `tag-session.js`
-
-```bash
-# Tag the current live session (breadcrumb, applies on next Stop event)
-/tag codex-skill-detection
-
-# Tag a closed session directly (writes to registry)
-node tag-session.js add codex-skill-detection --session 664a8e7c
-
-# Remove a tag
-/tag -off-topic-tag
-
-# List all tags on a session
-node tag-session.js list
-node tag-session.js list --session 664a8e7c
-```
-
-### Default-mode metadata pre-pass in search
-
-`search-sessions.js` default mode (no `--name` flag) now runs a registry metadata pre-pass before body-scanning JSONLs. Sessions matching on tags, title, or summary surface even when the literal search term never appeared in the transcript. Metadata-only hits display with labeled indicators:
-
-```
-[1] Programming (1d ago)
-    Dir: /Users/you/Desktop/Programming
-    › Tags: SubQ Code Update, ..., codex-skill-detection
-```
-
-### Tag merge in `--name` mode
-
-`--name` mode now merges all three tag arrays (`display_tags` + `tags` + `user_tags`) with case-insensitive deduplication, instead of the previous fallback behavior that only checked `display_tags`.
 
 ---
 
@@ -177,7 +135,6 @@ Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, n
 | `list-sessions.js` | `node list-sessions.js [--limit 20]` |
 | `new-session.sh` | `bash new-session.sh [dir] [-p "prompt"] [--headless]` |
 | `detect-projects.js` | `node detect-projects.js [--suggest\|--scaffold]` |
-| `tag-session.js` | `node tag-session.js add\|remove\|list\|clear <tags> [--session ID]` |
 | `bootstrap-claude-setup.js` | `node bootstrap-claude-setup.js --user "Name"` |
 
 ---
