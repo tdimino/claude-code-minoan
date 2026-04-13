@@ -2,29 +2,38 @@
 """
 burn_audio_cd.py — Master orchestrator for disc-forge.
 
-Runs the full audio CD burn pipeline end-to-end:
+Two modes:
+
+AUDIO CD (default, Red Book — plays in any CD player):
     1. preflight.py        — verify cdrdao, ffmpeg, drive, blank disc
-    2. stage_tracks.py     — optional: pull files from a remote host via tar-over-SSH
-    3. check_duration.py   — abort if album doesn't fit on a Red Book CD
+    2. stage_tracks.py     — optional: pull files via tar-over-SSH
+    3. check_duration.py   — abort if album overruns 80 min
     4. convert_to_wav.py   — parallel MP3 -> 44.1/16/stereo PCM
     5. build_toc.py        — cdrdao TOC with CD-Text from source ID3 tags
-    6. cdrdao write        — actual burn, progress streams to stdout
+    6. cdrdao write        — actual burn
     7. cleanup             — delete WAV staging (keep MP3 staging for re-burns)
 
---dry-run skips the cdrdao write step so the full pipeline can be validated
-on disposable runs. Everything else is identical.
+MP3 DATA CD (--mp3-disc — plays in MP3-capable stereos, 700 MB capacity):
+    1. preflight.py        — same
+    2. stage_tracks.py     — same
+    3. check_mp3_size      — abort if payload overruns 700 MB (inline)
+    4. build_data_toc.py   — hdiutil makehybrid -> ISO + cdrdao data TOC
+    5. cdrdao write        — same burn command, different TOC
+    6. cleanup             — delete ISO (keep MP3 staging)
+
+--dry-run skips the cdrdao write step so the full pipeline can be validated.
 
 Usage:
-    # Burn from a remote music server over SSH
-    burn_audio_cd.py --source "music-server:/Volumes/Music/BSG Season 1 - OST/" --name BSG-S1
+    # Audio CD from Hoodrat HDD
+    burn_audio_cd.py --source "mac-mini-ts:/Volumes/Hoodrat HDD/Musica/BSG.S1 - OST/" --name BSG-S1
 
-    # Burn from a pre-staged local directory
-    burn_audio_cd.py --source ~/burn-staging/BSG-S1 --name BSG-S1
+    # MP3 data CD (modern car stereos)
+    burn_audio_cd.py --source ~/burn-staging/mantras --name mantras --mp3-disc
 
     # Dry run (everything except the cdrdao write)
     burn_audio_cd.py --source ~/burn-staging/BSG-S1 --name BSG-S1 --dry-run
 
-    # Pop-album-style 2-sec gaps instead of gapless
+    # Pop-album-style 2-sec gaps instead of gapless (audio CD only)
     burn_audio_cd.py --source ~/burn-staging/DSOTM --name DSOTM --gaps
 
     # Slower, more reliable burn speed
@@ -76,7 +85,7 @@ def main() -> int:
     ap.add_argument(
         "--source",
         required=True,
-        help="Source path: local directory OR ssh-style host:/path (e.g. music-server:/Volumes/Music/...)",
+        help="Source path: local directory OR ssh-style host:/path (e.g. mac-mini-ts:/Volumes/...)",
     )
     ap.add_argument(
         "--name",
@@ -117,6 +126,18 @@ def main() -> int:
         help="Keep WAV staging dir after burn (default: delete on success)",
     )
     ap.add_argument(
+        "--mp3-disc",
+        action="store_true",
+        help="Burn an MP3 data CD (ISO9660+Joliet, ~700 MB) instead of a Red Book audio CD. "
+             "Requires an MP3-capable stereo (most 2005+ car head units).",
+    )
+    ap.add_argument(
+        "--data-ceiling",
+        type=int,
+        default=700,
+        help="MP3 data disc capacity in MB (default: 700, used only with --mp3-disc)",
+    )
+    ap.add_argument(
         "--dry-run",
         action="store_true",
         help="Run preflight + stage + check + convert + TOC, but skip cdrdao write",
@@ -125,8 +146,12 @@ def main() -> int:
 
     staging_dir = args.staging_root / args.name
     wav_dir = args.staging_root / f"{args.name}-wav"
+    iso_path = args.staging_root / f"{args.name}.iso"
     toc_path = args.staging_root / f"{args.name}.toc"
     args.staging_root.mkdir(parents=True, exist_ok=True)
+
+    if args.mp3_disc and args.gaps:
+        print("--gaps is only meaningful for audio CDs; ignored in --mp3-disc mode", file=sys.stderr)
 
     py = sys.executable
 
@@ -155,40 +180,63 @@ def main() -> int:
         if run_step("stage", stage_cmd) != 0:
             return 1
 
-    # Step 3: duration check
-    if run_step(
-        "duration check",
-        [
-            py, str(SCRIPT_DIR / "check_duration.py"),
-            str(staging_dir),
-            "--ceiling", str(args.ceiling),
-        ],
-    ) != 0:
-        print("album overruns CD capacity; aborting", file=sys.stderr)
-        return 1
+    if args.mp3_disc:
+        # Step 3 (data mode): size check against 700 MB
+        print(f"\n=== size check (MP3 data CD, ceiling {args.data_ceiling} MB) ===")
+        total_bytes = sum(f.stat().st_size for f in staging_dir.rglob("*") if f.is_file())
+        total_mb = total_bytes / (1024 * 1024)
+        print(f"payload: {total_mb:.1f} MB across {sum(1 for _ in staging_dir.rglob('*.mp3'))} mp3 files")
+        if total_mb > args.data_ceiling:
+            print(f"overruns {args.data_ceiling} MB; aborting", file=sys.stderr)
+            return 1
 
-    # Step 4: convert to WAV
-    if run_step(
-        "convert to WAV",
-        [
-            py, str(SCRIPT_DIR / "convert_to_wav.py"),
-            str(staging_dir),
-            "--output", str(wav_dir),
-        ],
-    ) != 0:
-        return 1
+        # Step 4 (data mode): build ISO + data TOC
+        if run_step(
+            "build ISO + data TOC",
+            [
+                py, str(SCRIPT_DIR / "build_data_toc.py"),
+                "--source-dir", str(staging_dir),
+                "--volume-label", args.name,
+                "--iso-output", str(iso_path),
+                "--toc-output", str(toc_path),
+            ],
+        ) != 0:
+            return 1
+    else:
+        # Step 3 (audio mode): duration check
+        if run_step(
+            "duration check",
+            [
+                py, str(SCRIPT_DIR / "check_duration.py"),
+                str(staging_dir),
+                "--ceiling", str(args.ceiling),
+            ],
+        ) != 0:
+            print("album overruns CD capacity; aborting", file=sys.stderr)
+            return 1
 
-    # Step 5: build TOC
-    toc_cmd = [
-        py, str(SCRIPT_DIR / "build_toc.py"),
-        "--wav-dir", str(wav_dir),
-        "--source-dir", str(staging_dir),
-        "--output", str(toc_path),
-    ]
-    if args.gaps:
-        toc_cmd.append("--gaps")
-    if run_step("build TOC", toc_cmd) != 0:
-        return 1
+        # Step 4 (audio mode): convert to WAV
+        if run_step(
+            "convert to WAV",
+            [
+                py, str(SCRIPT_DIR / "convert_to_wav.py"),
+                str(staging_dir),
+                "--output", str(wav_dir),
+            ],
+        ) != 0:
+            return 1
+
+        # Step 5 (audio mode): build TOC
+        toc_cmd = [
+            py, str(SCRIPT_DIR / "build_toc.py"),
+            "--wav-dir", str(wav_dir),
+            "--source-dir", str(staging_dir),
+            "--output", str(toc_path),
+        ]
+        if args.gaps:
+            toc_cmd.append("--gaps")
+        if run_step("build TOC", toc_cmd) != 0:
+            return 1
 
     # Step 6: burn (or skip on dry run)
     if args.dry_run:
@@ -212,18 +260,28 @@ def main() -> int:
         return 1
     if proc.returncode != 0:
         print(f"\ncdrdao write failed (exit {proc.returncode})", file=sys.stderr)
-        print(f"WAV staging preserved at {wav_dir} for debugging", file=sys.stderr)
+        if args.mp3_disc:
+            print(f"ISO preserved at {iso_path} for debugging", file=sys.stderr)
+        else:
+            print(f"WAV staging preserved at {wav_dir} for debugging", file=sys.stderr)
         return proc.returncode
 
     # Step 7: cleanup
     if args.keep_wavs:
         skip_step("cleanup", "--keep-wavs")
-        print(f"WAV staging preserved at {wav_dir}")
+        if args.mp3_disc:
+            print(f"ISO preserved at {iso_path}")
+        else:
+            print(f"WAV staging preserved at {wav_dir}")
     else:
         print(f"\n=== cleanup ===")
-        shutil.rmtree(wav_dir, ignore_errors=True)
-        print(f"removed {wav_dir}")
-        print(f"MP3 staging preserved at {staging_dir} (useful for re-burns)")
+        if args.mp3_disc:
+            iso_path.unlink(missing_ok=True)
+            print(f"removed {iso_path}")
+        else:
+            shutil.rmtree(wav_dir, ignore_errors=True)
+            print(f"removed {wav_dir}")
+        print(f"source staging preserved at {staging_dir} (useful for re-burns)")
 
     print("\ndisc-forge: burn complete.")
     return 0

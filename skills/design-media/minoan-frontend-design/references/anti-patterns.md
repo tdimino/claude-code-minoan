@@ -5,7 +5,7 @@ Condensed from Impeccable (pbakaus/impeccable v1.6.0) domain references. Use thi
 ## AI Slop Tells
 
 These patterns signal AI-generated design. Avoid all of them:
-- **Fonts**: Inter, Roboto, Arial, Open Sans, Lato, Montserrat. Better alternatives: Instrument Sans, Plus Jakarta Sans, Outfit, Onest, Figtree, Fraunces, Newsreader
+- **Fonts**: Skip system defaults (Inter, Roboto, Arial, Open Sans, Lato, Montserrat). Aspire beyond second-reflex typefaces too—Fraunces, Newsreader, Lora, Crimson Pro, Playfair Display, Cormorant, Syne, IBM Plex, Space Mono, Space Grotesk, DM Sans, DM Serif, Outfit, Plus Jakarta Sans, Instrument Sans are genuinely good faces, but they appear so frequently in generated output that they no longer give a project its own voice. Browse Pangram Pangram, Velvetyne, ABC Dinamo, Future Fonts, Klim Type Foundry
 - **Color**: Purple gradients on white, cyan/neon on dark, gradient text on headings/metrics, glowing accents, generic glassmorphism
 - **Layout**: Three equal feature cards, hero metric template (big number + subtitle + icon), everything centered, cards wrapping everything, cards nested inside cards, modals for everything (modals are lazy — use inline or progressive disclosure), rounded rectangles with generic drop shadows
 - **Motion**: Bounce/elastic easing (tacky since ~2015), overshoot effects

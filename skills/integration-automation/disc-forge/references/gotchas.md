@@ -1,29 +1,29 @@
 # disc-forge gotchas — the full failure-mode inventory
 
-Every one of these cost turns during disc-forge's first burn on an Apple Silicon Mac running macOS Sequoia. Each entry explains *why* so the rule generalizes to future drives, macOS versions, and source libraries.
+Every one of these cost turns the first time the author tried to burn an audio CD on an M4 Max running Sequoia. Each entry explains *why* so the rule generalizes to future drives, macOS versions, and source libraries.
 
 ## 1. SMB is not reachable over Tailscale
 
-**Symptom:** `open smb://<host>/...` silently fails. `osascript -e 'mount volume "smb://..."'` returns error `-5016`.
+**Symptom:** `open smb://mac-mini-ts/...` silently fails. `osascript -e 'mount volume "smb://..."'` returns error `-5016`.
 
-**Cause:** macOS's File Sharing (smbd) only binds to the LAN interface, not the Tailscale `utun` interface. A Tailscale-resolved host (`100.x.y.z`) refuses port 445. Only port 22 (SSH) works over Tailscale. Verify with:
+**Cause:** macOS's File Sharing (smbd) only binds to the LAN interface, not the Tailscale `utun` interface. `mac-mini-ts` resolves to a Tailscale IP (`100.x.y.z`), and port 445 is actively refused on that IP. Only port 22 (SSH) works over Tailscale. Verify with:
 
 ```bash
-nc -zv $(ssh -G <host> | awk '/^hostname/{print $2}') 22 445
+nc -zv $(ssh -G mac-mini-ts | awk '/^hostname/{print $2}') 22 445
 ```
 
-**Rule:** Never attempt SMB against a Tailscale host. Use SSH as the transport. `stage_tracks.py` does this via tar-over-SSH.
+**Rule:** Never attempt SMB for Hoodrat HDD. Use SSH as the transport. `stage_tracks.py` does this via tar-over-SSH.
 
 ## 2. Apple's bundled `rsync` splits remote paths on spaces
 
-**Symptom:** `rsync` errors like `rsync: unrecognized option --info=progress2`, or `rsync(NNN): error: /Volumes/Music: (l)stat: No such file or directory` followed by the path fragmented into separate tokens.
+**Symptom:** `rsync` errors like `rsync: unrecognized option --info=progress2` or `rsync(NNN): error: /Volumes/Hoodrat: (l)stat: No such file or directory` followed by the path fragmented into separate tokens.
 
-**Cause:** macOS ships `openrsync 2.6.9` (Apple's fork) as `/usr/bin/rsync`. It is NOT GNU rsync 3.x. When given `host:"/Volumes/Music Library/..."`, the remote shell expansion leaks quoting and openrsync sees the path as multiple unrelated arguments.
+**Cause:** macOS ships `openrsync 2.6.9` (Apple's fork) as `/usr/bin/rsync`. It is NOT GNU rsync 3.x. When given `mac-mini-ts:"/Volumes/Hoodrat HDD/..."`, the remote shell expansion leaks quoting and openrsync sees the path as multiple unrelated arguments.
 
-**Rule:** For remote paths containing spaces, use **tar-over-SSH** instead:
+**Rule:** For any Hoodrat HDD path (all of which have spaces), use **tar-over-SSH** instead:
 
 ```bash
-ssh <host> 'cd "/Volumes/Music Library/ALBUM/" && tar cf - *.mp3' | tar xf - -C ./local-staging/
+ssh mac-mini-ts 'cd "/Volumes/Hoodrat HDD/Musica/ALBUM/" && tar cf - *.mp3' | tar xf - -C ./local-staging/
 ```
 
 The quoting only has to survive one shell hop (the outer single-quoted ssh command), and tar archives with flat basenames.
@@ -81,11 +81,11 @@ open /Applications/Burn.app
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/Burn.app
 ```
 
-## 7. Legacy libraries often have duplicate formats per track
+## 7. Hoodrat HDD albums often have duplicate formats
 
 **Symptom:** A 26-track album appears as 52 files in Finder. `check_duration.py` reports double the expected runtime.
 
-**Cause:** Many older music libraries were copied from Windows-era setups that kept both MP3 and WMA versions, or from iTunes-era libraries that kept both MP3 and M4A. The duplicates share track numbers and filenames up to the extension.
+**Cause:** Many Hoodrat HDD albums were copied from Windows-era media libraries that kept both MP3 and WMA versions, or from iTunes-era libraries that kept both MP3 and M4A. The duplicates share track numbers and filenames up to the extension.
 
 **Rule:** Always filter to a single format at stage time. `stage_tracks.py --format mp3` is the default. `check_duration.py` also prints a format histogram so leftover duplicates surface loudly.
 
@@ -112,3 +112,11 @@ open /Applications/Burn.app
 **Cause:** High write speeds (24x+) stress both the drive's buffer management and the media's dye layer. Cheap spindle CD-Rs are especially prone to burn artifacts at max speed.
 
 **Rule:** Default to 16x. Drop to 10x if you're burning bulk-bin media or if you're getting weird playback issues on old stereos. The ~3 minutes saved at 24x isn't worth a coaster.
+
+## 11. `drutil status` race after `cdrdao drive-info`
+
+**Symptom:** Preflight reports `media is not blank` even though a brand-new CD-R is in the drive. Running `drutil status` manually from the shell a moment later shows `Writability: blank, writable` as expected.
+
+**Cause:** `cdrdao drive-info` holds an IOKit SCSI passthrough session on the drive. For ~1–2 seconds after cdrdao exits, `drutil status` returns a truncated report with no `Writability:` line at all — so any downstream check for `"blank" in writability_line` fails closed.
+
+**Rule:** `preflight.py`'s `check_blank_media()` retries `drutil status` up to 6 times at 0.5 s intervals, breaking as soon as the `Writability:` line appears. Don't remove the retry loop — the failure mode is invisible to anyone who runs `drutil` interactively because the drive has already released by then.
