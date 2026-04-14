@@ -90,7 +90,6 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 |-------|-------------|
 | `claude-tracker-suite` | Session search, resume, project detection, resume-in-terminal (Ghostty/VS Code/Cursor) |
 | `crypt-librarian` | Film curator for pre-2016 gothic/occult/noir cinema |
-| `mdpreview` | Catppuccin live-reloading Markdown viewer with multi-tab support and margin annotations |
 | `minoan-swarm` | Agent Teams orchestration with ancient Mediterranean naming |
 | `skill-toggle` | Enable/disable skills and manage named collections — batch-toggle skill sets by project context |
 | `super-ralph-wiggum` | Autonomous iteration loops based on [AI Hero's 11 Tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum) |
