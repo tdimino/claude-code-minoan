@@ -335,7 +335,7 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 
 ---
 
-**Skills**: 71 | **Commands**: 47 | **Hooks**: 44 | **CLI Tools**: 10
+**Skills**: 79 | **Commands**: 17 | **Hooks**: 47 | **CLI Tools**: 10
 
 ---
 
