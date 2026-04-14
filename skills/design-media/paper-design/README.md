@@ -4,12 +4,13 @@ MCP skill for [Paper Design](https://paper.design) — a DOM-based design tool w
 
 ## What It Does
 
-Connects Claude Code to Paper's 21-tool MCP server for bi-directional design workflows:
+Connects Claude Code to Paper's 21-tool MCP server for bi-directional design workflows, and documents the accompanying React shader library:
 
 - **Design to code** — `get_jsx` exports any Paper element as React + Tailwind JSX
 - **Code to design** — `write_html` imports raw HTML/CSS into the Paper canvas
 - **Visual QA** — `get_screenshot` verifies designs after every write
 - **Token sync** — `get_computed_styles` extracts colors, spacing, typography for code integration
+- **Paper Shaders** — 30+ curated React shaders via `@paper-design/shaders-react` (mesh gradient, halftone CMYK, fluted glass, liquid metal, god rays, gem smoke, paper texture, and more). See `references/shaders.md`.
 
 ## Setup
 
@@ -35,9 +36,10 @@ paper-design/
 │   ├── setup.sh                      # Idempotent MCP registration
 │   └── health-check.py               # 3-check diagnostic (process, HTTP, registration)
 ├── references/
-│   ├── tool-reference.md             # All 21 tools with signatures and 9 gotchas
-│   ├── workflow-patterns.md          # 6 recipes (new design, extract code, responsive, etc.)
-│   └── paper-vs-pencil.md            # Decision matrix for Paper vs Pencil
+│   ├── tool-reference.md             # All 21 tools with signatures and gotchas
+│   ├── workflow-patterns.md          # 7 recipes (new design, extract code, responsive, etc.)
+│   ├── paper-vs-pencil.md            # Decision matrix for Paper vs Pencil
+│   └── shaders.md                    # 30+ Paper Shaders catalog + integration notes
 └── assets/                           # (reserved for future templates)
 ```
 
