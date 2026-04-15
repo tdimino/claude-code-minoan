@@ -110,6 +110,7 @@ launchctl kickstart -k gui/$(id -u)/com.minoan.cpu-watchdog
 | `telegram_chat_id` | `"…"` | Chat ID for Telegram alerts |
 | `monitor_all_processes` | `true` | Monitor all user processes (`false` = Claude only) |
 | `cpu_floor_pct` | `5` | Minimum CPU% for a non-Claude process to enter tracking |
+| `rss_inclusion_floor_mb` | `500` | Include process if RSS exceeds this, even at 0% CPU |
 | `exclude_commands` | (see below) | Basename list of processes to never alert on |
 | `max_tracked_pids` | `500` | Cap on rolling-state entries |
 | `log_retention_days` | `7` | Log rotation backup count |
@@ -134,7 +135,7 @@ launchctl kickstart -k gui/$(id -u)/com.minoan.cpu-watchdog
 
 RAM thresholds are calibrated to catch sustained bloat without flagging normal warm-up. On a 36 GB machine a live Claude session typically peaks around 500–700 MB—the 800 MB warn line sits one standard deviation above observed maximums, 1200 MB is ~2× peak (unambiguously pathological), and 2000 MB is the "drop everything" line. Tune all three in `config.json` for your machine.
 
-Default `exclude_commands` covers macOS system daemons (`kernel_task`, `WindowServer`, `mdworker`, `Spotlight`, `XprotectService`, `logd`, `fseventsd`, `coreaudiod`, …), compilers and build tools (`cargo`, `rustc`, `clang`, `ld`, `lld`, …), media encoders (`ffmpeg`, `ffprobe`, `HandBrakeCLI`), and local LLM inference (`ollama`, `llama-server`, `llama-cli`). These are expected to peg CPU legitimately—extend the list in `config.json` for anything else in your workflow that should be ignored.
+Default `exclude_commands` covers macOS system daemons (`kernel_task`, `WindowServer`, `mdworker`, `Spotlight`, `XprotectService`, `logd`, `fseventsd`, `coreaudiod`, …), compilers and build tools (`cargo`, `rustc`, `clang`, `ld`, `lld`, …), media encoders (`ffmpeg`, `ffprobe`, `HandBrakeCLI`), and local LLM inference (`ollama`, `llama-cli`). These are expected to peg CPU legitimately—extend the list in `config.json` for anything else in your workflow that should be ignored.
 
 ## Notifications
 
@@ -224,7 +225,7 @@ cpu-watchdog/
 
 One Python file, four classes, stdlib only (`requests` lazy-imported for Telegram):
 
-- **`ProcessPoller`**—Runs `ps aux`, filters to Claude sessions + any non-Claude process above the CPU floor, enriches Claude processes via `lsof` (session ID from `.jsonl` handles, version from binary path, revoked FDs from stdio). Non-Claude processes get a cheap `ps -o ppid=,etime=` lookup only. Also runs `find_orphan_mcp_processes` once per cycle—a separate `ps -eo pid,ppid,rss,command` scan that matches MCP command patterns against the reparented-to-init process set.
+- **`ProcessPoller`**—Runs `ps aux`, filters to Claude sessions + any non-Claude process above the CPU floor or RSS inclusion floor (`rss_inclusion_floor_mb`, default 500 MB), enriches Claude processes via `lsof` (session ID from `.jsonl` handles, version from binary path, revoked FDs from stdio). Non-Claude processes get a cheap `ps -o ppid=,etime=` lookup only. Also runs `find_orphan_mcp_processes` once per cycle—a separate `ps -eo pid,ppid,rss,command` scan that matches MCP command patterns against the reparented-to-init process set.
 - **`StateTracker`**—Maintains per-PID rolling state in `{pids, global}` schema atomically serialized to `data/state.json`. Per-PID: `hot_count` (consecutive CPU breaches), `rss_samples` (bounded FIFO window), `rss_hot_count`, `peak_rss_kb`, and separate cooldown stamps for CPU alerts, RSS alerts, and growth alerts. `global` holds system-wide cooldowns (orphan MCP). Three detection methods: `classify_rss_severity` returns the highest-tier breach using a severity-rank map, `rss_growth_slope` computes MB/minute from the oldest→newest sample pair, and `should_alert_orphan_mcp` gates on the `orphan_mcp_threshold`. Prunes dead PIDs every cycle, caps at 500 tracked.
 - **`Alerter`**—Multi-channel dispatch. Single `_dispatch(log_msg, title, body, sound)` pipes to macOS (`alerter` subprocess), Telegram (REST), and the log. Seven alert methods routed through it: `alert` (CPU), `alert_orphaned` (Claude stdio revocation), `alert_rss` (three-tier severity, warn is log-only and bypasses `_dispatch`), `alert_rss_growth` (slope-based), and `alert_orphan_mcp` (global MCP cluster).
 - **`Phroura`**—Main loop. SIGTERM/SIGINT handlers for clean shutdown. Hot-reloads `config.json` every cycle so every threshold can be tuned without a daemon restart.

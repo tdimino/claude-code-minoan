@@ -60,6 +60,7 @@ DEFAULT_CONFIG = {
     # General process monitoring
     "monitor_all_processes": True,   # False = Claude-only (legacy behavior)
     "cpu_floor_pct": 5,              # Minimum CPU% for non-Claude processes to be tracked
+    "rss_inclusion_floor_mb": 500,   # Include process if RSS exceeds this, even at 0% CPU
     "exclude_commands": [            # Never alert on these (legitimate CPU spikes)
         # macOS system daemons
         "kernel_task", "WindowServer", "mdworker", "mds_stores", "mds",
@@ -71,7 +72,7 @@ DEFAULT_CONFIG = {
         # Media encoders
         "ffmpeg", "ffprobe", "HandBrakeCLI",
         # Local LLM inference
-        "ollama", "llama-server", "llama-cli",
+        "ollama", "llama-cli",
     ],
     # --- RAM watchdog (Claude Code memory leak detection) ---
     "enable_ram_watchdog": True,
@@ -197,9 +198,12 @@ class ProcessPoller:
                     continue
                 try:
                     cpu_pct = float(parts[2])
+                    rss_kb = int(parts[5])
                 except (ValueError, IndexError):
                     continue
-                if cpu_pct < cpu_floor:
+                # Include if CPU above floor OR RSS above memory floor
+                rss_floor_kb = int(config.get("rss_inclusion_floor_mb", 500)) * 1024
+                if cpu_pct < cpu_floor and rss_kb < rss_floor_kb:
                     continue
                 # Skip excluded commands (basename match)
                 basename = _command_basename(command)
