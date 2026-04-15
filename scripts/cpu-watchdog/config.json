@@ -11,6 +11,7 @@
   "max_tracked_pids": 500,
   "monitor_all_processes": true,
   "cpu_floor_pct": 5,
+  "rss_inclusion_floor_mb": 500,
   "exclude_commands": [
     "kernel_task",
     "WindowServer",
@@ -42,7 +43,6 @@
     "ffprobe",
     "HandBrakeCLI",
     "ollama",
-    "llama-server",
     "llama-cli"
   ],
 
