@@ -25,6 +25,15 @@
 - **portless**: `portless <name> <cmd>` for dev server routing with `.localhost` URLs
 - **port-whisperer**: `ports` for port inspection, `ports kill <port>` to free ports
 
+## Remote Agent Dispatch
+- **Takopi** (banteg/takopi): Bridges coding agents to Telegram. Send tasks from phone, stream live progress, resume sessions. Multi-engine (Claude, Codex, OpenCode, Pi), multi-project routing, git worktrees, voice transcription, file transfer.
+  - Install: `uv tool install -U takopi && takopi --onboard`
+  - Config: `~/.takopi/takopi.toml`
+  - Core flow: Telegram message → Takopi spawns `claude -p --output-format stream-json --verbose` → streams progress → resume line for follow-ups
+  - Claude runner config (`[claude]` in takopi.toml): `model`, `allowed_tools`, `dangerously_skip_permissions`, `use_api_billing`
+  - Voice notes: local STT via Parakeet server at `skills/parakeet/scripts/parakeet_server.py` (OpenAI-compatible `/v1/audio/transcriptions`)
+  - Docs: https://takopi.dev/
+
 ## API Keys
 - All secrets in `~/.config/env/secrets.env` (chmod 600, sourced by `.zshrc`)
 - Never put API keys directly in `.zshrc`
