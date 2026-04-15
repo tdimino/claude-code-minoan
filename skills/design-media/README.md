@@ -44,6 +44,7 @@ The satellite skills adapt patterns from [Impeccable](https://github.com/pbakaus
 | `pretext` | Text effects impossible with CSS alone — kinetic typography, calligrams, shrinkwrap bubbles, typographic ASCII art, glyph morphing, illuminated manuscripts. Uses `@chenglou/pretext` |
 | `sprite-forge` | Game sprites, SVG characters, ASCII art (static + animated), animated mascots, isometric turnarounds — 5 output modes with chongdashu pipeline, video-to-spritesheet, Gemini SVG-as-code, GSAP animation |
 | `grainient` | 16 composable dark-mode effects: WebGL2 aurora shader, vignette overlays, 9-layer box shadows, Lenis-style smooth scroll, spring animations, hover zoom, ticker marquee, glassmorphism, 3D card flip, bento grid, gradient CTAs. 5 modes, generator script, validator |
+| `webgpu-threejs-tsl` | WebGPU reference skill for Three.js + TSL: renderer setup, node materials, compute shaders, post-processing, WGSL integration. Reference/learning — for generating scenes, use `threejs-particle-canvas`. Adopted from [dgreenheck/webgpu-claude-skill](https://github.com/dgreenheck/webgpu-claude-skill) |
 
 ## Component Libraries
 
