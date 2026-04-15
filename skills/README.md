@@ -75,6 +75,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `grainient` | 16 composable dark-mode effects: WebGL2 aurora shader, vignette overlays, 9-layer box shadows, smooth scroll, spring animations, hover zoom, ticker marquee, glassmorphism, 3D card flip, bento grid, gradient CTAs. 5 modes, generator, validator |
 | `threejs-particle-canvas` | Interactive Three.js particle canvases: narrative phase cycles, WebGPU spinners, infinite gallery tunnels, behavior-driven glTF specimens |
 | `sprite-forge` | Game sprites, SVG characters, ASCII art, animated mascots, isometric turnarounds — 5 output modes |
+| `webgpu-threejs-tsl` | WebGPU reference skill for [Three.js](https://threejs.org/) + [TSL](https://github.com/mrdoob/three.js/wiki/Three.js-Shading-Language): renderer setup, node materials, compute shaders, WGSL integration. Adopted from [dgreenheck/webgpu-claude-skill](https://github.com/dgreenheck/webgpu-claude-skill) |
 
 ### Research (`research/`)
 | Skill | Description |
@@ -127,3 +128,4 @@ skill-name/
 - **[Impeccable](https://github.com/pbakaus/impeccable)** by Paul Bakaus — decomposed design command architecture, font reflex-reject protocol, CSS anti-pattern bans
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** — color science, OKLCH decision matrices, palette generation
 - **[Open Souls](https://github.com/opensouls/opensouls)** — the AI souls paradigm that shapes our agent architecture
+- **[webgpu-claude-skill](https://github.com/dgreenheck/webgpu-claude-skill)** by Dan Greenheck — Three.js WebGPU + TSL reference skill
