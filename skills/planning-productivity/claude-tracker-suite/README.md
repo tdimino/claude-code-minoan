@@ -2,7 +2,7 @@
 
 Session management for Claude Code. Search, resume, spawn, and open sessions across projects---with cmux/Ghostty terminal integration, crash recovery, git-aware tracking, weighted search ranking, and new machine bootstrapping.
 
-**Last updated:** 2026-04-14
+**Last updated:** 2026-03-26
 
 **Terminal targets:** cmux (preferred, deterministic CLI), Ghostty (AppleScript fallback), VS Code, Cursor
 
@@ -34,7 +34,6 @@ claude-tracker-suite/
     bootstrap-claude-setup.js              # Generate complete ~/.claude/ structure
     detect-projects.js                     # Project discovery and CLAUDE.md scaffolding
     new-session.sh                         # Start new interactive/prompt-driven/headless session
-    tag-session.js                         # Add/remove/list manual keyword tags on sessions
     resume-in-vscode.sh                    # Legacy: AppleScript-based terminal launch
 ```
 
@@ -52,35 +51,6 @@ Both `open-sessions.js` and `resume-session.sh` support multiple terminal backen
 | **Cursor** | `--cursor` | Opens project in editor + resumes in terminal | Editor-open only; terminal via cmux/Ghostty |
 
 Auto-detect order: cmux (if `cmux ping` succeeds) > Ghostty > print resume command.
-
----
-
-## What's New (2026-04-14)
-
-### tag-session.js --- Manual keyword tags
-
-Attach lightweight metatags to sessions (e.g. `wwatcher`, `combat-system`, `bug-repro`) and search by them later:
-
-```bash
-node tag-session.js add wwatcher combat-system   # Tag the current live session
-node tag-session.js add bug-repro --session d7b8f4dd
-node tag-session.js list --session d7b8f4dd
-node tag-session.js remove combat-system
-node tag-session.js clear
-```
-
-Live sessions write a `.pending-tags` breadcrumb that the next Stop hook applies to the registry under fcntl lock; closed sessions write directly. Auto-detects the current session from cwd when `--session` is omitted.
-
-### search-sessions.js --- Tag-aware ranking
-
-Search now matches against `display_tags`, auto-inferred tags, and user-applied tags from `tag-session.js`, with case-insensitive dedupe across all three sources. Tags surface in both default body search (via the metadata pre-pass) and `--name` mode (fast, registry-only).
-
-```bash
-node search-sessions.js wwatcher --name      # Find every session tagged wwatcher
-node search-sessions.js combat-system        # Tags also boost full-text results
-```
-
-Matched fields are labeled in the output (`tags`, `title`, `summary`) so you can see which signal hit.
 
 ---
 
@@ -129,7 +99,6 @@ Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, n
 | Field | Weight | Why |
 |-------|--------|-----|
 | Summary | 3x | Most descriptive of what happened |
-| Tags | 3x | Curated/auto signals about session topic |
 | First prompt | 2x | Captures user intent |
 | Project path | 1x | Directory context |
 | Branch name | 1x | Feature context |
@@ -138,7 +107,7 @@ Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, n
 |------|-------------|
 | `--limit <n>` | Max results (default: 20) |
 | `--id <prefix>` | Lookup by session ID prefix |
-| `--name` | Search names/slugs/summaries/tags only (fast, no body scan) |
+| `--name` | Search names/slugs only (fast, no body scan) |
 | `--project <name>` | Filter by project |
 | `--since <duration>` | Recent only: `7d`, `24h`, `30m` |
 | `--json` | Machine-readable output |
@@ -165,7 +134,6 @@ Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, n
 | `search-sessions.js` | `node search-sessions.js "query" [--id <prefix>] [--name]` |
 | `list-sessions.js` | `node list-sessions.js [--limit 20]` |
 | `new-session.sh` | `bash new-session.sh [dir] [-p "prompt"] [--headless]` |
-| `tag-session.js` | `node tag-session.js <add\|remove\|list\|clear> [tags...] [--session ID]` |
 | `detect-projects.js` | `node detect-projects.js [--suggest\|--scaffold]` |
 | `bootstrap-claude-setup.js` | `node bootstrap-claude-setup.js --user "Name"` |
 
