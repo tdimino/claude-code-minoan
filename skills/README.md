@@ -11,7 +11,7 @@ cp -r skills/*/* ~/.claude/skills/
 
 **Option B: Symlink individual skills**
 ```bash
-ln -s "$(pwd)/skills/core-development/beads-task-tracker" ~/.claude/skills/beads-task-tracker
+ln -s "$(pwd)/skills/core-development/stop-slop" ~/.claude/skills/stop-slop
 ```
 
 **Toggle skills on/off:**
@@ -28,10 +28,8 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 |-------|-------------|
 | `agents-md-manager` | Create and maintain [AGENTS.md](https://agentskills.io/) files and Codex CLI configuration (config.toml, .rules, .agents/skills/) |
 | `architecture-md-builder` | ARCHITECTURE.md generation following [matklad's guidelines](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html) |
-| `beads-task-tracker` | Dependency-aware task tracking with SQLite + JSONL sync |
 | `claude-agent-sdk` | Build AI agents using the [Claude Agent SDK](https://docs.anthropic.com/en/docs/agents-and-tools/claude-agent-sdk) |
 | `claude-md-manager` | CLAUDE.md creation using WHAT/WHY/HOW framework |
-| `osgrep-reference` | [OSGrep](https://osgrep.app/) semantic code search reference |
 | `react-best-practices` | React/Next.js optimization from [Vercel Engineering](https://vercel.com/blog) |
 | `openrouter-usage` | Query OpenRouter API costs, credits, and usage by model/provider/date |
 | `skill-optimizer` | Meta-skill for creating and reviewing other skills |
@@ -46,8 +44,6 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `beautiful-mermaid` | Mermaid diagrams as ASCII art via [beautiful-mermaid](https://github.com/nicepkg/beautiful-mermaid) |
 | `parakeet` | Speech-to-text via [NVIDIA Parakeet](https://docs.nvidia.com/nemo/asr/models/parakeet.html) + [Handy](https://github.com/cjpais/Handy) |
 | `rlama` | Local RAG via [RLAMA](https://github.com/dontizi/rlama) with Ollama |
-| `firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) CLI + Agent API |
-| `exa-search` | Neural search via [Exa AI](https://exa.ai/) API |
 | `opencli` | Universal CLI for 80+ websites, desktop apps, browser automation via Chrome session reuse ([jackwener/opencli](https://github.com/jackwener/opencli)) |
 | `twitter` | Twitter/X — search/research via x-search (official API v2), posting via OAuth 1.0a, reading via [bird CLI](https://github.com/steipete/bird) |
 | `smolvlm` | Local vision-language via [SmolVLM](https://huggingface.co/HuggingFaceTB/SmolVLM-Instruct) on MLX |
@@ -81,8 +77,8 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | Skill | Description |
 |-------|-------------|
 | `academic-research` | Paper search via Exa + [ArXiv](https://arxiv.org/) |
-| `exa-search` | Full [Exa AI](https://exa.ai/) API with 6 specialized scripts |
-| `firecrawl` | [Firecrawl](https://firecrawl.dev/) official CLI + Agent API |
+| `exa-search` | Neural search via [Exa AI](https://exa.ai/) — 5 specialized scripts, all API endpoints |
+| `firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) v2 — JS rendering, site crawls, Agent API, Interact API |
 | `scrapling` | Local stealth web scraping: anti-bot bypass, Cloudflare solver, adaptive element tracking |
 | `linear-a-decipherment` | Computational [Linear A](https://en.wikipedia.org/wiki/Linear_A) analysis — [Gordon](https://en.wikipedia.org/wiki/Cyrus_H._Gordon) 5-step pipeline, cognate search, corpus statistics, sign analysis |
 

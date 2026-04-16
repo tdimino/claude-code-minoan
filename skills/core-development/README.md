@@ -7,7 +7,6 @@ SDK integration, code search, task tracking, project documentation, and developm
 | `agents-md-manager` | Create, audit, and maintain AGENTS.md + Codex CLI config |
 | `architecture-md-builder` | Build ARCHITECTURE.md files following matklad's guidelines |
 | `autoresearch` | Scaffold and run Karpathy-style autoresearch loops (hypothesis, implement, eval, keep/discard) |
-| `beads-task-tracker` | Git-versioned, dependency-aware issue tracking for AI agents |
 | `claude-agent-sdk` | Build AI agents using the Claude Agent SDK |
 | `claude-md-manager` | Create and maintain CLAUDE.md files |
 | `claude-usage` | Report token consumption and cost from JSONL session files |

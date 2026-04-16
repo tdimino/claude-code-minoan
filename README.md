@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-79-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-80-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-16-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-44-orange.svg" alt="Hooks"></a>
 </p>
@@ -73,7 +73,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 76 skills across 5 categories
+### [Skills](skills/README.md) — 80 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
