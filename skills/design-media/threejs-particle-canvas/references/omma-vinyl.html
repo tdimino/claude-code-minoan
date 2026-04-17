@@ -1,0 +1,698 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style rel="stylesheet" type="text/css">@charset "utf-8";
+
+* { margin: 0px; padding: 0px; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; background: rgb(255, 255, 255); overscroll-behavior-y: none; }
+
+body { width: 100%; min-height: 100vh; overflow-x: hidden; background: rgb(255, 255, 255); font-family: Inter, sans-serif; color: rgb(10, 10, 10); overscroll-behavior-y: none; }
+
+#three-canvas { position: fixed; top: 0px; left: 0px; width: 100%; height: 100%; z-index: 0; pointer-events: none; will-change: transform; background: rgb(255, 255, 255); }
+
+#three-canvas canvas { pointer-events: auto; }
+
+.nav { position: fixed; top: 0px; left: 0px; right: 0px; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0, 0, 0, 0.06); opacity: 0; animation: 0.6s ease 0.1s 1 normal forwards running fadeIn; transition: transform 0.35s; }
+
+.nav.nav-hidden { transform: translateY(-100%); }
+
+.nav-logo { font-size: 20px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(10, 10, 10); }
+
+.nav-logo span { font-weight: 300; opacity: 0.4; margin-left: 6px; font-size: 12px; letter-spacing: 0.2em; }
+
+.nav-links { display: flex; gap: 36px; list-style: none; }
+
+.nav-links a { font-size: 12px; font-weight: 500; color: rgb(136, 136, 136); text-decoration: none; letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.2s; }
+
+.nav-links a:hover { color: rgb(10, 10, 10); }
+
+.hamburger { display: none; flex-direction: column; justify-content: center; gap: 5px; width: 36px; height: 36px; background: none; border: none; cursor: pointer; padding: 6px; z-index: 201; -webkit-tap-highlight-color: transparent; }
+
+.hamburger-line { display: block; width: 22px; height: 2px; background: rgb(10, 10, 10); border-radius: 2px; transition: transform 0.3s, opacity 0.3s; transform-origin: center center; }
+
+.hamburger.open .hamburger-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+
+.hamburger.open .hamburger-line:nth-child(2) { opacity: 0; }
+
+.hamburger.open .hamburger-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.mobile-menu-overlay { display: none; position: fixed; inset: 0px; background: rgba(0, 0, 0, 0.3); z-index: 98; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; }
+
+.mobile-menu-overlay.active { display: block; opacity: 1; }
+
+.section-dots { position: fixed; right: 28px; top: 50%; transform: translateY(-50%); z-index: 150; display: flex; flex-direction: column; gap: 16px; align-items: center; }
+
+.section-dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid rgba(0, 0, 0, 0.2); background: rgb(255, 255, 255); cursor: pointer; transition: 0.3s; position: relative; }
+
+.section-dot:hover { border-color: rgb(10, 10, 10); }
+
+.section-dot.active { background: rgb(10, 10, 10); border-color: rgb(10, 10, 10); transform: scale(1.3); }
+
+.section-dot .dot-label { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgb(170, 170, 170); white-space: nowrap; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+
+.section-dot:hover .dot-label { opacity: 1; }
+
+.page-section { position: relative; z-index: 1; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none; }
+
+.page-section .section-inner { position: relative; z-index: 2; width: 100%; max-width: 1200px; padding: 0px 60px; pointer-events: auto; }
+
+.hero-content { display: flex; align-items: center; justify-content: space-between; gap: 40px; }
+
+.hero-text { flex: 1 1 0%; max-width: 520px; }
+
+.hero-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: rgb(153, 153, 153); margin-bottom: 20px; opacity: 0; transform: translateY(20px); animation: 0.8s ease 0.3s 1 normal forwards running fadeUp; }
+
+.hero-title { font-size: clamp(48px, 7vw, 96px); font-weight: 900; line-height: 0.95; letter-spacing: -0.03em; color: rgb(10, 10, 10); margin-bottom: 24px; opacity: 0; transform: translateY(30px); animation: 0.8s ease 0.5s 1 normal forwards running fadeUp; }
+
+.hero-title .outline-word { display: block; font-family: Syne, sans-serif; font-weight: 800; font-style: normal; color: rgb(255, 255, 255); -webkit-text-stroke: 1.5px rgb(10, 10, 10); }
+
+.hero-desc { font-size: 16px; line-height: 1.7; color: rgb(102, 102, 102); font-weight: 400; margin-bottom: 36px; max-width: 400px; opacity: 0; transform: translateY(20px); animation: 0.8s ease 0.7s 1 normal forwards running fadeUp; }
+
+.hero-actions { display: flex; gap: 16px; align-items: center; opacity: 0; transform: translateY(20px); animation: 0.8s ease 0.9s 1 normal forwards running fadeUp; }
+
+.hero-vinyl-space { flex: 1 1 0%; min-width: 200px; max-width: 600px; aspect-ratio: 1 / 1; pointer-events: none; }
+
+.btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; background: rgb(10, 10, 10); color: rgb(255, 255, 255); font-family: Inter, sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; border: none; border-radius: 50px; cursor: pointer; transition: 0.3s; text-decoration: none; }
+
+.btn-primary:hover { background: rgb(34, 34, 34); transform: translateY(-1px); }
+
+.btn-secondary { display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; background: transparent; color: rgb(10, 10, 10); font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.04em; border: 1.5px solid rgb(221, 221, 221); border-radius: 50px; cursor: pointer; transition: 0.3s; text-decoration: none; }
+
+.btn-secondary:hover { border-color: rgb(10, 10, 10); }
+
+.btn-secondary.get-in-touch-btn { background: rgb(255, 255, 255); border-color: rgb(10, 10, 10); color: rgb(10, 10, 10); }
+
+.btn-secondary.get-in-touch-btn:hover { background: rgb(240, 240, 240); border-color: rgb(10, 10, 10); }
+
+.stats-bar { position: absolute; bottom: 48px; left: 60px; right: 60px; z-index: 5; display: flex; justify-content: flex-start; gap: 64px; pointer-events: auto; opacity: 0; animation: 0.8s ease 1.2s 1 normal forwards running fadeUp; }
+
+.stat-item { display: flex; flex-direction: column; }
+
+.stat-number { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: rgb(10, 10, 10); }
+
+.stat-label { font-size: 11px; font-weight: 500; color: rgb(153, 153, 153); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+
+.scroll-hint { position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%); z-index: 90; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; animation: 0.8s ease 1.4s 1 normal forwards running fadeUp; transition: opacity 0.4s; }
+
+.scroll-hint.hidden { opacity: 0 !important; pointer-events: none; }
+
+.scroll-hint span { font-size: 10px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: rgb(255, 255, 255); }
+
+.scroll-hint .scroll-line { width: 1px; height: 40px; background: linear-gradient(rgb(204, 204, 204), transparent); animation: 2s ease 0s infinite normal none running scrollPulse; }
+
+.section-artists .section-inner { display: flex; align-items: center; gap: 80px; }
+
+.artists-text { flex: 1 1 0%; max-width: 480px; }
+
+.artists-text .section-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: rgb(187, 187, 187); margin-bottom: 16px; }
+
+.artists-text h2 { font-size: clamp(36px, 5vw, 64px); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; color: rgb(10, 10, 10); margin-bottom: 20px; }
+
+.artists-text p { font-size: 15px; line-height: 1.75; color: rgb(119, 119, 119); max-width: 380px; margin-bottom: 28px; }
+
+.artist-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+
+.artist-list li { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 500; color: rgb(85, 85, 85); padding: 10px 16px; border-radius: 10px; background: rgb(255, 255, 255); border: 1px solid rgba(0, 0, 0, 0.08); transition: border-color 0.2s, box-shadow 0.2s; }
+
+.artist-list li:hover { border-color: rgba(0, 0, 0, 0.18); box-shadow: rgba(0, 0, 0, 0.06) 0px 2px 8px; }
+
+.artist-list li .artist-num { font-size: 10px; font-weight: 700; color: rgb(10, 10, 10); letter-spacing: 0.05em; min-width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; background: rgb(255, 255, 255); border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 6px; flex-shrink: 0; }
+
+.artists-vinyl-space { flex: 1 1 0%; min-width: 300px; max-width: 500px; aspect-ratio: 1 / 1; pointer-events: none; }
+
+.section-contact .section-inner { display: flex; flex-direction: column; align-items: center; text-align: center; }
+
+.contact-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: rgb(187, 187, 187); margin-bottom: 16px; }
+
+.contact-title { font-size: clamp(36px, 5vw, 72px); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; color: rgb(10, 10, 10); margin-bottom: 16px; }
+
+.contact-title .outline-word { display: block; font-family: Syne, sans-serif; font-weight: 800; color: transparent; -webkit-text-stroke: 1.5px rgb(10, 10, 10); }
+
+.contact-desc { font-size: 15px; line-height: 1.75; color: rgb(119, 119, 119); max-width: 440px; margin-bottom: 36px; }
+
+.contact-actions { display: flex; gap: 16px; }
+
+.camera-status { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 50; background: rgba(10, 10, 10, 0.85); color: rgb(255, 255, 255); font-size: 12px; padding: 10px 24px; border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.1); pointer-events: none; transition: opacity 1s; }
+
+#camera-preview { position: fixed; bottom: 20px; right: 20px; z-index: 90; width: 160px; height: 120px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(0, 0, 0, 0.08); background: rgb(0, 0, 0); opacity: 0; transition: opacity 0.6s; }
+
+#camera-preview.active { opacity: 1; }
+
+#camera-preview video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+
+#camera-preview .cam-label { position: absolute; bottom: 6px; left: 8px; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); pointer-events: none; }
+
+#camera-preview .cam-dot { position: absolute; top: 8px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: rgb(255, 59, 59); animation: 1.5s ease 0s infinite normal none running camPulse; }
+
+@keyframes camPulse { 
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+#settings-panel { position: fixed; top: 80px; left: 20px; z-index: 200; width: 300px; max-height: calc(-100px + 100vh); overflow-y: auto; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 16px; padding: 20px; font-family: Inter, sans-serif; display: none; pointer-events: auto; }
+
+#settings-panel.visible { display: block; }
+
+.panel-title { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(10, 10, 10); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); display: flex; align-items: center; justify-content: space-between; }
+
+.panel-title .hint { font-size: 10px; font-weight: 400; letter-spacing: 0.05em; color: rgb(170, 170, 170); text-transform: none; }
+
+.section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(153, 153, 153); margin-top: 16px; margin-bottom: 10px; }
+
+.section-label:first-of-type { margin-top: 0px; }
+
+.ctrl-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+
+.ctrl-row label { font-size: 11px; font-weight: 500; color: rgb(85, 85, 85); flex-shrink: 0; min-width: 80px; }
+
+.ctrl-row input[type="range"] { flex: 1 1 0%; margin: 0px 8px; accent-color: rgb(10, 10, 10); height: 4px; min-width: 0px; }
+
+.ctrl-row .val { font-size: 10px; font-weight: 600; color: rgb(10, 10, 10); min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+.ctrl-row input[type="range"]::-webkit-slider-runnable-track { height: 3px; background: rgb(221, 221, 221); border-radius: 2px; }
+
+.ctrl-row input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border-radius: 50%; background: rgb(10, 10, 10); margin-top: -5.5px; cursor: pointer; }
+
+#settings-panel::-webkit-scrollbar { width: 4px; }
+
+#settings-panel::-webkit-scrollbar-track { background: transparent; }
+
+#settings-panel::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 2px; }
+
+.kf-tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+
+.kf-tab { flex: 1 1 0%; padding: 8px 4px; text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(153, 153, 153); background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: 8px; cursor: pointer; transition: 0.2s; }
+
+.kf-tab:hover { color: rgb(85, 85, 85); border-color: rgba(0, 0, 0, 0.12); }
+
+.kf-tab.active { color: rgb(255, 255, 255); background: rgb(10, 10, 10); border-color: rgb(10, 10, 10); }
+
+.kf-divider { margin: 16px 0px 4px; border-top: 1px solid rgba(0, 0, 0, 0.06); }
+
+#kf-props-container { background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.05); border-radius: 10px; padding: 12px 12px 8px; margin-bottom: 4px; }
+
+#kf-props-container .section-label:first-child { margin-top: 0px; }
+
+.kf-editing-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgb(10, 10, 10); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+
+.kf-editing-label .kf-dot { width: 6px; height: 6px; border-radius: 50%; background: rgb(10, 10, 10); display: inline-block; }
+
+#copyJsonBtn { transition: 0.2s; }
+
+#copyJsonBtn:hover { background: rgb(51, 51, 51); }
+
+#copyJsonBtn.copied { background: rgb(26, 138, 62); }
+
+.toast-msg { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); z-index: 300; background: rgba(10, 10, 10, 0.9); color: rgb(255, 255, 255); font-family: Inter, sans-serif; font-size: 12px; font-weight: 500; padding: 10px 24px; border-radius: 50px; pointer-events: none; opacity: 0; transition: opacity 0.3s, transform 0.3s; }
+
+.toast-msg.show { opacity: 1; transform: translateX(-50%) translateY(0px); }
+
+.site-footer { position: relative; z-index: 10; background: rgb(10, 10, 10); color: rgb(255, 255, 255); padding: 80px 0px 0px; }
+
+.footer-inner { max-width: 1200px; margin: 0px auto; padding: 0px 60px; }
+
+.footer-top { display: flex; justify-content: space-between; gap: 80px; padding-bottom: 60px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+
+.footer-brand { max-width: 320px; }
+
+.footer-logo { font-size: 20px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px; }
+
+.footer-logo span { font-weight: 300; opacity: 0.4; margin-left: 6px; font-size: 12px; letter-spacing: 0.2em; }
+
+.footer-desc { font-size: 13px; line-height: 1.7; color: rgba(255, 255, 255, 0.4); }
+
+.footer-cols { display: flex; gap: 64px; }
+
+.footer-col { display: flex; flex-direction: column; gap: 10px; }
+
+.footer-col-title { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255, 255, 255, 0.3); margin-bottom: 6px; }
+
+.footer-col a { font-size: 13px; font-weight: 400; color: rgba(255, 255, 255, 0.55); text-decoration: none; transition: color 0.2s; }
+
+.footer-col a:hover { color: rgb(255, 255, 255); }
+
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; padding: 24px 0px; margin-top: 0px; }
+
+.footer-bottom span { font-size: 11px; font-weight: 400; color: rgba(255, 255, 255, 0.25); letter-spacing: 0.04em; }
+
+.footer-credits { font-family: Syne, sans-serif; font-weight: 700; font-size: 12px !important; color: rgba(255, 255, 255, 0.15) !important; letter-spacing: 0.06em !important; }
+
+@media (max-width: 768px) {
+  .footer-top { flex-direction: column; gap: 40px; }
+  .footer-cols { gap: 32px; flex-wrap: wrap; }
+  .footer-inner { padding: 0px 24px; }
+  .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+}
+
+@keyframes fadeUp { 
+  100% { opacity: 1; transform: translateY(0px); }
+}
+
+@keyframes fadeIn { 
+  100% { opacity: 1; }
+}
+
+@keyframes scrollPulse { 
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .nav { padding: 14px 20px; }
+  .hamburger { display: flex; }
+  .nav-links { position: fixed; top: 0px; right: 0px; width: 260px; height: 100vh; flex-direction: column; background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(24px); padding: 100px 32px 40px; gap: 0px; transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); z-index: 99; border-left: 1px solid rgba(0, 0, 0, 0.06); }
+  .nav-links.open { transform: translateX(0px); }
+  .nav-links li { list-style: none; }
+  .nav-links a { display: block; font-size: 16px; font-weight: 600; color: rgb(10, 10, 10); padding: 16px 0px; border-bottom: 1px solid rgba(0, 0, 0, 0.06); letter-spacing: 0.08em; }
+  .nav-links a:hover { color: rgb(85, 85, 85); }
+  .section-dots { right: 10px; gap: 12px; }
+  .section-dot { width: 8px; height: 8px; }
+  .section-dot .dot-label { display: none; }
+  .page-section .section-inner { padding: 0px 24px; }
+  .page-section { min-height: 100svh; }
+  .section-hero { flex-direction: column; justify-content: center; align-items: center; }
+  .section-hero .section-inner { padding: 0px 24px; }
+  .hero-content { flex-direction: column; align-items: center; text-align: center; padding: 100px 0px 0px; gap: 0px; }
+  .hero-vinyl-space { display: none; }
+  .hero-text { max-width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .hero-title { font-size: clamp(36px, 11vw, 64px); margin-bottom: 14px; }
+  .hero-tag { font-size: 10px; margin-bottom: 12px; letter-spacing: 0.1em; }
+  .hero-desc { font-size: 14px; line-height: 1.65; margin-bottom: 24px; max-width: 320px; text-align: center; }
+  .hero-actions { flex-direction: column; gap: 10px; align-items: center; width: 100%; max-width: 280px; }
+  .hero-actions .btn-primary, .hero-actions .btn-secondary { justify-content: center; padding: 13px 24px; font-size: 13px; width: 100%; border-radius: 50px; }
+  .stats-bar { position: static; bottom: auto; left: auto; right: auto; display: flex; flex-flow: row; justify-content: center; align-items: center; padding: 28px 24px 0px; margin: 0px; gap: 40px; animation: auto ease 0s 1 normal none running none; opacity: 1; width: 100%; pointer-events: auto; }
+  .stat-item { align-items: center; text-align: center; }
+  .stat-number { font-size: 22px; }
+  .stat-label { font-size: 9px; letter-spacing: 0.08em; }
+  .section-artists .section-inner { flex-direction: column; gap: 24px; padding-top: 100px; padding-bottom: 60px; }
+  .artists-text { max-width: 100%; }
+  .artists-text h2 { font-size: clamp(32px, 10vw, 48px); }
+  .artists-text p { font-size: 14px; max-width: 100%; margin-bottom: 20px; }
+  .artists-vinyl-space { display: none; }
+  .artist-list li { font-size: 12px; padding: 10px 14px; }
+  .artist-list li .artist-num { min-width: 22px; height: 22px; font-size: 9px; }
+  .section-contact .section-inner { align-items: flex-start; text-align: left; padding-top: 100px; padding-bottom: 60px; }
+  .contact-title { font-size: clamp(32px, 10vw, 56px); }
+  .contact-desc { font-size: 14px; max-width: 100%; }
+  .contact-actions { flex-direction: column; gap: 12px; width: 100%; }
+  .contact-actions .btn-primary, .contact-actions .btn-secondary { justify-content: center; padding: 14px 24px; font-size: 13px; width: 100%; }
+  #camera-preview { display: none; }
+  .scroll-hint { display: none; }
+  #settings-panel { width: calc(100% - 20px); left: 10px; right: 10px; max-height: calc(-90px + 100vh); top: 70px; border-radius: 12px; }
+  .site-footer { padding: 48px 0px 0px; }
+  .footer-inner { padding: 0px 24px; }
+  .footer-top { flex-direction: column; gap: 32px; padding-bottom: 32px; }
+  .footer-cols { gap: 24px; flex-wrap: wrap; }
+  .footer-col { min-width: calc(50% - 12px); }
+  .footer-bottom { flex-direction: column; gap: 8px; text-align: center; padding: 20px 0px; }
+  .btn-primary, .btn-secondary { text-align: center; }
+}
+
+@media (max-width: 380px) {
+  .hero-title { font-size: 36px; }
+  .stat-number { font-size: 18px; }
+  .stat-label { font-size: 8px; }
+  .stats-bar { gap: 16px !important; }
+  .nav-logo { font-size: 17px; }
+  .nav-logo span { font-size: 10px; }
+}</style>
+  <base href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/">
+  <title>3D Vinyl with Camera Reflection</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="3D Vinyl with Camera Reflection — created on Omma">
+    <meta property="og:title" content="3D Vinyl with Camera Reflection">
+    <meta property="og:description" content="3D Vinyl with Camera Reflection — created on Omma">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://omma.build/api/og-image?slug=3d-vinyl-with-camera-reflection-e4598h">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="3D Vinyl with Camera Reflection">
+    <meta name="twitter:description" content="3D Vinyl with Camera Reflection — created on Omma">
+    <meta name="twitter:image" content="https://omma.build/api/og-image?slug=3d-vinyl-with-camera-reflection-e4598h">
+  <script>window.UPLOADED_3D_MODELS = [];</script>
+  <script>
+window.UPLOADED_IMAGES = [{"name":"pasted-image-2026-04-16T19-11-43.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-16T19-11-43.png","type":"image/png"},{"name":"pasted-image-2026-04-16T16-18-33.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-16T16-18-33.png","type":"image/png"},{"name":"pasted-image-2026-04-16T16-09-36.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-16T16-09-36.png","type":"image/png"},{"name":"CleanShot_X_2026-04-16_21_11_39.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/CleanShot_X_2026-04-16_21_11_39.png","type":"image/png"},{"name":"pasted-image-2026-04-16T17-41-51.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-16T17-41-51.png","type":"image/png"},{"name":"pasted-image-2026-04-16T17-33-17.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-16T17-33-17.png","type":"image/png"},{"name":"pasted-image-2026-04-16T18-54-01.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-16T18-54-01.png","type":"image/png"},{"name":"pasted-image-2026-04-16T17-37-33.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-16T17-37-33.png","type":"image/png"},{"name":"pasted-image-2026-04-17T11-49-19.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-17T11-49-19.png","type":"image/png"},{"name":"pasted-image-2026-04-17T11-59-21.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-17T11-59-21.png","type":"image/png"},{"name":"pasted-image-2026-04-17T11-53-40.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-17T11-53-40.png","type":"image/png"},{"name":"pasted-image-2026-04-16T16-58-57.png","dataUrl":"https://rrzvgzjttmyseqsmmyvn.supabase.co/storage/v1/object/public/published/3d-vinyl-with-camera-reflection-e4598h/assets/pasted-image-2026-04-16T16-58-57.png","type":"image/png"}];
+(function() {
+  var imgs = window.UPLOADED_IMAGES || [];
+  if (!imgs.length) return;
+  var lookup = {};
+  imgs.forEach(function(img) {
+    lookup['assets/' + img.name] = img.dataUrl;
+    lookup[img.name] = img.dataUrl;
+    lookup['./' + 'assets/' + img.name] = img.dataUrl;
+  });
+  function resolveAsset(url) {
+    if (typeof url !== 'string') return null;
+    var clean = url.replace(/^\.?\//, '');
+    return lookup[clean] || lookup[url] || null;
+  }
+  var _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    var resolved = resolveAsset(typeof url === 'string' ? url : (url && url.url) || '');
+    if (resolved) return fetch(resolved, opts);
+    return _origFetch.apply(this, arguments);
+  };
+  var _origXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url) {
+    var resolved = resolveAsset(url);
+    if (resolved) arguments[1] = resolved;
+    return _origXHROpen.apply(this, arguments);
+  };
+  var imgSrcDesc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+  if (imgSrcDesc && imgSrcDesc.set) {
+    Object.defineProperty(HTMLImageElement.prototype, 'src', {
+      set: function(val) {
+        var resolved = resolveAsset(val);
+        imgSrcDesc.set.call(this, resolved || val);
+      },
+      get: imgSrcDesc.get,
+      configurable: true
+    });
+  }
+})();
+</script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js"
+    }
+  }
+  </script>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VYNL Records — Sound Reflected | Independent Vinyl Label</title>
+  <meta name="description" content="VYNL Records — independent record label pressing vinyl that mirrors your world. Explore our catalog of curated frequencies, featured artists, and custom pressings.">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="canonical" href="https://vynlrecords.com/">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="VYNL Records — Sound Reflected">
+  <meta property="og:description" content="Independent record label pressing vinyl that mirrors your world. Every groove captures the frequency of now.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vynlrecords.com/">
+  <meta property="og:site_name" content="VYNL Records">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="VYNL Records — Sound Reflected">
+  <meta name="twitter:description" content="Independent record label pressing vinyl that mirrors your world.">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "VYNL Records",
+    "description": "Independent record label pressing vinyl that mirrors your world.",
+    "url": "https://vynlrecords.com/",
+    "foundingDate": "2024",
+    "sameAs": [],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer service",
+      "url": "https://vynlrecords.com/#section-contact"
+    }
+  }
+  </script>
+
+  <!-- Font preconnect + stylesheet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;family=Space+Grotesk:wght@400;500;600;700&amp;family=Syne:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  
+  
+</head>
+<body>
+
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-logo">VYNL<span>records</span></div>
+    <button class="hamburger" id="hamburger-btn" aria-label="Toggle menu" aria-expanded="false">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-hero">Home</a></li>
+      <li><a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-artists">Artists</a></li>
+      <li><a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-contact">Contact</a></li>
+    </ul>
+  </nav>
+  <!-- Mobile menu overlay -->
+  <div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
+
+  <!-- Section jump dots -->
+  <div class="section-dots">
+    <div class="section-dot active" data-section="section-hero"><span class="dot-label">Home</span></div>
+    <div class="section-dot" data-section="section-artists"><span class="dot-label">Artists</span></div>
+    <div class="section-dot" data-section="section-contact"><span class="dot-label">Contact</span></div>
+  </div>
+
+  <div id="three-canvas"></div>
+
+  <!-- Section 1: Hero -->
+  <section id="section-hero" class="page-section section-hero">
+    <div class="section-inner">
+      <div class="hero-content">
+        <div class="hero-text">
+          <div class="hero-tag">Independent Record Label — Est. 2024</div>
+          <h1 class="hero-title">
+            Sound
+            <span class="outline-word">Reflected.</span>
+          </h1>
+          <p class="hero-desc">We press records that mirror your world. Every groove captures the frequency of now — raw, real, reflective.</p>
+          <div class="hero-actions">
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-artists" class="btn-primary">Explore Catalog →</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-contact" class="btn-secondary get-in-touch-btn">Get in Touch</a>
+          </div>
+        </div>
+        <div class="hero-vinyl-space"></div>
+      </div>
+    </div>
+    <!-- Stats: child of section (not hero-text) so absolute positioning works against the section on desktop -->
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-item"><div class="stat-number">127</div><div class="stat-label">Releases</div></div>
+      <div class="stat-item"><div class="stat-number">48</div><div class="stat-label">Artists</div></div>
+      <div class="stat-item"><div class="stat-number">12K</div><div class="stat-label">Pressed</div></div>
+    </div>
+  </section>
+
+  <!-- Scroll hint (fixed, centered) -->
+  <div class="scroll-hint" id="scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+
+  <!-- Section 2: Artists -->
+  <section id="section-artists" class="page-section section-artists">
+    <div class="section-inner">
+      <div class="artists-text">
+        <div class="section-tag">Featured Artists</div>
+        <h2>Curated<br>Frequencies</h2>
+        <p>Every artist on our roster brings a unique sonic fingerprint. We don't just press vinyl — we preserve moments in wax.</p>
+        <ul class="artist-list">
+          <li><span class="artist-num">01</span> Mira Solstice — Ambient Electronica</li>
+          <li><span class="artist-num">02</span> The Grain — Post-Rock</li>
+          <li><span class="artist-num">03</span> Kasra — Experimental Jazz</li>
+          <li><span class="artist-num">04</span> Hollow Sun — Shoegaze</li>
+        </ul>
+      </div>
+      <div class="artists-vinyl-space"></div>
+    </div>
+  </section>
+
+  <!-- Section 3: Contact -->
+  <section id="section-contact" class="page-section section-contact">
+    <div class="section-inner">
+      <div class="contact-tag">Get in Touch</div>
+      <h2 class="contact-title">
+        Let's Press
+        <span class="outline-word" style="color:#ffffff; -webkit-text-stroke: 1.5px #0a0a0a;">Together.</span>
+      </h2>
+      <p class="contact-desc">Whether you're an artist looking to press your first record or a collector hunting rarities — we'd love to hear from you.</p>
+      <div class="contact-actions">
+        <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-hero" class="btn-primary">Start a Project →</a>
+        <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-hero" class="btn-secondary get-in-touch-btn">View Pressings</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="footer-logo">VYNL<span>records</span></div>
+          <p class="footer-desc">Independent record label pressing vinyl that mirrors your world. Every groove captures the frequency of now.</p>
+        </div>
+        <div class="footer-cols">
+          <div class="footer-col">
+            <div class="footer-col-title">Label</div>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-hero">Home</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-artists">Artists</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-contact">Contact</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-artists">Catalog</a>
+          </div>
+          <div class="footer-col">
+            <div class="footer-col-title">Services</div>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-contact">Custom Pressing</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-contact">Mastering</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-contact">Distribution</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#section-contact">Packaging</a>
+          </div>
+          <div class="footer-col">
+            <div class="footer-col-title">Connect</div>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#">Instagram</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#">Twitter / X</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#">Bandcamp</a>
+            <a href="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/#">Discogs</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2024 VYNL Records. All rights reserved.</span>
+        <span class="footer-credits">Sound Reflected.</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="camera-status" id="camera-status">📷 Requesting camera access...</div>
+
+
+
+  <div id="camera-preview">
+    <video id="camera-preview-video" autoplay="" muted="" playsinline=""></video>
+    <div class="cam-dot"></div>
+    <div class="cam-label">Live</div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div id="settings-panel">
+    <div class="panel-title">Settings <span class="hint">press S to close</span></div>
+
+    <!-- Keyframe section tabs -->
+    <div class="section-label">Keyframes (per section)</div>
+    <div class="kf-tabs">
+      <div class="kf-tab active" data-kf="0">Hero</div>
+      <div class="kf-tab" data-kf="1">Artists</div>
+      <div class="kf-tab" data-kf="2">Contact</div>
+    </div>
+
+    <div id="kf-props-container">
+      <!-- Keyframe-specific properties (position, offset, rotation, scale, tilt) -->
+      <div class="section-label" style="margin-top:8px">Position</div>
+      <div class="ctrl-row"><label>X</label><input type="range" id="kf-posX" min="-5" max="5" step="0.1" value="-0.9"><span class="val" id="kf-posX-val">-0.9</span></div>
+      <div class="ctrl-row"><label>Y</label><input type="range" id="kf-posY" min="-5" max="5" step="0.1" value="-0.6"><span class="val" id="kf-posY-val">-0.6</span></div>
+      <div class="ctrl-row"><label>Z</label><input type="range" id="kf-posZ" min="-5" max="5" step="0.1" value="1.6"><span class="val" id="kf-posZ-val">1.6</span></div>
+
+      <div class="section-label">Offset</div>
+      <div class="ctrl-row"><label>Offset X</label><input type="range" id="kf-offsetX" min="-3" max="3" step="0.05" value="1.3"><span class="val" id="kf-offsetX-val">1.30</span></div>
+      <div class="ctrl-row"><label>Offset Y</label><input type="range" id="kf-offsetY" min="-3" max="3" step="0.05" value="0.25"><span class="val" id="kf-offsetY-val">0.25</span></div>
+      <div class="ctrl-row"><label>Offset Z</label><input type="range" id="kf-offsetZ" min="-3" max="3" step="0.05" value="0"><span class="val" id="kf-offsetZ-val">0.00</span></div>
+
+      <div class="section-label">Rotation / Tilt</div>
+      <div class="ctrl-row"><label>Tilt X</label><input type="range" id="kf-rotX" min="-3.14" max="3.14" step="0.01" value="0.61"><span class="val" id="kf-rotX-val">0.61</span></div>
+      <div class="ctrl-row"><label>Spin Y</label><input type="range" id="kf-rotY" min="-3.14" max="3.14" step="0.01" value="-1.46"><span class="val" id="kf-rotY-val">-1.46</span></div>
+      <div class="ctrl-row"><label>Tilt Z</label><input type="range" id="kf-rotZ" min="-3.14" max="3.14" step="0.01" value="0.43"><span class="val" id="kf-rotZ-val">0.43</span></div>
+
+      <div class="section-label">Scale &amp; Spin</div>
+      <div class="ctrl-row"><label>Size</label><input type="range" id="kf-scale" min="0.3" max="3" step="0.05" value="0.9"><span class="val" id="kf-scale-val">0.90</span></div>
+      <div class="ctrl-row"><label>Spin Speed</label><input type="range" id="kf-spinSpeed" min="0" max="0.05" step="0.001" value="0.007"><span class="val" id="kf-spinSpeed-val">0.007</span></div>
+
+      <div class="section-label">Vinyl Surface</div>
+      <div class="ctrl-row"><label>Roughness</label><input type="range" id="kf-vinylRoughness" min="0" max="1" step="0.01" value="1"><span class="val" id="kf-vinylRoughness-val">1.00</span></div>
+      <div class="ctrl-row"><label>Metalness</label><input type="range" id="kf-vinylMetalness" min="0" max="1" step="0.01" value="1"><span class="val" id="kf-vinylMetalness-val">1.00</span></div>
+      <div class="ctrl-row"><label>Clearcoat</label><input type="range" id="kf-vinylClearcoat" min="0" max="1" step="0.01" value="0.91"><span class="val" id="kf-vinylClearcoat-val">0.91</span></div>
+      <div class="ctrl-row"><label>Env Intensity</label><input type="range" id="kf-envIntensity" min="0" max="8" step="0.1" value="3.5"><span class="val" id="kf-envIntensity-val">3.5</span></div>
+
+      <div class="section-label">Camera Feed</div>
+      <div class="ctrl-row"><label>Refl. Zoom</label><input type="range" id="kf-reflZoom" min="0.2" max="8" step="0.05" value="6"><span class="val" id="kf-reflZoom-val">6.00</span></div>
+      <div class="ctrl-row"><label>Roughness</label><input type="range" id="kf-feedRoughness" min="0" max="1" step="0.01" value="1"><span class="val" id="kf-feedRoughness-val">1.00</span></div>
+      <div class="ctrl-row"><label>Blur</label><input type="range" id="kf-feedBlur" min="0" max="1" step="0.01" value="0.25"><span class="val" id="kf-feedBlur-val">0.25</span></div>
+      <div class="ctrl-row"><label>Brightness</label><input type="range" id="kf-feedBrightness" min="0.2" max="3" step="0.05" value="1.75"><span class="val" id="kf-feedBrightness-val">1.75</span></div>
+
+      <div class="section-label">HDR Orientation</div>
+      <div class="ctrl-row"><label>Rotate X</label><input type="range" id="kf-hdrRotX" min="-3.14" max="3.14" step="0.01" value="1.2"><span class="val" id="kf-hdrRotX-val">1.20</span></div>
+      <div class="ctrl-row"><label>Rotate Y</label><input type="range" id="kf-hdrRotY" min="-3.14" max="3.14" step="0.01" value="1.65"><span class="val" id="kf-hdrRotY-val">1.65</span></div>
+      <div class="ctrl-row"><label>Rotate Z</label><input type="range" id="kf-hdrRotZ" min="-3.14" max="3.14" step="0.01" value="0.28"><span class="val" id="kf-hdrRotZ-val">0.28</span></div>
+    </div>
+
+    <div class="kf-divider"></div>
+
+    <div class="section-label">Grooves</div>
+    <div class="ctrl-row"><label>Count</label><input type="range" id="grooveCount" min="5" max="60" step="1" value="22"><span class="val" id="grooveCount-val">22</span></div>
+    <div class="ctrl-row"><label>Depth</label><input type="range" id="grooveDepth" min="0" max="2" step="0.05" value="1.4"><span class="val" id="grooveDepth-val">1.40</span></div>
+    <div class="ctrl-row"><label>Width</label><input type="range" id="grooveWidth" min="0.5" max="4" step="0.1" value="2"><span class="val" id="grooveWidth-val">2.0</span></div>
+
+    <div class="section-label">Micro Scratches</div>
+    <div class="ctrl-row"><label>Density</label><input type="range" id="scratchDensity" min="0" max="500" step="10" value="340"><span class="val" id="scratchDensity-val">340</span></div>
+    <div class="ctrl-row"><label>Depth</label><input type="range" id="scratchDepth" min="0" max="2" step="0.05" value="2"><span class="val" id="scratchDepth-val">2.00</span></div>
+    <div class="ctrl-row"><label>Length</label><input type="range" id="scratchLength" min="0.01" max="0.5" step="0.01" value="0.5"><span class="val" id="scratchLength-val">0.50</span></div>
+    <div class="ctrl-row"><label>Opacity</label><input type="range" id="scratchOpacity" min="0" max="1" step="0.01" value="0.35"><span class="val" id="scratchOpacity-val">0.35</span></div>
+    <div class="ctrl-row"><label>Normal Scale</label><input type="range" id="scratchNormalScale" min="0" max="4" step="0.05" value="2"><span class="val" id="scratchNormalScale-val">2.00</span></div>
+
+    <div class="section-label">Scratch Layers</div>
+    <div class="ctrl-row"><label>Arcs ×</label><input type="range" id="scratchArcMul" min="0" max="8" step="0.1" value="5"><span class="val" id="scratchArcMul-val">5.0</span></div>
+    <div class="ctrl-row"><label>Hairlines ×</label><input type="range" id="scratchHairMul" min="0" max="10" step="0.1" value="6.6"><span class="val" id="scratchHairMul-val">6.6</span></div>
+    <div class="ctrl-row"><label>Curves ×</label><input type="range" id="scratchCurveMul" min="0" max="2" step="0.05" value="1.55"><span class="val" id="scratchCurveMul-val">1.55</span></div>
+    <div class="ctrl-row"><label>Nicks ×</label><input type="range" id="scratchNickMul" min="0" max="2" step="0.05" value="0.9"><span class="val" id="scratchNickMul-val">0.90</span></div>
+    <div class="ctrl-row"><label>Sweeps ×</label><input type="range" id="scratchSweepMul" min="0" max="0.5" step="0.01" value="0.24"><span class="val" id="scratchSweepMul-val">0.24</span></div>
+    <div class="ctrl-row"><label>S-Curves ×</label><input type="range" id="scratchSCurveMul" min="0" max="1" step="0.01" value="0.15"><span class="val" id="scratchSCurveMul-val">0.15</span></div>
+    <div class="ctrl-row"><label>Clusters ×</label><input type="range" id="scratchClusterMul" min="0" max="0.2" step="0.005" value="0.04"><span class="val" id="scratchClusterMul-val">0.040</span></div>
+    <div class="ctrl-row"><label>Arc Opacity</label><input type="range" id="scratchArcAlpha" min="0" max="1" step="0.01" value="0.67"><span class="val" id="scratchArcAlpha-val">0.67</span></div>
+    <div class="ctrl-row"><label>Hair Opacity</label><input type="range" id="scratchHairAlpha" min="0" max="1" step="0.01" value="0.25"><span class="val" id="scratchHairAlpha-val">0.25</span></div>
+    <div class="ctrl-row"><label>Curve Opacity</label><input type="range" id="scratchCurveAlpha" min="0" max="1" step="0.01" value="0.35"><span class="val" id="scratchCurveAlpha-val">0.35</span></div>
+    <div class="ctrl-row"><label>Nick Opacity</label><input type="range" id="scratchNickAlpha" min="0" max="1" step="0.01" value="0.55"><span class="val" id="scratchNickAlpha-val">0.55</span></div>
+    <div class="ctrl-row"><label>Sweep Opacity</label><input type="range" id="scratchSweepAlpha" min="0" max="0.5" step="0.005" value="0.19"><span class="val" id="scratchSweepAlpha-val">0.190</span></div>
+
+    <div style="margin-top:20px; padding-top:16px; border-top:1px solid rgba(0,0,0,0.08); display:flex; gap:8px;">
+      <button id="copyJsonBtn" style="
+        flex:1; padding:10px 16px; background:#0a0a0a; color:#fff;
+        font-family:'Inter',sans-serif; font-size:11px; font-weight:600;
+        letter-spacing:0.06em; border:none; border-radius:8px;
+        cursor:pointer; transition:all 0.2s ease;
+      ">COPY ALL KEYFRAMES AS JSON</button>
+    </div>
+  </div>
+
+  <script>
+    // Smooth scroll for all internal anchor links
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a[href^="#"]');
+      if (!link) return;
+      const targetId = link.getAttribute('href').slice(1);
+      const target = document.getElementById(targetId);
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth' });
+        // Close mobile menu if open
+        closeMenu();
+      }
+    });
+
+    // Hamburger menu
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const navLinks = document.getElementById('nav-links');
+    const overlay = document.getElementById('mobile-menu-overlay');
+
+    function openMenu() {
+      hamburgerBtn.classList.add('open');
+      hamburgerBtn.setAttribute('aria-expanded', 'true');
+      navLinks.classList.add('open');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMenu() {
+      hamburgerBtn.classList.remove('open');
+      hamburgerBtn.setAttribute('aria-expanded', 'false');
+      navLinks.classList.remove('open');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+    hamburgerBtn.addEventListener('click', function() {
+      if (navLinks.classList.contains('open')) { closeMenu(); } else { openMenu(); }
+    });
+    overlay.addEventListener('click', closeMenu);
+  </script>
+  <script type="module" src="https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h/bundle.88801ddd.js"></script>
+
+</body></html>
