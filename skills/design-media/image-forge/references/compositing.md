@@ -153,6 +153,50 @@ magick photo.jpg \
   -compose Multiply -composite vignette.jpg
 ```
 
+## Surgical Regional Edits (hybrid AI + ImageMagick)
+
+Nano Banana Pro regenerates the entire frame on every call — even when prompted to preserve regions verbatim. Expect ~40% of pixels to drift outside the target area. When the edit needs to be surgical (refine the face but leave the rest pixel-perfect), use this three-step hybrid pattern: let NB produce a drifted reference, then composite only the target region onto the pristine original with a feathered alpha mask.
+
+**Step 1 — Build a feathered mask over the target region.**
+
+```bash
+# Elliptical mask over (CX, CY) with semi-axes (RX, RY), feathered by Gaussian blur
+magick -size ${W}x${H} xc:black \
+  -fill white -draw "ellipse ${CX},${CY} ${RX},${RY} 0,360" \
+  -blur 0x25 \
+  /tmp/mask.png
+```
+
+Larger blur sigma = softer blend seam. 15–30 works well at 1000–2000px widths. For non-elliptical regions, draw any shape (polygon, circle, rectangle) in white on black.
+
+**Step 2 — Apply the mask as the alpha channel of the drifted overlay.**
+
+```bash
+magick overlay.jpg /tmp/mask.png \
+  -alpha off -compose CopyOpacity -composite \
+  /tmp/overlay-masked.png
+```
+
+This bakes the mask into the overlay's alpha. Outside the mask, the overlay is transparent.
+
+**Step 3 — Composite the masked overlay onto the pristine original.**
+
+```bash
+magick base.jpg /tmp/overlay-masked.png \
+  -compose over -composite \
+  result.jpg
+```
+
+**Do not** try `magick base.jpg overlay.jpg mask.png -composite out.jpg` as a shortcut. That syntax silently ignores the mask and writes the full overlay, replacing the whole image. The three-step pattern is the working form — apply the mask as alpha first, then composite.
+
+**Verify the edit stayed local:**
+
+```bash
+magick compare -metric AE -fuzz 5% base.jpg result.jpg diff.png
+```
+
+Exit code 1 with low AE (< 10% of total pixels) = clean localized change. High AE (~40%+) = the composite failed and the overlay replaced the whole image. Exit code 1 is expected — it means "images differ," not "error."
+
 ## Gotchas
 
 1. **Default is `Over`** — Reset with `-compose Over` between operations
@@ -161,3 +205,4 @@ magick photo.jpg \
 4. **Blend/Dissolve need args** — Will silently default to 100% without `-define compose:args=`
 5. **Layer order** — First image is background, second is foreground
 6. **CopyOpacity expects grayscale** — White = opaque, black = transparent
+7. **Mask-as-third-argument does not work** — `magick base overlay mask -composite` ignores the mask. Use the two-step CopyOpacity pattern above.

@@ -316,3 +316,63 @@ magick identify -format "%wx%h" input.jpg
 # Full info dump
 magick identify -format "Size: %wx%h\nFormat: %m\nColorspace: %r\nDepth: %z-bit\nFilesize: %b\n" input.jpg
 ```
+
+## Nano Banana Workarounds
+
+### Aspect Ratio Padding
+
+Nano Banana Pro only generates at discrete aspect ratios (1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9). For images at other ratios (e.g. 3:1 panoramic), pad to the nearest supported ratio before the NB call, then crop the padding back out.
+
+```bash
+# Example: original is 1500x500 (3:1, unsupported). Pad to 1500x643 (≈21:9).
+ORIG_W=1500; ORIG_H=500
+# Calculate target: for 21:9, height = width * 9 / 21
+TARGET_H=$(( ORIG_W * 9 / 21 ))
+
+magick input.jpg -background "#0a0a0a" -gravity center \
+  -extent ${ORIG_W}x${TARGET_H} padded.jpg
+
+# Run NB on padded.jpg at --aspect-ratio 21:9 → writes output at its native NB size
+# Example output: 1584x672
+
+# Crop the padding back out and restore original dimensions
+OUT_W=1584; OUT_H=672
+CONTENT_H=$(( ORIG_H * OUT_H / TARGET_H ))
+Y_OFF=$(( (OUT_H - CONTENT_H) / 2 ))
+
+magick nb-output.png \
+  -crop ${OUT_W}x${CONTENT_H}+0+${Y_OFF} +repage \
+  -resize ${ORIG_W}x${ORIG_H}! \
+  final.jpg
+```
+
+Use a dark background color (`#0a0a0a` or `black`) for the padding so NB has clear boundaries between real content and padded area — this reduces the chance NB tries to "extend" the image into the padded region.
+
+### Drift Measurement
+
+Verify a Nano Banana edit did not drift outside the intended region.
+
+```bash
+magick compare -metric AE -fuzz 5% before.jpg after.jpg diff.png
+```
+
+`-metric AE` counts absolute pixel differences. `-fuzz 5%` ignores JPEG compression noise. The command prints the diff count and writes `diff.png` where red = changed pixels, light grey = unchanged.
+
+Interpret the output:
+
+| Diff % | Meaning |
+|--------|---------|
+| < 10% | Clean localized edit — surgical composite worked |
+| 10–25% | Partial drift — NB re-rolled some unintended regions |
+| > 40% | Full regeneration — the entire frame was rewritten |
+
+Exit code 1 is normal: `magick compare` returns 1 when images differ at all, 0 when identical, 2 on error. Do not treat exit 1 as a failure.
+
+For regional audits, crop the region of interest from both before/after and compare:
+
+```bash
+# Compare only the top-left 200x200 region
+magick before.jpg -crop 200x200+0+0 +repage /tmp/b.png
+magick after.jpg  -crop 200x200+0+0 +repage /tmp/a.png
+magick compare -metric AE /tmp/b.png /tmp/a.png null:
+```
