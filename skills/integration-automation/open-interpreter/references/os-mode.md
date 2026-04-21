@@ -94,6 +94,6 @@ interpreter.chat("What time is it?")
 
 ## Development Status
 
-OpenInterpreter is in maintenance mode (last release v0.4.2, Oct 2024). The core team pivoted to the 01 App. The codebase is stable and the underlying primitives (pyautogui, pytesseract) are well-maintained independently.
+OpenInterpreter is in maintenance mode (last release v0.4.2, Oct 2024). The company pivoted to a closed-source desktop app (openinterpreter.com). The open-source codebase is stable and the underlying primitives (pyautogui, pytesseract) are well-maintained independently.
 
 OS Mode is labeled "highly experimental" in OI's documentation. For production use, prefer Library mode (Claude Code reasons, scripts execute) over the OS subprocess approach.

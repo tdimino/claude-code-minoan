@@ -1,6 +1,6 @@
 # SmolVLM
 
-Local image analysis using SmolVLM-2B, a compact vision-language model optimized for Apple Silicon via mlx-vlm. Describe images, extract text (OCR), analyze UI screenshots, and answer visual questions---all offline, no API key required.
+Local image analysis using SmolVLM2-2.2B-Instruct, a compact vision-language model optimized for Apple Silicon via mlx-vlm. Describe images, extract text (OCR), analyze UI screenshots, and answer visual questions—all offline, no API key required. SmolVLM2 also supports video understanding via the transformers pipeline (this skill's script handles image-only via mlx-vlm).
 
 **Last updated:** 2026-04-21
 
@@ -8,7 +8,7 @@ Local image analysis using SmolVLM-2B, a compact vision-language model optimized
 
 ## Why This Skill Exists
 
-Claude can read images natively, but sending every screenshot to the API costs tokens. SmolVLM runs locally on Apple Silicon at ~94 tok/s with ~6GB RAM, making it useful for high-volume image triage, OCR extraction, and UI analysis without API costs.
+Claude can read images natively, but sending every screenshot to the API costs tokens. SmolVLM2 runs locally on Apple Silicon at ~94 tok/s with ~5GB RAM, making it useful for high-volume image triage, OCR extraction, and UI analysis without API costs.
 
 ---
 
@@ -45,9 +45,10 @@ Supports PNG, JPG, JPEG, GIF, and WebP.
 
 | Spec | Value |
 |------|-------|
-| Model | SmolVLM-2B-Instruct |
-| Size | ~4GB (downloaded on first run) |
-| Peak Memory | 5.8GB |
+| Model | SmolVLM2-2.2B-Instruct |
+| HuggingFace ID | `HuggingFaceTB/SmolVLM2-2.2B-Instruct` |
+| Size | ~4.5GB (downloaded on first run) |
+| Peak Memory | ~5.2GB (bfloat16) |
 | Speed | ~94 tok/s (M-series) |
 
 ---

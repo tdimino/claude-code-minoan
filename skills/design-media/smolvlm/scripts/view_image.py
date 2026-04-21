@@ -68,8 +68,8 @@ def main():
         from mlx_vlm.utils import load_config
 
         # Load model (cached after first load)
-        model_path = "HuggingFaceTB/SmolVLM-Instruct"
-        print("Loading SmolVLM model...", file=sys.stderr)
+        model_path = "HuggingFaceTB/SmolVLM2-2.2B-Instruct"
+        print("Loading SmolVLM2 model...", file=sys.stderr)
         model, processor = load(model_path)
         config = load_config(model_path)
         print("Model loaded.", file=sys.stderr)
