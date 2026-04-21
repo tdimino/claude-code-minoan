@@ -1,6 +1,6 @@
 # Crypt Librarian
 
-Curate film recommendations with a gothic/occult sensibility---literary texture, historical grandeur, pre-2016 craftsmanship. Search via Perplexity, Exa, and Firecrawl; validate against content filters; build watchlists with provenance tracking; run autonomous weekly discovery. Includes a flexible mode for requests outside the default taste profile.
+Curate film recommendations with a gothic/occult sensibility---literary texture, historical grandeur, pre-2016 craftsmanship. Search via Exa and Firecrawl; validate against content filters; build watchlists with provenance tracking; run autonomous weekly discovery. Includes a flexible mode for requests outside the default taste profile.
 
 **Last updated:** 2026-04-21
 
@@ -39,7 +39,7 @@ crypt-librarian/
 ## Workflow
 
 1. **Check the archive** --- Search `films.json` for existing matches before external search
-2. **Search** --- Perplexity for critical discourse, Exa for web discovery
+2. **Search** --- Exa research for critical discourse, Exa search for web discovery
 3. **Filter** --- Pre-2016, content warnings, taste calibration
 4. **Validate** --- DoesTheDogDie.com, IMDb Parents Guide
 5. **Present** --- Title, year, director, sensibility match, trailer link
@@ -100,8 +100,7 @@ Uses 5 subagents (taste learner, film discoverer, content validator, database ma
 - Python 3.9+
 - `pip install requests`
 - `EXA_API_KEY` env var (for Exa searches)
-- Perplexity MCP server (optional, for critical discourse)
-- Firecrawl (optional, for deep scraping of Criterion/MUBI/Letterboxd)
+- `FIRECRAWL_API_KEY` env var (optional, for deep scraping of Criterion/MUBI/Letterboxd)
 
 ---
 
