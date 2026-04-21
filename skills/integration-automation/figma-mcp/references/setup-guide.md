@@ -84,11 +84,18 @@ For remote mode, you need a personal access token:
 
 ## Option 2: Community Figma MCP Server (Free)
 
-### Figma-Context-MCP by GLips
+### Framelink MCP for Figma (by GLips)
 
-Popular community server with 11.3k+ GitHub stars. Free to use, only requires a Figma API token.
+Popular community server with 14.5k+ GitHub stars (formerly "figma-developer-mcp", rebranded to Framelink in v0.11.0). Free to use, only requires a Figma API token.
 
 **GitHub**: https://github.com/GLips/Figma-Context-MCP
+
+**Recent updates (v0.11.0, Apr 2026):**
+- Rebranded from "figma-developer-mcp" to "Framelink MCP for Figma"
+- Stateless HTTP transport option (added in v0.8.0) for simpler deployment
+- VS Code layer generation for direct code export
+- Prompt injection defense scanner
+- Progress notifications and performance improvements
 
 ### Requirements
 

@@ -15,7 +15,8 @@
   # Optional: Flags for npm install
   NPM_FLAGS = "--legacy-peer-deps"
 
-# Next.js Plugin (REQUIRED for Next.js on Netlify)
+# Next.js: The OpenNext adapter (@opennextjs/netlify) now auto-detects Next.js.
+# This legacy plugin entry is only needed for projects not yet migrated to OpenNext.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

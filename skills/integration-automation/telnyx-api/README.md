@@ -2,9 +2,9 @@
 
 The telephony skill. SMS/MMS messaging, webhook handling, 10DLC compliance, and phone number management---with production patterns extracted from the Twilio-Aldea SMS platform and Ed25519 signature validation for secure webhook processing.
 
-**Last updated:** 2026-01-02
+**Last updated:** 2026-04-21
 
-**Reflects:** Telnyx v2 API, Node.js SDK, 10DLC compliance requirements, and production webhook architectures from Twilio-Aldea.
+**Reflects:** Telnyx v2 API, Node.js SDK v2 (TypeScript, ESM), 10DLC compliance requirements, scheduled messaging, and production webhook architectures from Twilio-Aldea.
 
 ---
 
@@ -54,9 +54,11 @@ Note: `references/github/` contains upstream SDK docs (README, issues, changelog
 | Capability | What It Covers |
 |-----------|---------------|
 | **SMS/MMS** | Send, receive, status callbacks, media attachments |
+| **Scheduled messaging** | Future delivery via `send_at` field (production-ready) |
 | **Webhooks** | Ed25519 signature validation, event types, retry logic |
 | **10DLC** | Campaign registration, brand verification, approval tracking |
 | **Number management** | Purchase, configure, messaging profiles |
+| **Node SDK v2** | Full TypeScript support, ESM modules |
 | **Error handling** | Retry strategies, error codes, fallback patterns |
 
 ### Ed25519 Signature Validation

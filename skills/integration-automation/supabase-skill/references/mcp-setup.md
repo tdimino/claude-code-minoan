@@ -695,6 +695,45 @@ curl http://localhost:8080/health
 4. Review AI inference latency separately
 5. Test query directly in Supabase dashboard
 
+## Alternative Deployment Options
+
+### mcp-lite on Edge Functions
+
+Supabase MCP is also available via **mcp-lite on Edge Functions**, providing zero cold starts and global deployment. This option runs the MCP server as a Supabase Edge Function, eliminating the need for a separate server process.
+
+Benefits:
+- Zero cold starts (always warm at the edge)
+- Global deployment across Supabase's edge network
+- No Docker or npm installation required
+- Managed by Supabase infrastructure
+
+### Self-Hosted MCP (Docker)
+
+For teams requiring full control, the MCP server can be self-hosted via Docker:
+
+```bash
+docker run -d \
+  --name supabase-mcp \
+  -e SUPABASE_URL=https://your-project.supabase.co \
+  -e SUPABASE_SERVICE_KEY=your-service-key \
+  -p 8080:8080 \
+  supabase/mcp-server:latest
+```
+
+Connect your AI client to the self-hosted instance:
+
+```json
+{
+  "mcpServers": {
+    "supabase-self-hosted": {
+      "url": "http://localhost:8080"
+    }
+  }
+}
+```
+
+Self-hosted deployments support the same configuration options (read-only mode, project scoping, feature groups) as the hosted version.
+
 ## Next Steps
 
 After successful MCP setup:

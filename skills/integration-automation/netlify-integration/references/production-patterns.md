@@ -121,6 +121,8 @@ export const handler: Handler = async (event) => {
   command = "npm run build"
   publish = ".next"
 
+# Note: @netlify/plugin-nextjs is legacy — the OpenNext adapter (@opennextjs/netlify)
+# now auto-detects Next.js and requires no plugin entry.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
@@ -141,10 +143,9 @@ export const handler: Handler = async (event) => {
 - Points to Next.js output
 - Required for Next.js deployment
 
-**3. Netlify Next.js Plugin**: `@netlify/plugin-nextjs`
-- Essential for Next.js on Netlify
-- Handles serverless function generation
-- Manages ISR, SSR, and static pages
+**3. Netlify Next.js Plugin**: `@netlify/plugin-nextjs` (legacy — replaced by the OpenNext adapter `@opennextjs/netlify`)
+- The OpenNext adapter auto-detects Next.js and requires no plugin entry
+- Handles serverless function generation, ISR, SSR, and static pages
 
 **4. Functions Directory**: `netlify/functions`
 - Where custom Netlify Functions live
@@ -174,7 +175,7 @@ publish = ".next"  # Correct for Next.js
 ```toml
 # No plugin specified - Next.js won't work properly
 ```
-✅ **Correct**
+✅ **Correct** (legacy — OpenNext adapter now auto-detects; no plugin entry needed for new projects)
 ```toml
 [[plugins]]
   package = "@netlify/plugin-nextjs"
@@ -451,7 +452,7 @@ const backgroundUrl = `${baseUrl}/.netlify/functions/sms-webhook-background`;
 ## Key Takeaways
 
 1. **Webhook Timeouts**: Use background functions for long processing
-2. **Configuration**: Always include `@netlify/plugin-nextjs` for Next.js
+2. **Configuration**: For new projects, the OpenNext adapter auto-detects Next.js (no plugin entry needed). Legacy projects may still use `@netlify/plugin-nextjs`
 3. **Environment Variables**: Set in Netlify Dashboard, never commit
 4. **Error Logging**: Log to database for visibility
 5. **Signature Validation**: Disable bodyParser and read raw body

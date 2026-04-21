@@ -1,11 +1,15 @@
 # Codex CLI Reference
 
+> Last updated: 2026-04-21 | Covers Codex CLI through v0.122.0
+
 Complete reference for OpenAI Codex CLI commands and options.
 
 ## Installation
 
 ```bash
 npm install -g @openai/codex
+# or
+brew install --cask codex
 ```
 
 ## Authentication
@@ -70,6 +74,8 @@ codex cloud                            # Browse Codex Cloud tasks
 codex features                         # Inspect feature flags
 codex review                           # Non-interactive code review
 codex sandbox                          # Run commands in sandbox
+codex plugins                          # List installed plugins
+codex plugin install <name>            # Install a Codex plugin
 ```
 
 ## Options
@@ -214,3 +220,18 @@ codex --model gpt-5.4 "Design a caching system"
 # Read-only analysis
 codex --sandbox read-only "Analyze the codebase architecture"
 ```
+
+## Recent Features (v0.110.0–v0.122.0)
+
+| Version | Feature | Description |
+|---------|---------|-------------|
+| v0.110.0 | Plugin system | `codex plugins` / `codex plugin install <name>` — extensible plugin architecture |
+| v0.110.0 | `/fast` toggle | Switch to faster output mode mid-session |
+| v0.110.0 | Improved memories | Better cross-session context recall |
+| v0.115.0 | Smart Approvals | Guardian subagent evaluates command safety before prompting |
+| v0.115.0 | Full-resolution `view_image` | Vision input at native resolution (no downscaling) |
+| v0.116.0 | `userpromptsubmit` hook | Hook fires when user submits a prompt (for preprocessing/logging) |
+| v0.117.0 | Sub-agent addressing | Send messages to specific sub-agents by name |
+| v0.122.0 | `/side` conversations | Start parallel side conversations without losing main context |
+| v0.122.0 | Plan Mode improvements | Better plan editing, approval flow, and execution tracking |
+| v0.122.0 | Deny-read glob policies | `deny_file_read_patterns` in config blocks reads of sensitive file paths |

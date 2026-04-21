@@ -2,9 +2,9 @@
 
 The deployment skill. Production-grade Netlify deployment and serverless function management, with battle-tested webhook patterns from the Twilio-Aldea SMS platform that solved a 60% message loss problem.
 
-**Last updated:** 2026-01-02
+**Last updated:** 2026-04-21
 
-**Reflects:** Netlify official documentation, Netlify Functions runtime, Next.js on Netlify patterns, and production webhook architectures from Twilio-Aldea.
+**Reflects:** Netlify official documentation, Netlify Functions runtime, Next.js on Netlify via OpenNext adapter, and production webhook architectures from Twilio-Aldea.
 
 ---
 
@@ -94,11 +94,15 @@ Three approaches, each with tradeoffs:
 | Netlify CLI (`ntl env:set`) | Same as Dashboard, scriptable | No |
 | `.env` files | Local development only | Gitignored |
 
-### Next.js Integration
+### Next.js Integration (OpenNext Adapter)
 
-Netlify auto-detects Next.js and configures build settings. Key patterns:
+Netlify now uses the open-source **OpenNext adapter** (`@opennextjs/netlify`) as the canonical approach for Next.js, replacing the legacy `@netlify/plugin-nextjs`. Supports Next.js 13.5 through 16.
+
+- App Router, Server Components, and Streaming fully supported
+- Fine-grained edge caching with automatic revalidation by path or tag
+- ISR, SSR, and static generation handled automatically
 - API routes become serverless functions automatically
-- ISR and SSR work with Netlify Edge Functions
+- The adapter auto-updates on each build unless you pin a version
 - `netlify.toml` can override auto-detection when needed
 
 ---

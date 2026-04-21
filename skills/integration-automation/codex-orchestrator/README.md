@@ -1,5 +1,7 @@
 # Codex Orchestrator
 
+> Last updated: 2026-04-21 | Codex CLI v0.122.0 | Models: GPT-5.4 family
+
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
 ## Architecture
@@ -20,6 +22,8 @@ Specialized subagent task
 
 ```bash
 npm install -g @openai/codex
+# or
+brew install --cask codex
 ```
 
 ### 2. Authentication
@@ -116,16 +120,19 @@ Each profile has a default model and reasoning effort. User flags override these
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
 | **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.4` | `high` |
-| **Planning** | planner, architect | `gpt-5.4-pro` | `high` |
+| **Planning** | planner, architect | `gpt-5.4` | `high` |
 | **Research** | researcher | `gpt-5.4` | `medium` |
 
-### Available Models (Mar 2026)
+### Available Models (Apr 2026)
 
-| Model | ID | Released | Notes |
-|-------|----|----------|-------|
-| **GPT-5.4** | `gpt-5.4` | Mar 2026 | Unified flagship. Coding + reasoning. 1M+ context. Default for coding/research. |
-| **GPT-5.4 Pro** | `gpt-5.4-pro` | Mar 2026 | Deepest reasoning. Default for planning profiles. |
-| **GPT-5 Mini** | `gpt-5-mini` | Mar 2026 | Cost-optimized. Replaces Spark for fast iteration. |
+| Model | ID | ChatGPT Auth | API Key | Notes |
+|-------|----|:---:|:---:|-------|
+| **GPT-5.4** | `gpt-5.4` | Yes | Yes | Unified flagship. Coding + reasoning. 1M+ context. Default for all profiles. |
+| **GPT-5.4 Pro** | `gpt-5.4-pro` | No | Yes | Deepest reasoning. Use `--model gpt-5.4-pro` to override. |
+| **GPT-5 Mini** | `gpt-5-mini` | No | Yes | Cost-optimized. Fast iteration. |
+| **GPT-5 Nano** | `gpt-5-nano` | No | Yes | High-throughput. Cheapest option. |
+
+> **Note:** `gpt-5.4-pro`, `gpt-5-mini`, and `gpt-5-nano` require `OPENAI_API_KEY` (API billing). ChatGPT auth (`codex login`) supports `gpt-5.4` and legacy Codex-family models (`gpt-5.3-codex`, `gpt-5.2`). GPT-5.3 Instant and GPT-5.4 Thinking are ChatGPT-app models, not Codex CLI model IDs.
 
 ### Reasoning Effort Levels
 
@@ -222,31 +229,56 @@ Every ExecPlan includes:
 | `--reasoning <level>` | Override reasoning effort: `minimal`, `low`, `medium`, `high`, `xhigh` |
 | `--sandbox <mode>` | `read-only`, `workspace-write`, `danger-full-access` |
 | `--full-auto` | Skip approval prompts |
-| `--web-search` | Enable Exa web search (built-in fallback if Exa unavailable) |
+| `--no-auto` | Disable auto `--full-auto` (require manual approval) |
+| `--web-search` | Enable Exa web search (injects guide into AGENTS.md) |
+| `--search` | Enable native Codex web search (works in all sandboxes) |
+| `--json` | Output JSONL event stream (pipe to jq, logs, etc.) |
+| `--image <file>` | Attach image to prompt (vision input) |
+| `--resume` | Resume previous exec session (builder "continue" workflow) |
+| `--with-mcp` | Keep global MCP servers enabled (no-op, kept for compatibility) |
+
+## Notable Recent CLI Features (v0.110–v0.122)
+
+- **Plugin system** (v0.110) — `codex plugins` / `codex plugin install <name>`
+- **`/fast` toggle** (v0.110) — Switch to faster output mid-session
+- **Smart Approvals** (v0.115) — Guardian subagent evaluates command safety before prompting
+- **Full-resolution `view_image`** (v0.115) — Vision input at native resolution
+- **`userpromptsubmit` hook** (v0.116) — Fires when user submits a prompt
+- **Sub-agent addressing** (v0.117) — Send messages to specific sub-agents by name
+- **`/side` conversations** (v0.122) — Parallel side conversations without losing main context
+- **Plan Mode improvements** (v0.122) — Better plan editing, approval, and execution tracking
+- **Deny-read glob policies** (v0.122) — `deny_file_read_patterns` blocks reads of sensitive paths
+
+See `references/codex-cli.md` for full feature details.
 
 ## Directory Structure
 
 ```
 codex-orchestrator/
-├── README.md           # This file
-├── SKILL.md            # Claude Code skill definition
-├── agents/             # AGENTS.md persona profiles
+├── README.md              # This file
+├── SKILL.md               # Claude Code skill definition
+├── agents/                # AGENTS.md persona profiles
 │   ├── architect.md
+│   ├── builder.md
 │   ├── debugger.md
 │   ├── docs.md
-│   ├── planner.md      # ExecPlan methodology
+│   ├── planner.md         # ExecPlan methodology
 │   ├── refactor.md
+│   ├── researcher.md
 │   ├── reviewer.md
-│   └── security.md
-├── references/         # Documentation
+│   ├── security.md
+│   └── syseng.md
+├── references/            # Documentation
 │   ├── agents-md-format.md
 │   ├── codex-cli.md
+│   ├── codex-models.md
 │   └── subagent-patterns.md
-└── scripts/            # Execution scripts
-    ├── codex-exec.sh   # One-shot execution
-    ├── codex-session.py # Session management
-    ├── codex-status.sh # Installation check
-    └── test-codex.sh   # Test suite
+└── scripts/               # Execution scripts
+    ├── codex-exec.sh      # One-shot execution
+    ├── codex-session.py   # Session management
+    ├── codex-status.sh    # Installation check
+    ├── codex-version-check.sh  # Version check + auto-update
+    └── test-codex.sh      # Test suite
 ```
 
 ## Troubleshooting
@@ -281,7 +313,7 @@ export OPENAI_API_KEY=sk-...
 
 ### "Profile not found"
 
-Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`
+Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`
 
 Check profiles exist:
 
