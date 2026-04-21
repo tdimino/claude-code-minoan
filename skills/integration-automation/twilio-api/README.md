@@ -57,6 +57,7 @@ if (!twilio.validateRequest(authToken, signature, url, req.body)) {
 | TwiML responses | XML response format for webhooks |
 | Signature validation | HMAC-SHA1 verification (manual or SDK) |
 | Provider-agnostic webhook | Single endpoint handling both Twilio and Telnyx |
+| Message scheduling | GA feature via `SendAt` + Messaging Service |
 | Bulk sending | Rate-limited batch with 100ms delay |
 | Idempotency | Database-backed duplicate prevention |
 | Fast mode | Return TwiML immediately, process async |
@@ -75,6 +76,8 @@ if (!twilio.validateRequest(authToken, signature, url, req.body)) {
 | Message lifecycle | queued > sending > sent > delivered / failed |
 | A2P 10DLC | Brand + Campaign registration for US messaging |
 | Segmentation | GSM-7: 160 chars, UCS-2: 70 chars per segment |
+| TLS requirement | TLS 1.3 or compliant 1.2 cipher suite (deadline Jun 2026) |
+| MMS rate limits | Dynamic per-number limits based on Brand Trust Score (10DLC) |
 
 ---
 

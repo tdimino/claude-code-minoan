@@ -336,6 +336,8 @@ Common schedule values:
 
 ## Plugins Configuration
 
+Note: For Next.js projects, the OpenNext adapter (`@opennextjs/netlify`) now auto-detects and requires no plugin entry. The `@netlify/plugin-nextjs` package is legacy.
+
 ```toml
 [[plugins]]
   package = "@netlify/plugin-nextjs"

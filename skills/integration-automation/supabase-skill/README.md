@@ -2,9 +2,9 @@
 
 The database skill. PostgreSQL schema design, Row Level Security, database patterns, and MCP server integration for Supabase---with production patterns from the Twilio-Aldea SMS platform covering session management, dual persistence, and multi-tenant isolation.
 
-**Last updated:** 2026-01-02
+**Last updated:** 2026-04-21
 
-**Reflects:** Supabase MCP server, PostgreSQL 15+ best practices, Row Level Security patterns, and production database architectures from Twilio-Aldea.
+**Reflects:** Supabase MCP server (including mcp-lite on Edge Functions and self-hosted Docker), PostgreSQL 15+ best practices, Row Level Security patterns, and production database architectures from Twilio-Aldea.
 
 ---
 
@@ -53,7 +53,8 @@ Configure the Supabase MCP server for Claude Code, Cursor, or Claude Desktop. Tw
 | Mode | Setup | Best For |
 |------|-------|----------|
 | **Remote (hosted)** | OAuth or Personal Access Token | Most users |
-| **Local (self-hosted)** | Docker + connection string | Air-gapped or custom setups |
+| **mcp-lite (Edge Functions)** | Zero config, global deployment | Zero cold starts |
+| **Self-hosted (Docker)** | `supabase/mcp-server:latest` | Air-gapped or custom setups |
 
 See `references/mcp-setup.md` for the full configuration guide.
 

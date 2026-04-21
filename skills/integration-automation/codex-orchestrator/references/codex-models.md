@@ -1,6 +1,6 @@
 # Codex CLI Model Reference
 
-Last updated: 2026-03-06
+Last updated: 2026-04-21
 
 ## Current Models
 
@@ -12,6 +12,8 @@ Last updated: 2026-03-06
 | **GPT-5 Nano** | `gpt-5-nano` | Mar 2026 | **No** | Yes | High-throughput. Requires API key auth. |
 
 > **ChatGPT account limitation:** Only `gpt-5.4` and legacy Codex-family models (`gpt-5.3-codex`, `gpt-5.2`) work with ChatGPT-authenticated Codex sessions. All other models require `OPENAI_API_KEY` (API billing). This is by design—confirmed via [GitHub #2051](https://github.com/openai/codex/issues/2051) and OpenAI's Codex models page.
+
+> **ChatGPT ecosystem models vs. Codex CLI models:** GPT-5.3 Instant and GPT-5.4 Thinking are ChatGPT-app models (available in the ChatGPT web/mobile app). They are **not** Codex CLI model IDs—you cannot pass them to `--model`. Codex CLI model IDs are listed in the table above.
 
 ## Previous Generation
 
@@ -59,8 +61,8 @@ Source: [Codex Config Reference](https://developers.openai.com/codex/config-refe
 In `~/.codex/config.toml`:
 
 ```toml
-model = "gpt-5.3-codex"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 ```
 
 Per-invocation via codex-orchestrator:

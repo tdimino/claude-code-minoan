@@ -2,9 +2,9 @@
 
 The design-to-code bridge. Convert Figma designs into production-ready code using MCP server tools that extract semantic design data---component hierarchy, design tokens, auto-layout properties, and style definitions---directly from Figma files.
 
-**Last updated:** 2026-01-02
+**Last updated:** 2026-04-21
 
-**Reflects:** Figma MCP server API, Figma auto-layout semantics, and design-to-code conversion patterns.
+**Reflects:** Figma MCP server API (including Framelink MCP for Figma v0.11.0), Figma auto-layout semantics, and design-to-code conversion patterns.
 
 ---
 
@@ -67,6 +67,19 @@ Extract variables from Figma and generate CSS custom properties, Tailwind config
 5. Apply extracted tokens as CSS variables
 6. Validate spacing and typography accuracy
 ```
+
+---
+
+## Recent Changes (v2.1)
+
+The popular community MCP server by GLips has been rebranded from "figma-developer-mcp" to **Framelink MCP for Figma** (v0.11.0, 14.5k+ stars). New capabilities:
+
+- **Stateless HTTP transport** (v0.8.0) for simpler deployment
+- **VS Code layer generation** for direct code export
+- **Prompt injection defense** scanner
+- Progress notifications and performance improvements
+
+The npm package name remains `figma-developer-mcp` for backward compatibility. See `references/setup-guide.md` for updated configuration.
 
 ---
 
