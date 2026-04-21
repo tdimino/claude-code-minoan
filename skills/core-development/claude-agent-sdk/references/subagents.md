@@ -10,7 +10,11 @@ class AgentDefinition:
     description: str                                    # When to use this agent
     prompt: str                                         # Agent's system prompt
     tools: list[str] | None = None                      # Allowed tools (inherits if None)
+    disallowed_tools: list[str] | None = None           # Tools to block
     model: Literal["sonnet", "opus", "haiku", "inherit"] | None = None
+    mcp_servers: dict[str, McpServerConfig] | None = None
+    skills: list[str] | None = None                     # Skill names to preload (TS)
+    max_turns: int | None = None
 ```
 
 ### Fields
@@ -20,7 +24,11 @@ class AgentDefinition:
 | `description` | Yes | Natural language description for routing |
 | `prompt` | Yes | System prompt defining behavior |
 | `tools` | No | Tool allowlist (inherits parent if None) |
+| `disallowed_tools` | No | Tools to block |
 | `model` | No | Model override (`sonnet`, `opus`, `haiku`, `inherit`) |
+| `mcp_servers` | No | MCP server configs for this subagent |
+| `skills` | No | Skill names to preload into agent context (TypeScript SDK) |
+| `max_turns` | No | Limit conversation turns |
 
 ---
 

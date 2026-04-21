@@ -2,9 +2,9 @@
 
 The agent builder's toolkit. Teaches Claude how to create autonomous AI agents using the Claude Agent SDK---the same tools that power Claude Code, packaged for programmatic use.
 
-**Last updated:** 2026-02-18
+**Last updated:** 2026-04-21
 
-**Reflects:** Claude Agent SDK v1.x (Python + TypeScript), Anthropic's Claude 4.6 agent patterns, and production agent architectures from Claudicle and Aldea.
+**Reflects:** Claude Agent SDK v0.2.116 (TypeScript) / v0.1.64 (Python). Covers Opus 4.7, `auto` permission mode, `skills` parameter, and production agent architectures from Claudicle and Aldea.
 
 ---
 
@@ -84,11 +84,13 @@ Control via `allowed_tools` (whitelist) or `disallowed_tools` (blacklist) in `Cl
 | Mode | Behavior |
 |------|----------|
 | `default` | Prompts user for tool approval |
+| `dontAsk` | Anything not pre-approved is denied; `canUseTool` never called |
 | `acceptEdits` | Auto-approves file edits, prompts for Bash |
 | `plan` | Requires plan approval before execution |
 | `bypassPermissions` | No prompts (use for trusted automation only) |
+| `auto` | Model classifier approves/denies each tool call (TypeScript only) |
 
-Fine-grained control via `can_use_tool` callback for custom permission logic.
+Evaluation order: Hooks → Deny rules → Permission mode → Allow rules → `canUseTool` callback. Subagents inherit `bypassPermissions`, `acceptEdits`, and `auto` from parent.
 
 ### Hooks
 
@@ -111,9 +113,20 @@ Three approaches: Chrome extension (control user's browser), dev-browser skill (
 | Quick lookups, simple edits | `low` |
 | Standard development | `medium` |
 | Complex architecture, security | `high` |
-| Deep research, long-horizon | `max` |
+| Deep research, long-horizon | `xhigh` / `max` |
 
-Avoid "think carefully" in system prompts---Claude 4.6 calibrates thinking depth automatically.
+Thinking uses `{"type": "adaptive"}` by default for supported models. Avoid "think carefully" in system prompts—Claude 4.6+ calibrates thinking depth automatically.
+
+**Opus 4.7** (`claude-opus-4-7`) requires SDK v0.2.111+ (TypeScript).
+
+### Breaking Changes (v0.2.113+)
+
+**`options.env` now replaces `process.env`** instead of overlaying. Migration:
+```typescript
+env: { ...process.env, MY_VAR: "x" }
+```
+
+**System prompt no longer defaults to Claude Code's prompt** — uses a minimal system prompt by default. To restore: `systemPrompt: { type: 'preset', preset: 'claude_code' }`.
 
 ### Error Types
 

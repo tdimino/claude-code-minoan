@@ -81,8 +81,8 @@ agent-browser snapshot -i                  # 5. Re-snapshot after DOM changes
 
 ## Related Skills
 
-- **`scrapling`**: Local web scraping with anti-bot bypass---for data extraction rather than UI interaction.
-- **`cloudflare`**: Browser Rendering on Cloudflare's edge---headless Chrome without local binaries.
+- **`scrapling`**: Local web scraping with anti-bot bypass—for data extraction rather than UI interaction.
+- **`cloudflare`**: Browser Rendering on Cloudflare's edge—headless Chrome without local binaries.
 
 ---
 
