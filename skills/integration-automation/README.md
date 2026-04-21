@@ -27,3 +27,4 @@ Local ML inference, RAG, browser automation, messaging, telephony, physical medi
 | `resend` | Send email via [Resend](https://resend.com/) API — text, HTML, attachments, CC/BCC, stdin pipe, sender aliases |
 | `opencli` | Universal CLI for 80+ websites, desktop apps, browser automation via Chrome session reuse ([jackwener/opencli](https://github.com/jackwener/opencli)) |
 | `twitter` | Twitter/X via bird CLI + x-search API + Smaug archival |
+| `wterm` | Web terminal server management — check status, list/create/kill PTY sessions, restart daemon. Companion skill for `scripts/wterm-server/` |

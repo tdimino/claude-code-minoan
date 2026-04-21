@@ -32,3 +32,4 @@
 | `cpu-watchdog/` | **phroura** — launchd daemon detecting runaway processes (>90% CPU sustained), alerts via `alerter` + Telegram, Claude session enrichment (session ID, revoked FDs) |
 | `screenshot-rename/` | macOS launchd service for auto-renaming screenshots with AI-generated descriptions |
 | `syspeek/` | macOS system resource monitor — categorized processes, Kothar-compatible JSON, Claudicle memory integration, launchd daemon |
+| `wterm-server/` | **wterm** — Node.js web terminal daimon (node-pty + @wterm/react). Browser-based shell access, deploy on any macOS machine. Deploys to `~/daimones/wterm-server/`, managed by `skills/wterm/` |
