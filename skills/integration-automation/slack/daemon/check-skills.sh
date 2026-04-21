@@ -56,7 +56,7 @@ done
 
 echo ""
 echo "=== research ==="
-for s in Firecrawl academic-research atk-ux-research exa-search; do
+for s in Firecrawl academic-research exa-search; do
   check_skill "$s"
 done
 

@@ -5,7 +5,6 @@ Web search, academic research, scraping, and computational analysis.
 | Skill | Description |
 |-------|-------------|
 | `academic-research` | Paper search, literature reviews, and research synthesis via Exa and arXiv |
-| `atk-ux-research` | UX research for America's Test Kitchen (app stores, Reddit, Trustpilot) |
 | `exa-search` | Neural web search with 5 specialized scripts (search, contents, similar, research, find) |
 | `firecrawl` | Cloud web scraping to markdown — single pages, site crawls, search, agent extraction |
 | `linear-a-decipherment` | Computational Linear A analysis using Gordon's Semitic hypothesis |
