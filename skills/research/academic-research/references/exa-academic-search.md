@@ -1,50 +1,63 @@
 # Exa Academic Search Reference
 
-Comprehensive reference for using Exa MCP tools for academic paper search.
+Reference for using Exa CLI scripts for academic paper search.
 
-## Available Tools
+## Available Scripts
 
-### web_search_exa
+All scripts live at `~/.claude/skills/exa-search/scripts/`.
 
-Real-time web search with academic filtering capabilities.
+### exa_search.py
 
-**Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `query` | string | Search query (required) |
-| `numResults` | number | Number of results (default: 10, max: 100) |
-| `category` | string | Content type filter |
-| `includeDomains` | string[] | Restrict to specific domains |
-| `excludeDomains` | string[] | Exclude specific domains |
-| `startPublishedDate` | string | ISO date (e.g., "2024-01-01") |
-| `endPublishedDate` | string | ISO date |
-| `startCrawlDate` | string | ISO date for crawl time |
-| `endCrawlDate` | string | ISO date |
+Neural search with category, domain, and date filters.
 
-### get_code_context_exa
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" [flags]
+```
 
-Search for code implementations and technical documentation.
+| Flag | Description |
+|------|-------------|
+| `-n N` | Number of results (default: 10) |
+| `--category "research paper"` | Filter to academic papers |
+| `--domain arxiv.org` | Restrict to a specific domain |
+| `--exclude medium.com` | Exclude a domain |
+| `--after YYYY-MM-DD` | Published after date |
+| `--before YYYY-MM-DD` | Published before date |
 
-**Best for**: Finding code that implements concepts from papers.
+### exa_research.py
 
-**Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `query` | string | Search query (required) |
-| `tokensNum` | number/"dynamic" | Token limit (default: "dynamic") |
+Synthesized answers with inline citations. Best for research questions requiring multi-source synthesis.
 
-### deep_search_exa
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_research.py "query" [flags]
+```
 
-Advanced search with query expansion and summaries.
+| Flag | Description |
+|------|-------------|
+| `--sources` | Include source URLs |
+| `--markdown` | Output as markdown |
 
-**Best for**: Complex research questions requiring synthesis.
+### exa_similar.py
 
-## Academic-Specific Parameters
+Find papers similar to a given URL. Useful for expanding from a known paper.
+
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_similar.py "https://arxiv.org/abs/2301.00234" [flags]
+```
+
+### exa_contents.py
+
+Extract full text and highlights from specific paper URLs.
+
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_contents.py "https://arxiv.org/abs/2301.00234" [flags]
+```
+
+## Academic-Specific Patterns
 
 ### Category Filter
 
-```javascript
-category: "research_paper"
+```bash
+--category "research paper"
 ```
 
 Filters results to academic papers, preprints, and scholarly articles.
@@ -52,140 +65,117 @@ Filters results to academic papers, preprints, and scholarly articles.
 ### Academic Domain Filtering
 
 **ArXiv-focused**:
-```javascript
-includeDomains: ["arxiv.org"]
+```bash
+--domain arxiv.org
 ```
 
-**Multi-source academic**:
-```javascript
-includeDomains: [
-  "arxiv.org",           // Preprints (CS, Physics, Math, etc.)
-  "aclanthology.org",    // ACL Anthology (NLP papers)
-  "openreview.net",      // ML conference submissions/reviews
-  "proceedings.mlr.press", // JMLR, ICML, AISTATS
-  "papers.nips.cc",      // NeurIPS proceedings
-  "openaccess.thecvf.com", // CVPR, ICCV (Computer Vision)
-  "ieeexplore.ieee.org", // IEEE publications
-  "dl.acm.org",          // ACM Digital Library
-  "nature.com",          // Nature journals
-  "science.org"          // Science journals
-]
-```
+**Multi-source academic** (use multiple `--domain` flags or comma-separated):
+- `arxiv.org` — Preprints (CS, Physics, Math, etc.)
+- `aclanthology.org` — ACL Anthology (NLP papers)
+- `openreview.net` — ML conference submissions/reviews
+- `proceedings.mlr.press` — JMLR, ICML, AISTATS
+- `papers.nips.cc` — NeurIPS proceedings
+- `openaccess.thecvf.com` — CVPR, ICCV (Computer Vision)
+- `ieeexplore.ieee.org` — IEEE publications
+- `dl.acm.org` — ACM Digital Library
+- `nature.com` — Nature journals
+- `science.org` — Science journals
 
 ### Date Filtering
 
 **Recent papers (last year)**:
-```javascript
-startPublishedDate: "2024-01-01"
+```bash
+--after 2024-01-01
 ```
 
 **Specific time range**:
-```javascript
-startPublishedDate: "2023-06-01",
-endPublishedDate: "2023-12-31"
+```bash
+--after 2023-06-01 --before 2023-12-31
 ```
 
 ## Search Query Patterns
 
 ### Topic Search
-```javascript
-mcp__exa__web_search_exa({
-  query: "transformer architecture attention mechanism",
-  category: "research_paper",
-  numResults: 20
-})
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "transformer architecture attention mechanism" \
+  --category "research paper" -n 20
 ```
 
 ### Author Search
-```javascript
-mcp__exa__web_search_exa({
-  query: "author:Yann LeCun convolutional neural networks",
-  category: "research_paper"
-})
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "author:Yann LeCun convolutional neural networks" \
+  --category "research paper"
 ```
 
 ### Recent Developments
-```javascript
-mcp__exa__web_search_exa({
-  query: "large language model reasoning chain-of-thought",
-  category: "research_paper",
-  startPublishedDate: "2024-06-01",
-  numResults: 30
-})
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "large language model reasoning chain-of-thought" \
+  --category "research paper" --after 2024-06-01 -n 30
 ```
 
 ### ArXiv-Specific
-```javascript
-mcp__exa__web_search_exa({
-  query: "multimodal vision language models",
-  includeDomains: ["arxiv.org"],
-  numResults: 25
-})
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "multimodal vision language models" \
+  --domain arxiv.org -n 25
 ```
 
 ### Survey/Review Papers
-```javascript
-mcp__exa__web_search_exa({
-  query: "survey review transformer architectures NLP",
-  category: "research_paper",
-  numResults: 15
-})
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "survey review transformer architectures NLP" \
+  --category "research paper" -n 15
 ```
 
 ### Code Implementation Search
-```javascript
-mcp__exa__get_code_context_exa({
-  query: "BERT implementation PyTorch attention mechanism",
-  tokensNum: 5000
-})
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "BERT implementation PyTorch attention mechanism" \
+  --category github
 ```
 
 ## Advanced Patterns
 
 ### Multi-Domain Conference Search
-```javascript
-mcp__exa__web_search_exa({
-  query: "few-shot learning meta-learning",
-  category: "research_paper",
-  includeDomains: [
-    "proceedings.mlr.press",
-    "papers.nips.cc",
-    "openreview.net"
-  ],
-  numResults: 30
-})
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "few-shot learning meta-learning" \
+  --category "research paper" \
+  --domain proceedings.mlr.press --domain papers.nips.cc --domain openreview.net \
+  -n 30
 ```
 
-### Exclude Non-Academic Sources
-```javascript
-mcp__exa__web_search_exa({
-  query: "deep learning optimization",
-  category: "research_paper",
-  excludeDomains: [
-    "medium.com",
-    "towardsdatascience.com",
-    "blog.*"
-  ]
-})
+### Synthesized Research Overview
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_research.py \
+  "What are the current approaches to aligning large language models with human preferences?" \
+  --sources --markdown
 ```
 
-### Deep Research on Complex Topic
-```javascript
-mcp__exa__deep_search_exa({
-  query: "What are the current approaches to aligning large language models with human preferences?",
-  numResults: 15
-})
+### Find Similar Papers
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_similar.py \
+  "https://arxiv.org/abs/2305.18290" -n 10
+```
+
+### Extract Paper Content
+```bash
+python3 ~/.claude/skills/exa-search/scripts/exa_contents.py \
+  "https://arxiv.org/abs/2501.09686"
 ```
 
 ## Response Handling
 
 Exa returns structured results with:
-- `title` - Paper title
-- `url` - Link to paper
-- `publishedDate` - Publication date
-- `author` - Author information (when available)
-- `text` - Abstract or summary content
-- `highlights` - Key excerpts
+- `title` — Paper title
+- `url` — Link to paper
+- `publishedDate` — Publication date
+- `author` — Author information (when available)
+- `text` — Abstract or summary content
+- `highlights` — Key excerpts
 
 ### Extracting ArXiv IDs
 
@@ -201,11 +191,9 @@ ArXiv ID: 2301.00234
 
 ## Direct API Endpoints (curl)
 
-Beyond MCP tools, Exa offers powerful direct API endpoints for academic research.
+Beyond CLI scripts, Exa offers direct API endpoints for advanced use cases.
 
-### /answer - Synthesized Answers with Citations
-
-Get AI-synthesized answers with academic citations. Excellent for research questions.
+### /answer — Synthesized Answers with Citations
 
 ```bash
 curl -s "https://api.exa.ai/answer" -X POST \
@@ -217,11 +205,7 @@ curl -s "https://api.exa.ai/answer" -X POST \
   }'
 ```
 
-**Returns**: Comprehensive answer with inline citations and source list.
-
-### /contents - Extract Paper Details
-
-Get full text and highlights from specific papers by URL.
+### /contents — Extract Paper Details
 
 ```bash
 curl -s "https://api.exa.ai/contents" -X POST \
@@ -234,14 +218,7 @@ curl -s "https://api.exa.ai/contents" -X POST \
   }'
 ```
 
-**Parameters**:
-- `ids` - Array of URLs to extract content from
-- `text` - Include full text (boolean)
-- `highlights` - Extract key sentences
-
-### /research/v1 - Long-Running Research (Async)
-
-For comprehensive literature reviews and complex research tasks.
+### /research/v1 — Long-Running Research (Async)
 
 ```bash
 curl -s "https://api.exa.ai/research/v1" -X POST \
@@ -253,13 +230,6 @@ curl -s "https://api.exa.ai/research/v1" -X POST \
   }'
 ```
 
-**Parameters**:
-- `instructions` - Research instructions (max 4096 chars)
-- `model` - `exa-research-fast`, `exa-research`, or `exa-research-pro`
-- `outputSchema` - Optional JSON schema for structured output
-
-**Returns**: `researchId` for polling completion.
-
 **Models**:
 | Model | Speed | Thoroughness | Cost |
 |-------|-------|--------------|------|
@@ -270,13 +240,13 @@ curl -s "https://api.exa.ai/research/v1" -X POST \
 ## Troubleshooting
 
 ### No Results with category Filter
-- Try without category filter first
-- Use includeDomains instead for source control
+- Try without `--category` first
+- Use `--domain` instead for source control
 - Broaden query terms
 
 ### Too Many Non-Academic Results
-- Add `category: "research_paper"`
-- Use `includeDomains` for academic sources
+- Add `--category "research paper"`
+- Use `--domain` for academic sources
 - Add terms like "paper" or "research" to query
 
 ### Missing Recent Papers
@@ -284,6 +254,6 @@ curl -s "https://api.exa.ai/research/v1" -X POST \
 - Use arxiv-mcp-server for very recent papers
 - Try `sort_by: "submitted_date"` with arXiv
 
-### MCP vs Direct API
-- **MCP tools**: Integrated into Claude Code, no API key handling needed
-- **Direct API (curl)**: Access to `/answer`, `/contents`, `/research` endpoints not in MCP
+### CLI Scripts vs Direct API
+- **CLI scripts** (`exa_search.py` etc.): Handle API key from environment, formatted output, integrated into Claude Code workflows
+- **Direct API (curl)**: Access to `/answer`, `/contents`, `/research` endpoints for advanced use cases
