@@ -263,3 +263,5 @@ A complete DESIGN.md should have:
 - [ ] Do's/Don'ts with 4+ entries each
 - [ ] Breakpoints table with 3+ named sizes
 - [ ] Agent prompt guide with quick color reference
+
+**Automated validation**: Run `npx @google/design.md lint DESIGN.md` to check the structural items above. See `references/google-cli.md` for rule-to-checklist mapping.
