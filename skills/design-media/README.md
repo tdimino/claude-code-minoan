@@ -30,6 +30,7 @@ The satellite skills adapt patterns from [Impeccable](https://github.com/pbakaus
 | `image-well` | Multi-source image search: 12 APIs (Openverse, Pexels, Met, NASA, Wikimedia, etc.), presets, license filtering, download with metadata sidecars. `--format tunnel` bridge pipes results into the threejs-particle-canvas Mode 3 corridor |
 | `image-forge` | Precision image editing: ImageMagick 7, rembg, sips, JSON pipelines |
 | `meshy` | 3D model generation via Meshy API: text-to-3D, image-to-3D, texture, batch manifests |
+| `gpt-atelier` | OpenAI GPT Image generation/editing (gpt-image-2, 1.5, mini): text-to-image, mask inpainting, multi-reference composition, multi-turn conversational editing (Responses API), streaming with partials |
 | `nano-banana-pro` | Image generation/editing via Google Gemini 3 Pro |
 | `paper-design` | Paper Design MCP: 21 tools for DOM-based design, React+Tailwind export via `get_jsx`, design-to-code/code-to-design workflows. Coexists with Pencil |
 | `smolvlm` | Local vision-language model (SmolVLM-2B) for image analysis |
