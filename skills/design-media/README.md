@@ -4,15 +4,20 @@ Frontend design, image generation/editing, vision models, TTS, and visual effect
 
 ## Design Workflow
 
-The design skills form a composable pipeline: **shape** (plan) **minoan-frontend-design** (build) **design-audit** + **design-critique** (evaluate) **design-polish** (refine).
+The design skills form a composable pipeline: **shape** (plan) → **design-md** (tokens) → **minoan-frontend-design** (build) → **design-audit** + **design-critique** (evaluate) → **design-polish** (refine).
 
 | Skill | Phase | Description |
 |-------|-------|-------------|
 | `shape` | Plan | Pre-code design brief through structured discovery interview. Produces `.design-context.md` with audience, brand personality, aesthetic direction, design dials (DESIGN_VARIANCE, MOTION_INTENSITY, VISUAL_DENSITY) |
+| `design-md` | Tokens | Design system library & generator: 68 brand references (Linear, Stripe, Vercel, etc.) via getdesign CLI, CSS token extraction, Google `@google/design.md` validation/export. Produces `DESIGN.md`—the token layer between intent (`.design-context.md`) and implementation |
 | `minoan-frontend-design` | Build | Canonical frontend design skill: creative direction + engineering standards with eval infrastructure (70% win rate vs baseline in blind A/B). Context protocol, font reflex-reject procedure, OKLCH-first color, absolute CSS bans, 32 reference files |
 | `design-audit` | Evaluate | Technical quality checks: 5 dimensions scored /20 (accessibility, performance, responsive, theming, anti-patterns). P0-P3 severity. Report-only |
 | `design-critique` | Evaluate | UX review: Nielsen's 10 heuristics scored /40, cognitive load (8-item checklist), persona-based testing, AI Slop Test. Report-only |
 | `design-polish` | Refine | Final quality pass: alignment, spacing, 8 interaction states per element, transitions, tinted neutrals, WCAG contrast, touch targets, code cleanup. The only design skill that makes changes |
+
+### Pipeline Reference
+
+See [`frontend-design-pipeline.md`](./frontend-design-pipeline.md) for the full protocol: 3 gate artifacts (plan, `.design-context.md`, `DESIGN.md`), decision points for each step, Google `@google/design.md` CLI validation, QA sequence, and the Zimrah exemplar.
 
 ### Lineage & Attribution
 
