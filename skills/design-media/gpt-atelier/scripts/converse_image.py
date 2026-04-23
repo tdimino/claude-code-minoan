@@ -195,6 +195,10 @@ def main():
     parser = argparse.ArgumentParser(description="Multi-turn image generation via Responses API")
     parser.add_argument("prompt", nargs="?", help="Single-shot prompt (omit for interactive)")
     parser.add_argument("--orchestrator", default="gpt-5.4", help="Orchestrator model")
+    parser.add_argument("--thinking", action="store_true",
+                        help="Use gpt-5.4-thinking orchestrator (slower, better composition)")
+    parser.add_argument("--pro", action="store_true",
+                        help="Use gpt-5.4-pro orchestrator (highest quality, most expensive)")
     parser.add_argument("--size", default=None, help="Image size")
     parser.add_argument("--quality", default="high", choices=VALID_QUALITIES)
     parser.add_argument("--format", dest="output_format", default="png", choices=VALID_FORMATS)
@@ -203,6 +207,11 @@ def main():
     parser.add_argument("--auto-save", action="store_true", help="Auto-save images each turn")
     parser.add_argument("--api-key", help="API key (or use OPENAI_API_KEY env)")
     args = parser.parse_args()
+
+    if args.thinking:
+        args.orchestrator = "gpt-5.4-thinking"
+    elif args.pro:
+        args.orchestrator = "gpt-5.4-pro"
 
     try:
         chat = GPTAtelierChat(api_key=args.api_key, orchestrator=args.orchestrator)
