@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-04-21 | Codex CLI v0.122.0 | Models: GPT-5.4 family
+> Last updated: 2026-04-23 | Codex CLI v0.122.0 | Models: GPT-5.5 family
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -119,20 +119,20 @@ Each profile has a default model and reasoning effort. User flags override these
 
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
-| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.4` | `high` |
-| **Planning** | planner, architect | `gpt-5.4` | `high` |
-| **Research** | researcher | `gpt-5.4` | `medium` |
+| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.5` | `high` |
+| **Planning** | planner, architect | `gpt-5.5` | `high` |
+| **Research** | researcher | `gpt-5.5` | `medium` |
 
 ### Available Models (Apr 2026)
 
 | Model | ID | ChatGPT Auth | API Key | Notes |
 |-------|----|:---:|:---:|-------|
-| **GPT-5.4** | `gpt-5.4` | Yes | Yes | Unified flagship. Coding + reasoning. 1M+ context. Default for all profiles. |
-| **GPT-5.4 Pro** | `gpt-5.4-pro` | No | Yes | Deepest reasoning. Use `--model gpt-5.4-pro` to override. |
+| **GPT-5.5** | `gpt-5.5` | Yes | Yes | New flagship. Agentic workflows, 2M context. Default for all profiles. |
+| **GPT-5.5 Pro** | `gpt-5.5-pro` | No | Yes | Iterative research partner. Use `--model gpt-5.5-pro` to override. |
 | **GPT-5 Mini** | `gpt-5-mini` | No | Yes | Cost-optimized. Fast iteration. |
 | **GPT-5 Nano** | `gpt-5-nano` | No | Yes | High-throughput. Cheapest option. |
 
-> **Note:** `gpt-5.4-pro`, `gpt-5-mini`, and `gpt-5-nano` require `OPENAI_API_KEY` (API billing). ChatGPT auth (`codex login`) supports `gpt-5.4` and legacy Codex-family models (`gpt-5.3-codex`, `gpt-5.2`). GPT-5.3 Instant and GPT-5.4 Thinking are ChatGPT-app models, not Codex CLI model IDs.
+> **Note:** `gpt-5.5-pro`, `gpt-5-mini`, and `gpt-5-nano` require `OPENAI_API_KEY` (API billing). ChatGPT auth (`codex login`) supports `gpt-5.5` and legacy models (`gpt-5.4`, `gpt-5.3-codex`, `gpt-5.2`). GPT-5.3 Instant and GPT-5.4 Thinking are ChatGPT-app models, not Codex CLI model IDs.
 
 ### Reasoning Effort Levels
 
@@ -150,7 +150,7 @@ See `references/codex-models.md` for full model history, capabilities, and reaso
 ./scripts/codex-exec.sh builder "Quick lint fix" --reasoning medium
 
 # Override both
-./scripts/codex-exec.sh planner "Complex design" --model gpt-5.4 --reasoning high
+./scripts/codex-exec.sh planner "Complex design" --model gpt-5.5 --reasoning high
 ```
 
 ## Chaining Patterns
@@ -295,7 +295,7 @@ Older model names (`codex-mini`, `o3`, `o4-mini`, `gpt-5.3-codex`) have been sup
 
 ```bash
 # Recommended
-./scripts/codex-exec.sh reviewer "task" --model gpt-5.4
+./scripts/codex-exec.sh reviewer "task" --model gpt-5.5
 
 # Fast/cheap
 ./scripts/codex-exec.sh reviewer "task" --model gpt-5-mini
@@ -326,7 +326,7 @@ ls ./agents/
 - Narrow the task scope
 - Provide more context in the prompt
 - Try a different profile
-- Use `--model gpt-5.4-pro` for complex tasks
+- Use `--model gpt-5.5-pro` for complex tasks
 
 ## Testing
 
