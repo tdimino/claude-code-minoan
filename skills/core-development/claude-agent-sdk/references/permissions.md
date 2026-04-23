@@ -7,11 +7,9 @@ Control what tools can do with permission modes and custom handlers.
 ```python
 PermissionMode = Literal[
     "default",           # Standard permission behavior
-    "dontAsk",           # Anything not pre-approved is denied
     "acceptEdits",       # Auto-accept file edits
     "plan",              # Planning mode - no execution
-    "bypassPermissions", # Bypass all checks (use with caution)
-    "auto"               # Model classifier decides (TypeScript only)
+    "bypassPermissions"  # Bypass all checks (use with caution)
 ]
 ```
 
@@ -19,20 +17,10 @@ PermissionMode = Literal[
 
 | Mode | Description | Use Case |
 |------|-------------|----------|
-| `default` | Unmatched tools trigger `canUseTool` callback | Interactive applications |
-| `dontAsk` | Anything not pre-approved is denied; `canUseTool` never called | Headless automation with strict allowlists |
-| `acceptEdits` | Auto-approve file operations within working directory | Automated scripts |
-| `plan` | No tool execution; Claude plans only | Planning and analysis |
+| `default` | Standard prompts for permissions | Interactive applications |
+| `acceptEdits` | Auto-approve file operations | Automated scripts |
+| `plan` | Read-only, no execution | Planning and analysis |
 | `bypassPermissions` | Skip all checks | Trusted automation |
-| `auto` | Model classifier approves/denies each call (TypeScript only) | Semi-autonomous agents |
-
-### Permission Evaluation Order
-
-Hooks → Deny rules → Permission mode → Allow rules → `canUseTool` callback.
-
-### Subagent Inheritance
-
-When parent uses `bypassPermissions`, `acceptEdits`, or `auto`, all subagents inherit that mode and it cannot be overridden per-subagent.
 
 ### Usage
 

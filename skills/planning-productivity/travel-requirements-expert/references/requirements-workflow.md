@@ -7,7 +7,7 @@ This systematic workflow ensures comprehensive travel itinerary planning through
 The workflow progresses through 5 phases:
 1. **Initial Setup** - Create folder structure, capture initial request
 2. **Discovery** - Ask 5 foundational yes/no questions with smart defaults
-3. **Context Research** - Use Exa and Firecrawl to gather detailed information
+3. **Context Research** - Use MCP servers to gather detailed information
 4. **Expert Detail** - Ask 5 specific questions based on research findings
 5. **Requirements Specification** - Generate comprehensive final itinerary
 
@@ -55,7 +55,7 @@ Create `01-discovery-questions.md` with 5 foundational yes/no questions covering
 
 ### 2.2 Question Format
 
-Each question includes:
+Each question MUST include:
 - Clear yes/no format
 - **Smart default** with reasoning
 - Implications for itinerary planning
@@ -103,34 +103,26 @@ Based on discovery answers, determine what information is needed:
 - **Safety factors**: Weather risks, terrain difficulty, health precautions
 - **Accommodation context**: Location advantages, amenities, accessibility
 
-### 3.2 Use Exa and Firecrawl for Research
+### 3.2 Use MCP Servers for Research
 
-**Exa Research (`exa_research.py`)** --- synthesized answers with citations:
-Use for comprehensive research requiring multi-source synthesis:
+**Perplexity (`mcp__perplexity__search`)**:
+Use for comprehensive, detailed research on:
 - General destination information and context
 - Weather patterns and seasonal climate data
 - Cultural customs, etiquette, and local practices
+- Dining options, restaurant profiles, cuisine information
+- Transportation systems and logistics
 - Historical/cultural background of sites
 
 Example:
-```bash
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py \
-  "November weather Kyoto Japan temperature rainfall patterns" --sources --markdown
+```
+mcp__perplexity__search(
+  query="November weather Kyoto Japan temperature rainfall patterns",
+  detail_level="detailed"
+)
 ```
 
-**Firecrawl Agent (`firecrawl_api.py agent`)** --- autonomous multi-source research:
-Use for complex questions that benefit from autonomous web exploration:
-- Dining options and restaurant profiles across multiple sites
-- Accommodation comparisons with pricing
-- Transportation systems and logistics
-
-Example:
-```bash
-python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent \
-  "Best traditional kaiseki restaurants in Kyoto with vegetarian options and price ranges"
-```
-
-**Exa Search (`exa_search.py`)** --- targeted neural search with filters:
+**Exa Web Search (`mcp__plugin_exa-mcp-server_exa__web_search_exa`)**:
 Use for real-time, current information:
 - Recent travel reports and reviews
 - Current pricing and availability
@@ -138,24 +130,18 @@ Use for real-time, current information:
 - Recent news affecting travel plans
 
 Example:
-```bash
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
-  "best traditional kaiseki restaurants Kyoto 2025" -n 10 --after 2025-01-01
 ```
-
-**Firecrawl Scrape** --- extract pages found during search:
-Use to get clean markdown from specific URLs discovered during search:
-
-Example:
-```bash
-firecrawl scrape https://discovered-venue.com/menu --only-main-content
+mcp__plugin_exa-mcp-server_exa__web_search_exa(
+  query="best traditional kaiseki restaurants Kyoto 2025",
+  numResults=5
+)
 ```
 
 ### 3.3 Research Execution Strategy
 
 **Run searches in PARALLEL when possible**:
 ```
-Multiple independent searches should be executed simultaneously
+Multiple independent searches should be executed simultaneously in one message
 to maximize efficiency. Group related topics:
 
 - All weather-related queries together
@@ -326,7 +312,7 @@ Update `phase` and `progress` as you move through workflow.
 1. **Always write questions before asking them** - ensures complete coverage
 2. **One question at a time** - prevents user overwhelm, gets better answers
 3. **Smart defaults are crucial** - makes decision-making easy
-4. **Parallel searches** - maximizes efficiency in Phase 3
+4. **Parallel MCP searches** - maximizes efficiency in Phase 3
 5. **Specific > Abstract** - reference actual restaurants, times, prices in Phase 4-5
 6. **Weather safety first** - especially for hiking/outdoor activities
 7. **Integration windows explicit** - schedule rest, contemplation, flexibility
@@ -361,7 +347,7 @@ Phase 2:
 
 Phase 3:
 - [ ] Research gaps identified
-- [ ] Exa/Firecrawl searches executed (parallel when possible)
+- [ ] MCP searches executed (parallel when possible)
 - [ ] Findings documented in 03-context-findings.md
 
 Phase 4:

@@ -57,49 +57,122 @@ python scripts/exa_film_search.py research "What are the best films featuring se
 
 ---
 
-## Shared CLI Tools Reference
+## MCP Tool Reference (Fallback)
 
-### Exa CLI Scripts (`~/.claude/skills/exa-search/scripts/`)
+### Exa MCP Server (4 Tools)
 
-| Script | Purpose | Film Discovery Use |
-|--------|---------|-------------------|
-| `exa_search.py` | Neural search with filters | Find curated lists, articles, recommendations |
-| `exa_research.py` | Synthesized answers with citations | Critical discourse, thematic analysis, content verification |
-| `exa_similar.py` | Find pages similar to a URL | Discover films similar to a Letterboxd entry |
-| `exa_contents.py` | Extract full text from URLs | Pull complete content from found lists |
+The Exa MCP server provides 4 complementary tools for film discovery (availability depends on config):
+
+#### 1. Web Search (`mcp__exa__web_search_exa`)
+
+Real-time web search with content extraction. Best for finding curated lists, articles, and recommendations.
+
+**Parameters:**
+- `query` (required): Search query string
+- `numResults` (optional): Number of results to return (default: 5)
+
+**Best for film discovery:**
+- Finding curated lists on Letterboxd, MUBI, Criterion
+- "Films like X" and "best of" queries
+- Quick discovery of thematic lists
 
 **Example invocations:**
-```bash
-# Find curated lists
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
-  "Letterboxd list gothic vampire films pre-2010" -n 10
-
-# Synthesized critical discourse
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py \
-  "gothic horror films romantic sensibility 1980s 1990s" --sources --markdown
-
-# Find similar films from a reference
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py \
-  "https://letterboxd.com/film/eyes-wide-shut/" -n 15
-
-# Extract full content from a found list
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py \
-  "https://letterboxd.com/user/list/gothic-horror-essentials/"
+```
+mcp__exa__web_search_exa(query="Letterboxd list gothic vampire films pre-2010", numResults=10)
+mcp__exa__web_search_exa(query="Criterion Collection occult horror essays", numResults=8)
+mcp__exa__web_search_exa(query="site:sensesofcinema.com Neil Jordan gothic", numResults=5)
 ```
 
-### Firecrawl CLI
+#### 2. Deep Search (`mcp__exa__deep_search_exa`)
 
-Scrapes full page content when Exa finds a promising URL.
+Advanced search with query refinement and AI-generated summaries. Best for complex research requiring synthesized information.
 
-```bash
-firecrawl scrape <url> --only-main-content
+**Parameters:**
+- `query` (required): Search query string
+
+**Best for film discovery:**
+- Complex thematic research ("gothic sensibility in 1980s horror")
+- Finding obscure connections between films/directors
+- Research requiring synthesized critical discourse
+
+**Example invocations:**
+```
+mcp__exa__deep_search_exa(query="gothic horror films with romantic sensibility 1980s 1990s critical analysis")
+mcp__exa__deep_search_exa(query="films influenced by Eyes Wide Shut secret society ritual aesthetic")
+mcp__exa__deep_search_exa(query="underrated historical epics psychological depth pre-2010")
 ```
 
-For autonomous multi-source research:
-```bash
-python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent \
-  "best gothic horror films pre-2010 with occult themes"
+#### 3. Crawling (`mcp__exa__crawling_exa`)
+
+Extract full content from a specific URL. Alternative to Firecrawl for known URLs.
+
+**Parameters:**
+- `url` (required): The URL to crawl and extract content from
+
+**Best for film discovery:**
+- Extracting full content from Letterboxd lists
+- Scraping Criterion essays and collection pages
+- Getting complete film lists from known URLs
+
+**Example invocations:**
 ```
+mcp__exa__crawling_exa(url="https://letterboxd.com/user/list/gothic-horror-essentials/")
+mcp__exa__crawling_exa(url="https://www.criterion.com/shop/collection/gothic-horror")
+mcp__exa__crawling_exa(url="https://sensesofcinema.com/2020/great-directors/neil-jordan/")
+```
+
+#### 4. Code Context (`mcp__exa__get_code_context_exa`)
+
+Search code snippets, docs, GitHub repos. **Not typically relevant for film discovery** — included for completeness.
+
+**Parameters:**
+- `query` (required): Search query
+- `tokensNum` (optional): "dynamic" (default) or 1000-50000
+
+### Perplexity Search (`mcp__perplexity__search`)
+
+AI-powered search for synthesized information and critical discourse.
+
+**Parameters:**
+- `query` (required): The search query
+- `detail_level` (optional): "brief", "normal", or "detailed" — use "detailed" for comprehensive film lists
+
+**Strengths:**
+- Synthesizes information from multiple sources
+- Excellent for critical discourse and thematic analysis
+- Good for "explain" and "compare" queries
+
+**Example invocations:**
+```
+mcp__perplexity__search(query="gothic horror films romantic sensibility 1980s 1990s", detail_level="detailed")
+mcp__perplexity__search(query="films influenced by Eyes Wide Shut secret society ritual aesthetic")
+mcp__perplexity__search(query="revisionist noir movement 1970s Altman Polanski", detail_level="detailed")
+```
+
+### Perplexity Documentation (`mcp__perplexity__get_documentation`)
+
+Retrieves documentation and detailed information about specific topics.
+
+**Parameters:**
+- `query` (required): The topic to get documentation for
+- `context` (optional): Additional context to focus the search
+
+**Example invocations:**
+```
+mcp__perplexity__get_documentation(query="Ken Russell filmography", context="gothic visionary films")
+mcp__perplexity__get_documentation(query="Criterion Collection gothic horror", context="available titles streaming")
+```
+
+### Firecrawl (CLI)
+
+Scrapes full page content when Exa/Perplexity find a promising URL.
+
+**Usage:**
+```bash
+firecrawl scrape <url>
+```
+
+**When to use:** After Exa finds a valuable list or article, scrape it for complete content.
 
 ---
 
@@ -188,33 +261,40 @@ MUBI lists require browsing, but these patterns work:
 
 ## Search Strategy Examples
 
-### For Exa Search (`exa_search.py`)
+### For Exa (`mcp__exa__web_search_exa`)
 
-```bash
+```
 # Gothic/Occult
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Criterion Collection gothic horror films" -n 10
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "best occult films 1970s 1980s" -n 10
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "films like Eyes Wide Shut secret society" -n 10
+"Criterion Collection gothic horror films"
+"best occult films 1970s 1980s"
+"films like Eyes Wide Shut secret society"
 
 # Literary
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "literary adaptations Criterion Collection" -n 10
+"literary adaptations Criterion Collection"
+"Merchant Ivory films list"
+"Pasolini trilogy of life films"
 
 # Noir
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "neo-noir films 1990s underrated" -n 10
+"neo-noir films 1990s underrated"
+"revisionist noir 1970s best films"
+"Chinatown Long Goodbye similar films"
+
+# Historical Epic
+"historical epics psychological depth"
+"Ridley Scott director's cut films"
+"underrated historical epics 2000s"
 ```
 
-### For Exa Research (`exa_research.py`)
+### For Perplexity (`mcp__perplexity__search`)
 
-```bash
+```
 # Discourse/Analysis
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py \
-  "Eyes Wide Shut occult symbolism analysis" --sources --markdown
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py \
-  "gothic horror films romantic sensibility" --sources --markdown
+"Eyes Wide Shut occult symbolism analysis"
+"gothic horror films romantic sensibility"
+"revisionist noir movement 1970s"
 
 # Recommendations
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py \
-  "films similar to Interview with the Vampire gothic atmosphere" --sources
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py \
-  "underrated historical epics pre-2010" --sources
+"films similar to Interview with the Vampire gothic atmosphere"
+"underrated historical epics pre-2010"
+"occult ritual films not horror"
 ```

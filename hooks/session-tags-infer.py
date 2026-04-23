@@ -199,6 +199,89 @@ def infer_tags(transcript_text):
     return extract_json(content)
 
 
+def apply_pending_tag_edits(session_id, transcript_path):
+    """Apply manual .pending-tags and .pending-tags-remove breadcrumbs.
+
+    Same pattern as .pending-title: bypasses cooldown, applies immediately.
+    Written by /tag slash command or tag-session.js CLI.
+    """
+    pending_tags_path = TAGS_DIR / f"{session_id}.pending-tags"
+    pending_remove_path = TAGS_DIR / f"{session_id}.pending-tags-remove"
+
+    adds = []
+    removes = []
+    if pending_tags_path.exists():
+        try:
+            adds = [ln.strip() for ln in pending_tags_path.read_text().splitlines() if ln.strip()]
+        except OSError:
+            adds = []
+    if pending_remove_path.exists():
+        try:
+            removes = [ln.strip().lower() for ln in pending_remove_path.read_text().splitlines() if ln.strip()]
+        except OSError:
+            removes = []
+
+    if not adds and not removes:
+        return
+
+    lock_path = pathlib.Path("/tmp") / f"claude-{os.getuid()}" / "session-registry.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_fd = None
+    try:
+        lock_fd = open(lock_path, "w")
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except (OSError, BlockingIOError):
+        if lock_fd:
+            lock_fd.close()
+        return
+
+    try:
+        registry = {"sessions": {}}
+        if REGISTRY_PATH.exists():
+            try:
+                registry = json.loads(REGISTRY_PATH.read_text())
+            except (json.JSONDecodeError, OSError):
+                registry = {"sessions": {}}
+
+        existing = registry.get("sessions", {}).get(session_id, {})
+        current = list(existing.get("user_tags", []))
+
+        seen = {t.lower() for t in current}
+        for a in adds:
+            if a.lower() not in seen:
+                current.append(a)
+                seen.add(a.lower())
+
+        if removes:
+            current = [t for t in current if t.lower() not in removes]
+
+        project_slug = pathlib.Path(transcript_path).parent.name
+        registry.setdefault("sessions", {})[session_id] = {
+            **existing,
+            "user_tags": current,
+            "project": existing.get("project", project_slug),
+            "updated": datetime.datetime.now().isoformat(timespec="seconds"),
+        }
+
+        tmp = REGISTRY_PATH.with_suffix(".tmp")
+        tmp.write_text(json.dumps(registry, indent=2))
+        tmp.rename(REGISTRY_PATH)
+
+        pending_tags_path.unlink(missing_ok=True)
+        pending_remove_path.unlink(missing_ok=True)
+
+        print(f"session-tags: applied manual tags (+{len(adds)} -{len(removes)}): {current}", file=sys.stderr)
+    except (json.JSONDecodeError, OSError):
+        pass
+    finally:
+        if lock_fd:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                lock_fd.close()
+            except OSError:
+                pass
+
+
 def update_registry(session_id, transcript_path, title, tags, display_tags, summary):
     """Upsert session entry in session-registry.json. Uses file locking."""
     lock_path = pathlib.Path("/tmp") / f"claude-{os.getuid()}" / "session-registry.lock"
@@ -223,11 +306,12 @@ def update_registry(session_id, transcript_path, title, tags, display_tags, summ
         # Upsert: preserve existing fields, update with new data
         existing = registry.get("sessions", {}).get(session_id, {})
         registry.setdefault("sessions", {})[session_id] = {
+            **existing,   # preserves user_tags and any future fields
             "title": title or existing.get("title", ""),
             "display_tags": display_tags or existing.get("display_tags", []),
             "tags": tags or existing.get("tags", []),
             "summary": summary or existing.get("summary", ""),
-            "project": project_slug,
+            "project": existing.get("project", project_slug),
             "updated": datetime.datetime.now().isoformat(timespec="seconds"),
         }
 
@@ -270,6 +354,10 @@ def main():
                 print(f"session-tags: applied pending plan title '{pending_title}'", file=sys.stderr)
         except OSError:
             pass
+
+    # Apply pending manual tag edits (.pending-tags / .pending-tags-remove).
+    # Same breadcrumb pattern as .pending-title: bypasses cooldown.
+    apply_pending_tag_edits(session_id, transcript_path)
 
     # Cooldown check — don't call llama-server more than once per TAGS_COOLDOWN seconds.
     cooldown_dir = pathlib.Path(f"/tmp/claude-{os.getuid()}")

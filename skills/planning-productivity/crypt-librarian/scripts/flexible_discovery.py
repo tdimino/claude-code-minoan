@@ -12,7 +12,7 @@ Options:
     --mood MOOD           Mood/tone (noir, gothic, thriller, drama, horror, comedy, any)
     --subreddits LIST     Comma-separated subreddits to search
     --limit N             Max results per source (default: 15)
-    --sources LIST        Comma-separated: reddit,exa (default: all)
+    --sources LIST        Comma-separated: reddit,perplexity,exa (default: all)
 
 Examples:
     python flexible_discovery.py "Korean revenge thrillers"
@@ -143,7 +143,7 @@ def main():
     parser.add_argument("--limit", type=int, default=15,
                        help="Max results per source")
     parser.add_argument("--sources", default="reddit",
-                       help="Comma-separated: reddit,exa")
+                       help="Comma-separated: reddit,perplexity,exa")
     parser.add_argument("--json", action="store_true",
                        help="Output as JSON for programmatic use")
 
@@ -174,13 +174,16 @@ def main():
             print("\n## Reddit Results\n")
             print(format_reddit_results(reddit_results))
 
-    # Exa queries ("perplexity" is a legacy alias, routes to exa_research.py)
-    if ("exa" in sources or "perplexity" in sources) and not args.json:
-        print("\n## Exa Research Query\n")
-        print(f"Run: python3 ~/.claude/skills/exa-search/scripts/exa_research.py \\")
-        print(f'  "{enhanced_query} film recommendations underrated" --sources --markdown')
-        print("\n## Exa Search Query\n")
-        print(f"Run: python3 ~/.claude/skills/exa-search/scripts/exa_search.py \"{enhanced_query}\" -n {args.limit}")
+    # For Perplexity and Exa, output the command to run
+    # (These require MCP or API access that's better handled by Claude directly)
+    if "perplexity" in sources and not args.json:
+        print("\n## Perplexity Query\n")
+        print(f"Use mcp__perplexity__search with query:")
+        print(f'  "{enhanced_query} film recommendations underrated"')
+
+    if "exa" in sources and not args.json:
+        print("\n## Exa Query\n")
+        print(f"Run: python exa_film_search.py search \"{enhanced_query}\" -n {args.limit}")
 
     if args.json:
         print(json.dumps(all_results, indent=2))

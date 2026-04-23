@@ -107,5 +107,5 @@ if __name__ == "__main__":
     folder_path = create_requirements_folder(user_request, base_path)
     print(f"\nNext steps:")
     print(f"1. Begin Phase 2: Discovery questions (5 yes/no questions with smart defaults)")
-    print(f"2. Use Exa search and Firecrawl for context research")
+    print(f"2. Use MCP servers for context research")
     print(f"3. Move through detail questions and final specification")
