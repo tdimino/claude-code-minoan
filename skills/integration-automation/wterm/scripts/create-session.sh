@@ -2,6 +2,12 @@
 # Create a new wterm session
 # Usage: create-session.sh [command] [name]
 
+# Auto-load auth token from secrets.env if not already set
+if [ -z "$WTERM_AUTH_TOKEN" ] && [ -f ~/.config/env/secrets.env ]; then
+    WTERM_AUTH_TOKEN=$(grep '^WTERM_AUTH_TOKEN=' ~/.config/env/secrets.env | cut -d= -f2)
+    export WTERM_AUTH_TOKEN
+fi
+
 PORT="${WTERM_PORT:-3036}"
 TOKEN="${WTERM_AUTH_TOKEN:-}"
 COMMAND="${1:-/bin/zsh}"
