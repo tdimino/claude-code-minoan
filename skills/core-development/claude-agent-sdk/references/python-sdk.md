@@ -321,11 +321,9 @@ ClaudeAgentOptions(
 ```python
 PermissionMode = Literal[
     "default",           # Standard permission behavior
-    "dontAsk",           # Anything not pre-approved is denied
     "acceptEdits",       # Auto-accept file edits
     "plan",              # Planning mode - no execution
     "bypassPermissions"  # Bypass all checks (use with caution)
-    # "auto" — TypeScript only, not available in Python SDK
 ]
 ```
 
@@ -341,23 +339,7 @@ class AgentDefinition:
     description: str
     prompt: str
     tools: list[str] | None = None
-    disallowed_tools: list[str] | None = None
     model: Literal["sonnet", "opus", "haiku", "inherit"] | None = None
-    mcp_servers: dict[str, McpServerConfig] | None = None
-    skills: list[str] | None = None       # Skill names to preload (TS SDK)
-    max_turns: int | None = None
-```
-
-### Session Management
-
-```python
-from claude_agent_sdk import (
-    list_sessions,
-    get_session_messages,
-    get_session_info,
-    rename_session,
-    tag_session,
-)
 ```
 
 ---
