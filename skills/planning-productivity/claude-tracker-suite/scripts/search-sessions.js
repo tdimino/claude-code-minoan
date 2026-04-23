@@ -63,6 +63,17 @@ const NOISE_PATTERNS = [
   'userModels/',
 ];
 
+function extractText(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter(block => block && block.type === 'text' && block.text)
+      .map(block => block.text)
+      .join(' ');
+  }
+  return '';
+}
+
 function isNoise(content) {
   for (const pattern of NOISE_PATTERNS) {
     if (content.includes(pattern)) return true;
@@ -132,21 +143,17 @@ async function searchSession(filePath, projectPath) {
 
           // Search user messages
           if (data.type === 'user' && data.message && data.message.content) {
-            const content = data.message.content;
-            if (typeof content === 'string' &&
-                content.toLowerCase().includes(searchTerm) &&
-                !isNoise(content)) {
-              matches.push(content.substring(0, 200).replace(/\n/g, ' '));
+            const text = extractText(data.message.content);
+            if (text && text.toLowerCase().includes(searchTerm) && !isNoise(text)) {
+              matches.push(text.substring(0, 200).replace(/\n/g, ' '));
             }
           }
 
           // Search assistant messages
           if (data.type === 'assistant' && data.message && data.message.content) {
-            const content = data.message.content;
-            if (typeof content === 'string' &&
-                content.toLowerCase().includes(searchTerm) &&
-                !isNoise(content)) {
-              matches.push('[Assistant] ' + content.substring(0, 200).replace(/\n/g, ' '));
+            const text = extractText(data.message.content);
+            if (text && text.toLowerCase().includes(searchTerm) && !isNoise(text)) {
+              matches.push('[Assistant] ' + text.substring(0, 200).replace(/\n/g, ' '));
             }
           }
         } catch (e) {

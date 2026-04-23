@@ -232,7 +232,7 @@ async function main() {
   let sessions = utils.loadSessionsIndex();
 
   // Filter out sidechains and trivial sessions
-  sessions = sessions.filter(s => !s.isSidechain && (s.messageCount || 0) > 1);
+  sessions = sessions.filter(s => !s.isSidechain);
 
   // Apply filters
   if (args.id) {
