@@ -210,3 +210,15 @@ Extend small interactive elements to 40-44px minimum with a pseudo-element:
 Tailwind: `relative after:absolute after:top-1/2 after:left-1/2 after:size-11 after:-translate-x-1/2 after:-translate-y-1/2`.
 
 Never let two hit areas overlap — shrink if needed but maximize within available space.
+
+## Text Animation QA
+
+When reviewing text animations (heading reveals, editorial staggers, text swaps):
+
+- **60fps**: Animate only `transform`, `opacity`, and `filter: blur()`. Never animate `width`, `height`, `margin`, `padding`, `font-size`, or `letter-spacing` (use `transform: scale()` instead of font-size changes).
+- **No layout shift**: Text containers must have fixed dimensions or use `will-change: transform` before animation starts. Staggered reveals must not cause reflow of surrounding content.
+- **Stagger cap**: Total stagger time should stay under 500ms (10 items at 50ms). For longer strings, reduce per-unit delay or cap the staggered count.
+- **Exit timing**: Exit animations should be ~65-75% of enter duration. Faster exits feel natural; equal-duration exits feel sluggish.
+- **Reduced motion**: Provide `@media (prefers-reduced-motion: reduce)` fallback. Replace spatial motion with simple crossfade. Preserve functional meaning (content still appears, just without movement).
+- **Swap continuity**: No hard-cut frame between old and new text during replacement. Verify overlap window doesn't cause stacked/unreadable glyphs.
+- **Mobile**: Reduce travel distances (x/y offsets) on narrow viewports. A 48px slide that reads as subtle on desktop is dramatic on a 375px screen.

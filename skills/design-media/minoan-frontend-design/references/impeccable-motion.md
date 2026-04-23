@@ -97,3 +97,7 @@ Don't use `will-change` preemptively—only when animation is imminent (`:hover`
 ---
 
 **Avoid**: Animating everything (animation fatigue is real). Using >500ms for UI feedback. Ignoring `prefers-reduced-motion`. Using animation to hide slow loading.
+
+## Text Animation Catalog
+
+For named text animation effects with exact timing specs, see `references/text-animation-catalog.md`. 24 effects across 5 families: per-character emphasis, per-word phrasing, per-line editorial, whole-phrase transitions, and extended effects. Each effect includes portable enter/exit contracts (duration, stagger, easing, keyframes) translatable to CSS, WAAPI, Motion, or GSAP.
