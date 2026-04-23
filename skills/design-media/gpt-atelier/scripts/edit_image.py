@@ -104,6 +104,12 @@ def main():
           else f"Input: {image_path}", file=sys.stderr)
     if mask_path:
         print(f"Mask: {mask_path}", file=sys.stderr)
+    if model == "gpt-image-2" and not mask_path:
+        print("\n⚠  gpt-image-2 reference-image editing often produces yellow tint "
+              "and poor prompt adherence.\n"
+              "   For design-final work, generate fresh instead of editing.\n"
+              "   Use --fast (gpt-image-1.5) for better edit results.\n",
+              file=sys.stderr)
     print(f"Editing...", file=sys.stderr)
 
     response = client.edit(

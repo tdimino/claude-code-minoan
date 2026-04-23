@@ -13,6 +13,7 @@ import base64
 import os
 import sys
 import time
+from math import gcd
 from pathlib import Path
 from typing import Optional, Union
 
@@ -63,6 +64,23 @@ def resolve_size(size_input: Optional[str]) -> Optional[str]:
     return size_input
 
 
+def inject_size_hint(prompt: str, size: Optional[str]) -> str:
+    """Append explicit pixel dimensions to prompt for better aspect-ratio adherence.
+
+    The API size param alone fails ~90% for non-standard ratios. Embedding
+    dimensions in prompt text is the top community-discovered workaround.
+    """
+    resolved = resolve_size(size)
+    if not resolved or resolved == "auto":
+        return prompt
+    parts = resolved.split("x")
+    if len(parts) != 2:
+        return prompt
+    w, h = int(parts[0]), int(parts[1])
+    d = gcd(w, h)
+    return f"{prompt} Output in exactly {w}px x {h}px ({w // d}:{h // d} ratio) resolution."
+
+
 def save_images(response, output_dir: str = "./output", filename: str = "generated",
                 output_format: str = "png") -> list[Path]:
     out = Path(output_dir)
@@ -107,9 +125,10 @@ class GPTAtelierClient:
     def generate(self, prompt: str, size: Optional[str] = None, quality: str = "high",
                  n: int = 1, output_format: str = "png", output_compression: Optional[int] = None,
                  background: Optional[str] = None, moderation: Optional[str] = None):
+        effective_prompt = inject_size_hint(prompt, size) if self.model == DEFAULT_MODEL else prompt
         kwargs = {
             "model": self.model,
-            "prompt": prompt,
+            "prompt": effective_prompt,
             "n": n,
         }
         if size:

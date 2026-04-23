@@ -140,7 +140,14 @@ Interactive commands: `/save`, `/action auto|generate|edit`, `/model`, `/clear`,
 
 Attach images with `@path`: `@logo.png Add this logo to the top-right corner`.
 
-Additional option: `--orchestrator MODEL` (default: gpt-5.4).
+Additional options:
+
+| Flag | Orchestrator | Tradeoff |
+|------|-------------|----------|
+| (default) | `gpt-5.4` | Standard quality, fastest |
+| `--thinking` | `gpt-5.4-thinking` | Better composition for complex scenes, slower |
+| `--pro` | `gpt-5.4-pro` | Highest quality, most expensive |
+| `--orchestrator MODEL` | any | Manual override |
 
 ### 5. Streaming with Partial Images
 
@@ -157,12 +164,23 @@ python3 scripts/stream_image.py "A detailed architectural drawing" --partials 3 
 
 Additional option: `--save-partials` to save intermediate images.
 
+## Prompting Quick-Hits
+
+1. **Lead with scene/style, not subject.** First words carry highest visual weight. Specify intended use (ad, UI mockup, editorial) so the model picks the right polish level.
+2. **Always double-quote literal text.** `"HELLO WORLD"` engages the high-accuracy text rendering engine.
+3. **Pixel dimensions in prompt.** For custom aspect ratios, append `"Output in exactly WxH (R:R ratio) resolution"` — the API `size` param alone is unreliable. Done automatically by `inject_size_hint()` for gpt-image-2.
+4. **Use `--thinking` for complex scenes.** The orchestrator model matters — Thinking models produce significantly better multi-element compositions.
+5. **Generate fresh, don't edit.** Reference-image editing on gpt-image-2 produces yellow tint and poor prompt adherence. For design-final work, generate from scratch.
+
+See `references/prompting-guide.md` for full details.
+
 ## When to Use GPT Atelier vs Nano Banana Pro
 
 | Task | GPT Atelier | Nano Banana Pro |
 |------|-------------|-----------------|
 | Text rendering (complex, non-Latin) | Best | Good |
 | Mask-based inpainting | Native, low drift | Higher drift (~40%) |
+| Reference-image editing | Yellow tint risk — use `--fast` | Better fidelity |
 | Multi-turn editing with state | Responses API | Multi-turn chat |
 | Photorealism | Excellent | Excellent |
 | Cinematic digital painting | Good | Best |
