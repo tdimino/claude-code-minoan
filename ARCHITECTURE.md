@@ -6,7 +6,7 @@ This document describes the layout of `claude-code-minoan` and the reasoning beh
 
 `claude-code-minoan` is a curated configuration layer for Claude Code--the Anthropic CLI. Claude Code reads a fixed set of discovery paths at startup: `~/.claude/skills/*/SKILL.md`, `~/.claude/commands/*.md`, and `~/.claude/settings.json`. This repo is structured so that its contents install cleanly into those paths.
 
-The repo currently ships 72 skills across 5 categories, 44 lifecycle hooks, 47 slash commands, and 10 CLI tools.
+The repo currently ships 82 skills across 5 categories, 44 lifecycle hooks, 47 slash commands, and 10 CLI tools.
 
 The repo does not extend Claude Code programmatically. It works entirely through Claude Code's documented extension points: skills loaded as context, slash commands invoked by the user, hooks wired to lifecycle events, and MCP servers registered in `settings.json`.
 

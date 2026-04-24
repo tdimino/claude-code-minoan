@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{PROJECT_TITLE}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Inconsolata:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/regular/style.css">
+  <link rel="stylesheet" href="_shared.css">
+  <link rel="stylesheet" href="_components.css">
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+{{AUTH_SCRIPT}}
+
+<nav class="breadcrumb" aria-label="Breadcrumb"><span>{{PROJECT_TITLE}}</span></nav>
+{{PAGE_NAV}}
+
+<header>
+  <p class="header__tag" aria-hidden="true">{{PROJECT_TITLE}}</p>
+  <h1>{{HEADLINE}}</h1>
+  <p>{{SUBTITLE}}</p>
+</header>
+
+<main id="main">
+
+  <!-- Section 1 -->
+  <section id="overview">
+    <span class="section-num" aria-hidden="true">01</span>
+    <h2><i class="ph ph-compass" aria-hidden="true"></i> Overview</h2>
+    <p class="lead">Add your content here. Use <strong>bold text</strong> for emphasis — it renders in the display font.</p>
+    <p class="lead spaced-sm">Second paragraph with spacing.</p>
+  </section>
+
+  <!-- Section 2: Example with state cards -->
+  <section id="features">
+    <span class="section-num" aria-hidden="true">02</span>
+    <h2><i class="ph ph-squares-four" aria-hidden="true"></i> Features</h2>
+    <p class="lead gap-below">Replace these cards with your own content.</p>
+
+    <div class="states-grid">
+      <div class="state-card state-card--subq">
+        <h4>CATEGORY</h4>
+        <h5><i class="ph ph-check-circle" aria-hidden="true"></i> Feature One</h5>
+        <p>Description of the first feature or capability.</p>
+      </div>
+      <div class="state-card state-card--claude">
+        <h4>CATEGORY</h4>
+        <h5><i class="ph ph-lightning" aria-hidden="true"></i> Feature Two</h5>
+        <p>Description of the second feature or capability.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Example with matrix -->
+  <section id="comparison">
+    <span class="section-num" aria-hidden="true">03</span>
+    <h2><i class="ph ph-chart-bar-horizontal" aria-hidden="true"></i> Comparison</h2>
+    <p class="lead gap-below">Replace this matrix with your own data.</p>
+
+    <div class="matrix matrix--3col">
+      <div class="matrix__row matrix__row--head">
+        <div class="matrix__cell"><span class="matrix__th"><i class="ph ph-grid-four" aria-hidden="true"></i> Feature</span></div>
+        <div class="matrix__cell matrix__cell--center"><span class="matrix__th matrix__th--center">Option A</span></div>
+        <div class="matrix__cell matrix__cell--center"><span class="matrix__th matrix__th--center">Option B</span></div>
+      </div>
+      <div class="matrix__row">
+        <div class="matrix__cell"><span class="matrix__tool">Example Feature</span></div>
+        <div class="matrix__cell matrix__cell--center"><span class="matrix__verdict matrix__verdict--yes">Yes</span></div>
+        <div class="matrix__cell matrix__cell--center"><span class="matrix__verdict matrix__verdict--partial">Partial</span></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  {{FOOTER_NAV}}
+  <p><em>{{PROJECT_TITLE}}</em> &mdash; {{YEAR}}</p>
+</footer>
+</body>
+</html>
