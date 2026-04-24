@@ -58,6 +58,7 @@ The satellite skills adapt patterns from [Impeccable](https://github.com/pbakaus
 |-------|-------------|
 | `shadcn` | Install, customize, compose shadcn/ui components with Tailwind v4 OKLCH theming |
 | `mindnode-ui` | MindNode-inspired mind mapping interfaces (ReactFlow, D3, 27+ themes) |
+| `vellum-editorial` | Editorial documentation sites: OKLCH palette, Bodoni Moda / Source Serif 4 / Inconsolata typography, crosshatch texture, 21 semantic components (state cards, parity matrices, debugger panels, rings, phase timelines, glossaries). Static HTML, zero build step. Scaffold with `init_project.py` |
 
 ## Recording & Presentation
 
