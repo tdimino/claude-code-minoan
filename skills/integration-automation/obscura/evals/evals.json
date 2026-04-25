@@ -1,0 +1,100 @@
+{
+  "skill_name": "obscura",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Fetch this JSTOR article without getting blocked by their bot detection",
+      "should_trigger": true,
+      "expectations": [
+        "Uses obscura with --stealth flag",
+        "Targets JSTOR URL",
+        "Extracts metadata or abstract"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Scrape Google Scholar results for Minoan trade routes",
+      "should_trigger": true,
+      "expectations": [
+        "Uses obscura fetch --stealth for Google Scholar",
+        "Extracts result titles and citation counts",
+        "Returns structured data"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need a stealth headless browser to grab metadata from this academic page",
+      "should_trigger": true,
+      "expectations": [
+        "Invokes obscura skill",
+        "Uses --stealth flag",
+        "Performs page fetch with --eval for metadata extraction"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Extract metadata from this Elsevier article page without being detected as a bot",
+      "should_trigger": true,
+      "expectations": [
+        "Uses obscura with --stealth",
+        "Applies appropriate --eval JS for metadata",
+        "Returns title, authors, abstract if available"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Batch scrape these 10 academic URLs with anti-fingerprinting protection",
+      "should_trigger": true,
+      "expectations": [
+        "Uses obscura scrape subcommand",
+        "Applies --stealth or equivalent protection",
+        "Handles multiple URLs with appropriate concurrency"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Search ArXiv for attention mechanism papers published in 2025",
+      "should_trigger": false,
+      "expectations": [
+        "Uses ArXiv MCP or Exa, not Obscura",
+        "ArXiv does not require stealth browsing"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Read this PDF file and summarize the key findings",
+      "should_trigger": false,
+      "expectations": [
+        "PDF reading does not require a headless browser",
+        "Uses Read tool or PDF-specific tool"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Find papers similar to this one using Exa search",
+      "should_trigger": false,
+      "expectations": [
+        "Uses Exa MCP directly",
+        "No stealth browsing needed for Exa"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Download this ArXiv paper and analyze it",
+      "should_trigger": false,
+      "expectations": [
+        "Uses ArXiv MCP download_paper",
+        "ArXiv is open access, no stealth needed"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Scrape this Reddit thread about machine learning papers",
+      "should_trigger": false,
+      "expectations": [
+        "Uses Scrapling for Reddit (Cloudflare-protected)",
+        "Obscura is not the right tool for Reddit"
+      ]
+    }
+  ]
+}

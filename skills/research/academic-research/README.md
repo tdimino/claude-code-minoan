@@ -2,17 +2,17 @@
 
 The literature review skill. Search academic papers, download from ArXiv, and synthesize findings using Exa's neural search for broad discovery and ArXiv MCP for deep paper analysis.
 
-**Last updated:** 2026-01-02
+**Last updated:** 2026-04-25
 
-**Reflects:** Exa AI search API (research_paper category), ArXiv MCP server tools, and academic search patterns across 6+ reputable sources.
+**Reflects:** Exa AI search API (research_paper category), ArXiv MCP server tools, Obscura stealth browser for bot-protected academic sites, and academic search patterns across 6+ reputable sources.
 
 ---
 
 ## Why This Skill Exists
 
-Academic search requires two different tools for two different tasks: broad discovery across the web (Exa) and deep analysis of specific papers (ArXiv MCP). Exa finds papers by meaning rather than keywords and filters by category and date. ArXiv MCP downloads full papers, reads their content, and enables citation network analysis. Using the wrong tool for the job wastes time---Exa for paper content, ArXiv for discovery outside its corpus.
+Academic search requires different tools for different tasks: broad discovery (Exa), deep paper analysis (ArXiv MCP), and stealth extraction from bot-protected sources (Obscura). Exa finds papers by meaning rather than keywords. ArXiv MCP downloads full papers and enables citation analysis. Obscura's anti-fingerprinting reaches sites that block standard headless browsers---JSTOR, Google Scholar, Persée, PubMed, Academia.edu.
 
-This skill provides the decision matrix: when to use which tool, how to combine them for literature reviews, and how to filter by domain (cs.AI, cs.CL, cs.CV, cs.LG, cs.NE, stat.ML).
+This skill provides the decision matrix and a 5-tier escalation ladder: ArXiv MCP → Exa → Firecrawl → Obscura → Scrapling.
 
 ---
 
@@ -25,6 +25,9 @@ academic-research/
   references/
     exa-academic-search.md                 # Exa parameters for academic search
     arxiv-mcp-tools.md                     # ArXiv MCP tool reference
+    obscura-academic-patterns.md           # Site-specific Obscura extraction patterns
+  scripts/
+    academic_stealth_fetch.sh              # Stealth fetch wrapper (auto-detects site type)
 ```
 
 ---
@@ -33,16 +36,18 @@ academic-research/
 
 ### Tool Selection Matrix
 
-| Task | Use Exa | Use ArXiv MCP |
-|------|---------|--------------|
-| Broad topic discovery | Yes | No |
-| Find papers by meaning | Yes | No |
-| Filter by date range | Yes | Limited |
-| Download full paper | No | Yes |
-| Read paper content | No | Yes |
-| Citation analysis | No | Yes |
-| Non-ArXiv sources | Yes | No |
-| Category filtering | Yes (6+ sources) | Yes (ArXiv categories) |
+| Task | Exa | ArXiv MCP | Obscura |
+|------|-----|-----------|---------|
+| Broad topic discovery | Yes | No | No |
+| Find papers by meaning | Yes | No | No |
+| Filter by date range | Yes | Limited | No |
+| Download full paper | No | Yes | No |
+| Read paper content | No | Yes | No |
+| Citation analysis | No | Yes | No |
+| Non-ArXiv sources | Yes | No | Yes |
+| Category filtering | Yes (6+ sources) | Yes (ArXiv) | No |
+| Bot-protected sites | No | No | Yes |
+| Batch stealth scrape | No | No | Yes |
 
 ### Exa Academic Search
 
