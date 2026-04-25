@@ -1,0 +1,311 @@
+{
+  "essential": {
+    "hooks": {
+      "PreToolUse": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/git-track.sh"}
+          ]
+        },
+        {
+          "matcher": "WebSearch",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/block-websearch.sh"}
+          ]
+        },
+        {
+          "matcher": "WebFetch",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/block-webfetch.sh"}
+          ]
+        },
+        {
+          "matcher": "Read",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/image-optimize.py", "timeout": 8000}
+          ]
+        },
+        {
+          "matcher": "*",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/on-thinking.sh"}
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/git-track-post.sh"}
+          ]
+        },
+        {
+          "matcher": "Write",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/dabarat-open.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/plan-session-rename.py", "timeout": 5000},
+            {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
+          ]
+        },
+        {
+          "matcher": "Edit",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
+          ]
+        },
+        {
+          "matcher": "Read",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
+          ]
+        },
+        {
+          "matcher": "mcp__computer-use__screenshot",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
+          ]
+        },
+        {
+          "matcher": "mcp__claude-in-chrome__screenshot",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
+          ]
+        }
+      ],
+      "PostToolUseFailure": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/error-context-hints.py"}
+          ]
+        }
+      ],
+      "PermissionRequest": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/smart-auto-approve.py"}
+          ]
+        }
+      ],
+      "Stop": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/on-ready.sh"},
+            {"type": "command", "command": "~/.claude/hooks/propagate-rename.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/session-tags-infer.py", "statusMessage": "Inferring session tags...", "async": true},
+            {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py stop", "timeout": 10000}
+          ]
+        }
+      ],
+      "SessionEnd": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/git-track-rebuild.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py session_end", "timeout": 10000}
+          ]
+        }
+      ],
+      "PreCompact": [],
+      "SubagentStart": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/subagent-spawn-log.py", "async": true}
+          ]
+        }
+      ],
+      "SubagentStop": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/subagent-stop-log.py", "async": true}
+          ]
+        }
+      ]
+    },
+    "statusLine": {
+      "type": "command",
+      "command": "~/.claude/hooks/statusline-monitor.sh",
+      "padding": 0
+    }
+  },
+  "full": {
+    "hooks": {
+      "SessionStart": [
+        {
+          "matcher": "startup",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/update-date.sh"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/soul-activate.py", "statusMessage": "Awakening soul..."}
+          ]
+        },
+        {
+          "matcher": "compact",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/soul-reactivate-compact.py", "statusMessage": "Restoring soul after compaction..."}
+          ]
+        },
+        {
+          "matcher": "resume",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/soul-activate-resume.py", "statusMessage": "Resuming soul..."}
+          ]
+        }
+      ],
+      "UserPromptSubmit": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/multi-response-prompt.py"}
+          ]
+        }
+      ],
+      "PreToolUse": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/git-track.sh"}
+          ]
+        },
+        {
+          "matcher": "WebSearch",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/block-websearch.sh"}
+          ]
+        },
+        {
+          "matcher": "WebFetch",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/block-webfetch.sh"}
+          ]
+        },
+        {
+          "matcher": "Read",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/image-optimize.py", "timeout": 8000}
+          ]
+        },
+        {
+          "matcher": "*",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/on-thinking.sh"}
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/git-track-post.sh"}
+          ]
+        },
+        {
+          "matcher": "Write",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/dabarat-open.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/plan-session-rename.py", "timeout": 5000},
+            {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
+          ]
+        },
+        {
+          "matcher": "Edit",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
+          ]
+        },
+        {
+          "matcher": "Read",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
+          ]
+        },
+        {
+          "matcher": "mcp__computer-use__screenshot",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
+          ]
+        },
+        {
+          "matcher": "mcp__claude-in-chrome__screenshot",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
+          ]
+        }
+      ],
+      "PostToolUseFailure": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/error-context-hints.py"}
+          ]
+        }
+      ],
+      "PermissionRequest": [
+        {
+          "matcher": "Bash",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/smart-auto-approve.py"}
+          ]
+        }
+      ],
+      "Stop": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "~/.claude/hooks/on-ready.sh"},
+            {"type": "command", "command": "~/.claude/hooks/propagate-rename.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/slack-stop-hook.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/soul-reflect.py", "statusMessage": "Reflecting...", "async": true},
+            {"type": "command", "command": "python3 ~/.claude/hooks/session-tags-infer.py", "statusMessage": "Inferring session tags...", "async": true},
+            {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py stop", "timeout": 10000}
+          ]
+        }
+      ],
+      "SessionEnd": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/precompact-handoff.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/soul-deregister.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/git-track-rebuild.py"},
+            {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py session_end", "timeout": 10000}
+          ]
+        }
+      ],
+      "PreCompact": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/precompact-handoff.py"}
+          ]
+        }
+      ],
+      "SubagentStart": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/soul-subagent-inject.py", "statusMessage": "Ensouling subdaimon..."},
+            {"type": "command", "command": "python3 ~/.claude/hooks/subagent-spawn-log.py", "async": true}
+          ]
+        }
+      ],
+      "SubagentStop": [
+        {
+          "matcher": "",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/subagent-stop-log.py", "async": true}
+          ]
+        }
+      ]
+    },
+    "statusLine": {
+      "type": "command",
+      "command": "~/.claude/hooks/statusline-monitor.sh",
+      "padding": 0
+    }
+  }
+}

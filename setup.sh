@@ -178,6 +178,42 @@ case $mcp_choice in
 esac
 
 echo ""
+
+# Setup Hooks
+echo "🪝 Setting up Hooks..."
+echo "----------------------"
+
+echo "Hooks run automatically at Claude Code lifecycle events (tool use, session"
+echo "start/end, etc.) to provide terminal UX, git tracking, linting, and more."
+echo ""
+echo "Which hooks would you like to install?"
+echo ""
+echo "  1. Essential hooks (terminal UX, git tracking, linting, image handling,"
+echo "     error hints, auto-approve — no external API keys needed)"
+echo "  2. Full hooks (adds soul system, session handoffs, Slack, AI-powered tags"
+echo "     — requires OPENROUTER_API_KEY and optionally Claudicle)"
+echo "  3. Skip hooks setup"
+echo ""
+read -p "Enter choice (1-3): " hooks_choice
+
+case $hooks_choice in
+    1|2)
+        tier="essential"
+        [ "$hooks_choice" = "2" ] && tier="full"
+        if ! python3 "$SCRIPT_DIR/hooks/install-hooks.py" --tier "$tier" --repo "$SCRIPT_DIR"; then
+            print_yellow "Hook installation failed. See errors above."
+            print_yellow "You can retry later: python3 $SCRIPT_DIR/hooks/install-hooks.py --tier $tier --repo $SCRIPT_DIR"
+        fi
+        ;;
+    3)
+        print_yellow "Skipping hooks setup"
+        ;;
+    *)
+        print_yellow "Invalid choice. Skipping hooks setup"
+        ;;
+esac
+
+echo ""
 echo "=========================="
 echo "✅ Setup Complete!"
 echo "=========================="
@@ -203,15 +239,22 @@ if [ "$mcp_count" -gt 0 ]; then
     print_green "MCP Servers: $mcp_count connected"
 fi
 
+if [ -d ~/.claude/hooks ] && [ "$(ls -A ~/.claude/hooks 2>/dev/null)" ]; then
+    hook_count=$(ls ~/.claude/hooks/*.py ~/.claude/hooks/*.sh 2>/dev/null | wc -l | tr -d ' ')
+    print_green "Hooks: $hook_count scripts installed in ~/.claude/hooks/"
+fi
+
 echo ""
 echo "📚 Next Steps:"
 echo "  1. Test a slash command: /docs"
 echo "  2. Verify skills are loaded (they'll appear in Claude Code)"
 echo "  3. Check MCP servers: claude mcp list"
-echo "  4. Review README.md for detailed documentation"
+echo "  4. Verify hooks: run /hooks in a Claude Code session"
+echo "  5. Review README.md for detailed documentation"
 echo ""
 echo "For API keys and advanced configuration, see:"
 echo "  - .mcp.json (MCP server configurations)"
+echo "  - hooks/README.md (hook reference and dependencies)"
 echo "  - README.md (full setup guide)"
 echo ""
 echo "Happy coding! 🎉"
