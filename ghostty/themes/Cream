@@ -1,0 +1,29 @@
+# Cream — warm parchment light theme
+# Aged vellum, iron gall ink, natural pigments
+
+background = #f5ead0
+foreground = #433422
+cursor-color = #b5651d
+cursor-text = #f5ead0
+selection-background = #e6d7b8
+selection-foreground = #362a1a
+
+# Normal colors (0-7)
+palette = 0=#5c4a3a
+palette = 1=#a63d2f
+palette = 2=#506842
+palette = 3=#a07830
+palette = 4=#456278
+palette = 5=#8b5278
+palette = 6=#2c6662
+palette = 7=#8a7e6a
+
+# Bright colors (8-15)
+palette = 8=#7a6552
+palette = 9=#c8503e
+palette = 10=#6e8c57
+palette = 11=#c49938
+palette = 12=#3d6a8e
+palette = 13=#983676
+palette = 14=#36746a
+palette = 15=#a09478

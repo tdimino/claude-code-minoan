@@ -33,4 +33,5 @@
 | `screenshot-rename/` | macOS launchd service for auto-renaming screenshots with AI-generated descriptions |
 | `syspeek/` | macOS system resource monitor — categorized processes, Kothar-compatible JSON, Claudicle memory integration, launchd daemon |
 | `skill-audit/` | Skill freshness audit pipeline — `skill-audit.py` for local inventory/staleness report (80 skills, ANSI table + JSON), `skill-freshness.py` for automated Exa/Firecrawl upstream validation, `freshness-registry.yaml` for curated upstream metadata |
+| `terminal-greeting/` | Illuminated-manuscript greeting for new shell sessions — random classical salutations, `print -z "claude"` buffer hint, ANSI gold/rose box art |
 | `wterm-server/` | **wterm** — Node.js web terminal daimon (node-pty + @wterm/react). Browser-based shell access, deploy on any macOS machine. Deploys to `~/daimones/wterm-server/`, managed by `skills/wterm/` |
