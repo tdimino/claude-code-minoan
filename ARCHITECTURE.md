@@ -73,7 +73,7 @@ The `scripts/` directory contains the actual executables. The `SKILL.md` instruc
 
 Hooks are scripts executed by Claude Code at lifecycle event boundaries. They are not discovered automatically--each hook must be registered in `~/.claude/settings.json` under the `hooks` key with an event name, command path, optional `tool_name` matcher, and `async` flag.
 
-The repo ships the hook scripts; `settings.json` is not included (it contains user-specific paths and API keys). The setup guide in `docs/global-setup/` explains how to wire them.
+The repo ships hook scripts and a `hooks/hooks.json` template with two tiered configurations (essential and full). `setup.sh` Phase 4 merges the selected tier's hooks into the user's existing `settings.json`, preserving all other keys (model, env, plugins, MCP servers). The template is the single source of truth for hook wiring; `hooks/README.md` references it rather than embedding the config inline.
 
 Hooks communicate with Claude Code via stdout JSON:
 - `{"continue": true}` -- allow the action

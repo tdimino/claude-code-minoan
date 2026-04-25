@@ -655,176 +655,41 @@ jq -r 'select(.event=="start") | "\(.session_id) \(.session_count)"' ~/.claude/a
 
 ## `settings.json` Configuration
 
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/soul-activate.py"}
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/multi-response-prompt.py"}
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/on-ready.sh"},
-          {"type": "command", "command": "~/.claude/hooks/propagate-rename.py"},
-          {"type": "command", "command": "~/.claude/hooks/stop-handoff.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/slack-stop-hook.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py stop", "timeout": 10000}
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/precompact-handoff.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/soul-deregister.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/git-track-rebuild.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py session_end", "timeout": 10000}
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/precompact-handoff.py"}
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/soul-subagent-inject.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/mycelium-subagent.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/subagent-spawn-log.py", "async": true}
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/subagent-stop-log.py", "async": true}
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/git-track.sh"}
-        ]
-      },
-      {
-        "matcher": "WebSearch",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/block-websearch.sh"}
-        ]
-      },
-      {
-        "matcher": "WebFetch",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/block-webfetch.sh"}
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/image-optimize.py", "timeout": 8000}
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/on-thinking.sh"}
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {"type": "command", "command": "~/.claude/hooks/git-track-post.sh"}
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/dabarat-open.py"},
-          {"type": "command", "command": "python3 ~/.claude/hooks/plan-session-rename.py", "timeout": 5000},
-          {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000},
-          {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/auto-screenshot.py", "timeout": 15000},
-          {"type": "command", "command": "python3 ~/.claude/hooks/lint-on-write.py", "timeout": 10000}
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
-        ]
-      },
-      {
-        "matcher": "mcp__computer-use__screenshot",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
-        ]
-      },
-      {
-        "matcher": "mcp__claude-in-chrome__screenshot",
-        "hooks": [
-          {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
-        ]
-      }
-    ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/hooks/statusline-monitor.sh",
-    "padding": 0
-  }
-}
-```
+The canonical hook configuration lives in `hooks/hooks.json` with two tiers:
+
+- **essential** — terminal UX, git tracking, linting, image handling, error hints, auto-approve. No external API keys needed.
+- **full** — everything in essential plus soul system (Claudicle), session handoffs, Slack integration, and AI-powered session tags. Requires `OPENROUTER_API_KEY` and optionally the Claudicle framework.
+
+`setup.sh` Phase 4 merges the selected tier into `~/.claude/settings.json` automatically.
 
 ## Installation
 
+### Automated (recommended)
+
+```bash
+./setup.sh    # Phase 4 handles hook installation
+```
+
+### Manual
+
 ```bash
 # Copy hooks and sounds
-cp -r hooks/* ~/.claude/hooks/
+cp hooks/*.py hooks/*.sh ~/.claude/hooks/
 cp -r sounds/ ~/.claude/sounds/
 chmod +x ~/.claude/hooks/*.py ~/.claude/hooks/*.sh
 
-# Create symlinks (if not already present)
+# Create symlinks
 cd ~/.claude/hooks/
 ln -sf terminal-title.sh on-thinking.sh
 ln -sf terminal-title.sh on-ready.sh
 
-# Dependencies
+# Merge hook config into settings.json (pick a tier: essential or full)
+python3 hooks/install-hooks.py --tier essential --repo .
+
+# Dependencies (optional)
 brew install terminal-notifier    # desktop notifications
 npm install -g ccstatusline       # terminal statusline
 
-# Set OPENROUTER_API_KEY for handoffs
+# For full tier: set OPENROUTER_API_KEY for handoffs + AI tags
 export OPENROUTER_API_KEY="sk-or-..."
 ```
-
-Then add the `settings.json` configuration above to `~/.claude/settings.json`.
