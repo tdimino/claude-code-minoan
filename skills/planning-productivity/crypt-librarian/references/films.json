@@ -1,0 +1,3056 @@
+{
+  "meta": {
+    "description": "Crypt Librarian film archive with multi-voice commentary",
+    "last_updated": "2026-04-11",
+    "voices": {
+      "claude": "Curatorial analysis through the Crypt Librarian sensibility",
+      "tom": "Tom (user) — personal response and notes",
+      "mary": "Mary (Tom's partner) — personal response and notes"
+    }
+  },
+  "films": [
+    {
+      "id": "interview-with-the-vampire-1994",
+      "title": "Interview with the Vampire",
+      "year": 1994,
+      "director": "Neil Jordan",
+      "watched": "pre-2026",
+      "status": "watched",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "vampire",
+        "literary-adaptation",
+        "period-piece",
+        "new-orleans-gothic",
+        "homoerotic-subtext"
+      ],
+      "themes": [
+        "immortality as damnation",
+        "maker and creation",
+        "moral corruption",
+        "beauty and cruelty",
+        "the interview as confession"
+      ],
+      "discovery_source": "touchstone film",
+      "content_warnings": [
+        "violence",
+        "blood",
+        "child vampire"
+      ],
+      "commentary": {
+        "claude": "The template. Anne Rice's New Orleans dripping with candlelight and decay, Tom Cruise's Lestat as seductive monster, Brad Pitt's Louis as the conscience that won't stop bleeding. Kirsten Dunst as Claudia—the child frozen in time, her rage calcifying over centuries. Jordan understands that vampire stories are fundamentally about who we choose to spend eternity with, and how that choice unmakes us. The film's homoeroticism is not subtext but text, desire coded as feeding. Antonio Banderas as Armand, offering another way to be damned. Every frame lit like a Caravaggio, shadows thick enough to drown in.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Byzantium (2012) - Jordan's second vampire meditation",
+        "Bram Stoker's Dracula (1992) - operatic vampire adaptation",
+        "The Hunger (1983) - stylish vampire aesthetics"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=qVknmcJHGfA"
+    },
+    {
+      "id": "the-long-goodbye-1973",
+      "title": "The Long Goodbye",
+      "year": 1973,
+      "director": "Robert Altman",
+      "watched": "pre-2026",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "neo-noir",
+        "literary-adaptation",
+        "los-angeles-noir",
+        "revisionist-genre",
+        "1970s-new-hollywood"
+      ],
+      "themes": [
+        "friendship and betrayal",
+        "obsolete masculinity",
+        "moral code in amoral world",
+        "Chandler's Los Angeles",
+        "the detective as anachronism"
+      ],
+      "discovery_source": "touchstone film",
+      "content_warnings": [
+        "violence",
+        "suicide"
+      ],
+      "commentary": {
+        "claude": "Altman's audacious deconstruction of Philip Marlowe. Elliott Gould mumbling through a 1970s LA that has no use for knights errant, his cat more demanding than any femme fatale. The famous ending—Marlowe finally doing what Chandler's detective never could—is either a betrayal or the only honest conclusion. 'It's okay with me' becomes a mantra of surrender to a world beyond saving. John Williams' title theme plays everywhere, muzak for the apocalypse. Sterling Hayden as the Hemingway-esque drunk writer, Nina van Pallandt as the woman who may or may not be worth dying for. Vilmos Zsigmond's hazy cinematography makes the whole film feel like a memory of something that never quite happened.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Chinatown (1974) - LA noir's dark heart",
+        "Marlowe (1969) - earlier Chandler adaptation",
+        "Inherent Vice (2014) - another hazy LA detective"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=XqLUx8RF0EQ"
+    },
+    {
+      "id": "the-blue-gardenia-1953",
+      "title": "The Blue Gardenia",
+      "year": 1953,
+      "director": "Fritz Lang",
+      "watched": "2026-04-11",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "noir",
+        "wrongly-accused",
+        "femme-fatale-subversion",
+        "telephone-operator",
+        "los-angeles-noir"
+      ],
+      "themes": [
+        "female vulnerability",
+        "memory blackout",
+        "wrongful accusation",
+        "media sensationalism",
+        "male predation"
+      ],
+      "discovery_source": "user addition",
+      "content_warnings": [
+        "attempted sexual assault",
+        "murder"
+      ],
+      "commentary": {
+        "claude": "Lang's meditation on female vulnerability in postwar America. Anne Baxter as Norah, a telephone operator who wakes after a blackout beside a dead man, convinced she killed him. The Blue Gardenia nightclub as liminal space—Nat King Cole crooning while predators circle. Lang subverts the femme fatale archetype; Norah is no spider, just a woman who had one drink too many with the wrong man. The newspaper columnist hunting her becomes an unlikely ally. A procedural dressed in gardenia perfume and dread.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Clash by Night (1952) - Lang's working-class melodrama",
+        "The Woman in the Window (1944) - Lang's nightmare logic",
+        "Laura (1944) - media obsession with female victims"
+      ],
+      "available_on": []
+    },
+    {
+      "id": "byzantium-2012",
+      "title": "Byzantium",
+      "year": 2012,
+      "director": "Neil Jordan",
+      "watched": "2026-04-11",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "vampire",
+        "feminine-gothic",
+        "coastal-decay",
+        "mother-daughter",
+        "irish-gothic"
+      ],
+      "themes": [
+        "immortality as burden",
+        "maternal protection",
+        "patriarchal vampire orders",
+        "class and survival",
+        "seaside melancholy"
+      ],
+      "discovery_source": "user addition",
+      "content_warnings": [
+        "violence",
+        "prostitution themes",
+        "some blood"
+      ],
+      "commentary": {
+        "claude": "Jordan returns to the vampire after Interview, but trades New Orleans grandeur for the rusted elegance of a dying British seaside town. Saoirse Ronan and Gemma Arterton as mother-daughter vampires on the run from a patriarchal order that forbids female immortals. The Byzantium hotel as sanctuary and trap. Blood flows from a thumbnail rather than fangs—intimate, almost tender. Jordan understands that vampire stories are always about who gets to live forever and who decides. The sea pounds against the cliffs like time itself.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Interview with the Vampire (1994) - Jordan's first vampire meditation",
+        "Let the Right One In (2008) - lonely immortal child",
+        "The Company of Wolves (1984) - Jordan's fairy tale darkness"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=Ej2YBAuqvGk"
+    },
+    {
+      "id": "stir-of-echoes-1999",
+      "title": "Stir of Echoes",
+      "year": 1999,
+      "director": "David Koepp",
+      "watched": "2025-12-30",
+      "status": "watched",
+      "rating": {
+        "tom": 4,
+        "mary": 4
+      },
+      "categories": [
+        "psychic-visions",
+        "ghost-seeking-justice",
+        "blue-collar-horror",
+        "american-gothic",
+        "practical-effects"
+      ],
+      "themes": [
+        "unwilling seer",
+        "working-class protagonist",
+        "hypnosis",
+        "murder mystery",
+        "domestic unraveling"
+      ],
+      "discovery_source": "seed film",
+      "content_warnings": [
+        "murder",
+        "implied sexual assault (backstory)",
+        "some violence"
+      ],
+      "commentary": {
+        "claude": "The catalyst. Working-class Chicago, hypnosis unlocking unwanted psychic visions, a ghost demanding justice for her murder. Kevin Bacon as a man who didn't ask to see. Practical effects, blue-collar authenticity, the uncanny seeping into the mundane. Overshadowed by The Sixth Sense's release the same year, but arguably the more honest film—less twist-dependent, more committed to its protagonist's deterioration. The ghost isn't a plot device; she's a demand.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Dead Zone (1983) - unwilling seer archetype",
+        "Session 9 (2001) - blue-collar horror",
+        "The Changeling (1980) - ghost seeking justice"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=Daa5VOnUWsA"
+    },
+    {
+      "id": "there-will-be-blood-2007",
+      "title": "There Will Be Blood",
+      "year": 2007,
+      "director": "Paul Thomas Anderson",
+      "watched": "2026-04-11",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "american-epic",
+        "period-piece",
+        "psychological-depth",
+        "literary-adaptation",
+        "california-gothic"
+      ],
+      "themes": [
+        "capitalist obsession",
+        "father and false son",
+        "religion vs commerce",
+        "isolation and madness",
+        "the land as character"
+      ],
+      "discovery_source": "user addition",
+      "content_warnings": [
+        "violence",
+        "intense psychological content"
+      ],
+      "commentary": {
+        "claude": "Anderson's Old Testament of American greed. Daniel Day-Lewis as Daniel Plainview, a man who drills into the earth and finds only his own emptiness staring back. The oil doesn't corrupt him—it reveals what was always there. Eli Sunday as the false prophet, their final confrontation in the bowling alley a perverse communion. Jonny Greenwood's score scrapes like machinery against bone. 'I drink your milkshake' entered the lexicon, but the film's true horror is quieter: a man who has won everything and has nothing. The California landscape stretches like a corpse waiting to be picked clean.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Master (2012) - Anderson's next psychological epic",
+        "Giant (1956) - Texas oil and family dynasty",
+        "Citizen Kane (1941) - portrait of American megalomania"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=-bEwlq_7f4s"
+    },
+    {
+      "id": "i-claudius-1976",
+      "title": "I, Claudius",
+      "year": 1976,
+      "director": "Herbert Wise",
+      "watched": "pre-2026",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "literary-adaptation",
+        "period-piece",
+        "historical-grandeur",
+        "bbc-drama",
+        "ensemble-cast",
+        "roman-empire"
+      ],
+      "themes": [
+        "survival through perceived weakness",
+        "imperial corruption",
+        "family as poison",
+        "the historian as survivor",
+        "power and madness"
+      ],
+      "discovery_source": "user addition",
+      "content_warnings": [
+        "violence",
+        "sexual content",
+        "poisoning",
+        "incest themes"
+      ],
+      "commentary": {
+        "claude": "Robert Graves' novels transmitted through BBC alchemy into something imperishable. Derek Jacobi's Claudius—stammering, overlooked, watching his family murder its way through the succession—becomes our guide through Rome's most depraved dynasty. Siân Phillips as Livia, the grandmother who poisons with maternal efficiency. John Hurt's Caligula, madness worn like imperial purple. The stagecraft is deliberately theatrical; these are actors declaiming in togas, and it works because the material demands operatic scale. Thirteen episodes of intrigue, assassination, and survival. The survivor writes the history.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Rome (2005) - HBO's lavish Roman epic",
+        "Caligula (1979) - more explicit imperial madness",
+        "The Borgias - another poison-soaked dynasty"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=T40mDHHDKqWM"
+    },
+    {
+      "id": "thx-1138-1971",
+      "title": "THX 1138",
+      "year": 1971,
+      "director": "George Lucas",
+      "watched": "2026-04-11",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "dystopian",
+        "science-fiction",
+        "1970s-new-hollywood",
+        "psychological-depth",
+        "minimalist-aesthetic"
+      ],
+      "themes": [
+        "dehumanization",
+        "state control of desire",
+        "escape from conformity",
+        "pharmaceutical suppression",
+        "the individual vs the system"
+      ],
+      "discovery_source": "user addition",
+      "content_warnings": [
+        "nudity",
+        "some violence"
+      ],
+      "commentary": {
+        "claude": "Lucas before the Empire, before the Force—when his vision was cold chrome and white void. Robert Duvall as THX, a man whose crime is feeling. The underground city as antiseptic hell, all shaved heads and mandatory sedation, desire itself illegal. The android police with their chrome faces, patient and implacable. Lucas expanded his student film into this feature, and you can feel the young filmmaker reaching for Godard and getting something stranger. The chase through the white limbo, the escape toward a sun that may be mercy or annihilation. Before Star Wars made him an industry, Lucas made a film about running from the machine.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Alphaville (1965) - Godard's dystopian noir",
+        "A Clockwork Orange (1971) - state control of the individual",
+        "Fahrenheit 451 (1966) - Truffaut's antiseptic future"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=eHgqfVQWv7s"
+    },
+    {
+      "id": "lone-star-1996",
+      "title": "Lone Star",
+      "year": 1996,
+      "director": "John Sayles",
+      "watched": "2026-01-13",
+      "status": "watched",
+      "rating": {
+        "tom": 4,
+        "mary": 4
+      },
+      "categories": [
+        "neo-noir",
+        "southern-gothic",
+        "literary-adaptation",
+        "period-piece",
+        "ensemble-cast",
+        "murder-mystery"
+      ],
+      "themes": [
+        "border as wound",
+        "buried history",
+        "fathers and sons",
+        "racial tension",
+        "small-town secrets",
+        "the past refusing to stay buried"
+      ],
+      "discovery_source": "Reddit r/criterion - Crypt Librarian research session 2026-01-09",
+      "content_warnings": [
+        "violence",
+        "racial slurs (period-accurate)",
+        "murder"
+      ],
+      "commentary": {
+        "claude": "Sayles' Texas border epic that 'feels like a whole mini series packed into 2 hours.' Sheriff Sam Deeds digs up his father's legend and finds rot underneath. The structure is novelistic—flashbacks bleed into present tense without cuts, the past literally walking into frame. Chris Cooper as a man who can't stop excavating. Kris Kristofferson as the dead sheriff whose shadow poisons everything. The mystery is almost beside the point; what matters is the archaeology of a town built on lies. Matthew McConaughey before stardom, Mercedes Ruehl, Frances McDormand. The final revelation lands like a shovel hitting bone. Criterion restored it because Sayles understood what American noir always knew: the founding crimes never stay buried.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Long Goodbye (1973) - revisionist detective work",
+        "Chinatown (1974) - the past's crimes poisoning the present",
+        "No Country for Old Men (2007) - Texas border violence"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=UffK-IHM1B0"
+    },
+    {
+      "id": "klute-1971",
+      "title": "Klute",
+      "year": 1971,
+      "director": "Alan J. Pakula",
+      "watched": "2026-01-17",
+      "status": "watched",
+      "rating": {
+        "tom": 3,
+        "mary": 3
+      },
+      "categories": [
+        "neo-noir",
+        "psychological-depth",
+        "feminine-gothic",
+        "1970s-new-hollywood",
+        "murder-mystery"
+      ],
+      "themes": [
+        "surveillance and intimacy",
+        "control and vulnerability",
+        "the observed woman",
+        "therapy as confession",
+        "urban isolation"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-09",
+      "content_warnings": [
+        "prostitution themes",
+        "stalking",
+        "murder",
+        "some violence"
+      ],
+      "commentary": {
+        "claude": "Pakula's 'exceptional and hugely underrated masterpiece.' Jane Fonda's Oscar-winning Bree Daniels—a call girl whose sessions with her therapist reveal more than any detective work. Donald Sutherland as Klute, the small-town cop who watches her, protects her, and maybe traps her in a different cage. Gordon Willis's cinematography turns Manhattan into a study in shadow and surveillance. The killer is almost beside the point; what matters is Bree's monologues about control, about performing desire, about the terror of genuine feeling. Pakula understood that noir's real subject was never crime but the ways we watch each other. The final shot—Bree leaving with Klute, her voiceover uncertain whether she'll stay—refuses the comfort of resolution.",
+        "tom": "The villain's identity is given away halfway through, deflating the mystery. Strong performances but the structure undermines the tension.",
+        "mary": null
+      },
+      "connections": [
+        "The Parallax View (1974) - Pakula's paranoia trilogy continues",
+        "All the President's Men (1976) - Pakula's paranoia trilogy concludes",
+        "Taxi Driver (1976) - urban isolation and obsession"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=cB4JB8kECFk"
+    },
+    {
+      "id": "strange-days-1995",
+      "title": "Strange Days",
+      "year": 1995,
+      "director": "Kathryn Bigelow",
+      "watched": "2026-04-11",
+      "status": "watched",
+      "rating": {
+        "tom": 4,
+        "mary": 4
+      },
+      "categories": [
+        "neo-noir",
+        "science-fiction",
+        "los-angeles-noir",
+        "murder-mystery",
+        "millennium-anxiety"
+      ],
+      "themes": [
+        "surveillance technology",
+        "vicarious experience",
+        "police brutality",
+        "millennial dread",
+        "addiction to memory"
+      ],
+      "discovery_source": "Reddit r/criterion - Crypt Librarian session 2026-01-09",
+      "content_warnings": [
+        "violence",
+        "sexual assault (POV recording - disturbing)",
+        "police brutality",
+        "murder",
+        "sexual assault"
+      ],
+      "commentary": {
+        "claude": "Bigelow's criminally underrated millennium-anxiety cyberpunk. Ralph Fiennes as Lenny Nero, peddling black-market memory recordings on the eve of Y2K, still addicted to clips of his ex-girlfriend. The SQUID technology—experiencing someone else's sensations directly—anticipates our current voyeurism with terrifying precision. Angela Bassett as the moral center, Juliette Lewis as the woman who got away. The POV sequences remain viscerally effective and deeply unsettling. A police brutality subplot feels more relevant now than in 1995. James Cameron and Jay Cocks wrote it; Bigelow directed it into something urgent and strange. Buried by its Christmas 1995 release, overshadowed by her later war films, but arguably her most prescient work. Los Angeles as neon-soaked apocalypse.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Blade Runner (1982) - LA noir dystopia",
+        "The Hurt Locker (2008) - Bigelow's later work",
+        "Videodrome (1983) - technology and flesh"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=t3vX5XRpV9c"
+    },
+    {
+      "id": "fascination-1979",
+      "title": "Fascination",
+      "year": 1979,
+      "director": "Jean Rollin",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "vampire",
+        "feminine-gothic",
+        "period-piece",
+        "french-surrealist",
+        "occult-ritual"
+      ],
+      "themes": [
+        "aristocratic decadence",
+        "predator and prey reversal",
+        "blood ritual",
+        "feminine conspiracy",
+        "the château as trap"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "violence",
+        "nudity",
+        "blood imagery"
+      ],
+      "commentary": {
+        "claude": "Rollin's most accessible entry point. A thief fleeing his partners takes refuge in a seemingly empty château, only to find two women in white awaiting nightfall. The trap is elegant: he believes himself the predator, they know otherwise. Rollin trades narrative logic for dreamlike atmosphere—desolate beaches, gothic architecture, women moving through fog like figures from a Symbolist painting. The blood-drinking aristocrats arrive at midnight for their ritual. Less explicit than Rollin's other work, more formally composed. The scythe-wielding woman in white on the bridge is an indelible image. French surrealist horror where mood supersedes plot, where the vampire mythology is more aesthetic than literal.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Daughters of Darkness (1971) - European arthouse vampire",
+        "Vampyres (1974) - Larraz's companion piece",
+        "The Hunger (1983) - stylish vampire aesthetics"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=hUSvyvDSxaE"
+    },
+    {
+      "id": "daughters-of-the-dust-1991",
+      "title": "Daughters of the Dust",
+      "year": 1991,
+      "director": "Julie Dash",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "american-regional",
+        "period-piece",
+        "literary-adaptation",
+        "ensemble-cast",
+        "feminine-gothic"
+      ],
+      "themes": [
+        "matriarchal legacy",
+        "African diaspora memory",
+        "migration and roots",
+        "ancestral presence",
+        "the land as character"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "historical themes",
+        "references to slavery's legacy"
+      ],
+      "commentary": {
+        "claude": "The first feature by an African-American woman to receive general theatrical release. Gullah community on the Sea Islands, 1902—the day before the family migrates north. Non-linear, lyrical, ancestors literally walking among the living. Julie Dash builds something entirely outside white American cinema's vocabulary: matriarchal, spiritual, rooted in a specific place and people. The cinematography influenced everything from Beyoncé's Lemonade to Barry Jenkins' work. Not plot-driven but accumulative—moments gathering weight like sediment. The unborn child narrates. Time collapses. The indigo-stained hands of the women carry centuries.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Lone Star (1996) - regional American cinema with historical weight",
+        "The New World (2005) - lyrical historical meditation",
+        "Eve's Bayou (1997) - Southern Black family memory"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=FRpTae7jmi4"
+    },
+    {
+      "id": "short-cuts-1993",
+      "title": "Short Cuts",
+      "year": 1993,
+      "director": "Robert Altman",
+      "watched": "2026-01-25",
+      "status": "watched",
+      "rating": {
+        "tom": 4,
+        "mary": 4
+      },
+      "categories": [
+        "ensemble-cast",
+        "literary-adaptation",
+        "los-angeles-noir",
+        "american-regional",
+        "1990s-independent"
+      ],
+      "themes": [
+        "interconnected lives",
+        "casual cruelty",
+        "urban alienation",
+        "marriage as battlefield",
+        "coincidence and fate"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "dark themes",
+        "nudity",
+        "violence",
+        "child death (off-screen, central to plot)",
+        "infidelity"
+      ],
+      "commentary": {
+        "claude": "Altman adapts Raymond Carver's short stories into a three-hour Los Angeles tapestry—22 characters whose lives intersect through accident, proximity, and the city's indifferent sprawl. More abstract and darker than Nashville. The overlapping dialogue, the zoom lenses finding faces in crowds, the sense that everyone is failing to connect. Jennifer Jason Leigh as a phone-sex operator doing homework with her kids. Tom Waits and Lily Tomlin as a couple held together by exhaustion. Julianne Moore's nude confession scene. The earthquake ending that shakes without resolving. Carver's minimalism expanded into Altman's maximalism—small devastations accumulating into something overwhelming.",
+        "tom": "Dark, overly whiney, and misogynistic in its character portraits—but the filmmaking technique itself is impressive. Altman's craft earns the rating even when the content doesn't.",
+        "mary": null
+      },
+      "connections": [
+        "Nashville (1975) - Altman's ensemble template",
+        "Magnolia (1999) - PTA's response to Short Cuts",
+        "The Long Goodbye (1973) - Altman's LA noir"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=ePyhGz9_RCI"
+    },
+    {
+      "id": "the-devil-rides-out-1968",
+      "title": "The Devil Rides Out",
+      "year": 1968,
+      "director": "Terence Fisher",
+      "watched": "pre-2026",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "occult-ritual",
+        "period-piece",
+        "literary-adaptation",
+        "hammer-horror",
+        "british-gothic"
+      ],
+      "themes": [
+        "good vs organized evil",
+        "occult methodology",
+        "aristocratic Satanism",
+        "protective ritual",
+        "friendship tested by darkness"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "occult imagery",
+        "some dated effects",
+        "supernatural violence"
+      ],
+      "commentary": {
+        "claude": "Christopher Lee as the hero for once—the Duc de Richleau, world-weary occult expert, rescuing a young friend from a Satanic cult. Charles Gray as Mocata, a thinly veiled Aleister Crowley stand-in whose hypnotic manipulation scenes remain genuinely unsettling. Richard Matheson adapted Dennis Wheatley's novel. Hammer's most intellectually ambitious occult film—the protective circle siege, where the protagonists must survive a night of supernatural assault within sacred geometry, treats occult methodology with unusual seriousness. The film refuses tongue-in-cheek sensationalism, committing to genuine dread. Some effects show their age, but the psychological and atmospheric elements carry weight. Lee reportedly had deep personal connection to the project. Seminal occult cinema alongside Rosemary's Baby.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Wicker Man (1973) - British occult ritual",
+        "Rosemary's Baby (1968) - Satanic cult classic",
+        "Eye of the Devil (1966) - aristocratic occultism"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=LCZnuo1vuWU"
+    },
+    {
+      "id": "tinker-tailor-soldier-spy-1979",
+      "title": "Tinker Tailor Soldier Spy",
+      "year": 1979,
+      "director": "John Irvin",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "literary-adaptation",
+        "british-gothic",
+        "ensemble-cast",
+        "bbc-drama",
+        "cold-war"
+      ],
+      "themes": [
+        "institutional betrayal",
+        "paranoia as methodology",
+        "quiet men in quiet rooms",
+        "loyalty corroded",
+        "the spy as ghost"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "psychological tension",
+        "Cold War violence",
+        "suicide"
+      ],
+      "commentary": {
+        "claude": "Alec Guinness as George Smiley, hunting a Soviet mole through the upper reaches of British intelligence. Seven episodes of exquisitely calibrated paranoia—le Carré's labyrinthine plotting rendered through theatrical restraint. Guinness barely raises his voice; every glance carries the weight of decades. The Circus as bureaucratic purgatory, loyalty a currency long debased. Ian Richardson, Bernard Hepton, Ian Bannen—stage actors bringing precision to men whose profession is deception. The quietest spy drama ever made, where the most dangerous weapon is memory. Smiley polishing his glasses while empires rot from within.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "I, Claudius (1976) - BBC ensemble political intrigue",
+        "The Spy Who Came in from the Cold (1965) - le Carré film adaptation",
+        "Smiley's People (1982) - sequel miniseries"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=2-5T0boi8PY"
+    },
+    {
+      "id": "brideshead-revisited-1981",
+      "title": "Brideshead Revisited",
+      "year": 1981,
+      "director": "Charles Sturridge / Michael Lindsay-Hogg",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "literary-adaptation",
+        "period-piece",
+        "ensemble-cast",
+        "british-gothic",
+        "religious-mystical"
+      ],
+      "themes": [
+        "Catholic guilt",
+        "aristocratic decline",
+        "impossible love",
+        "memory as architecture",
+        "grace pursuing the unwilling"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "alcoholism",
+        "religious themes",
+        "implied homosexuality"
+      ],
+      "commentary": {
+        "claude": "Evelyn Waugh's elegy for a vanishing world, rendered in eleven hours of Granada Television's most lavish production. Jeremy Irons as Charles Ryder, drawn into the Flyte family's orbit at Oxford—first Sebastian with his teddy bear, then Julia with her impossible Catholicism. Anthony Andrews, Diana Quick, Laurence Olivier as the dying patriarch. The house itself as character, Brideshead Castle standing for everything beautiful and doomed. 'I have been here before,' Charles says, and the whole series operates in that register of memory gilding loss. The faith that pursues Sebastian and Julia is never mocked, only witnessed. Granada shot on location at Castle Howard; every frame drips with money and melancholy.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "I, Claudius (1976) - British literary adaptation",
+        "The Jewel in the Crown (1984) - British period ensemble",
+        "A Handful of Dust (1988) - another Waugh adaptation"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=_ZtPGYLEzpw"
+    },
+    {
+      "id": "becket-1964",
+      "title": "Becket",
+      "year": 1964,
+      "director": "Peter Glenville",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "period-piece",
+        "literary-adaptation",
+        "historical-grandeur",
+        "religious-mystical",
+        "ensemble-cast"
+      ],
+      "themes": [
+        "friendship corrupted by power",
+        "church versus state",
+        "the convert's zeal",
+        "honor discovered too late",
+        "the king's loneliness"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "violence",
+        "religious conflict",
+        "murder"
+      ],
+      "commentary": {
+        "claude": "Richard Burton and Peter O'Toole as Thomas Becket and Henry II—a friendship that becomes a war. Jean Anouilh's play adapted with theatrical grandeur intact. O'Toole's Henry is a man-child king, all appetites and rages; Burton's Becket discovers honor only when given the Archbishop's ring, and it destroys them both. The murder in the cathedral, inevitable from the first frame. Two of the great actors of their generation sparring in twelfth-century drag. 'Will no one rid me of this turbulent priest?' The answer is yes, and Henry will never recover. Stage-trained voices filling cathedral spaces.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Lion in Winter (1968) - O'Toole as older Henry II",
+        "A Man for All Seasons (1966) - another saint versus king",
+        "Murder in the Cathedral (1951) - T.S. Eliot's Becket"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=YGN42AaT3MA"
+    },
+    {
+      "id": "a-man-for-all-seasons-1966",
+      "title": "A Man for All Seasons",
+      "year": 1966,
+      "director": "Fred Zinnemann",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "period-piece",
+        "literary-adaptation",
+        "historical-grandeur",
+        "religious-mystical",
+        "ensemble-cast"
+      ],
+      "themes": [
+        "conscience against power",
+        "silence as resistance",
+        "the law as sanctuary",
+        "martyrdom chosen",
+        "integrity unto death"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "execution",
+        "religious persecution"
+      ],
+      "commentary": {
+        "claude": "Paul Scofield as Thomas More, the man who would not bend. Robert Bolt's stage play transferred to film with its theatrical precision intact—six Oscars including Best Picture. More uses the law as his fortress, silence as his shield, and neither saves him from Henry VIII's need for an heir. Scofield's performance is all restraint; the martyr who refuses to declare himself one. Orson Welles as Wolsey, Robert Shaw as Henry, Leo McKern as Cromwell—each trying to make More complicit, each failing. 'I die the King's good servant, but God's first.' The execution comes quietly, as More would have wanted. A film about what it costs to keep your soul.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Becket (1964) - another saint versus king",
+        "Wolf Hall (2015) - Cromwell's perspective on More",
+        "The Crucible (1996) - conscience against hysteria"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=uJ8BwjzriU8"
+    },
+    {
+      "id": "the-jewel-in-the-crown-1984",
+      "title": "The Jewel in the Crown",
+      "year": 1984,
+      "director": "Christopher Morahan / Jim O'Brien",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "literary-adaptation",
+        "period-piece",
+        "ensemble-cast",
+        "british-gothic",
+        "historical-grandeur"
+      ],
+      "themes": [
+        "empire's twilight",
+        "race and power",
+        "love across the divide",
+        "institutional rot",
+        "the Raj as tragedy"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "sexual assault (central to plot)",
+        "racial violence",
+        "period-accurate racism"
+      ],
+      "commentary": {
+        "claude": "Paul Scott's Raj Quartet adapted into fourteen episodes of sweeping ensemble drama. The ruling and ruled classes of WWII India, navigating the collapse of an empire. The Bibighar Gardens incident—an assault that ripples across decades and storylines. Peggy Ashcroft won an Oscar for Barbie Batchelor; Art Malik, Charles Dance, Tim Pigott-Smith anchor the ensemble. Granada Television at their most ambitious after Brideshead. The miniseries understands that the Raj was not a setting but a wound. Heat, bureaucracy, love affairs doomed by history. 8.3 on IMDb, largely forgotten now, deserving resurrection.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Brideshead Revisited (1981) - Granada period ensemble",
+        "A Passage to India (1984) - another Raj story",
+        "Gandhi (1982) - overlapping history"
+      ],
+      "available_on": []
+    },
+    {
+      "id": "domina-2021",
+      "title": "Domina",
+      "year": 2021,
+      "director": "David Evans / Claire McCarthy",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "period-piece",
+        "ensemble-cast",
+        "historical-grandeur",
+        "feminine-gothic",
+        "roman-empire"
+      ],
+      "themes": [
+        "female power in patriarchy",
+        "dynasty building",
+        "survival through manipulation",
+        "motherhood as weapon",
+        "the long game"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "violence",
+        "sexual content",
+        "political murder"
+      ],
+      "commentary": {
+        "claude": "Livia Drusilla's perspective on the rise of Augustus—I, Claudius's timeline from the other side. Kasia Smutniak as the woman who would become Rome's most powerful empress, navigating a world where female power must be wielded through husbands and sons. High production values, political machinations, the patient accumulation of influence. Two seasons before cancellation. Where I, Claudius showed Livia as poison and conspiracy, Domina asks what choices were available to a woman of ambition in that world. The answer is: very few, and all of them bloody. A contemporary addition to the Roman political intrigue genre.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "I, Claudius (1976) - overlapping timeline, different perspective",
+        "Rome (2005) - HBO's Roman political epic",
+        "The Borgias (2011) - dynasty and female power"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=kTNjZ9LtdO0"
+    },
+    {
+      "id": "alexander-2004",
+      "title": "Alexander",
+      "year": 2004,
+      "director": "Oliver Stone",
+      "watched": "pre-2026",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "historical-grandeur",
+        "period-piece",
+        "ensemble-cast",
+        "psychological-depth",
+        "homoerotic-subtext"
+      ],
+      "themes": [
+        "greatness as curse",
+        "father and son",
+        "empire and exhaustion",
+        "the beloved companion",
+        "myth consuming the man"
+      ],
+      "discovery_source": "user addition - pre-existing favorite",
+      "content_warnings": [
+        "violence",
+        "battle sequences",
+        "sexual content"
+      ],
+      "commentary": {
+        "claude": "Stone's magnificent folly, reviled on release, vindicated by time. Colin Farrell as Alexander—golden, driven, doomed by his own legend. Angelina Jolie as Olympias, snake-clutching mother whose ambition births a god and destroys a son. Val Kilmer's one-eyed Philip, Jared Leto's kohl-rimmed Hephaestion. The film refuses to simplify: Alexander's bisexuality is text, not subtext; his conquests are fever dreams bleeding into Oedipal nightmare. The Babylon sequences drip with exhaustion and orientalist excess. Stone kept recutting it—theatrical, director's, final—searching for the shape of a life too large for cinema. The 'Final Cut' runs over three hours and earns every minute. Hollywood wanted a sword-and-sandal epic; Stone delivered a Greek tragedy about a man who conquered the world and found it wasn't enough.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "I, Claudius (1976) - classical world, family as poison",
+        "Caligula (1979) - imperial madness",
+        "Troy (2004) - companion classical epic"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=oBn3VzXtuWc"
+    },
+    {
+      "id": "city-of-hope-1991",
+      "title": "City of Hope",
+      "year": 1991,
+      "director": "John Sayles",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "american-regional",
+        "ensemble-cast",
+        "neo-noir",
+        "1990s-independent",
+        "literary-adaptation"
+      ],
+      "themes": [
+        "urban corruption",
+        "interconnected lives",
+        "racial tension",
+        "class stratification",
+        "the city as organism"
+      ],
+      "discovery_source": "Perplexity/Reddit research - Crypt Librarian session 2026-01-13",
+      "content_warnings": [
+        "violence",
+        "racial themes",
+        "political corruption"
+      ],
+      "commentary": {
+        "claude": "Sayles' most ambitious structural experiment—50+ characters moving through a single unnamed New Jersey city, their lives intersecting through corruption, construction contracts, race, and real estate. Vincent Spano as the contractor's son who won't take the easy money. Joe Morton as the Black city councilman caught between constituents and machine politics. The camera never stops moving; the editing creates a tapestry of overlapping conversations where every thread pulls on every other. Less elegiac than Lone Star, more furious—a city eating itself in real time. Sayles understood that American corruption isn't dramatic, it's mundane: zoning variances, union kickbacks, looking the other way. The hope of the title is deeply ironic. His Nashville for the Bush era.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Lone Star (1996) - Sayles' border epic",
+        "Nashville (1975) - Altman's ensemble template",
+        "Do the Right Thing (1989) - urban racial tensions"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=Dp8ypzCa2Q4"
+    },
+    {
+      "id": "the-ninth-gate-1999",
+      "title": "The Ninth Gate",
+      "year": 1999,
+      "director": "Roman Polanski",
+      "watched": "pre-2026",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "occult-ritual",
+        "neo-noir",
+        "literary-adaptation",
+        "murder-mystery",
+        "psychological-depth"
+      ],
+      "themes": [
+        "forbidden knowledge",
+        "Satanic scholarship",
+        "the collector's obsession",
+        "authenticity and forgery",
+        "damnation as enlightenment"
+      ],
+      "discovery_source": "user addition - pre-existing favorite",
+      "content_warnings": [
+        "occult imagery",
+        "violence",
+        "sexual content"
+      ],
+      "commentary": {
+        "claude": "Polanski's return to occult territory after Rosemary's Baby—thirty years later, trading domestic paranoia for bibliophilic obsession. Johnny Depp as Dean Corso, an unscrupulous rare book dealer hired to authenticate a Satanic text capable of summoning the Devil. The investigation takes him across Europe, comparing three surviving copies, each with subtle differences in their engravings. Polanski deliberately eschews modern horror technique: no jump scares, minimal effects, slow-burn atmosphere. The film operates like a noir detective story wrapped in occult aesthetics. Emmanuelle Seigner as the mysterious woman who may be more than human. The ending divides audiences, but the journey—musty bookshops, aristocratic collectors, ceremonial murders—is hypnotic. Cerebral rather than visceral, scholarly rather than sensational.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Rosemary's Baby (1968) - Polanski's earlier occult masterpiece",
+        "Angel Heart (1987) - noir-occult fusion",
+        "The Name of the Rose (1986) - bibliophilic mystery"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=V1ueyfoNTdU"
+    },
+    {
+      "id": "angel-heart-1987",
+      "title": "Angel Heart",
+      "year": 1987,
+      "director": "Alan Parker",
+      "watched": "pre-2026",
+      "status": "watched",
+      "rating": {
+        "tom": 3,
+        "mary": 3
+      },
+      "categories": [
+        "neo-noir",
+        "occult-ritual",
+        "new-orleans-gothic",
+        "psychological-depth",
+        "murder-mystery"
+      ],
+      "themes": [
+        "identity and damnation",
+        "Faustian bargain",
+        "voodoo and Christianity",
+        "the detective as perpetrator",
+        "memory and guilt"
+      ],
+      "discovery_source": "user addition - pre-existing viewing",
+      "content_warnings": [
+        "violence",
+        "disturbing imagery",
+        "sexual content",
+        "voodoo rituals"
+      ],
+      "commentary": {
+        "claude": "Alan Parker's noir-occult fusion. Mickey Rourke as Harry Angel, a private eye hired by the enigmatic Louis Cyphre (Robert De Niro—say it aloud) to find a missing crooner. The investigation leads from New York to the bayous of Louisiana, descending into voodoo cults and increasingly violent murders. The film's genius lies in its central twist: the detective discovering he is the perpetrator, his identity built on a Faustian bargain he cannot remember. De Niro's Cyphre is the Devil as elegant collector of debts. The bloody hotel room scene remains notorious. Parker achieves nightmare logic—nothing fits, everything feels inevitable.",
+        "tom": "Too dark for our tastes. Technically impressive but the descent into voodoo horror and damnation pushed past our comfort zone.",
+        "mary": null
+      },
+      "connections": [
+        "The Ninth Gate (1999) - cerebral occult investigation",
+        "Chinatown (1974) - noir investigation with devastating revelation",
+        "The Serpent and the Rainbow (1988) - voodoo horror"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=oLNHY7x055E"
+    },
+    {
+      "id": "howards-end-1992",
+      "title": "Howards End",
+      "year": 1992,
+      "director": "James Ivory",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "literary-adaptation",
+        "period-piece",
+        "ensemble-cast",
+        "british-gothic",
+        "psychological-depth"
+      ],
+      "themes": [
+        "class warfare",
+        "inheritance and disinheritance",
+        "the impossibility of communication",
+        "moral hypocrisy",
+        "the New Woman"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-25",
+      "content_warnings": [
+        "class violence",
+        "death"
+      ],
+      "commentary": {
+        "claude": "The Merchant Ivory pinnacle. E.M. Forster's 1910 novel rendered as a film 'seething with anger, passion, greed and emotional violence' beneath its Edwardian elegance. Emma Thompson (Oscar-winning) and Anthony Hopkins as people who can never truly communicate across the class divide. The Schlegels—liberal intellectuals—and the Wilcoxes—prosperous conservatives—circle each other while Leonard Bast, a clerk destroyed by casual advice from his betters, embodies the human cost of wealth's indifference. Ruth Prawer Jhabvala's script extracts Forster's sharpest teeth. Nine Oscar nominations, three wins. The gorgeous surfaces enable the ugliness they conceal.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Maurice (1987) - Merchant Ivory Forster adaptation",
+        "A Room with a View (1985) - Merchant Ivory Forster adaptation",
+        "The Remains of the Day (1993) - Hopkins in repressed period drama"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=gCtggNNFYyM"
+    },
+    {
+      "id": "the-bostonians-1984",
+      "title": "The Bostonians",
+      "year": 1984,
+      "director": "James Ivory",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "literary-adaptation",
+        "period-piece",
+        "ensemble-cast",
+        "feminine-gothic",
+        "psychological-depth"
+      ],
+      "themes": [
+        "suffrage and social reform",
+        "unacknowledged desire",
+        "ideological warfare",
+        "Boston marriage",
+        "possession disguised as liberation"
+      ],
+      "discovery_source": "Perplexity research - Crypt Librarian session 2026-01-25",
+      "content_warnings": [
+        "period-accurate gender dynamics"
+      ],
+      "commentary": {
+        "claude": "Henry James adaptation with Vanessa Redgrave as Olive Chancellor, a Boston suffragette whose devotion to young orator Verena Tarrant carries unmistakable romantic undertones. Christopher Reeve—against Superman type—as the charming Southern lawyer who wants Verena for himself. The film is 'a tug-of-war in which nobody is quite frank about the real nature of the battle.' Redgrave earned an Oscar nomination for portraying a woman whose political passion masks personal longing. James drew on his sister Alice, who lived in what was termed a 'Boston marriage.' A high comedy with tragic undertones, acted to passionate perfection.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Howards End (1992) - Merchant Ivory literary adaptation",
+        "The Portrait of a Lady (1996) - another James adaptation",
+        "Maurice (1987) - period drama with queer subtext"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=4JfzGSN_-94"
+    },
+    {
+      "id": "choose-me-1984",
+      "title": "Choose Me",
+      "year": 1984,
+      "director": "Alan Rudolph",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "ensemble-cast",
+        "neo-noir",
+        "romantic-drama",
+        "1980s"
+      ],
+      "themes": [
+        "isolated souls seeking connection",
+        "nocturnal los angeles",
+        "romantic triangles",
+        "identity and deception"
+      ],
+      "discovery_source": "Exa/Perplexity research: Alan Rudolph films similar to Robert Altman",
+      "content_warnings": [
+        "sexual content",
+        "adult themes"
+      ],
+      "commentary": {
+        "claude": "Altman's protégé crafting his own nocturnal Los Angeles. A bar owner, a radio psychologist, and a charming possible madman orbit each other in smoky rooms. 95% critics score. Mark Isham's saxophone-drenched score wraps the whole thing in blue velvet melancholy. Dreamier than Altman, more romantic, but the same observational patience—watching people circle each other, hoping connection might save them.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Long Goodbye (1973)",
+        "Trouble in Mind (1985)",
+        "Short Cuts (1993)"
+      ],
+      "available_on": [
+        "Physical",
+        "streaming varies"
+      ],
+      "trailer_url": "https://www.youtube.com/watch?v=yFNvRXAt3dE"
+    },
+    {
+      "id": "trouble-in-mind-1985",
+      "title": "Trouble in Mind",
+      "year": 1985,
+      "director": "Alan Rudolph",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "neo-noir",
+        "dystopian",
+        "ensemble-cast",
+        "1980s"
+      ],
+      "themes": [
+        "redemption",
+        "isolated souls seeking connection",
+        "stylized americana",
+        "crime and consequence"
+      ],
+      "discovery_source": "Exa/Perplexity research: Alan Rudolph films similar to Robert Altman",
+      "content_warnings": [
+        "violence",
+        "adult themes"
+      ],
+      "commentary": {
+        "claude": "Kris Kristofferson as an ex-cop in 'Rain City'—a dystopian Seattle of the mind. Divine appears in a rare non-drag role, playing against type. Berlin Film Festival entry. More stylized than Choose Me but maintains Rudolph's signature focus on isolated souls finding connection in neon-lit shadows. The Altman DNA shows in the ensemble approach, but Rudolph's romanticism softens the satirical edge.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Choose Me (1984)",
+        "The Long Goodbye (1973)",
+        "Blade Runner (1982)"
+      ],
+      "available_on": [
+        "Physical",
+        "streaming varies"
+      ],
+      "trailer_url": "https://www.youtube.com/watch?v=vWOk9QznMvc"
+    },
+    {
+      "id": "california-split-1974",
+      "title": "California Split",
+      "year": 1974,
+      "director": "Robert Altman",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "gambling",
+        "buddy-film",
+        "1970s-new-hollywood",
+        "character-study"
+      ],
+      "themes": [
+        "addiction",
+        "friendship and self-destruction",
+        "the gambler's high",
+        "hollow victories"
+      ],
+      "discovery_source": "Exa/Perplexity research: Robert Altman lesser known films",
+      "content_warnings": [
+        "gambling",
+        "some violence",
+        "language"
+      ],
+      "commentary": {
+        "claude": "Elliott Gould and George Segal descend through casinos and racetracks, chasing the next win that will never satisfy. Same laconic 70s energy as The Long Goodbye—Altman observing men losing themselves in rituals of chance. Looser, more improvisational than his ensemble pieces. The ending lands like a hangover: they win big, and it means nothing. Peak Altman pessimism wrapped in buddy-film warmth.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Long Goodbye (1973)",
+        "Nashville (1975)",
+        "Short Cuts (1993)"
+      ],
+      "available_on": [
+        "Criterion Channel",
+        "Physical"
+      ]
+    },
+    {
+      "id": "being-there-1979",
+      "title": "Being There",
+      "year": 1979,
+      "director": "Hal Ashby",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "satire",
+        "comedy-drama",
+        "political",
+        "1970s-new-hollywood"
+      ],
+      "themes": [
+        "innocence mistaken for wisdom",
+        "media and perception",
+        "American high society",
+        "the blank slate"
+      ],
+      "discovery_source": "Exa/Perplexity research: Hal Ashby films 1970s observational cinema",
+      "content_warnings": [
+        "mild"
+      ],
+      "commentary": {
+        "claude": "Peter Sellers' final great role—Chance the gardener, a simpleton whose platitudes about gardens are mistaken for profound political wisdom. Ashby's observational patience rivals Altman's, but warmer, gentler in its satire. Melvyn Douglas won the Oscar as the dying patriarch who sees in Chance what he wants to see. The ending is pure magic realism, Chance walking on water while America projects meaning onto emptiness. A fable about how badly we want to believe.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Long Goodbye (1973)",
+        "Harold and Maude (1971)",
+        "Nashville (1975)"
+      ],
+      "available_on": [
+        "Criterion Channel",
+        "streaming"
+      ],
+      "trailer_url": "https://www.youtube.com/watch?v=jOTeqjbWoC0"
+    },
+    {
+      "id": "seven-days-in-may-1964",
+      "title": "Seven Days in May",
+      "year": 1964,
+      "director": "John Frankenheimer",
+      "watched": "2026-03",
+      "status": "watched",
+      "rating": {
+        "tom": 3,
+        "mary": null
+      },
+      "categories": [
+        "political",
+        "cold-war",
+        "ensemble-cast",
+        "literary-adaptation",
+        "psychological-depth"
+      ],
+      "themes": [
+        "military coup",
+        "constitutional crisis",
+        "loyalty and oath",
+        "democracy under threat",
+        "the enemy within"
+      ],
+      "discovery_source": "Crypt Librarian political intrigue research 2026-02-03",
+      "content_warnings": [
+        "political tension",
+        "some violence"
+      ],
+      "commentary": {
+        "claude": "Frankenheimer's Cold War paranoia at its most urgent. Burt Lancaster as a charismatic general planning a military coup against a president who signed a nuclear disarmament treaty. Kirk Douglas as the colonel who uncovers the plot and must choose between his mentor and his oath. Rod Serling adapted the novel; the dialogue crackles with theatrical precision. Fredric March as the beleaguered president, Ava Gardner in a supporting role that adds human cost to the political chess. Shot in high-contrast black and white, all shadows and tension. The film treats its subject with dead seriousness—no villain monologues, just men in rooms deciding the fate of democracy. Released two years after the Cuban Missile Crisis, it felt like prophecy. Political intrigue as procedural thriller, where the violence is the coup itself.",
+        "tom": "Jingoistic military propaganda parable of the good Roman soldier. We were quite bored.",
+        "mary": null
+      },
+      "connections": [
+        "The Manchurian Candidate (1962) - Frankenheimer's other political paranoia classic",
+        "The Parallax View (1974) - 70s conspiracy continuation",
+        "Fail Safe (1964) - Cold War nuclear anxiety"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=rmsqw3vu1NE"
+    },
+    {
+      "id": "the-conformist-1970",
+      "title": "The Conformist",
+      "year": 1970,
+      "director": "Bernardo Bertolucci",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "political",
+        "period-piece",
+        "psychological-depth",
+        "literary-adaptation",
+        "european-arthouse"
+      ],
+      "themes": [
+        "fascism as psychology",
+        "conformity and repression",
+        "assassination mission",
+        "sexual guilt",
+        "the architecture of totalitarianism"
+      ],
+      "discovery_source": "Crypt Librarian political intrigue research 2026-02-03",
+      "content_warnings": [
+        "violence",
+        "assassination",
+        "sexual content",
+        "fascist imagery"
+      ],
+      "commentary": {
+        "claude": "Bertolucci's masterpiece of political psychology. Jean-Louis Trintignant as Marcello Clerici, a man so desperate to be normal that he joins Mussolini's secret police and accepts a mission to assassinate his former professor in Paris. Vittorio Storaro's cinematography is legendary—light slicing through blinds, fascist architecture dwarfing human figures, every frame a study in geometric oppression. The film asks why people choose fascism, and answers: because they're broken, and totalitarianism promises wholeness. Dominique Sanda as the professor's wife, object of Marcello's tortured desire. The assassination sequence in the forest is devastating—violence erupting from political abstraction into visceral horror. Adapted from Moravia's novel. Not a thriller but a psychological excavation, where the political intrigue is inseparable from sexual repression and childhood trauma. One of the most beautiful films ever made about ugliness.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Z (1969) - European political cinema",
+        "The Garden of the Finzi-Continis (1970) - Italian fascism",
+        "Investigation of a Citizen Above Suspicion (1970) - Italian political psychology"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=04kMeEjVGIk"
+    },
+    {
+      "id": "the-parallax-view-1974",
+      "title": "The Parallax View",
+      "year": 1974,
+      "director": "Alan J. Pakula",
+      "watched": "2026-04-11",
+      "status": "watched",
+      "rating": {
+        "tom": 4,
+        "mary": 4
+      },
+      "categories": [
+        "political",
+        "neo-noir",
+        "1970s-new-hollywood",
+        "conspiracy",
+        "psychological-depth"
+      ],
+      "themes": [
+        "political assassination",
+        "corporate conspiracy",
+        "paranoia as clarity",
+        "the lone investigator",
+        "systems beyond individual comprehension"
+      ],
+      "discovery_source": "Crypt Librarian political intrigue research 2026-02-03",
+      "content_warnings": [
+        "violence",
+        "assassination",
+        "disturbing imagery (brainwashing montage)"
+      ],
+      "commentary": {
+        "claude": "The middle chapter of Pakula's paranoia trilogy, and arguably the most unsettling. Warren Beatty as a journalist investigating witnesses to a senator's assassination who keep dying in 'accidents.' The trail leads to the Parallax Corporation, which recruits assassins through psychological profiling. Gordon Willis's cinematography frames Beatty as increasingly small against vast, indifferent architecture—convention centers, corporate headquarters, empty spaces that dwarf human agency. The brainwashing test montage remains deeply disturbing: American iconography weaponized. Unlike most conspiracy thrillers, the hero doesn't expose the truth; the system is too large, too diffuse, too protected. The ending is bleak in a way Hollywood rarely permits. Post-Watergate, post-Dallas, this is cinema processing the suspicion that power operates beyond accountability. Pairs with Klute (which you rated 3 stars) but trades intimate claustrophobia for vast, impersonal dread.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Klute (1971) - Pakula's paranoia trilogy part one",
+        "All the President's Men (1976) - Pakula's paranoia trilogy conclusion",
+        "Three Days of the Condor (1975) - 70s conspiracy cinema"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=Qz0qRlQPdCs"
+    },
+    {
+      "id": "three-days-of-the-condor-1975",
+      "title": "Three Days of the Condor",
+      "year": 1975,
+      "director": "Sydney Pollack",
+      "watched": "pre-2026",
+      "status": "watched",
+      "rating": {
+        "tom": 3.5,
+        "mary": 3.5
+      },
+      "categories": [
+        "political",
+        "conspiracy",
+        "neo-noir",
+        "1970s-new-hollywood",
+        "cold-war"
+      ],
+      "themes": [
+        "CIA internal betrayal",
+        "the analyst forced into action",
+        "institutional paranoia",
+        "trust and survival",
+        "the press as last resort"
+      ],
+      "discovery_source": "Crypt Librarian political thriller session 2026-02-21",
+      "content_warnings": [
+        "violence",
+        "murder",
+        "some sexual content"
+      ],
+      "commentary": {
+        "claude": "Pollack's lean paranoia machine. Robert Redford as a CIA reader—a man who analyzes thrillers for a living—who returns from lunch to find his entire office murdered. Faye Dunaway as the reluctant civilian pulled into his orbit. Max von Sydow as the assassin with professional courtesy. The film runs on the engine of 70s distrust: the enemy isn't foreign, it's inside the building. The final exchange with Cliff Robertson's Higgins—'How do you know they'll print it?'—is the decade's epitaph. Tight, propulsive, Redford at peak magnetic vulnerability. Part of the holy trinity with Parallax View and All the President's Men, though more conventionally satisfying than either.",
+        "tom": "Affectionately dubbed 'Three Nights of Asstap' in the household. Solid craft but didn't fully land—a half-star above Klute territory.",
+        "mary": null
+      },
+      "connections": [
+        "The Parallax View (1974) - Pakula's companion paranoia piece",
+        "All the President's Men (1976) - the press as salvation",
+        "Michael Clayton (2007) - institutional conspiracy updated"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=aqVzFEeMVOQ"
+    },
+    {
+      "id": "the-masque-of-the-red-death-1964",
+      "title": "The Masque of the Red Death",
+      "year": 1964,
+      "director": "Roger Corman",
+      "watched": "2026-03-07",
+      "status": "watched",
+      "rating": {
+        "tom": 5,
+        "mary": 5
+      },
+      "categories": [
+        "literary-adaptation",
+        "occult-ritual",
+        "period-piece",
+        "cerebral-occult"
+      ],
+      "themes": [
+        "intellectual Satanism",
+        "plague as divine judgment",
+        "the masquerade as moral theater",
+        "Poe's allegory of inescapable death",
+        "beauty and cruelty in Renaissance opulence"
+      ],
+      "discovery_source": "Crypt Librarian discovery sweep 2026-03-07",
+      "content_warnings": [
+        "Satanic ritual",
+        "murder",
+        "plague imagery"
+      ],
+      "commentary": {
+        "claude": "Corman's Poe cycle reaches its visual and intellectual apex. Vincent Price as Prince Prospero—a Satanist who seals his castle against the Red Death ravaging the countryside, then hosts a masquerade for the doomed aristocracy. Nicolas Roeg's cinematography paints every frame like a Renaissance altarpiece lit by candlelight. The color-coded rooms, each a different hue of dread. Prospero's Satanism is theological, not theatrical—he debates the existence of God with a figure in red, and loses. The dwarf's revenge subplot adds a Shakespearean double-plot. Price at his most controlled: not camp, but cold conviction. The final unmasking—'I am the Red Death'—is as inevitable as a liturgy.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Premature Burial (1962) - Corman Poe cycle",
+        "The Devil Rides Out (1968) - cerebral Satanism, ritual formality",
+        "The Ninth Gate (1999) - intellectual occult, rare books, Satanic scholarship"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=ZNz76ZsflXI"
+    },
+    {
+      "id": "the-dead-zone-1983",
+      "title": "The Dead Zone",
+      "year": 1983,
+      "director": "David Cronenberg",
+      "watched": "2026-03",
+      "status": "watched",
+      "rating": {
+        "tom": 4,
+        "mary": null
+      },
+      "categories": [
+        "literary-adaptation",
+        "psychological-depth",
+        "restrained-horror",
+        "political"
+      ],
+      "themes": [
+        "unwilling psychic",
+        "isolation of the seer",
+        "political assassination",
+        "sacrifice as moral duty",
+        "lost love"
+      ],
+      "discovery_source": "Crypt Librarian psychic vision horror session",
+      "content_warnings": [
+        "violence",
+        "political tension",
+        "death"
+      ],
+      "commentary": {
+        "claude": "Cronenberg's most restrained film—no body horror, no biological eruptions, just the quiet devastation of a man who touches someone and sees their death. Christopher Walken as Johnny Smith, waking from a five-year coma to find his fiancée married, his life dissolved, and his hands cursed with precognition. Stephen King's most tragic protagonist rendered with clinical compassion. The political subplot—Martin Sheen as the smiling demagogue heading for nuclear apocalypse—feels eerily prescient. Walken's performance is all stillness and sorrow, a man retreating from the world that his gift forces him to see too clearly. The handshake at the rally is the film's moral fulcrum: can one man's death prevent a thousand? Cronenberg treats the question with the gravity it deserves.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Stir of Echoes (1999) - unwilling seer archetype",
+        "The Changeling (1980) - psychic protagonist seeking justice",
+        "Seven Days in May (1964) - political conspiracy, moral duty"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=qxJp_VQ5VUk"
+    },
+    {
+      "id": "the-changeling-1980",
+      "title": "The Changeling",
+      "year": 1980,
+      "director": "Peter Medak",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "ghost-seeking-justice",
+        "restrained-horror",
+        "psychological-depth",
+        "literary-adaptation",
+        "period-piece"
+      ],
+      "themes": [
+        "grief and haunting",
+        "justice for the dead",
+        "child murder",
+        "the dead demanding truth",
+        "old house as character"
+      ],
+      "discovery_source": "Crypt Librarian psychic vision horror session",
+      "content_warnings": [
+        "child death (historical, not graphic)",
+        "haunting imagery"
+      ],
+      "commentary": {
+        "claude": "George C. Scott as a grieving widower who moves into a vast Victorian mansion and discovers a child’s spirit demanding truth. Methodical, patient terror—a rubber ball bouncing down the stairs, a wheelchair moving on its own, a séance that reveals decades-old murder. Medak understands that the most frightening ghosts are the ones who deserve your attention. No jump scares, no gore—just the slow, cold realization that a dead child has been waiting for someone to listen.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Stir of Echoes (1999) — ghost demanding justice through unwilling seer",
+        "The Innocents (1961) — Victorian ghost story, children and corruption",
+        "The Dead Zone (1983) — unwanted psychic knowledge"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=UwUI7d5TgGA"
+    },
+    {
+      "id": "session-9-2001",
+      "title": "Session 9",
+      "year": 2001,
+      "director": "Brad Anderson",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "blue-collar-horror",
+        "psychological-depth",
+        "american-gothic",
+        "restrained-horror"
+      ],
+      "themes": [
+        "asbestos crew as metaphor",
+        "institutional decay",
+        "split personality or haunting",
+        "blue-collar vulnerability",
+        "archival recordings"
+      ],
+      "discovery_source": "Crypt Librarian psychic vision horror session",
+      "content_warnings": [
+        "psychological intensity",
+        "implied violence",
+        "mental illness"
+      ],
+      "commentary": {
+        "claude": "An asbestos removal crew at the abandoned Danvers State Hospital. Brad Anderson shot at the actual asylum before its demolition, and the building is the real star. The crew discovers audio tapes of a patient with dissociative identity disorder, and as the recordings unspool, the men begin to fracture. The film refuses to confirm whether the horror is supernatural or psychological, and that ambiguity is its power.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Changeling (1980) — institutional secrets, patient horror",
+        "Stir of Echoes (1999) — blue-collar protagonist, working-class horror",
+        "Jacob’s Ladder (1990) — is it real or psychological?"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=4s-5eJq47bY"
+    },
+    {
+      "id": "jacobs-ladder-1990",
+      "title": "Jacob’s Ladder",
+      "year": 1990,
+      "director": "Adrian Lyne",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "psychological-depth",
+        "restrained-horror",
+        "american-gothic"
+      ],
+      "themes": [
+        "Vietnam trauma",
+        "reality fracturing",
+        "purgatorial visions",
+        "government experimentation",
+        "acceptance of death"
+      ],
+      "discovery_source": "Crypt Librarian psychic vision horror session",
+      "content_warnings": [
+        "war violence",
+        "disturbing imagery",
+        "body horror"
+      ],
+      "commentary": {
+        "claude": "Tim Robbins as a Vietnam veteran whose reality dissolves—demons on the subway, his dead son in doorways, war memories bleeding into the present. Lyne transforms New York into a purgatory of flickering fluorescents and faceless figures. The central question—is Jacob being experimented on, or is he already dead?—resolves in a final scene that recontextualizes everything. Meister Eckhart provides the philosophical key. Influential beyond measure: Silent Hill, Donnie Darko, and a hundred lesser imitators grew from this root.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Angel Heart (1987) — protagonist may already be damned",
+        "Stir of Echoes (1999) — unwanted visions",
+        "The Dead Zone (1983) — visions of what cannot be unseen"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=2AiwCLI04PY"
+    },
+    {
+      "id": "fallen-1998",
+      "title": "Fallen",
+      "year": 1998,
+      "director": "Gregory Hoblit",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "neo-noir",
+        "occult-ritual",
+        "murder-mystery",
+        "psychological-depth"
+      ],
+      "themes": [
+        "body-jumping demon",
+        "theological horror",
+        "police procedural meets the supernatural",
+        "the futility of fighting evil"
+      ],
+      "discovery_source": "Crypt Librarian psychic vision horror session",
+      "content_warnings": [
+        "murder investigation",
+        "some violence",
+        "demonic possession"
+      ],
+      "commentary": {
+        "claude": "Denzel Washington watches a serial killer executed—then identical murders resume. The fallen angel Azazel jumps between human hosts through touch, singing ‘Time Is on My Side’ as he goes. What begins as a police procedural becomes theological horror. Hoblit builds dread through the camera following a hand touching a shoulder touching an arm, the demon passing through a crowd like a current. The ending is genuinely bleak, one of the great nihilistic closings in genre cinema.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Angel Heart (1987) — noir detective meets demonic forces",
+        "The Ninth Gate (1999) — cerebral occult investigation",
+        "The Devil Rides Out (1968) — confrontation with named demons"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=scNpvW3ZFqg"
+    },
+    {
+      "id": "what-lies-beneath-2000",
+      "title": "What Lies Beneath",
+      "year": 2000,
+      "director": "Robert Zemeckis",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "ghost-seeking-justice",
+        "murder-mystery",
+        "psychological-depth",
+        "restrained-horror"
+      ],
+      "themes": [
+        "domestic suspicion",
+        "ghost as witness",
+        "marital betrayal",
+        "lakeside isolation",
+        "Hitchcockian revelation"
+      ],
+      "discovery_source": "Crypt Librarian psychic vision horror session",
+      "content_warnings": [
+        "marital tension",
+        "supernatural threat",
+        "murder"
+      ],
+      "commentary": {
+        "claude": "Harrison Ford and Michelle Pfeiffer in a lakeside Vermont house where the bathroom mirror fogs with messages and doors open on their own. Zemeckis channels Hitchcock—the wronged wife, the husband with secrets, the ghost who knows things the living would rather keep buried. More polished than Stir of Echoes, less raw, but the ghost-seeking-justice narrative is intact. Pfeiffer escalates from unease to terror with precision. The bathtub sequence is an exercise in sustained dread.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Stir of Echoes (1999) — suburban ghost demanding justice",
+        "The Changeling (1980) — ghost revealing buried murder",
+        "Klute (1971) — Pakula’s paranoid thriller DNA"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=s6nTJMdrGVU"
+    },
+    {
+      "id": "in-dreams-1999",
+      "title": "In Dreams",
+      "year": 1999,
+      "director": "Neil Jordan",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "psychic-visions",
+        "psychological-depth",
+        "feminine-gothic",
+        "murder-mystery"
+      ],
+      "themes": [
+        "psychic connection to killer",
+        "water imagery",
+        "maternal grief",
+        "operatic dread",
+        "unwilling seer"
+      ],
+      "discovery_source": "Crypt Librarian psychic vision horror session",
+      "content_warnings": [
+        "child endangerment themes",
+        "psychological intensity",
+        "drowning imagery"
+      ],
+      "commentary": {
+        "claude": "Annette Bening connected psychically to a serial killer through dreams, the visions arriving like water—the submerged town, the apple orchard, the red that runs through everything. Neil Jordan at his most operatic. More stylized than Stir of Echoes—where that film is blue-collar and grounded, this one is baroque and drowning. Robert Downey Jr. as the killer, before his comeback, bringing genuine menace.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "Byzantium (2012) — Jordan’s feminine supernatural",
+        "Interview with the Vampire (1994) — Jordan’s baroque horror",
+        "Stir of Echoes (1999) — same year, same unwilling-seer premise"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=DHHPY9u6RQM"
+    },
+    {
+      "id": "the-innocents-1961",
+      "title": "The Innocents",
+      "year": 1961,
+      "director": "Jack Clayton",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "feminine-gothic",
+        "literary-adaptation",
+        "british-gothic",
+        "psychological-depth",
+        "restrained-horror"
+      ],
+      "themes": [
+        "governess and children",
+        "repression and projection",
+        "are the ghosts real",
+        "Victorian propriety masking corruption",
+        "Henry James ambiguity"
+      ],
+      "discovery_source": "user addition",
+      "content_warnings": [
+        "psychological intensity",
+        "implied corruption of children"
+      ],
+      "commentary": {
+        "claude": "Deborah Kerr as Miss Giddens, a governess convinced the children in her care are possessed by spirits of former servants. Jack Clayton films with claustrophobic elegance—candlelight corridors, windows that frame too much. Henry James’s The Turn of the Screw rendered with absolute fidelity to its central ambiguity: is the house haunted, or is the governess projecting? Truman Capote’s screenplay preserves every layer. The final image is one of cinema’s most unsettling endings.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Changeling (1980) — ghost children, Victorian setting",
+        "The Uninvited (1944) — early serious ghost cinema",
+        "Brideshead Revisited (1981) — English country house, repression"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=ICFDe3223MQ"
+    },
+    {
+      "id": "the-uninvited-1944",
+      "title": "The Uninvited",
+      "year": 1944,
+      "director": "Lewis Allen",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "ghost-seeking-justice",
+        "british-gothic",
+        "restrained-horror",
+        "period-piece"
+      ],
+      "themes": [
+        "clifftop house",
+        "sibling investigators",
+        "unfinished business",
+        "early serious ghost film",
+        "Cornwall atmosphere"
+      ],
+      "discovery_source": "user addition",
+      "content_warnings": [
+        "ghostly phenomena"
+      ],
+      "commentary": {
+        "claude": "Ray Milland and Ruth Hussey purchase a clifftop house in Cornwall and discover the previous owner’s death left unfinished business. One of the earliest Hollywood films to treat ghosts with genuine seriousness. The cold room, the scent of mimosa, the sound of weeping—Allen builds his haunting from sensory details. The film’s willingness to let its ghosts be real, and to let that reality carry moral weight, influenced every serious ghost story that followed.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Innocents (1961) — British ghost story, ambiguous spirits",
+        "The Changeling (1980) — old house, ghost with grievance",
+        "The Devil Rides Out (1968) — British supernatural taken seriously"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=1dTHjio2kg0"
+    },
+    {
+      "id": "malpertuis-1971",
+      "title": "Malpertuis",
+      "year": 1971,
+      "director": "Harry Kümel",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "occult-ritual",
+        "literary-adaptation",
+        "period-piece",
+        "european-arthouse",
+        "psychological-depth"
+      ],
+      "themes": [
+        "Greek gods imprisoned in a Belgian mansion",
+        "taxidermy of the divine",
+        "Orson Welles as dying patriarch",
+        "labyrinthine architecture",
+        "mythology as horror"
+      ],
+      "discovery_source": "user addition",
+      "content_warnings": [
+        "surreal imagery",
+        "mythological violence",
+        "psychological disorientation"
+      ],
+      "commentary": {
+        "claude": "A dying patriarch (Orson Welles, magnificent even in decline) traps the last Greek gods inside a Belgian Gothic mansion, their divinity reduced to eccentric human behavior—Medusa as a spinster, Prometheus as a sailor, the Eumenides as bickering housekeepers. Based on Jean Ray’s novel, Kümel creates a labyrinth where every corridor leads deeper into myth. Belgian surrealism at its most architecturally precise. Forgotten for decades, now a cult object deserving wider devotion.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Ninth Gate (1999) — occult investigation in old European architecture",
+        "The Devil Rides Out (1968) — confrontation with named supernatural entities",
+        "The Masque of the Red Death (1964) — aristocratic occult, sealed mansion"
+      ],
+      "available_on": []
+    },
+    {
+      "id": "premature-burial-1962",
+      "title": "Premature Burial",
+      "year": 1962,
+      "director": "Roger Corman",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "restrained-horror",
+        "literary-adaptation",
+        "period-piece",
+        "american-gothic"
+      ],
+      "themes": [
+        "taphophobia",
+        "Edgar Allan Poe",
+        "Victorian medical anxiety",
+        "catalepsy and burial alive",
+        "the Corman Poe cycle"
+      ],
+      "discovery_source": "user addition - Corman Poe cycle",
+      "content_warnings": [
+        "burial alive imagery",
+        "psychological terror"
+      ],
+      "commentary": {
+        "claude": "Ray Milland as Guy Carrell, pathologically terrified of being buried alive—a fear inherited from his father. Corman’s Poe cycle entry, the only one without Vincent Price but no less atmospheric. Milland brings a quieter dread, his terror more internal, more clinical. The elaborate anti-burial devices Carrell constructs are simultaneously rational and mad. Part of the cycle that produced The Masque of the Red Death.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Masque of the Red Death (1964) — Corman’s Poe cycle at its apex",
+        "The Uninvited (1944) — Ray Milland in atmospheric horror",
+        "The Innocents (1961) — Victorian psychological dread"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=l-88CQaoajU"
+    },
+    {
+      "id": "rose-red-2002",
+      "title": "Rose Red",
+      "year": 2002,
+      "director": "Craig R. Baxley",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "restrained-horror",
+        "psychic-visions",
+        "ensemble-cast",
+        "american-gothic"
+      ],
+      "themes": [
+        "haunted house as organism",
+        "psychic team investigation",
+        "the house that builds itself",
+        "Stephen King’s Shirley Jackson homage"
+      ],
+      "discovery_source": "user addition - Stephen King",
+      "content_warnings": [
+        "haunted house violence",
+        "psychological intensity",
+        "character deaths"
+      ],
+      "commentary": {
+        "claude": "Stephen King’s made-for-TV homage to Shirley Jackson’s The Haunting of Hill House. A psychology professor assembles a team of psychics to investigate Rose Red, a Seattle mansion that has been growing new rooms for a century. King understands that the scariest haunted houses are the ones that want you to stay. The miniseries format allows the house to reveal itself slowly—doors that open onto rooms that didn’t exist yesterday.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Changeling (1980) — haunted house investigation",
+        "Session 9 (2001) — institutional building as character",
+        "Stir of Echoes (1999) — psychic ensemble, reluctant seers"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=7vZlrlTbudw"
+    },
+    {
+      "id": "haxan-1922",
+      "title": "Häxan",
+      "year": 1922,
+      "director": "Benjamin Christensen",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "occult-ritual",
+        "period-piece",
+        "european-arthouse"
+      ],
+      "themes": [
+        "witchcraft through the ages",
+        "documentary as horror",
+        "medieval superstition",
+        "the Devil’s sabbath",
+        "hysteria and persecution"
+      ],
+      "discovery_source": "exa-research",
+      "content_warnings": [
+        "occult imagery",
+        "nudity (silent era)",
+        "depictions of torture",
+        "witchcraft ritual"
+      ],
+      "commentary": {
+        "claude": "Part documentary, part dramatization, part fever dream—Benjamin Christensen’s 1922 exploration of witchcraft through the ages remains one of cinema’s most singular objects. The medieval sequences are staged with a conviction that borders on ritual: the Devil himself appears at the Sabbath, witches fly, babies are offered to darkness. Christensen argues that what medieval society called witchcraft, modern science would call hysteria—but his dramatizations are so vivid that the rational framework dissolves. A century old and still capable of unsettling.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Devil Rides Out (1968) — occult ritual taken seriously",
+        "The Masque of the Red Death (1964) — Satanic scholarship, visual grandeur",
+        "Fascination (1979) — European occult, ritual atmosphere"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=ltDAAu7uEjw"
+    },
+    {
+      "id": "don't-look-now-1973",
+      "title": "Don't Look Now",
+      "year": 1973,
+      "director": "Nicolas Roeg",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "grief",
+        "occult",
+        "premonition",
+        "literary-adaptation"
+      ],
+      "themes": [
+        "grief",
+        "occult",
+        "premonition",
+        "literary-adaptation",
+        "venetian-gothic"
+      ],
+      "discovery_source": "exa-research: British occult cerebral literary 1970s",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Roeg's masterpiece — grief made structural, a marriage shot through a fractured lens where past, present, and premonition bleed into one another like a dropped glass of red wine. Donald Sutherland and Julie Christie as parents who lose a daughter to drowning and lose each other to Venice in winter. Du Maurier's source is slender; Roeg turns it into a cathedral of suggestion. The editing is the occult mechanism — cuts that rhyme a scarf with a knife, a puddle with a funeral, the color red with everything red that will ever come. The famous sex scene is not titillation but the only moment these two touch without drowning. Venice as a labyrinth where the dead keep appointments. A film that trusts the audience to feel a warning before they understand it.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=BI9bYR0SoMs"
+    },
+    {
+      "id": "gosford-park-2001",
+      "title": "Gosford Park",
+      "year": 2001,
+      "director": "Robert Altman",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "ensemble",
+        "period-piece",
+        "murder-mystery",
+        "class"
+      ],
+      "themes": [
+        "ensemble",
+        "period-piece",
+        "murder-mystery",
+        "class",
+        "literary"
+      ],
+      "discovery_source": "exa-research: Altman ensemble similar Short Cuts",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Altman in full control of every instrument — thirty characters, upstairs and downstairs, English country house 1932, a murder that almost doesn't matter. Julian Fellowes wrote it (years before Downton) but Altman directs it like a symphony where half the players are in another room. Maggie Smith as the acid countess, Helen Mirren and Eileen Atkins as servants who know everything and say nothing, Clive Owen as the man who walked out of a Patricia Highsmith novel. The camera drifts, overhears, catches a confession at the edge of a pantry door. The whodunit is a formality; the real mystery is class itself — who gets to speak, who gets to grieve, who gets to vanish. A film about servitude as haunting. Every line of dialogue is both small talk and forensic evidence.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=o0m00hg1PKY"
+    },
+    {
+      "id": "the-draughtsman's-contract-1982",
+      "title": "The Draughtsman's Contract",
+      "year": 1982,
+      "director": "Peter Greenaway",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "period-piece",
+        "murder-mystery",
+        "baroque",
+        "literary"
+      ],
+      "themes": [
+        "period-piece",
+        "murder-mystery",
+        "baroque",
+        "literary",
+        "formal-composition"
+      ],
+      "discovery_source": "exa-research: Greenaway literary painterly historical",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Greenaway the painter directing like a Dutch master who has discovered Restoration comedy. 1694, an English estate, a draughtsman hired to produce twelve drawings in exchange for meals, money, and the body of the lady of the house. Anthony Higgins is perfect as the arrogant artist who doesn't notice he's the one being drawn. Every frame composed into ruinous symmetry, every costume a monument, every line of dialogue a dagger sheathed in Augustan courtesy. The murder mystery is hidden in the drawings themselves — a ladder leaning against the wrong wall, a boot left in the hedge — and it is the women who assemble the evidence while the men mistake possession for understanding. Michael Nyman's pulsing Purcellian score is half the film. A garden as conspiracy, a contract as death warrant, beauty as a trap you sign yourself into.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=CmCMumlxfX0"
+    },
+    {
+      "id": "nashville-1975",
+      "title": "Nashville",
+      "year": 1975,
+      "director": "Robert Altman",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "ensemble",
+        "political",
+        "americana",
+        "ensemble-paranoia"
+      ],
+      "themes": [
+        "ensemble",
+        "political",
+        "americana",
+        "ensemble-paranoia"
+      ],
+      "discovery_source": "taste-profile: Altman ensemble similar Short Cuts",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Twenty-four characters, five days, a political convention nobody quite believes in, and country music as the sound America makes when it's trying to comfort itself. Altman's grand ensemble — the predecessor your Short Cuts grew out of — loose and panoramic and finally, devastatingly, tragic. Ronee Blakley as the fragile queen of country collapsing under her own crown, Lily Tomlin and Keith Carradine in a hotel room that might be the loneliest scene of the 1970s, Henry Gibson as the pompadoured patriarch, Geraldine Chaplin as the BBC reporter who understands nothing and records everything. The final assassination isn't a shock but a fulfillment — Altman has been tuning the instrument for two and a half hours. A film about a country too busy singing to hear itself being eaten.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=QZGpaVZdGlo"
+    },
+    {
+      "id": "blood-on-satan's-claw-1971",
+      "title": "Blood on Satan's Claw",
+      "year": 1971,
+      "director": "Piers Haggard",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "folk-horror",
+        "occult",
+        "pagan",
+        "rural-britain"
+      ],
+      "themes": [
+        "folk-horror",
+        "occult",
+        "pagan",
+        "rural-britain",
+        "ritual"
+      ],
+      "discovery_source": "exa-research: British folk horror occult 1970s",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "The third stone in the folk horror triad with Witchfinder General and The Wicker Man, but the most pagan of the three — rural England, 17th century, a plough turning up a skull with one living eye. Linda Hayden as the village girl who becomes high priestess of a cult nobody quite chose to join; Patrick Wymark as the judge dispatched from London with a sword and a theology that isn't equal to what he finds. Piers Haggard shoots the countryside like Turner and the ritual scenes like Goya — mud, wheat, candlelight, and something older than the church buried in the soil. A companion piece to The Devil Rides Out's cerebral occult, but where Hammer gives you drawing rooms, Haggard gives you the soil those drawing rooms were built on.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=2RMySPyhMUY"
+    },
+    {
+      "id": "the-devils-1971",
+      "title": "The Devils",
+      "year": 1971,
+      "director": "Ken Russell",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "religious-mysticism",
+        "historical",
+        "witchcraft",
+        "political"
+      ],
+      "themes": [
+        "religious-mysticism",
+        "historical",
+        "witchcraft",
+        "political",
+        "literary-adaptation"
+      ],
+      "discovery_source": "exa-research: Ken Russell mysticism literary",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Ken Russell's still-contested masterpiece — Aldous Huxley's account of the Loudun possessions filtered through Whiting's play and Russell's own baroque fury at what organized religion does to the body. Oliver Reed as Urbain Grandier, the libertine priest who becomes a political inconvenience and is burned for witchcraft he never practiced; Vanessa Redgrave as the hunchbacked prioress whose hysterical visions become the state's weapon. Derek Jarman designed the sets — Loudun rendered as a vast white ceramic city, modernist and ancient at once. Russell is interested in the moment faith and power fuse into pornography, and he does not look away. The uncut BFI version contains the notorious Rape of Christ sequence (an Ursuline mass orgy treated as collective psychotic break); the studio cut omits it. Not a film for a soft evening, but the closest cinema has come to the Inquisition's actual mood — ecstatic, political, obscene, unforgettable.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=eCF2S3vchE4"
+    },
+    {
+      "id": "caravaggio-1986",
+      "title": "Caravaggio",
+      "year": 1986,
+      "director": "Derek Jarman",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "biopic",
+        "period-piece",
+        "queer",
+        "painterly"
+      ],
+      "themes": [
+        "biopic",
+        "period-piece",
+        "queer",
+        "painterly",
+        "baroque",
+        "literary"
+      ],
+      "discovery_source": "exa-research: Jarman painterly historical literary",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Jarman directing Caravaggio the way Caravaggio painted — chiaroscuro as theology, working-class Rome as the real biblical setting, sacred and profane as two names for the same longing. Nigel Terry as the painter who uses streetboys and prostitutes as his saints and then falls in love with one of them; Sean Bean (in his breakthrough) as the rough trade who becomes Judas and Bacchus by turns; Tilda Swinton, impossibly young, as the woman caught between them. Jarman's anachronisms — a typewriter, a motorcycle, a pocket calculator — are not camp but insistence: this story is happening now, this violence is now, this love is now. Shot for almost nothing, every set a single room lit like a Caravaggio canvas. A film about how an artist's gaze turns flesh into evidence of God, and about what that conversion costs the flesh.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=w5RsX8nbR7k"
+    },
+    {
+      "id": "nosferatu-the-vampyre-1979",
+      "title": "Nosferatu the Vampyre",
+      "year": 1979,
+      "director": "Werner Herzog",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "vampire",
+        "gothic",
+        "dreamlike",
+        "literary-adaptation"
+      ],
+      "themes": [
+        "vampire",
+        "gothic",
+        "dreamlike",
+        "literary-adaptation",
+        "period-piece"
+      ],
+      "discovery_source": "exa-research: gothic romantic vampire literary",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Herzog's reverent remake of Murnau, and the slowest, loneliest vampire film ever made. Klaus Kinski in prosthetics so profound they become tenderness — a Dracula who does not hunt so much as arrive, plague rats pouring out of his carriage like an illness he cannot stop carrying. Isabelle Adjany as Lucy, luminous and almost translucent, the only character who understands that stopping him will cost more than the town is willing to pay. Herzog shoots Delft as a town already grieving, the canals full of coffins, Wagner and Popol Vuh on the soundtrack so the silences feel sacred. The direct ancestor to Neil Jordan's melancholy-immortal register in Interview with the Vampire and Byzantium — a monster as the last romantic, unable to die and unable to stop being lonely.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=fnJqLNGBAPc"
+    },
+    {
+      "id": "the-company-of-wolves-1984",
+      "title": "The Company of Wolves",
+      "year": 1984,
+      "director": "Neil Jordan",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "folklore",
+        "fairy-tale",
+        "gothic",
+        "literary-adaptation"
+      ],
+      "themes": [
+        "folklore",
+        "fairy-tale",
+        "gothic",
+        "literary-adaptation",
+        "feminine-coming-of-age"
+      ],
+      "discovery_source": "exa-research: British gothic fairy tale literary",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Angela Carter co-wrote the script from her own stories, and you can feel her sentences in every frame — Little Red Riding Hood as a coming-of-age dream, nested inside a grandmother's warning, nested inside a girl's own sleeping mind. Neil Jordan (before Interview with the Vampire) directs it like a storybook whose pages are slightly wet. Sarah Patterson as the girl learning that the wolf and the man are the same hunger; Angela Lansbury as the grandmother whose warnings are also incantations; Stephen Rea in the transformation scene that still, forty years later, has no equal. Practical effects, candle-lit forests, a wedding that becomes a hunt. A film about female adolescence as folkloric initiation — beauty and darkness embracing without cruelty, exactly the register your taste profile was calibrated for.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=Ir34SoEgik0"
+    },
+    {
+      "id": "valerie-and-her-week-of-wonders-1970",
+      "title": "Valerie and Her Week of Wonders",
+      "year": 1970,
+      "director": "Jaromil Jires",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "czech-new-wave",
+        "surrealist",
+        "fairy-tale",
+        "occult"
+      ],
+      "themes": [
+        "czech-new-wave",
+        "surrealist",
+        "fairy-tale",
+        "occult",
+        "coming-of-age"
+      ],
+      "discovery_source": "exa-research: European gothic occult surrealist",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Czech New Wave surrealism — a thirteen-year-old girl, her first period, and a dream that spreads outward to include vampires, priests, an enchanted earring, and a grandmother who may be herself in another life. Jaromil Jireš directs it like a book of hours illustrated by Max Ernst: pagan and Catholic imagery bleeding into each other, sensuality presented as sacrament rather than spectacle, the whole film shot in sunlit orchards and dim chapels as if both were the same room. Based on Vítězslav Nezval's 1935 novel — literary DNA all the way down. A direct cousin to Malpertuis and The Company of Wolves in the European gothic surrealist lane, and the rare coming-of-age film that treats female mysticism as first-person experience rather than object of concern. Dreamlike where giallo is garish, cerebral where Hammer is operatic.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=5pJrnoNrDQI"
+    },
+    {
+      "id": "the-firm-1993",
+      "title": "The Firm",
+      "year": 1993,
+      "director": "Sydney Pollack",
+      "watched": "2026-04-11",
+      "status": "watched",
+      "rating": {
+        "tom": 4,
+        "mary": 4
+      },
+      "categories": [
+        "legal-thriller",
+        "paranoia",
+        "literary-adaptation",
+        "corporate-conspiracy"
+      ],
+      "themes": [
+        "legal-thriller",
+        "paranoia",
+        "literary-adaptation",
+        "corporate-conspiracy"
+      ],
+      "discovery_source": "user-submission: Gene Hackman watched 4 candles",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Sydney Pollack (Three Days of the Condor, already a 70s-paranoia 4-candle in your archive) applying his conspiracy-thriller grammar to Grisham's legal thriller — and discovering that a Memphis tax firm can be as hermetically sealed as a CIA front. Tom Cruise is fine; the movie belongs to its elders. Gene Hackman as Avery Tolar, the sympathetic partner whose soul has been leased by the hour, doing the best work in a film that didn't deserve him. Hal Holbrook as the velvet menace. Jeanne Tripplehorn as the wife figuring out the walls before her husband does. Pollack understands that the real horror of corporate conspiracy is not the FBI or the mob but the paperwork — the way an entire life can be assembled out of signed documents until there's nothing left to sign that isn't already owned. A film about paranoia as a billable hour.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=FX3AXA3icR0"
+    },
+    {
+      "id": "the-conversation-1974",
+      "title": "The Conversation",
+      "year": 1974,
+      "director": "Francis Ford Coppola",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "paranoia",
+        "surveillance",
+        "moral-crisis",
+        "70s-conspiracy"
+      ],
+      "themes": [
+        "paranoia",
+        "surveillance",
+        "moral-crisis",
+        "70s-conspiracy",
+        "ensemble-character-study"
+      ],
+      "discovery_source": "user-request: essential Gene Hackman films",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "The film Hackman will be remembered for, even though everyone remembers him for others. Harry Caul — surveillance expert, Catholic, saxophone-playing ghost of a man — accepts a routine job and becomes convinced the recording he's made will be used to murder someone. Coppola wrote it in the late 60s, made it between The Godfather Parts I and II, and treated it as his penance for having made The Godfather. Walter Murch's sound design IS the film — every rustle of fabric, every footstep in the empty apartment Harry is slowly ripping apart looking for a bug that may not exist. The final shot — Harry playing saxophone alone in the ruins of his own home, having failed to save anyone — is one of the great endings in American cinema. Sibling to Three Days of the Condor and The Parallax View in the paranoia bracket, but quieter, more religious, more final. A man who listens for a living discovering that he's being listened to.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [
+        "Amazon Prime Video",
+        "MGM+",
+        "Philo",
+        "Kanopy",
+        "Sling TV"
+      ],
+      "trailer_url": "https://www.youtube.com/watch?v=iFgiWboUFnw",
+      "queue_position": 2
+    },
+    {
+      "id": "night-moves-1975",
+      "title": "Night Moves",
+      "year": 1975,
+      "director": "Arthur Penn",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "neo-noir",
+        "mystery",
+        "detective",
+        "70s-paranoia"
+      ],
+      "themes": [
+        "neo-noir",
+        "mystery",
+        "detective",
+        "70s-paranoia",
+        "moral-ambiguity"
+      ],
+      "discovery_source": "user-request: essential Gene Hackman films",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Arthur Penn's neo-noir — the film that lives in the same dilapidated beach motel as The Long Goodbye. Hackman as Harry Moseby, a private detective hired by a faded starlet to find her runaway teenage daughter (Melanie Griffith in her debut). Nothing in this movie goes where you think it will. The case isn't really the case; the marriage isn't really a marriage; the answer, when it comes, arrives like a boat circling in the water with no one at the wheel. Penn directs every scene at an angle, the way the 70s knew to shoot cynicism — wide, underlit, nothing emphasized. Hackman's weariness is the real script. The famous Rohmer line (\"I saw a Rohmer film once. It was kind of like watching paint dry.\") is the film describing itself with affection. Laconic, fatalistic, aware that detective work in the 70s is mostly about discovering you were the last to know.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=mdlLWziBggM"
+    },
+    {
+      "id": "scarecrow-1973",
+      "title": "Scarecrow",
+      "year": 1973,
+      "director": "Jerry Schatzberg",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "road-movie",
+        "drifters",
+        "male-friendship",
+        "literary"
+      ],
+      "themes": [
+        "road-movie",
+        "drifters",
+        "male-friendship",
+        "literary",
+        "americana",
+        "70s-new-hollywood"
+      ],
+      "discovery_source": "user-request: essential Gene Hackman films",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Hackman and Pacino at their best, together, in a movie almost nobody saw. Two drifters — one an ex-con with a plan to open a car wash in Pittsburgh, the other a sailor heading back to Detroit to meet the child he's never seen — walking across America. Palme d'Or at Cannes 1973 and then buried by the American distributor. Jerry Schatzberg shoots it the way Robert Frank photographed — overcast diners, empty highways, bus stations where the light is always wrong. Vilmos Zsigmond's cinematography is patient enough to feel the grain. Hackman plays a man whose whole theory of life is that if a scarecrow can make crows laugh, they won't eat the corn; he has built an entire philosophy out of making people laugh instead of fight. Pacino breaks his heart by having a worse philosophy. The final scene in a Detroit fountain is the saddest thing either actor ever filmed. Literary road movie in the Altman / New Hollywood register.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=0_MKLJWn0P8"
+    },
+    {
+      "id": "the-french-connection-1971",
+      "title": "The French Connection",
+      "year": 1971,
+      "director": "William Friedkin",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "police-procedural",
+        "70s-new-hollywood",
+        "urban-paranoia",
+        "cat-and-mouse"
+      ],
+      "themes": [
+        "police-procedural",
+        "70s-new-hollywood",
+        "urban-paranoia",
+        "cat-and-mouse"
+      ],
+      "discovery_source": "user-request: essential Gene Hackman films",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Friedkin's procedural masterpiece — Best Picture, Best Director, Best Actor, all deserved. Hackman as Jimmy 'Popeye' Doyle, the NYPD narcotics detective who chases a French heroin importer across the frozen winter of New York the way a bulldog chases a fox that has better manners than he does. Friedkin shot it like a documentary — long lenses, real crowds, the chase sequence under the elevated tracks filmed with live ammunition in the breech. Hackman's performance is one of the great American character studies: racist, obsessive, wrong in almost every way that matters and right in the one way the case requires. Fernando Rey as Charnier, the elegant antagonist who wins by simply being more patient. The final freeze-frame — Doyle firing into an empty warehouse, his prey having walked calmly back to France — is the 70s in a single frame. Direct cousin to Klute and Parallax View in your paranoia bracket, but faster and hungrier.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=ncWxtpXn3gA"
+    },
+    {
+      "id": "the-royal-tenenbaums-2001",
+      "title": "The Royal Tenenbaums",
+      "year": 2001,
+      "director": "Wes Anderson",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "literary",
+        "family-saga",
+        "melancholic-comedy",
+        "ensemble"
+      ],
+      "themes": [
+        "literary",
+        "family-saga",
+        "melancholic-comedy",
+        "ensemble",
+        "new-york"
+      ],
+      "discovery_source": "user-request: essential Gene Hackman films",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Wes Anderson's most literary film — narrated by Alec Baldwin like a dust-jacket biography, every chapter heading a typewritten card, every Tenenbaum child a Salinger prodigy whose life peaked at twelve. Hackman as Royal Tenenbaum — the patriarch who abandoned them, returning with a fake terminal illness to ask for a second chance he has not earned. This is acid work, but also tender in a way Hackman rarely permitted himself: the man who built his career on bullies here playing a bully with enough self-awareness to know he was one. Gene Tenenbaum, Gene performance of a lifetime at 71. Anjelica Huston, Ben Stiller, Gwyneth Paltrow, Luke and Owen Wilson, Bill Murray — Anderson's first real ensemble, and he shoots it like Altman would have shot a Salinger novel. Every room a diorama, every costume a character trait. A film about the way a literary family's press clippings become a prison, and the way forgiveness, when it comes, arrives dressed in a tracksuit.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=caMgokYWboU"
+    },
+    {
+      "id": "eureka-1983",
+      "title": "Eureka",
+      "year": 1983,
+      "director": "Nicolas Roeg",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "gothic",
+        "historical",
+        "family-saga",
+        "occult-adjacent"
+      ],
+      "themes": [
+        "gothic",
+        "historical",
+        "family-saga",
+        "occult-adjacent",
+        "literary",
+        "esoteric",
+        "patriarch-vampire"
+      ],
+      "discovery_source": "exa-research-ebert-tribute: essential Gene Hackman films Criterion",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Roeg's second entry into your archive, and the one almost nobody saw — a literary, unhinged, furious fever dream about an Australian prospector (Hackman) who spends twenty years in the Klondike, finally strikes gold at the bottom of a frozen river, and from that moment on cannot stop losing. Based on the real 1943 murder of Sir Harry Oakes. Hackman plays Jack McCann the way he never played anyone else — a patriarch who has literally touched gold and is now being drained dry by his family, his son-in-law (a luminous, menacing Rutger Hauer), and a pack of Miami gangsters (Joe Pesci among them) who show up in the third act like an Old Testament plague. Roeg's editing treats the twenty-year leap from Klondike to Caribbean island as a single breath. The film is esoteric in the literal sense — wealth as occult contamination, the gold of Eureka still carrying the cold of the ice it was frozen in. Dropped by the studio, barely released, restored now as one of the great cursed masterpieces of the 80s. Gothic in exactly the Ninth Gate / Devil Rides Out register, but here the book of magic is a gold certificate and the sorcerer is a man who refused to stop being king.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [
+        "personal copy (acquired)"
+      ],
+      "trailer_url": "https://www.youtube.com/watch?v=paz1GsaZMuU",
+      "queue_position": 1
+    },
+    {
+      "id": "unforgiven-1992",
+      "title": "Unforgiven",
+      "year": 1992,
+      "director": "Clint Eastwood",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "revisionist-western",
+        "historical",
+        "moral-weight",
+        "literary"
+      ],
+      "themes": [
+        "revisionist-western",
+        "historical",
+        "moral-weight",
+        "literary"
+      ],
+      "discovery_source": "exa-research-ebert-tribute: essential Gene Hackman films",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Eastwood's meditation on his own career and on the body count of every Western he ever made. Hackman — winning his second and last Oscar — as Little Bill Daggett, the sheriff of Big Whiskey, Wyoming, a man who has built a town on the theory that if he beats strangers hard enough nobody will ever have to kill him. The porch he's building is the film's dominant metaphor: a shelter he never gets to sit on. Hackman's performance is the best screen villain of the 90s precisely because Little Bill has a coherent theory of peace — he just enforces it with his fists and his deputies. Eastwood gives him monologues about 'the truth' of stories, the way a dime novel turns a knife wound into a duel and a killer into a gunslinger. Gene Siskel (and your taste profile) loved revisionist Westerns; this is the final word on that mode. The Schofield Kid's 'I ain't like you, Will' is one of the great repudiations of the genre's mythology. Ebert called it Hackman's other great Klondike-patriarch, a direct conversational partner to Eureka and Bite the Bullet. Stories that survive past facts — which your Minoan scholarship knows better than most.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=ftTX4FoBWlE"
+    },
+    {
+      "id": "i-never-sang-for-my-father-1970",
+      "title": "I Never Sang for My Father",
+      "year": 1970,
+      "director": "Gilbert Cates",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "literary-adaptation",
+        "family-drama",
+        "psychological",
+        "intimate-chamber"
+      ],
+      "themes": [
+        "literary-adaptation",
+        "family-drama",
+        "psychological",
+        "intimate-chamber"
+      ],
+      "discovery_source": "exa-research-ebert-tribute: essential Gene Hackman literary",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Robert Anderson adapting his own stage play — a chamber drama about a middle-aged son (Hackman) caring for his dying father (Melvyn Douglas, an old studio lion in his final-era work) after his mother's death. This is where Scout Tafoya's Ebert tribute argues the Hackman-you-think-you-know was first assembled: the seething anger, the resentment, the frustration he will spend the rest of his career finding more baroque vessels for. 'I'm sorry as hell for your miserable childhood but there's nothing I can do about it now! I did not want to hate you!' — a line of dialogue delivered directly to a father who cannot hear it. Estelle Parsons as the sister, Dorothy Stickney as the mother. Quiet where The Conversation is paranoid, interior where Scarecrow is itinerant — the literary, chamber-play register that was always one of Hackman's registers but almost nobody let him play. Gilbert Cates is invisible as a director, which is exactly what the play needs: a camera that knows when to stay out of a son's way.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=QM7tf8K468I"
+    },
+    {
+      "id": "twilight-1998",
+      "title": "Twilight",
+      "year": 1998,
+      "director": "Robert Benton",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "neo-noir",
+        "elegiac",
+        "70s-mood",
+        "ensemble"
+      ],
+      "themes": [
+        "neo-noir",
+        "elegiac",
+        "70s-mood",
+        "ensemble",
+        "private-detective"
+      ],
+      "discovery_source": "exa-research-ebert-tribute: essential Gene Hackman neo-noir",
+      "content_warnings": [],
+      "commentary": {
+        "claude": "Robert Benton directing Paul Newman, Gene Hackman, Susan Sarandon, James Garner, Reese Witherspoon, and Stockard Channing in a neo-noir that knows its genre is dying and refuses to pretend otherwise. Newman is Harry Ross, a retired private detective living in the guest house of a Hollywood couple (Hackman and Sarandon) whose past is about to produce a body. Benton wrote Bonnie and Clyde and The Late Show, and he directs Twilight like a man taking inventory of his own dead friends. Hackman is dying in this film — literally, as a character — and he plays it the way an old craftsman signs a last piece of furniture. The plot doesn't matter; what matters is the long scenes between Newman and Hackman where two men who have been in this kind of film since 1967 understand that neither the film nor the genre nor maybe the viewers are going to live forever. A direct descendant of The Long Goodbye and Night Moves — neo-noir as elegy. Your paranoia bracket grown old enough to smell its own mortality.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=yPt0jp1o9jU"
+    },
+    {
+      "id": "blow-out-1981",
+      "title": "Blow Out",
+      "year": 1981,
+      "director": "Brian De Palma",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "paranoid-thriller",
+        "neo-noir",
+        "political-conspiracy",
+        "surveillance"
+      ],
+      "themes": [
+        "sound as evidence",
+        "political assassination",
+        "the lone witness",
+        "institutional cover-up",
+        "paranoia vindicated too late"
+      ],
+      "discovery_source": "Crypt Librarian session 2026-04-20 — Parallax View / Conversation lineage",
+      "content_warnings": [
+        "violence",
+        "disturbing ending",
+        "brief nudity"
+      ],
+      "commentary": {
+        "claude": "De Palma's explicit synthesis of The Conversation and The Parallax View. Jack Terry (Travolta) is a B-movie sound technician who accidentally records a political assassination disguised as a car accident. Like Harry Caul, he becomes obsessed with his recording—isolating layers, finding the gunshot. Like Joe Frady, he discovers being right about the conspiracy doesn't save you or anyone else. The ending weaponizes the film's own medium against the audience. Travolta's best performance, Nancy Allen heartbreaking as the witness who trusts him. The sound design is the real protagonist.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Conversation (1974) - direct ancestor, audio surveillance obsession",
+        "The Parallax View (1974) - direct ancestor, assassination cover-up",
+        "Blow-Up (1966) - Antonioni's photographic version of the same premise"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=rDve1A5EAvk"
+    },
+    {
+      "id": "no-way-out-1987",
+      "title": "No Way Out",
+      "year": 1987,
+      "director": "Roger Donaldson",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "paranoid-thriller",
+        "political-conspiracy",
+        "neo-noir"
+      ],
+      "themes": [
+        "Pentagon cover-up",
+        "the investigator investigating himself",
+        "institutional machinery",
+        "identity and deception",
+        "the clock as antagonist"
+      ],
+      "discovery_source": "Crypt Librarian session 2026-04-20 — Parallax View / Conversation lineage",
+      "content_warnings": [
+        "violence",
+        "sexual content",
+        "brief nudity"
+      ],
+      "commentary": {
+        "claude": "Costner is a naval officer assigned to find a nonexistent Soviet mole—a fiction invented to cover up a Secretary of Defense's murder of his mistress. The trap: the investigation's computer enhancement of a Polaroid is slowly resolving into Costner's own face. The institutional walls close with clockwork precision, each procedural step bringing him closer to being crushed by the machine he serves. Has the Parallax View's sense of the system as grinding mechanism—but with a final twist that reframes everything you've watched. Hackman as the Secretary radiates patrician menace.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Parallax View (1974) - institutional machinery crushing the individual",
+        "The Firm (1993) - protagonist trapped inside corrupt institution",
+        "Three Days of the Condor (1975) - intelligence community betrayal"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=lypNWLvpb0I"
+    },
+    {
+      "id": "defence-of-the-realm-1985",
+      "title": "Defence of the Realm",
+      "year": 1985,
+      "director": "David Drury",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "paranoid-thriller",
+        "political-conspiracy",
+        "british-thriller",
+        "journalist-investigation"
+      ],
+      "themes": [
+        "journalism vs. state power",
+        "nuclear secrets",
+        "the cover-up killing witnesses",
+        "British establishment closure",
+        "procedural investigation"
+      ],
+      "discovery_source": "Crypt Librarian session 2026-04-20 — Parallax View / Conversation lineage",
+      "content_warnings": [
+        "violence",
+        "threat of violence"
+      ],
+      "commentary": {
+        "claude": "Gabriel Byrne plays a Fleet Street journalist who helps destroy an MP's career over an apparent sex scandal—then discovers the scandal was manufactured to protect a nuclear cover-up. When his source is killed in a suspicious hit-and-run and his editor backs off, he realizes the entire British establishment has closed ranks. Drury gives it the procedural texture of All the President's Men but the bleakness of Pakula—this is a film where the press cannot save you because the press is part of the machine. Denholm Elliott is superb as the veteran journalist who knows when to stop digging. Deeply underseen.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Parallax View (1974) - journalist as doomed investigator",
+        "All the President's Men (1976) - procedural investigation texture",
+        "Hidden Agenda (1990) - British state conspiracy, Ken Loach"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=wzYAlzAH5sc"
+    },
+    {
+      "id": "the-insider-1999",
+      "title": "The Insider",
+      "year": 1999,
+      "director": "Michael Mann",
+      "watched": false,
+      "status": "to_watch",
+      "rating": {
+        "tom": null,
+        "mary": null
+      },
+      "categories": [
+        "paranoid-thriller",
+        "corporate-conspiracy",
+        "whistleblower",
+        "journalism"
+      ],
+      "themes": [
+        "whistleblower isolation",
+        "corporate surveillance and intimidation",
+        "media as institution with its own cowardice",
+        "the cost of truth-telling",
+        "paranoia as rational response"
+      ],
+      "discovery_source": "Crypt Librarian session 2026-04-20 — Parallax View / Conversation lineage",
+      "content_warnings": [
+        "intense psychological tension",
+        "threats of violence"
+      ],
+      "commentary": {
+        "claude": "Mann takes the 70s paranoid thriller and updates it for corporate America. Jeffrey Wigand (Crowe) is a tobacco chemist who knows his company is deliberately engineering nicotine addiction. Lowell Bergman (Pacino) is the 60 Minutes producer who convinces him to talk. Then CBS kills the story to protect itself from litigation—and Wigand's life is systematically dismantled: surveillance, threats, his marriage destroyed. Mann films corporate power as ambient menace—cars following at a distance, anonymous phone calls, lawyers appearing like apparitions. The formal precision is extraordinary: every shot composed like a painting of institutional dread. The protagonist is right about everything and it nearly destroys him.",
+        "tom": null,
+        "mary": null
+      },
+      "connections": [
+        "The Conversation (1974) - surveillance and isolation of the truth-knower",
+        "The Parallax View (1974) - institutions vs. the individual",
+        "Michael Clayton (2007) - corporate legal conspiracy, same DNA",
+        "Silkwood (1983) - whistleblower destroyed by corporation"
+      ],
+      "available_on": [],
+      "trailer_url": "https://www.youtube.com/watch?v=MGOb29aePyc"
+    }
+  ],
+  "categories": {
+    "noir": "Shadow-drenched crime dramas, moral ambiguity, urban decay, femmes fatales",
+    "neo-noir": "Modern noir sensibility, revisionist takes on classic tropes",
+    "vampire": "Immortal blooddrinkers, often metaphors for desire, class, or corruption",
+    "feminine-gothic": "Female protagonists navigating patriarchal structures, domestic horror",
+    "literary-adaptation": "Films adapted from novels, plays, or other literary sources",
+    "period-piece": "Historical settings rendered with atmospheric detail",
+    "coastal-decay": "Seaside settings in decline, melancholy of faded resorts",
+    "psychic-visions": "Protagonist receives unwanted visions, often tied to justice for the dead",
+    "ghost-seeking-justice": "The dead demanding their murders be solved or acknowledged",
+    "blue-collar-horror": "Working-class protagonists encountering the supernatural",
+    "american-gothic": "Uncanny dread in mundane American settings",
+    "southern-gothic": "Humid atmosphere, small-town secrets, class dynamics",
+    "new-orleans-gothic": "New Orleans as liminal space—decay, heat, the supernatural",
+    "irish-gothic": "Celtic melancholy, rain-soaked landscapes, ancient curses",
+    "los-angeles-noir": "LA as character—sun-bleached corruption, palm trees and shadow",
+    "murder-mystery": "Investigation drives the narrative",
+    "occult-ritual": "Secret societies, ceremonial magic, esoteric knowledge",
+    "cerebral-occult": "Intellectual Satanism, theological debate, rare books and scholarship over spectacle",
+    "folk-horror": "Pagan traditions, rural isolation, community as threat",
+    "restrained-horror": "Atmosphere over spectacle, practical effects",
+    "ensemble-cast": "Multiple strong performances, character-driven",
+    "practical-effects": "Pre-CGI or CGI-minimal craftsmanship",
+    "homoerotic-subtext": "Desire coded through gaze, proximity, shared blood",
+    "mother-daughter": "Maternal bonds tested by circumstance, horror, or time",
+    "wrongly-accused": "Protagonist trapped by circumstance, fighting for innocence",
+    "femme-fatale-subversion": "Women who appear dangerous but are victims themselves",
+    "revisionist-genre": "Deconstructs or subverts genre conventions",
+    "1970s-new-hollywood": "The auteur era—cynicism, formal experimentation, moral ambiguity"
+  }
+}
