@@ -7,6 +7,10 @@ theme = dark:Catppuccin Mocha,light:Catppuccin Latte
 
 # --- Font ---
 font-family = JetBrains Mono Nerd Font
+font-family = Noto Sans Linear A
+font-family = Noto Sans Linear B
+font-family = Noto Sans Symbols 2
+font-family = Minoan Glyphs
 font-size = 15
 font-thicken = true
 

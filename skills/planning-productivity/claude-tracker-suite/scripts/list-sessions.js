@@ -26,6 +26,9 @@ async function main() {
     maxSessions: utils.MAX_SESSIONS,
   });
 
+  // Load speculator data for TTY info
+  const specData = utils.loadSpeculatorData();
+
   // Header
   console.log('\n\x1b[1m\x1b[36m═══════════════════════════════════════════════════════════════\x1b[0m');
   if (VSCODE_ONLY) {
@@ -39,7 +42,13 @@ async function main() {
     console.log('\x1b[90m  Showing ' + sessions.length + ' sessions from VS Code workspaces\x1b[0m');
     console.log('\x1b[33m  Resume commands listed below for each session\x1b[0m\n');
   } else {
-    console.log('\x1b[90m  ' + runningCount + ' running, ' + inactiveCount + ' inactive  |  ' + vsCodeCount + ' in VS Code\x1b[0m\n');
+    let headerLine = '\x1b[90m  ' + runningCount + ' running, ' + inactiveCount + ' inactive  |  ' + vsCodeCount + ' in VS Code';
+    if (specData && specData.ghosttyRunning) {
+      const tabCount = specData.stats.total_ttys || 0;
+      const winCount = (specData.windows || []).length;
+      headerLine += '  |  \x1b[35m' + tabCount + ' Ghostty tabs (' + winCount + ' windows)\x1b[90m';
+    }
+    console.log(headerLine + '\x1b[0m\n');
   }
 
   for (let i = 0; i < sessions.length; i++) {
@@ -55,7 +64,13 @@ async function main() {
       ? ' \x1b[44m\x1b[37m VS CODE \x1b[0m'
       : '';
 
-    console.log('\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + projectName + '\x1b[0m  ' + statusBadge + vsCodeBadge);
+    // TTY badge from speculator
+    const ttyInfo = specData ? utils.getSessionTTY(session.fullId, specData) : null;
+    const ttyBadge = ttyInfo
+      ? ' \x1b[45m\x1b[37m ' + ttyInfo.tty.replace('ttys', 's') + ' \x1b[0m'
+      : '';
+
+    console.log('\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + projectName + '\x1b[0m  ' + statusBadge + vsCodeBadge + ttyBadge);
 
     if (session.sessionSummary) {
       console.log('    \x1b[90mSummary:\x1b[0m \x1b[1m' + session.sessionSummary + '\x1b[0m');

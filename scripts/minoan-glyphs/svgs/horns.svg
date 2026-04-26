@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- HORNS OF CONSECRATION — U+E500 -->
+  <!-- Double-horn U-shape from Knossos architectural fragments -->
+  <path d="M 200 200 L 200 650 Q 200 750 300 750 L 450 750 L 450 500 L 512 450 L 574 500 L 574 750 L 724 750 Q 824 750 824 650 L 824 200 L 740 200 L 740 650 Q 740 680 724 680 L 574 680 L 574 500 L 512 380 L 450 500 L 450 680 L 300 680 Q 284 680 284 650 L 284 200 Z" fill="black"/>
+</svg>
