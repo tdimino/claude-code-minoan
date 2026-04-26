@@ -1,0 +1,30 @@
+# Knossot — Minoan palace dark theme
+# Obsidian walls, Egyptian blue frescoes, saffron and terracotta accents
+# Sampled from Dolphin Fresco, Bull-Leaping Fresco, Throne Room griffin fresco
+
+background = #1a1815
+foreground = #e0d5c0
+cursor-color = #daa520
+cursor-text = #1a1815
+selection-background = #2a3a55
+selection-foreground = #e0d5c0
+
+# Normal (0-7)
+palette = 0=#2a2218
+palette = 1=#b24128
+palette = 2=#5a7337
+palette = 3=#d4a017
+palette = 4=#1e4b91
+palette = 5=#822d5f
+palette = 6=#2d7d8c
+palette = 7=#c8bda8
+
+# Bright (8-15)
+palette = 8=#6b5d4a
+palette = 9=#d45a3a
+palette = 10=#7ca048
+palette = 11=#e8c040
+palette = 12=#4a90c0
+palette = 13=#c070a0
+palette = 14=#45a0a8
+palette = 15=#ede3cf

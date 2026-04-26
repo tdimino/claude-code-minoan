@@ -1,6 +1,6 @@
 # Scripts Index
 
-*13 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
+*14 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
 
 ## Plugin Management
 
@@ -34,4 +34,5 @@
 | `syspeek/` | macOS system resource monitor — categorized processes, Kothar-compatible JSON, Claudicle memory integration, launchd daemon |
 | `skill-audit/` | Skill freshness audit pipeline — `skill-audit.py` for local inventory/staleness report (80 skills, ANSI table + JSON), `skill-freshness.py` for automated Exa/Firecrawl upstream validation, `freshness-registry.yaml` for curated upstream metadata |
 | `terminal-greeting/` | Illuminated-manuscript greeting for new shell sessions — random classical salutations, `print -z "claude"` buffer hint, ANSI gold/rose box art |
+| `speculator/` | **speculator** — launchd daemon mapping Ghostty terminal tabs to running Claude Code sessions. Process-tree discovery (Ghostty → login children → TTYs → Claude PIDs → session metadata), enriched from soul registry, session summaries, tags, and git branches. JSON + Markdown snapshots every 5 minutes, synced to `agent_docs/ghostty-sessions.md`. Integrates with `claude-tracker-suite` via `tracker-utils.js` |
 | `wterm-server/` | **wterm** — Node.js web terminal daimon (node-pty + @wterm/react). Browser-based shell access, deploy on any macOS machine. Deploys to `~/daimones/wterm-server/`, managed by `skills/wterm/` |

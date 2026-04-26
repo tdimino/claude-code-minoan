@@ -14,8 +14,8 @@ Reload with `Cmd+Shift+Comma` or restart Ghostty.
 
 | Category | Settings |
 |----------|----------|
-| **Theme** | Catppuccin Mocha (dark) / Latte (light) / Cream (parchment) — follows macOS appearance or manual switch |
-| **Font** | JetBrains Mono Nerd Font 15pt, thickened (Nerd Font required for statusline glyphs) |
+| **Theme** | Catppuccin Mocha/Latte, Cream (parchment), Knossot (dark), Akrotiri (light) — follows macOS appearance or manual switch |
+| **Font** | JetBrains Mono Nerd Font 15pt + Noto Sans Linear A/B/Symbols 2 fallback cascade |
 | **macOS** | Option-as-Alt (required for word nav), transparent titlebar |
 | **Appearance** | 0.90 opacity, blur, balanced padding, bold-is-bright, unfocused split dimming (0.85) |
 | **Persistence** | Tabs/splits restored on restart |
@@ -87,14 +87,45 @@ Then use the commands:
 | `dark` | macOS dark mode + Catppuccin Mocha |
 | `light` | macOS light mode + Catppuccin Latte |
 | `cream` | macOS light mode + Cream (warm parchment) |
+| `knossot` | macOS dark mode + Knossot (Minoan palace) |
+| `akrotiri` | macOS light mode + Akrotiri (sun-bleached plaster) |
 
-### Cream Theme
+### Custom Themes
 
-A warm parchment theme inspired by aged vellum and iron gall ink. Install:
+Install all custom themes:
 
 ```bash
-cp ghostty/themes/Cream ~/Library/Application\ Support/com.mitchellh.ghostty/themes/
+cp ghostty/themes/* ~/Library/Application\ Support/com.mitchellh.ghostty/themes/
 ```
+
+| Theme | Mode | Inspiration |
+|-------|------|-------------|
+| **Cream** | Light | Aged vellum and iron gall ink |
+| **Knossot** | Dark | Palace interior — obsidian walls, Egyptian blue frescoes, saffron and terracotta |
+| **Akrotiri** | Light | Excavated city — sun-bleached plaster, Spring Fresco colors, volcanic earth |
+
+### Font Cascade for Ancient Scripts
+
+The config includes fallback fonts for Linear A, Linear B, Phaistos Disc, and custom Minoan glyphs:
+
+```
+font-family = JetBrains Mono Nerd Font
+font-family = Noto Sans Linear A
+font-family = Noto Sans Linear B
+font-family = Noto Sans Symbols 2
+font-family = Minoan Glyphs
+```
+
+Install the fonts:
+
+```bash
+brew install --cask font-noto-sans-symbols-2
+# Noto Sans Linear A/B — download from Google Fonts or install via brew
+# MinoanGlyphs — build and install from scripts/minoan-glyphs/:
+python3 scripts/minoan-glyphs/build.py --install
+```
+
+Verify: `printf '\U10600 \U101F5'` should render a Linear A sign and a Phaistos Disc rosette (not tofu).
 
 ### Terminal Greeting
 
