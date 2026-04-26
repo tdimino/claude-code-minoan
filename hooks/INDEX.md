@@ -98,7 +98,7 @@ Not directly bound in settings.json but called by other hooks.
 |--------|-------------|
 | `debug-hook-input.sh` | Debug script — dumps hook JSON input to stderr |
 | `terminal-title.sh` | Two-tier terminal title with repo icons (target of on-ready.sh and on-thinking.sh symlinks) |
-| `session-name.sh` | Extract session slug from transcript path |
+| `session-name.sh` | Extract session name (PID file → transcript slug → truncated ID) |
 | `crab-model.sh` | Output model name with crab emoji for statusline |
 | `plan-cleanup-symlinks.py` | Standalone symlink cleanup (superseded by plan-rename.py session_end) |
 | `update-agent-docs.sh` | Background update of agent_docs/active-projects.md |
