@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- WAVE BAND — U+E50A -->
+  <!-- Single Aegean wave segment from architectural frieze — double S-curve -->
+  <path d="M 80 472 Q 180 260 350 260 Q 520 260 532 472 Q 544 684 714 684 Q 884 684 944 472 L 944 552 Q 884 764 714 764 Q 544 764 532 552 Q 520 340 350 340 Q 180 340 80 552 Z" fill="black"/>
+  <path d="M 80 592 Q 180 380 350 380 Q 520 380 532 592 Q 544 804 714 804 Q 884 804 944 592 L 944 640 Q 884 852 714 852 Q 544 852 532 640 Q 520 428 350 428 Q 180 428 80 640 Z" fill="black"/>
+</svg>

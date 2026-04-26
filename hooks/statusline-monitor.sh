@@ -18,10 +18,15 @@ export STATUSLINE_MODE
 # Persist mode for ccstatusline custom-command widgets (which don't inherit env vars)
 echo "$STATUSLINE_MODE" > "$HOME/.claude/statusline-mode"
 
-# ── ANSI color codes (mode-adaptive) ──
+# ── ANSI color codes (mode-adaptive, theme-aware) ──
 RESET="\033[0m"
 DIM="\033[2m"
-if [[ "$STATUSLINE_MODE" == "light" ]]; then
+if [[ "${STATUSLINE_THEME:-}" == "minoan" ]]; then
+    # Knossot palette — Knossos fresco pigments
+    TYRIAN="\033[38;2;218;165;32m"      # Saffron (session name)
+    CRAB_COLOR="\033[38;2;130;45;95m"   # Tyrian purple (model)
+    BLUE="\033[38;2;30;75;145m"         # Egyptian blue (git branch)
+elif [[ "$STATUSLINE_MODE" == "light" ]]; then
     TYRIAN="\033[38;2;140;45;20m"       # Darker burnt sienna
     CRAB_COLOR="\033[38;2;120;40;110m"  # Deeper Byzantium
     BLUE="\033[34m"                      # Standard blue (not bright)

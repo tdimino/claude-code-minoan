@@ -1,0 +1,30 @@
+# Akrotiri — Minoan light theme
+# Sun-bleached plaster, Spring Fresco colors, volcanic earth
+# Sampled from Akrotiri excavation site, Thera/Santorini
+
+background = #f0e6d0
+foreground = #2a2218
+cursor-color = #b24128
+cursor-text = #f0e6d0
+selection-background = #ddd0b5
+selection-foreground = #2a2218
+
+# Normal (0-7)
+palette = 0=#3a3228
+palette = 1=#a03520
+palette = 2=#4a6030
+palette = 3=#9a7520
+palette = 4=#1a4080
+palette = 5=#70285a
+palette = 6=#256570
+palette = 7=#8a7e6a
+
+# Bright (8-15)
+palette = 8=#7a6552
+palette = 9=#c84830
+palette = 10=#6e8c50
+palette = 11=#c09530
+palette = 12=#3870a0
+palette = 13=#a05080
+palette = 14=#387870
+palette = 15=#a09478

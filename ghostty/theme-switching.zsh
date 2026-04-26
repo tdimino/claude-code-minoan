@@ -29,3 +29,13 @@ cream() {
   osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to false'
   _ghostty_set_theme "Cream"
 }
+
+knossot() {
+  osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true'
+  _ghostty_set_theme "Knossot"
+}
+
+akrotiri() {
+  osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to false'
+  _ghostty_set_theme "Akrotiri"
+}
