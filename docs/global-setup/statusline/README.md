@@ -4,6 +4,8 @@ Custom Claude Code status bar with gradient context bar, ensouled indicator, and
 
 ![StatusLine Screenshot](screenshot.png)
 
+> **Setting it up?** See [CUSTOMIZE.md](CUSTOMIZE.md) for the step-by-step install — this README is the architectural reference.
+
 ## Architecture
 
 Line 1 is rendered by `~/.claude/hooks/statusline-monitor.sh` with ANSI true color passthrough—ccstatusline strips inline ANSI codes, so the gradient context bar can't go through it.

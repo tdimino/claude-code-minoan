@@ -14,8 +14,8 @@ Reload with `Cmd+Shift+Comma` or restart Ghostty.
 
 | Category | Settings |
 |----------|----------|
-| **Theme** | Catppuccin Mocha (dark) / Latte (light) — follows macOS appearance |
-| **Font** | JetBrains Mono 15pt, thickened |
+| **Theme** | Catppuccin Mocha (dark) / Latte (light) / Cream (parchment) — follows macOS appearance or manual switch |
+| **Font** | JetBrains Mono Nerd Font 15pt, thickened (Nerd Font required for statusline glyphs) |
 | **macOS** | Option-as-Alt (required for word nav), transparent titlebar |
 | **Appearance** | 0.90 opacity, blur, balanced padding, bold-is-bright, unfocused split dimming (0.85) |
 | **Persistence** | Tabs/splits restored on restart |
@@ -71,9 +71,34 @@ brew install terminal-notifier # Desktop notifications (used by hooks)
 npm install -g ccstatusline    # Claude Code statusline
 ```
 
-## Dark/Light Mode
+## Theme Switching
 
-The `theme = dark:...,light:...` line follows macOS system appearance automatically. Toggle via System Settings > Appearance.
+The `theme = dark:...,light:...` line follows macOS system appearance automatically. For manual control, source the theme-switching script:
+
+```bash
+# Add to ~/.zshrc
+source ~/.claude/scripts/ghostty/theme-switching.zsh
+```
+
+Then use the commands:
+
+| Command | Effect |
+|---------|--------|
+| `dark` | macOS dark mode + Catppuccin Mocha |
+| `light` | macOS light mode + Catppuccin Latte |
+| `cream` | macOS light mode + Cream (warm parchment) |
+
+### Cream Theme
+
+A warm parchment theme inspired by aged vellum and iron gall ink. Install:
+
+```bash
+cp ghostty/themes/Cream ~/Library/Application\ Support/com.mitchellh.ghostty/themes/
+```
+
+### Terminal Greeting
+
+Pair with `scripts/terminal-greeting/greeting.zsh` for an illuminated-manuscript greeting on each new shell, with `claude` prepopulated in the input buffer. See `scripts/terminal-greeting/README.md`.
 
 ## Ghostty Version Note
 
