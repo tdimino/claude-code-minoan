@@ -131,9 +131,38 @@ else
     test_fail "--no-auto escape hatch missing"
 fi
 
-# Test 9: Quick API test (optional, skipped in quick mode)
+# Test 9: Backup/Restore Safety
+echo -e "\n${YELLOW}Test 9: Backup/Restore Safety${NC}"
+
+if grep -q '.AGENTS.md.codex-orchestrator-backup' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "codex-exec.sh uses deterministic backup name"
+else
+    test_fail "codex-exec.sh missing deterministic backup name"
+fi
+if grep -q '.AGENTS.md.codex-orchestrator-backup' "$SKILL_DIR/scripts/codex-session.py"; then
+    test_pass "codex-session.py uses deterministic backup name"
+else
+    test_fail "codex-session.py missing deterministic backup name"
+fi
+if grep -q 'trap cleanup EXIT INT TERM HUP' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "codex-exec.sh traps EXIT INT TERM HUP"
+else
+    test_fail "codex-exec.sh missing extended signal traps"
+fi
+if grep -q 'crash recovery' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "codex-exec.sh has crash recovery logic"
+else
+    test_fail "codex-exec.sh missing crash recovery logic"
+fi
+if grep -q 'AGENTS.md.backup\.\*' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "codex-exec.sh migrates old PID-based backups"
+else
+    test_fail "codex-exec.sh missing PID-based backup migration"
+fi
+
+# Test 10: Quick API test (optional, skipped in quick mode)
 if [ "$QUICK_MODE" = false ]; then
-    echo -e "\n${YELLOW}Test 8: API Connectivity${NC}"
+    echo -e "\n${YELLOW}Test 10: API Connectivity${NC}"
     if [ -n "$OPENAI_API_KEY" ]; then
         if timeout 15 codex exec --model gpt-5-mini "print('hello')" &> /dev/null; then
             test_pass "Codex API connection works"
@@ -144,7 +173,7 @@ if [ "$QUICK_MODE" = false ]; then
         echo -e "${YELLOW}⚠ SKIP${NC}: OPENAI_API_KEY not set"
     fi
 else
-    echo -e "\n${YELLOW}Test 8: API Connectivity${NC}"
+    echo -e "\n${YELLOW}Test 10: API Connectivity${NC}"
     echo -e "${YELLOW}⚠ SKIP${NC}: Quick mode enabled"
 fi
 

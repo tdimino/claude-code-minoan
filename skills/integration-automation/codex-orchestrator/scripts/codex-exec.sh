@@ -8,7 +8,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AGENTS_DIR="$SCRIPT_DIR/../agents"
+AGENTS_DIR="$(cd "$SCRIPT_DIR/../agents" && pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -53,9 +53,9 @@ show_usage() {
     echo "  --with-mcp            (no-op, kept for compatibility; manage MCPs in ~/.codex/config.toml)"
     echo ""
     echo "Profile defaults:"
-    echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.4 + high"
-    echo "  Planning (planner,architect):                                       gpt-5.4 + high"
-    echo "  Research (researcher):                                              gpt-5.4 + medium"
+    echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.5 + high"
+    echo "  Planning (planner,architect):                                       gpt-5.5 + high"
+    echo "  Research (researcher):                                              gpt-5.5 + medium"
     echo ""
     echo "Examples:"
     echo "  codex-exec.sh reviewer \"Review src/auth.ts for security issues\""
@@ -71,19 +71,19 @@ show_usage() {
 get_profile_defaults() {
     local profile="$1"
     case "$profile" in
-        # Planning profiles: gpt-5.4 with high reasoning (gpt-5.4-pro requires API key auth)
+        # Planning profiles: gpt-5.5 with high reasoning (gpt-5.5-pro requires API key auth)
         planner|architect)
-            DEFAULT_MODEL="gpt-5.4"
+            DEFAULT_MODEL="gpt-5.5"
             DEFAULT_REASONING="high"
             ;;
-        # Research profile: gpt-5.4 with medium reasoning (1M context, read-only)
+        # Research profile: gpt-5.5 with medium reasoning (1M context, read-only)
         researcher)
-            DEFAULT_MODEL="gpt-5.4"
+            DEFAULT_MODEL="gpt-5.5"
             DEFAULT_REASONING="medium"
             ;;
-        # Coding profiles: gpt-5.4 with high reasoning (unified coding + reasoning)
+        # Coding profiles: gpt-5.5 with high reasoning (unified coding + reasoning)
         builder|reviewer|debugger|refactor|syseng|security|docs)
-            DEFAULT_MODEL="gpt-5.4"
+            DEFAULT_MODEL="gpt-5.5"
             DEFAULT_REASONING="high"
             ;;
         *)
@@ -91,6 +91,19 @@ get_profile_defaults() {
             DEFAULT_REASONING=""
             ;;
     esac
+}
+
+# Detect if an AGENTS.md is one we injected (symlink into our agents dir).
+is_our_injection() {
+    local file="$1"
+    if [ -L "$file" ]; then
+        local target
+        target="$(readlink "$file")"
+        case "$target" in
+            */.claude/skills/codex-orchestrator/agents/*) return 0 ;;
+        esac
+    fi
+    return 1
 }
 
 if [ $# -lt 2 ]; then
@@ -210,20 +223,73 @@ fi
 # Save current directory
 WORK_DIR="$(pwd)"
 
-# Check if AGENTS.md already exists and back it up
-AGENTS_BACKUP=""
-if [ -f "$WORK_DIR/AGENTS.md" ]; then
-    AGENTS_BACKUP="$WORK_DIR/AGENTS.md.backup.$$"
-    mv "$WORK_DIR/AGENTS.md" "$AGENTS_BACKUP"
+# --- Robust AGENTS.md backup/restore ---
+BACKUP_NAME=".AGENTS.md.codex-orchestrator-backup"
+BACKUP_PATH="$WORK_DIR/$BACKUP_NAME"
+AGENTS_TARGET="$WORK_DIR/AGENTS.md"
+HAD_EXISTING_AGENTS=""
+
+# Phase 0: Migrate old PID-based backups from previous versions
+for old_backup in "$WORK_DIR"/AGENTS.md.backup.*; do
+    [ -e "$old_backup" ] || continue
+    echo -e "${YELLOW}Warning: Found stale backup from previous run: $old_backup${NC}"
+    if [ ! -e "$AGENTS_TARGET" ] && [ ! -L "$AGENTS_TARGET" ]; then
+        if [ ! -L "$old_backup" ]; then
+            echo -e "${YELLOW}Restoring AGENTS.md from stale backup: $old_backup${NC}"
+            mv "$old_backup" "$AGENTS_TARGET"
+        else
+            echo -e "${YELLOW}Removing stale symlink backup: $old_backup${NC}"
+            rm -f "$old_backup"
+        fi
+    else
+        rm -f "$old_backup"
+    fi
+done
+
+# Phase 1: Startup crash recovery
+if [ -e "$BACKUP_PATH" ] || [ -L "$BACKUP_PATH" ]; then
+    echo -e "${YELLOW}Warning: Found backup from a previous crashed run.${NC}"
+    if [ -e "$AGENTS_TARGET" ] || [ -L "$AGENTS_TARGET" ]; then
+        if is_our_injection "$AGENTS_TARGET"; then
+            echo -e "${YELLOW}Current AGENTS.md is a stale injection. Restoring original from backup.${NC}"
+            rm -f "$AGENTS_TARGET"
+            mv "$BACKUP_PATH" "$AGENTS_TARGET"
+        else
+            echo -e "${YELLOW}Current AGENTS.md appears to be user content. Removing orphaned backup.${NC}"
+            rm -f "$BACKUP_PATH"
+        fi
+    else
+        echo -e "${YELLOW}Restoring AGENTS.md from backup after previous crash.${NC}"
+        mv "$BACKUP_PATH" "$AGENTS_TARGET"
+    fi
 fi
 
-# Create AGENTS.md in the current directory
-# If --web-search, concatenate profile + Exa guide; otherwise symlink
+# Phase 2: Concurrent-run guard
+if [ -e "$BACKUP_PATH" ] || [ -L "$BACKUP_PATH" ]; then
+    echo -e "${RED}Error: Backup file still exists after recovery. Another codex-orchestrator may be running in this directory.${NC}"
+    echo -e "${RED}If not, manually inspect and remove: $BACKUP_PATH${NC}"
+    exit 1
+fi
+
+# Phase 3: Verify working directory is writable
+if ! touch "$WORK_DIR/.codex-orchestrator-write-test" 2>/dev/null; then
+    echo -e "${RED}Error: Working directory is not writable: $WORK_DIR${NC}"
+    exit 1
+fi
+rm -f "$WORK_DIR/.codex-orchestrator-write-test"
+
+# Phase 4: Backup existing AGENTS.md (if any)
+if [ -e "$AGENTS_TARGET" ] || [ -L "$AGENTS_TARGET" ]; then
+    HAD_EXISTING_AGENTS="true"
+    cp -a "$AGENTS_TARGET" "$BACKUP_PATH"
+fi
+
+# Phase 5: Create profile AGENTS.md
 EXA_GUIDE="$HOME/.claude/skills/exa-search/codex-agent-guide.md"
 if [ -n "$WEB_SEARCH" ] && [ -f "$EXA_GUIDE" ]; then
-    cat "$AGENTS_FILE" "$EXA_GUIDE" > "$WORK_DIR/AGENTS.md"
+    cat "$AGENTS_FILE" "$EXA_GUIDE" > "$AGENTS_TARGET"
 else
-    ln -sf "$AGENTS_FILE" "$WORK_DIR/AGENTS.md"
+    ln -sf "$AGENTS_FILE" "$AGENTS_TARGET"
 fi
 
 echo -e "${GREEN}Executing Codex with profile: $PROFILE${NC}"
@@ -258,17 +324,19 @@ if [ -n "$RESUME_SESSION" ]; then
 fi
 echo ""
 
-# Cleanup function
+# Cleanup function: restore original AGENTS.md
 cleanup() {
-    rm -f "$WORK_DIR/AGENTS.md"
-    if [ -n "$AGENTS_BACKUP" ] && [ -f "$AGENTS_BACKUP" ]; then
-        mv "$AGENTS_BACKUP" "$WORK_DIR/AGENTS.md"
+    rm -f "$AGENTS_TARGET"
+    if [ -n "$HAD_EXISTING_AGENTS" ] && [ -e "$BACKUP_PATH" ]; then
+        mv "$BACKUP_PATH" "$AGENTS_TARGET"
+    elif [ -e "$BACKUP_PATH" ]; then
+        rm -f "$BACKUP_PATH"
     fi
     if [ -n "$OUTPUT_FILE" ]; then
         rm -f "$OUTPUT_FILE"
     fi
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM HUP
 
 # Build codex command as array to preserve quoting
 # --skip-git-repo-check allows running in directories not in Codex's trusted list

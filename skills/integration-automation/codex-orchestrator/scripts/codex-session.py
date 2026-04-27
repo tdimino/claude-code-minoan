@@ -17,13 +17,33 @@ Examples:
 import subprocess
 import sys
 import os
+import signal
 import shutil
-import tempfile
 from pathlib import Path
 
 # Get the agents directory relative to this script
 SCRIPT_DIR = Path(__file__).parent.resolve()
 AGENTS_DIR = SCRIPT_DIR.parent / "agents"
+
+BACKUP_NAME = ".AGENTS.md.codex-orchestrator-backup"
+
+
+def is_our_injection(path: Path) -> bool:
+    """Check if an AGENTS.md is one we injected (symlink into our agents dir)."""
+    if path.is_symlink():
+        target = str(path.resolve())
+        if "/codex-orchestrator/agents/" in target:
+            return True
+    return False
+
+
+def _signal_handler(signum, frame):
+    """Re-raise as SystemExit so the finally block executes."""
+    sys.exit(128 + signum)
+
+
+signal.signal(signal.SIGTERM, _signal_handler)
+signal.signal(signal.SIGHUP, _signal_handler)
 
 PROFILES = {
     "reviewer": "Code review specialist - quality, bugs, performance",
@@ -82,15 +102,64 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
 
     agents_path = get_agents_path(profile)
     work_dir = Path.cwd()
-
-    # Check if AGENTS.md exists and back it up
     existing_agents = work_dir / "AGENTS.md"
-    backup_path = None
-    if existing_agents.exists():
-        backup_path = work_dir / f"AGENTS.md.backup.{os.getpid()}"
-        shutil.move(str(existing_agents), str(backup_path))
+    backup_path = work_dir / BACKUP_NAME
+    had_existing_agents = False
 
-    # Create symlink to the profile's AGENTS.md
+    # Phase 0: Migrate old PID-based backups
+    for old_backup in work_dir.glob("AGENTS.md.backup.*"):
+        print(f"Warning: Found stale backup from previous run: {old_backup}")
+        if not existing_agents.exists() and not existing_agents.is_symlink():
+            if not old_backup.is_symlink():
+                print(f"Restoring AGENTS.md from stale backup: {old_backup}")
+                shutil.move(str(old_backup), str(existing_agents))
+            else:
+                print(f"Removing stale symlink backup: {old_backup}")
+                old_backup.unlink()
+        else:
+            old_backup.unlink()
+
+    # Phase 1: Startup crash recovery
+    if backup_path.exists() or backup_path.is_symlink():
+        print("Warning: Found backup from a previous crashed run.")
+        if existing_agents.exists() or existing_agents.is_symlink():
+            if is_our_injection(existing_agents):
+                print("Current AGENTS.md is a stale injection. Restoring original from backup.")
+                existing_agents.unlink()
+                shutil.move(str(backup_path), str(existing_agents))
+            else:
+                print("Current AGENTS.md appears to be user content. Removing orphaned backup.")
+                backup_path.unlink()
+        else:
+            print("Restoring AGENTS.md from backup after previous crash.")
+            shutil.move(str(backup_path), str(existing_agents))
+
+    # Phase 2: Concurrent-run guard
+    if backup_path.exists() or backup_path.is_symlink():
+        print("Error: Backup still exists after recovery. Another instance may be running.")
+        print(f"If not, manually remove: {backup_path}")
+        sys.exit(1)
+
+    # Phase 3: Verify working directory is writable
+    test_file = work_dir / ".codex-orchestrator-write-test"
+    try:
+        test_file.touch()
+        test_file.unlink()
+    except OSError:
+        print(f"Error: Working directory is not writable: {work_dir}")
+        sys.exit(1)
+
+    # Phase 4: Backup existing AGENTS.md
+    if existing_agents.exists() or existing_agents.is_symlink():
+        had_existing_agents = True
+        if existing_agents.is_symlink():
+            backup_path.symlink_to(os.readlink(existing_agents))
+        else:
+            shutil.copy2(str(existing_agents), str(backup_path))
+
+    # Phase 5: Create profile AGENTS.md
+    if existing_agents.exists() or existing_agents.is_symlink():
+        existing_agents.unlink()
     existing_agents.symlink_to(agents_path)
 
     try:
@@ -99,7 +168,7 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
 
         if interactive:
             # Interactive mode - just launch codex with the profile
-            cmd = ["codex", "--model", "gpt-5.4"]
+            cmd = ["codex", "--model", "gpt-5.5"]
             if prompt:
                 cmd.append(prompt)
         else:
@@ -109,7 +178,7 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
                 cmd = [
                     "codex", "exec",
                     "--skip-git-repo-check",
-                    "--model", "gpt-5.4",
+                    "--model", "gpt-5.5",
                     "--sandbox", "read-only",
                     "--ephemeral",
                     prompt
@@ -121,7 +190,7 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
                 cmd = [
                     "codex", "exec",
                     "--skip-git-repo-check",
-                    "--model", "gpt-5.4",
+                    "--model", "gpt-5.5",
                     "--sandbox", "workspace-write",
                     "--full-auto",
                     prompt
@@ -133,11 +202,14 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
         return result.returncode
 
     finally:
-        # Cleanup: remove symlink and restore backup
-        if existing_agents.is_symlink():
+        # Remove our injected AGENTS.md
+        if existing_agents.is_symlink() or existing_agents.exists():
             existing_agents.unlink()
-        if backup_path and backup_path.exists():
+        # Restore backup
+        if had_existing_agents and (backup_path.exists() or backup_path.is_symlink()):
             shutil.move(str(backup_path), str(existing_agents))
+        elif backup_path.exists() or backup_path.is_symlink():
+            backup_path.unlink()
 
 
 def main():
