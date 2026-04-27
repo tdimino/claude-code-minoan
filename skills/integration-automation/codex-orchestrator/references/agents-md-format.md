@@ -7,8 +7,8 @@ AGENTS.md files customize Codex agent behavior by providing persona, focus areas
 Codex reads AGENTS.md from the current working directory. The codex-orchestrator skill manages this by:
 
 1. Storing profile templates in `agents/*.md`
-2. Copying the selected profile to a temp directory as `AGENTS.md`
-3. Running Codex from that directory
+2. Symlinking (or concatenating with web-search guide) the selected profile as `AGENTS.md` in the current working directory
+3. Running Codex from the current working directory (AGENTS.md is backed up and restored automatically)
 
 ## Basic Structure
 

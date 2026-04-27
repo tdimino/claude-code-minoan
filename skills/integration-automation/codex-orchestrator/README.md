@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-04-23 | Codex CLI v0.122.0 | Models: GPT-5.5 family
+> Last updated: 2026-04-27 | Codex CLI v0.125.0 | Models: GPT-5.5 family
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -218,6 +218,15 @@ Every ExecPlan includes:
 - **Validation and Acceptance** - How to verify success
 - **Idempotence and Recovery** - Safe retry and rollback paths
 - **Interfaces and Dependencies** - Required types, signatures, libraries
+
+## AGENTS.md Safety
+
+The skill automatically backs up any existing `AGENTS.md` in your working directory before injecting a profile, and restores it when the session ends. The backup uses a deterministic name (`.AGENTS.md.codex-orchestrator-backup`) so it can be recovered even after crashes or SIGKILL. On each invocation, the skill:
+
+1. Recovers from any previous crashed run (restores orphaned backups)
+2. Guards against concurrent runs in the same directory
+3. Preserves symlink-type AGENTS.md files faithfully
+4. Traps EXIT, INT, TERM, and HUP signals for cleanup
 
 ## Script Options
 
