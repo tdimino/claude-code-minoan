@@ -22,7 +22,7 @@ Detailed parameter reference for all 5 Exa search scripts.
 | `--schema-file` | Path to JSON file containing output schema |
 | `--schema-preset` | Preset schema: company, paper-survey, competitor-analysis, person, news-digest |
 | `--text-output` | Simple text output with description string |
-| `--category, -c` | Filter: company, research paper, news, pdf, github, tweet, personal site, people, financial report |
+| `--category, -c` | Filter: company, research paper, news, pdf, github, personal site, people, financial report |
 | `--domains` | Only include these domains |
 | `--exclude-domains` | Exclude these domains |
 | `--after` | Start date (YYYY-MM-DD) |
@@ -36,6 +36,13 @@ Detailed parameter reference for all 5 Exa search scripts.
 | `--highlights` | Include key excerpts |
 | `--subpages` | Crawl linked subpages (count) |
 | `--no-text` | Don't retrieve page text |
+| `--max-age-hours` | Max content age in hours (0=always livecrawl, -1=never) |
+| `--livecrawl` | ~~Deprecated: use --max-age-hours~~ Livecrawl mode |
+| `--verbosity` | Content verbosity: compact, standard, full (requires --max-age-hours 0) |
+| `--include-sections` | Only include these page sections (requires --max-age-hours 0) |
+| `--exclude-sections` | Exclude these page sections (requires --max-age-hours 0) |
+| `--highlights-max-chars` | Max characters for highlights (preferred over numSentences) |
+| `--cost` | Show cost breakdown |
 | `--safe` | Content moderation filter |
 | `--json` | Output raw JSON |
 
@@ -99,13 +106,19 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Compare cloud provide
 |-----------|-------------|
 | `--summary` | Generate AI summary with query |
 | `--highlights` | Extract key excerpts |
+| `--highlights-max-chars` | Max characters for highlights (preferred over numSentences) |
 | `--subpages` | Crawl linked subpages (count) |
-| `--livecrawl` | Fresh content: always, preferred, fallback, never |
+| `--max-age-hours` | Max page age in hours (0=always livecrawl, -1=never livecrawl) |
+| `--livecrawl` | ~~Deprecated: use --max-age-hours~~ Fresh content mode |
+| `--verbosity` | Content verbosity: compact, standard, full (requires --max-age-hours 0) |
+| `--include-sections` | Only include these page sections (requires --max-age-hours 0) |
+| `--exclude-sections` | Exclude these page sections (requires --max-age-hours 0) |
 | `--context` | Combine contents into RAG string |
 | `--context-chars` | Limit context string length |
 | `--links` | Extract N links |
 | `--images` | Extract N images |
 | `--max-chars` | Limit text length per result |
+| `--cost` | Show cost breakdown |
 | `--json` | Output raw JSON |
 
 ### Examples
@@ -151,10 +164,17 @@ python3 ~/.claude/skills/exa-search/scripts/exa_contents.py "https://long-articl
 | `--must-include` | Required strings |
 | `--must-exclude` | Excluded strings |
 | `--safe` | Content moderation |
+| `--max-age-hours` | Max content age in hours (0=always livecrawl, -1=never) |
+| `--livecrawl` | ~~Deprecated: use --max-age-hours~~ Livecrawl mode |
+| `--verbosity` | Content verbosity: compact, standard, full (requires --max-age-hours 0) |
+| `--include-sections` | Only include these page sections (requires --max-age-hours 0) |
+| `--exclude-sections` | Exclude these page sections (requires --max-age-hours 0) |
+| `--highlights-max-chars` | Max characters for highlights (preferred over numSentences) |
 | `--context` | RAG context string |
 | `--context-chars` | Context length limit |
 | `--summary` | Comparison summaries |
 | `--highlights` | Key excerpts |
+| `--cost` | Show cost breakdown |
 | `--json` | Output raw JSON |
 
 ### Examples
@@ -186,11 +206,14 @@ python3 ~/.claude/skills/exa-search/scripts/exa_similar.py "https://product.com"
 | `-n, --num` | Number of sources (default: 5, max: 20) |
 | `--domains` | Only use these domains |
 | `--after` / `--before` | Date filtering |
+| `--output-schema` | JSON schema string for structured answer output |
+| `--schema-file` | Path to JSON file containing output schema |
 | `--stream` | Stream answer in real-time |
 | `--sources` | Show detailed source info |
 | `--highlights` | Include key excerpts |
 | `--markdown` | Output as markdown with citations |
 | `--answer-only` | Only output the answer |
+| `--cost` | Show cost breakdown |
 | `--json` | Output raw JSON |
 
 ### Examples
@@ -213,6 +236,16 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Compare cloud provi
 
 # Answer only (for piping)
 python3 ~/.claude/skills/exa-search/scripts/exa_research.py "What is RLHF?" --answer-only
+
+# Structured output with JSON schema
+python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Compare top 3 JavaScript frameworks" \
+  --output-schema '{"frameworks": [{"name": "string", "pros": ["string"], "cons": ["string"]}]}'
+
+# Schema from file
+python3 ~/.claude/skills/exa-search/scripts/exa_research.py "AI startup funding trends" --schema-file ~/schemas/funding.json
+
+# With cost breakdown
+python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Latest SpaceX news" --sources --cost
 ```
 
 ---
@@ -225,7 +258,6 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research.py "What is RLHF?" --an
 
 | Parameter | Description |
 |-----------|-------------|
-| `--fast` | Use exa-research-fast (quicker/cheaper) |
 | `--pro` | Use exa-research-pro (enhanced synthesis) |
 | `--schema` | JSON schema for structured output |
 | `--wait` | Wait for completion |
@@ -241,9 +273,6 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "What species 
 
 # Pro model, wait for completion
 python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "Compare top 5 AI agent frameworks" --pro --wait
-
-# Fast model
-python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "Quick market overview" --fast
 
 # Structured output
 python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "Analyze AI startup funding" \

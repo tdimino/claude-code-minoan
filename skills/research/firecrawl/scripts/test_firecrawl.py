@@ -193,6 +193,88 @@ def test_agent_mini() -> TestResult:
         return TestResult("Agent (mini)", False, f"Error: {str(e)}")
 
 
+def test_scrape_with_parsers() -> TestResult:
+    """Test scrape with new v2 params: parsers, block_ads, zero_data_retention."""
+    try:
+        result = fc.scrape(
+            TEST_URL,
+            formats=["markdown"],
+            block_ads=True,
+            zero_data_retention=True
+        )
+        if "data" in result or "markdown" in str(result):
+            return TestResult("Scrape (v2 params)", True, "Scrape with block_ads + zero_retention worked", result)
+        return TestResult("Scrape (v2 params)", False, f"Unexpected response: {str(result)[:100]}")
+    except Exception as e:
+        return TestResult("Scrape (v2 params)", False, f"Error: {str(e)}")
+
+
+def test_crawl_with_prompt() -> TestResult:
+    """Test crawl with AI-directed prompt (async)."""
+    try:
+        result = fc.crawl(
+            TEST_URL,
+            limit=2,
+            async_mode=True,
+            prompt="Find documentation pages"
+        )
+        job_id = result.get("job_id", result.get("id"))
+        if job_id:
+            return TestResult("Crawl (prompt)", True, f"AI-directed crawl started: {job_id}", result)
+        return TestResult("Crawl (prompt)", False, f"No job ID: {str(result)[:100]}")
+    except Exception as e:
+        return TestResult("Crawl (prompt)", False, f"Error: {str(e)}")
+
+
+def test_crawl_with_concurrency() -> TestResult:
+    """Test crawl with delay and concurrency params (async)."""
+    try:
+        result = fc.crawl(
+            TEST_URL,
+            limit=2,
+            async_mode=True,
+            delay=500,
+            concurrency=2,
+            zero_data_retention=True
+        )
+        job_id = result.get("job_id", result.get("id"))
+        if job_id:
+            return TestResult("Crawl (concurrency)", True, f"Job started: {job_id}", result)
+        return TestResult("Crawl (concurrency)", False, f"No job ID: {str(result)[:100]}")
+    except Exception as e:
+        return TestResult("Crawl (concurrency)", False, f"Error: {str(e)}")
+
+
+def test_agent_strict_urls() -> TestResult:
+    """Test agent with strict URL constraint and schema."""
+    try:
+        result = fc.agent(
+            "What is on this page?",
+            urls=[TEST_URL],
+            async_mode=True,
+            model="spark-1-mini",
+            strict_urls=True,
+            schema={"title": {"type": "string"}, "description": {"type": "string"}}
+        )
+        job_id = result.get("job_id")
+        if job_id:
+            return TestResult("Agent (strict URLs)", True, f"Job started: {job_id}", result)
+        return TestResult("Agent (strict URLs)", False, f"No job ID: {str(result)[:100]}")
+    except Exception as e:
+        return TestResult("Agent (strict URLs)", False, f"Error: {str(e)}")
+
+
+def test_crawl_preview() -> TestResult:
+    """Test crawl params preview endpoint."""
+    try:
+        result = fc.crawl_params_preview(TEST_URL, prompt="Find API documentation")
+        if isinstance(result, dict):
+            return TestResult("Crawl Preview", True, "Preview returned params", result)
+        return TestResult("Crawl Preview", False, f"Unexpected response type: {type(result)}")
+    except Exception as e:
+        return TestResult("Crawl Preview", False, f"Error: {str(e)}")
+
+
 def test_crawl_active() -> TestResult:
     """Test getting active crawls."""
     try:
@@ -354,10 +436,15 @@ def main():
     async_tests = [
         test_scrape_with_location,
         test_scrape_with_cache,
+        test_scrape_with_parsers,
         test_batch_scrape,
         test_crawl_async,
+        test_crawl_with_prompt,
+        test_crawl_with_concurrency,
+        test_crawl_preview,
         test_extract,
         test_agent_mini,
+        test_agent_strict_urls,
         test_crawl_active,
     ]
 

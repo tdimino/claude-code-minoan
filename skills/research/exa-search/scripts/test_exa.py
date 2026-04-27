@@ -259,7 +259,7 @@ def test_research_async_models(results: TestResults, verbose: bool = False):
         create_research("test", model="invalid-model")
         results.record_fail("research_async_models", "Should have raised ValueError", verbose)
     except ValueError as e:
-        if "exa-research-fast" in str(e) and "exa-research-pro" in str(e):
+        if "exa-research" in str(e) and "exa-research-pro" in str(e):
             results.record_pass("research_async_models", verbose)
         else:
             results.record_fail("research_async_models", f"Error message missing models: {e}", verbose)
@@ -396,6 +396,102 @@ def test_schema_type_validation(results: TestResults, verbose: bool = False):
             results.record_fail("schema_type_validation", f"Wrong exception type: {e}", verbose)
 
 
+def test_contents_max_age_hours(results: TestResults, verbose: bool = False):
+    """Test content extraction with maxAgeHours (livecrawl replacement)."""
+    from exa_contents import get_contents
+
+    try:
+        result = get_contents(
+            ["https://example.com"],
+            max_age_hours=0
+        )
+        if result.get("results"):
+            results.record_pass("contents_max_age_hours", verbose)
+        else:
+            results.record_fail("contents_max_age_hours", "No content returned", verbose)
+    except Exception as e:
+        results.record_fail("contents_max_age_hours", str(e), verbose)
+
+
+def test_contents_verbosity_sections(results: TestResults, verbose: bool = False):
+    """Test content extraction with verbosity and section filtering (requires livecrawl)."""
+    from exa_contents import get_contents
+
+    try:
+        result = get_contents(
+            ["https://example.com"],
+            max_age_hours=0,
+            verbosity="compact",
+            exclude_sections=["navigation", "footer"]
+        )
+        if result.get("results"):
+            results.record_pass("contents_verbosity_sections", verbose)
+        else:
+            results.record_fail("contents_verbosity_sections", "No content returned", verbose)
+    except Exception as e:
+        results.record_fail("contents_verbosity_sections", str(e), verbose)
+
+
+def test_contents_highlights_max_chars(results: TestResults, verbose: bool = False):
+    """Test highlights with maxCharacters (preferred over numSentences)."""
+    from exa_contents import get_contents
+
+    try:
+        result = get_contents(
+            ["https://example.com"],
+            get_highlights=True,
+            highlights_max_chars=500
+        )
+        if result.get("results"):
+            results.record_pass("contents_highlights_max_chars", verbose)
+        else:
+            results.record_fail("contents_highlights_max_chars", "No content returned", verbose)
+    except Exception as e:
+        results.record_fail("contents_highlights_max_chars", str(e), verbose)
+
+
+def test_research_output_schema(results: TestResults, verbose: bool = False):
+    """Test /answer endpoint with outputSchema for structured JSON."""
+    from exa_research import research
+
+    try:
+        schema = {
+            "type": "object",
+            "properties": {
+                "answer": {"type": "string"},
+                "key_points": {"type": "array", "items": {"type": "string"}}
+            }
+        }
+        result = research("What is Python?", num_results=3, output_schema=schema)
+        answer = result.get("answer")
+        if answer is not None:
+            results.record_pass("research_output_schema", verbose)
+        else:
+            results.record_fail("research_output_schema", "No answer returned", verbose)
+    except Exception as e:
+        results.record_fail("research_output_schema", str(e), verbose)
+
+
+def test_search_category_validation(results: TestResults, verbose: bool = False):
+    """Test that 'tweet' is no longer a valid category (offline)."""
+    from exa_search import search
+
+    valid_categories = [
+        "company", "research paper", "news", "pdf",
+        "github", "personal site", "people", "financial report"
+    ]
+    try:
+        search("test", category="tweet")
+        results.record_fail("search_category_validation", "Should have rejected 'tweet' category", verbose)
+    except (ValueError, Exception) as e:
+        err = str(e).lower()
+        if "tweet" in err or "category" in err or "invalid" in err:
+            results.record_pass("search_category_validation", verbose)
+        else:
+            results.record_skip("search_category_validation",
+                                f"Rejected but with unexpected message: {e}", verbose)
+
+
 def run_quick_tests(verbose: bool = False) -> TestResults:
     """Run quick validation tests only."""
     results = TestResults()
@@ -428,6 +524,10 @@ def run_quick_tests(verbose: bool = False) -> TestResults:
     test_preset_schemas_exist(results, verbose)
     test_schema_type_validation(results, verbose)
 
+    # Category validation
+    print("\nTesting category validation...")
+    test_search_category_validation(results, verbose)
+
     return results
 
 
@@ -457,11 +557,15 @@ def run_all_tests(verbose: bool = False) -> TestResults:
     test_search_output_schema_json(results, verbose)
     test_preset_schemas_exist(results, verbose)
     test_schema_type_validation(results, verbose)
+    test_search_category_validation(results, verbose)
 
     # Contents tests
     print("\n--- /contents endpoint ---")
     test_contents_basic(results, verbose)
     test_contents_livecrawl(results, verbose)
+    test_contents_max_age_hours(results, verbose)
+    test_contents_verbosity_sections(results, verbose)
+    test_contents_highlights_max_chars(results, verbose)
     test_contents_context(results, verbose)
 
     # Similar tests
@@ -473,9 +577,10 @@ def run_all_tests(verbose: bool = False) -> TestResults:
     print("\n--- /answer endpoint ---")
     test_research_basic(results, verbose)
     test_research_stream(results, verbose)
+    test_research_output_schema(results, verbose)
 
     # Async research tests
-    print("\n--- /research/v1 endpoint ---")
+    print("\n--- /research endpoint ---")
     test_research_async_models(results, verbose)
     test_research_async_list(results, verbose)
 
@@ -503,10 +608,14 @@ def run_endpoint_tests(endpoint: str, verbose: bool = False) -> TestResults:
             test_search_output_schema_json,
             test_preset_schemas_exist,
             test_schema_type_validation,
+            test_search_category_validation,
         ],
         "contents": [
             test_contents_basic,
             test_contents_livecrawl,
+            test_contents_max_age_hours,
+            test_contents_verbosity_sections,
+            test_contents_highlights_max_chars,
             test_contents_context,
         ],
         "similar": [
@@ -516,6 +625,7 @@ def run_endpoint_tests(endpoint: str, verbose: bool = False) -> TestResults:
         "answer": [
             test_research_basic,
             test_research_stream,
+            test_research_output_schema,
         ],
         "research": [
             test_research_async_models,

@@ -68,6 +68,8 @@ def research(
     get_highlights: bool = False,
     # Model
     model: Optional[str] = None,
+    # Structured output
+    output_schema: Optional[Dict[str, Any]] = None,
     # Streaming
     stream: bool = False,
 ) -> Dict[str, Any]:
@@ -87,6 +89,7 @@ def research(
         get_text: Include source text in response
         get_highlights: Include relevant excerpts from sources
         model: Optional model override for answer generation
+        output_schema: JSON schema for structured answer output
         stream: Enable SSE streaming for real-time output
 
     Returns:
@@ -123,6 +126,10 @@ def research(
     # Model override
     if model:
         payload["model"] = model
+
+    # Structured output schema
+    if output_schema:
+        payload["outputSchema"] = output_schema
 
     # Streaming
     if stream:
@@ -200,7 +207,7 @@ def process_stream(response) -> Dict[str, Any]:
     return result
 
 
-def format_results(results: Dict[str, Any], show_sources: bool = True, max_text_length: int = 500) -> str:
+def format_results(results: Dict[str, Any], show_sources: bool = True, max_text_length: int = 500, show_cost: bool = False) -> str:
     """Format research results for readable display."""
     output = []
 
@@ -208,12 +215,16 @@ def format_results(results: Dict[str, Any], show_sources: bool = True, max_text_
     if results.get("requestId"):
         output.append(f"Request ID: {results['requestId']}")
 
-    # Answer
+    # Answer (can be string or structured object when outputSchema is used)
     if results.get("answer"):
         output.append(f"\n{'='*60}")
         output.append("ANSWER:")
         output.append("-" * 40)
-        output.append(results["answer"])
+        answer = results["answer"]
+        if isinstance(answer, dict):
+            output.append(json.dumps(answer, indent=2))
+        else:
+            output.append(answer)
 
     # Sources
     sources = results.get("results", [])
@@ -244,10 +255,14 @@ def format_results(results: Dict[str, Any], show_sources: bool = True, max_text_
                 output.append(f"    Preview: {text}")
 
     # Cost
-    if results.get("costDollars"):
+    if show_cost and results.get("costDollars"):
         cost = results["costDollars"]
         output.append(f"\n{'='*60}")
         output.append(f"COST: ${cost.get('total', 0):.4f}")
+        if cost.get("breakDown"):
+            for key, val in cost["breakDown"].items():
+                if isinstance(val, (int, float)):
+                    output.append(f"  {key}: ${val:.4f}")
 
     return "\n".join(output)
 
@@ -328,6 +343,12 @@ Tips:
     parser.add_argument("--no-text", action="store_true", help="Don't include source text")
     parser.add_argument("--highlights", action="store_true", help="Include key excerpts from sources")
 
+    # Structured output
+    parser.add_argument("--output-schema", type=str,
+                        help="JSON schema string for structured answer output")
+    parser.add_argument("--schema-file", type=str,
+                        help="Path to JSON schema file for structured answer output")
+
     # Streaming
     parser.add_argument("--stream", action="store_true",
                         help="Stream the answer in real-time")
@@ -337,10 +358,27 @@ Tips:
     parser.add_argument("--markdown", action="store_true", help="Output as markdown with citations")
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
     parser.add_argument("--answer-only", action="store_true", help="Only output the answer text")
+    parser.add_argument("--cost", action="store_true", help="Show cost breakdown")
     parser.add_argument("--text-limit", type=int, default=500,
                         help="Max source text chars to display (default: 500)")
 
     args = parser.parse_args()
+
+    # Parse output schema
+    output_schema = None
+    if args.schema_file:
+        try:
+            with open(args.schema_file, 'r') as f:
+                output_schema = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            print(f"Error loading schema file: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.output_schema:
+        try:
+            output_schema = json.loads(args.output_schema)
+        except json.JSONDecodeError as e:
+            print(f"Invalid JSON schema: {e}", file=sys.stderr)
+            sys.exit(1)
 
     try:
         if args.stream:
@@ -354,6 +392,7 @@ Tips:
                 end_published_date=args.before,
                 get_text=not args.no_text,
                 get_highlights=args.highlights,
+                output_schema=output_schema,
                 stream=True,
             )
             print("ANSWER:", file=sys.stderr)
@@ -378,6 +417,7 @@ Tips:
                 end_published_date=args.before,
                 get_text=not args.no_text,
                 get_highlights=args.highlights,
+                output_schema=output_schema,
                 stream=False,
             )
 
@@ -391,7 +431,8 @@ Tips:
                 print(format_results(
                     results,
                     show_sources=args.sources,
-                    max_text_length=args.text_limit
+                    max_text_length=args.text_limit,
+                    show_cost=args.cost
                 ))
 
     except requests.exceptions.HTTPError as e:

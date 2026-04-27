@@ -1,6 +1,6 @@
 # Exa Search
 
-Neural web search, content extraction, similar page discovery, AI-powered research, and async pro research via the [Exa API](https://exa.ai). Five specialized Python scripts covering all Exa endpoints with token-efficient search patterns.
+Neural web search, content extraction, similar page discovery, AI-powered research, and async pro research via the [Exa API](https://exa.ai). Five specialized Python scripts covering all Exa endpoints with token-efficient search patterns. Synced to Exa API v1.2.0 (April 2026).
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ export EXA_API_KEY=your-key-here  # https://dashboard.exa.ai
 | `exa_contents.py` | `/contents` | Extract content from known URLs with summaries and highlights |
 | `exa_similar.py` | `/findSimilar` | Find pages semantically similar to a given URL |
 | `exa_research.py` | `/answer` | AI-powered research with citations |
-| `exa_research_async.py` | `/research/v1` | Async pro research with structured output |
+| `exa_research_async.py` | `/research` | Async pro research with structured output |
 
 ## Quick Start
 
@@ -68,8 +68,14 @@ python3 scripts/exa_contents.py "https://arxiv.org/abs/2307.06435" --highlights 
 # Multiple URLs with summaries
 python3 scripts/exa_contents.py URL1 URL2 --summary "Key findings"
 
-# Fresh content
-python3 scripts/exa_contents.py "https://news.ycombinator.com" --livecrawl always
+# Fresh content (maxAgeHours preferred over deprecated livecrawl)
+python3 scripts/exa_contents.py "https://news.ycombinator.com" --max-age-hours 0
+
+# Verbosity and section filtering (requires --max-age-hours 0)
+python3 scripts/exa_contents.py URL --max-age-hours 0 --verbosity compact --exclude-sections navigation footer
+
+# Cost breakdown
+python3 scripts/exa_contents.py URL --cost
 ```
 
 ### Similar Pages
@@ -88,6 +94,10 @@ python3 scripts/exa_similar.py "https://arxiv.org/abs/1706.03762" -n 15
 # Quick research with citations
 python3 scripts/exa_research.py "How does RAG work?" --sources --markdown
 
+# Structured answer output
+python3 scripts/exa_research.py "Compare top 3 JS frameworks" \
+  --output-schema '{"frameworks": [{"name": "string", "pros": ["string"], "cons": ["string"]}]}'
+
 # Async pro research (longer, deeper)
 python3 scripts/exa_research_async.py "Compare AI agent frameworks" --pro --wait
 ```
@@ -101,6 +111,25 @@ python3 scripts/exa_research_async.py "Compare AI agent frameworks" --pro --wait
 | (default) | auto | Medium | General search |
 | `--deep` | 4-12s | $12 | Comprehensive research |
 | `--deep-reasoning` | 12-50s | $15 | Maximum depth with LLM reasoning |
+
+## Content Freshness & Filtering
+
+Control content age, verbosity, and page sections across search, contents, and similar scripts.
+
+```bash
+# Always livecrawl (freshest content)
+python3 scripts/exa_search.py "breaking news" --max-age-hours 0
+
+# Compact text, body only
+python3 scripts/exa_search.py "API docs" --max-age-hours 0 --verbosity compact --include-sections body
+
+# Highlights by character count (preferred over deprecated numSentences)
+python3 scripts/exa_search.py "query" --highlights --highlights-max-chars 500
+```
+
+**Valid sections:** header, navigation, banner, body, sidebar, footer, metadata
+
+**Note:** `--verbosity` and `--include/exclude-sections` require `--max-age-hours 0` (livecrawl).
 
 ## Token-Efficient Search Pattern
 

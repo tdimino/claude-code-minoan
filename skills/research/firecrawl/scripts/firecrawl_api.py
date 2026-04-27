@@ -11,6 +11,7 @@ Provides direct API access to ALL Firecrawl v2 endpoints:
 - extract: LLM-powered structured data extraction
 - agent: Autonomous multi-page data extraction (spark-1-fast/mini/pro)
 - parallel-agent: Run multiple agent queries in parallel (v2.8.0+)
+- crawl-preview: Preview AI-generated crawl parameters before crawling
 
 Job management:
 - crawl-status / batch-status / extract-status: Check job status
@@ -74,6 +75,8 @@ def search(
     sources: Optional[List[str]] = None,
     tbs: Optional[str] = None,
     location: Optional[str] = None,
+    country: Optional[str] = None,
+    timeout: Optional[int] = None,
     scrape: bool = False,
     scrape_formats: Optional[List[str]] = None
 ) -> Dict[str, Any]:
@@ -87,6 +90,8 @@ def search(
         sources: Result types - "web", "news", "images"
         tbs: Time filter - "qdr:h" (hour), "qdr:d" (day), "qdr:w" (week), "qdr:m" (month)
         location: Geotarget results (e.g., "Germany", "United States")
+        country: Country code for localized results (e.g., "US", "DE")
+        timeout: Request timeout in milliseconds
         scrape: Whether to scrape content from results
         scrape_formats: Formats for scraped content - ["markdown", "html", "links"]
 
@@ -106,6 +111,10 @@ def search(
         payload["tbs"] = tbs
     if location:
         payload["location"] = location
+    if country:
+        payload["country"] = country
+    if timeout is not None:
+        payload["timeout"] = timeout
 
     if scrape:
         payload["scrapeOptions"] = {
@@ -155,7 +164,11 @@ def scrape(
     location: Optional[Dict[str, Any]] = None,
     max_age: Optional[int] = None,
     store_in_cache: bool = True,
-    profile: Optional[Dict[str, Any]] = None
+    profile: Optional[Dict[str, Any]] = None,
+    parsers: Optional[List[str]] = None,
+    block_ads: bool = False,
+    proxy: Optional[str] = None,
+    zero_data_retention: bool = False,
 ) -> Dict[str, Any]:
     """
     Scrape a single URL and extract content.
@@ -173,7 +186,10 @@ def scrape(
         max_age: Maximum cache age in seconds (use cached result if fresher)
         store_in_cache: Whether to cache this scrape result (default: True)
         profile: Persistent browser profile - {"name": "my-profile", "saveChanges": True}
-                 Scrapes with the same profile name share browser state (cookies, localStorage).
+        parsers: Document parsers to use (e.g., ["pdf"])
+        block_ads: Block ads during scraping
+        proxy: Proxy routing (e.g., "stealth", "residential")
+        zero_data_retention: Don't store scrape data on Firecrawl servers
 
     Returns:
         Dict with scraped content in requested formats. Includes data.metadata.scrapeId
@@ -200,6 +216,14 @@ def scrape(
         payload["storeInCache"] = False
     if profile:
         payload["profile"] = profile
+    if parsers:
+        payload["parsers"] = parsers
+    if block_ads:
+        payload["blockAds"] = True
+    if proxy:
+        payload["proxy"] = proxy
+    if zero_data_retention:
+        payload["zeroDataRetention"] = True
 
     # Use direct HTTP when newer params (profile, max_age, store_in_cache) are set,
     # since the SDK may not support them yet. Fall back to SDK for basic scrapes.
@@ -238,7 +262,8 @@ def agent(
     async_mode: bool = False,
     model: str = "spark-1-mini",
     max_credits: Optional[int] = None,
-    webhook: Optional[str] = None
+    webhook: Optional[str] = None,
+    strict_urls: bool = False,
 ) -> Dict[str, Any]:
     """
     Autonomous web extraction using natural language prompts.
@@ -257,6 +282,7 @@ def agent(
             - "spark-1-pro" (thorough, complex multi-page research)
         max_credits: Maximum credits to spend on this agent job (budget limit)
         webhook: Optional webhook URL for async job completion notification
+        strict_urls: Only extract from provided URLs, don't follow links
 
     Returns:
         Dict with extracted data, or job info if async_mode=True
@@ -278,6 +304,8 @@ def agent(
         kwargs["maxCredits"] = max_credits
     if webhook:
         kwargs["webhook"] = webhook
+    if strict_urls:
+        kwargs["strictConstrainToURLs"] = True
 
     if async_mode:
         # Start async job
@@ -399,6 +427,37 @@ def get_agent_status(job_id: str) -> Dict[str, Any]:
     }
 
 
+def crawl_params_preview(
+    url: str,
+    prompt: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Preview AI-generated crawl parameters before starting a crawl.
+
+    Uses the crawl/params-preview endpoint to get suggested crawl config
+    based on the URL and optional prompt.
+
+    Args:
+        url: Target URL to generate crawl params for
+        prompt: Optional AI directive for the crawl
+
+    Returns:
+        Dict with suggested crawl parameters
+    """
+    payload: Dict[str, Any] = {"url": url}
+    if prompt:
+        payload["prompt"] = prompt
+
+    resp = requests.post(
+        f"{BASE_URL_V2}/crawl/params-preview",
+        headers=_headers(),
+        json=payload,
+        timeout=30
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
 def crawl(
     url: str,
     limit: int = 50,
@@ -407,7 +466,15 @@ def crawl(
     exclude_paths: Optional[List[str]] = None,
     formats: Optional[List[str]] = None,
     async_mode: bool = False,
-    sitemap_only: bool = False
+    sitemap_only: bool = False,
+    prompt: Optional[str] = None,
+    discovery_depth: Optional[int] = None,
+    entire_domain: bool = False,
+    delay: Optional[int] = None,
+    concurrency: Optional[int] = None,
+    robots_agent: Optional[str] = None,
+    regex_full_url: bool = False,
+    zero_data_retention: bool = False,
 ) -> Dict[str, Any]:
     """
     Crawl an entire website, following links.
@@ -421,6 +488,14 @@ def crawl(
         formats: Output formats for each page
         async_mode: If True, return job ID for polling
         sitemap_only: If True, only crawl URLs found in the sitemap (v2.8.0+)
+        prompt: AI-directed crawling instructions
+        discovery_depth: Max discovery depth (separate from maxDepth)
+        entire_domain: Crawl the entire domain
+        delay: Delay between requests in milliseconds
+        concurrency: Max concurrent requests
+        robots_agent: Custom robots.txt user agent
+        regex_full_url: Apply regex on full URL (not just path)
+        zero_data_retention: Don't store crawl data on Firecrawl servers
 
     Returns:
         Dict with crawled pages, or job info if async_mode=True
@@ -441,6 +516,22 @@ def crawl(
         payload["excludePaths"] = exclude_paths
     if sitemap_only:
         payload["sitemapOnly"] = True
+    if prompt:
+        payload["prompt"] = prompt
+    if discovery_depth is not None:
+        payload["maxDiscoveryDepth"] = discovery_depth
+    if entire_domain:
+        payload["crawlEntireDomain"] = True
+    if delay is not None:
+        payload["delay"] = delay
+    if concurrency is not None:
+        payload["maxConcurrency"] = concurrency
+    if robots_agent:
+        payload["robotsUserAgent"] = robots_agent
+    if regex_full_url:
+        payload["regexOnFullURL"] = True
+    if zero_data_retention:
+        payload["zeroDataRetention"] = True
 
     if HAS_FIRECRAWL_SDK:
         app = _get_app()
@@ -578,7 +669,10 @@ def batch_scrape(
     include_tags: Optional[List[str]] = None,
     exclude_tags: Optional[List[str]] = None,
     timeout: int = 30000,
-    async_mode: bool = True
+    async_mode: bool = True,
+    concurrency: Optional[int] = None,
+    ignore_invalid: bool = False,
+    zero_data_retention: bool = False,
 ) -> Dict[str, Any]:
     """
     Scrape multiple URLs concurrently.
@@ -591,6 +685,9 @@ def batch_scrape(
         exclude_tags: Blacklist specific HTML tags
         timeout: Timeout in milliseconds per page
         async_mode: Always async (returns job ID for polling)
+        concurrency: Max concurrent scrape requests
+        ignore_invalid: Skip invalid URLs instead of failing
+        zero_data_retention: Don't store data on Firecrawl servers
 
     Returns:
         Dict with job ID for status polling
@@ -606,6 +703,12 @@ def batch_scrape(
         payload["includeTags"] = include_tags
     if exclude_tags:
         payload["excludeTags"] = exclude_tags
+    if concurrency is not None:
+        payload["maxConcurrency"] = concurrency
+    if ignore_invalid:
+        payload["ignoreInvalidURLs"] = True
+    if zero_data_retention:
+        payload["zeroDataRetention"] = True
 
     if HAS_FIRECRAWL_SDK:
         app = _get_app()
@@ -699,7 +802,8 @@ def map_site(
     include_subdomains: bool = True,
     ignore_query_parameters: bool = True,
     sitemap: str = "include",
-    timeout: Optional[int] = None
+    timeout: Optional[int] = None,
+    ignore_cache: bool = False,
 ) -> Dict[str, Any]:
     """
     Map all URLs on a website.
@@ -714,6 +818,7 @@ def map_site(
         ignore_query_parameters: Exclude URLs with query params
         sitemap: Sitemap handling - "include", "skip", or "only"
         timeout: Timeout in milliseconds
+        ignore_cache: Bypass cached results
 
     Returns:
         Dict with discovered URLs, titles, and descriptions
@@ -730,6 +835,9 @@ def map_site(
         payload["search"] = search
     if timeout:
         payload["timeout"] = timeout
+    if ignore_cache:
+        payload["ignoreSitemap"] = False
+        payload["ignoreCache"] = True
 
     if HAS_FIRECRAWL_SDK:
         app = _get_app()
@@ -1046,6 +1154,8 @@ def main():
     search_parser.add_argument("--sources", nargs="+", help="Types: web, news, images")
     search_parser.add_argument("--time", dest="tbs", help="Time filter: qdr:h, qdr:d, qdr:w, qdr:m")
     search_parser.add_argument("--location", help="Geotarget results")
+    search_parser.add_argument("--country", help="Country code for localized results (e.g., US, DE)")
+    search_parser.add_argument("--timeout", type=int, help="Request timeout in ms")
     search_parser.add_argument("--scrape", action="store_true", help="Also scrape result pages")
     search_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
@@ -1063,6 +1173,10 @@ def main():
     scrape_parser.add_argument("--profile", help="Persistent browser profile name (share state across scrapes)")
     scrape_parser.add_argument("--no-save-changes", action="store_true",
                                help="Load profile state but don't save changes back (read-only session)")
+    scrape_parser.add_argument("--parsers", nargs="+", help="Document parsers (e.g., pdf)")
+    scrape_parser.add_argument("--block-ads", action="store_true", help="Block ads during scraping")
+    scrape_parser.add_argument("--proxy", help="Proxy routing (e.g., stealth, residential)")
+    scrape_parser.add_argument("--zero-retention", action="store_true", help="Don't store data on Firecrawl servers")
     scrape_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
     # Agent command
@@ -1073,6 +1187,8 @@ def main():
                               help="Agent model: spark-1-fast (instant, 10 credits), spark-1-mini (default, balanced), spark-1-pro (thorough)")
     agent_parser.add_argument("--max-credits", type=int, help="Maximum credits to spend on this job")
     agent_parser.add_argument("--webhook", help="Webhook URL for async job completion notification")
+    agent_parser.add_argument("--strict-urls", action="store_true", help="Only extract from provided URLs")
+    agent_parser.add_argument("--schema", help="JSON schema for structured output")
     agent_parser.add_argument("--async", dest="async_mode", action="store_true",
                               help="Start async job, return job ID")
     agent_parser.add_argument("--json", action="store_true", help="Output raw JSON")
@@ -1104,6 +1220,14 @@ def main():
     crawl_parser.add_argument("--include", nargs="+", help="Include paths (regex)")
     crawl_parser.add_argument("--exclude", nargs="+", help="Exclude paths (regex)")
     crawl_parser.add_argument("--sitemap-only", action="store_true", help="Only crawl URLs found in sitemap (v2.8.0+)")
+    crawl_parser.add_argument("--prompt", help="AI-directed crawling instructions")
+    crawl_parser.add_argument("--discovery-depth", type=int, help="Max discovery depth (separate from --depth)")
+    crawl_parser.add_argument("--entire-domain", action="store_true", help="Crawl entire domain")
+    crawl_parser.add_argument("--delay", type=int, help="Delay between requests in ms")
+    crawl_parser.add_argument("--concurrency", type=int, help="Max concurrent requests")
+    crawl_parser.add_argument("--robots-agent", help="Custom robots.txt user agent")
+    crawl_parser.add_argument("--regex-full-url", action="store_true", help="Apply regex on full URL")
+    crawl_parser.add_argument("--zero-retention", action="store_true", help="Don't store data on Firecrawl servers")
     crawl_parser.add_argument("--async", dest="async_mode", action="store_true", help="Async mode")
     crawl_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
@@ -1125,12 +1249,21 @@ def main():
     active_crawls_parser = subparsers.add_parser("crawl-active", help="List all active crawl jobs")
     active_crawls_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
+    # Crawl params preview command
+    preview_parser = subparsers.add_parser("crawl-preview", help="Preview AI-generated crawl parameters")
+    preview_parser.add_argument("url", help="URL to generate crawl params for")
+    preview_parser.add_argument("--prompt", help="AI directive for the crawl")
+    preview_parser.add_argument("--json", action="store_true", help="Output raw JSON")
+
     # Batch scrape command
     batch_parser = subparsers.add_parser("batch-scrape", help="Scrape multiple URLs")
     batch_parser.add_argument("urls", nargs="+", help="URLs to scrape")
     batch_parser.add_argument("--formats", nargs="+", default=["markdown"],
                               help="Output formats: markdown, html, links, screenshot")
     batch_parser.add_argument("--full", action="store_true", help="Include nav/footer")
+    batch_parser.add_argument("--concurrency", type=int, help="Max concurrent scrape requests")
+    batch_parser.add_argument("--ignore-invalid", action="store_true", help="Skip invalid URLs")
+    batch_parser.add_argument("--zero-retention", action="store_true", help="Don't store data on Firecrawl servers")
     batch_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
     # Batch status command
@@ -1155,6 +1288,8 @@ def main():
     map_parser.add_argument("--no-subdomains", action="store_true", help="Exclude subdomains")
     map_parser.add_argument("--sitemap", choices=["include", "skip", "only"], default="include",
                            help="Sitemap handling mode")
+    map_parser.add_argument("--ignore-cache", action="store_true", help="Bypass cached map results")
+    map_parser.add_argument("--timeout", type=int, help="Request timeout in ms")
     map_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
     # Extract command
@@ -1205,6 +1340,8 @@ def main():
                 sources=args.sources,
                 tbs=args.tbs,
                 location=args.location,
+                country=getattr(args, 'country', None),
+                timeout=getattr(args, 'timeout', None),
                 scrape=args.scrape,
                 scrape_formats=["markdown"] if args.scrape else None
             )
@@ -1245,7 +1382,11 @@ def main():
                 location=location,
                 max_age=getattr(args, 'max_age', None),
                 store_in_cache=not getattr(args, 'no_cache', False),
-                profile=profile
+                profile=profile,
+                parsers=getattr(args, 'parsers', None),
+                block_ads=getattr(args, 'block_ads', False),
+                proxy=getattr(args, 'proxy', None),
+                zero_data_retention=getattr(args, 'zero_retention', False),
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
@@ -1253,13 +1394,22 @@ def main():
                 print(format_scrape_result(result))
 
         elif args.command == "agent":
+            agent_schema = None
+            if getattr(args, 'schema', None):
+                try:
+                    agent_schema = json.loads(args.schema)
+                except json.JSONDecodeError as e:
+                    print(f"Invalid JSON schema: {e}", file=sys.stderr)
+                    sys.exit(1)
             result = agent(
                 args.prompt,
                 urls=args.urls,
+                schema=agent_schema,
                 async_mode=args.async_mode,
                 model=args.model,
                 max_credits=getattr(args, 'max_credits', None),
-                webhook=getattr(args, 'webhook', None)
+                webhook=getattr(args, 'webhook', None),
+                strict_urls=getattr(args, 'strict_urls', False),
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
@@ -1315,7 +1465,15 @@ def main():
                 include_paths=args.include,
                 exclude_paths=args.exclude,
                 async_mode=args.async_mode,
-                sitemap_only=getattr(args, 'sitemap_only', False)
+                sitemap_only=getattr(args, 'sitemap_only', False),
+                prompt=getattr(args, 'prompt', None),
+                discovery_depth=getattr(args, 'discovery_depth', None),
+                entire_domain=getattr(args, 'entire_domain', False),
+                delay=getattr(args, 'delay', None),
+                concurrency=getattr(args, 'concurrency', None),
+                robots_agent=getattr(args, 'robots_agent', None),
+                regex_full_url=getattr(args, 'regex_full_url', False),
+                zero_data_retention=getattr(args, 'zero_retention', False),
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
@@ -1381,11 +1539,24 @@ def main():
                 else:
                     print("No active crawl jobs")
 
+        elif args.command == "crawl-preview":
+            result = crawl_params_preview(args.url, prompt=args.prompt)
+            if args.json:
+                print(json.dumps(result, indent=2, default=str))
+            else:
+                print(f"Suggested crawl parameters for: {args.url}")
+                if args.prompt:
+                    print(f"Prompt: {args.prompt}")
+                print(json.dumps(result, indent=2, default=str))
+
         elif args.command == "batch-scrape":
             result = batch_scrape(
                 args.urls,
                 formats=args.formats,
-                only_main_content=not args.full
+                only_main_content=not args.full,
+                concurrency=getattr(args, 'concurrency', None),
+                ignore_invalid=getattr(args, 'ignore_invalid', False),
+                zero_data_retention=getattr(args, 'zero_retention', False),
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))
@@ -1433,7 +1604,9 @@ def main():
                 search=args.search,
                 limit=args.limit,
                 include_subdomains=not args.no_subdomains,
-                sitemap=args.sitemap
+                sitemap=args.sitemap,
+                timeout=getattr(args, 'timeout', None),
+                ignore_cache=getattr(args, 'ignore_cache', False),
             )
             if args.json:
                 print(json.dumps(result, indent=2, default=str))

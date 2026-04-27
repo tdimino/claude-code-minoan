@@ -20,6 +20,8 @@ python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py search "query" [opti
 | `--time` | Time filter: qdr:h (hour), qdr:d (day), qdr:w (week), qdr:m (month) |
 | `--location` | Geotarget results |
 | `--scrape` | Also scrape content from results |
+| `--country` | Country code for geo-targeting (US, GB, DE) |
+| `--timeout` | Request timeout in ms |
 | `--json` | Output raw JSON |
 
 ```bash
@@ -46,6 +48,10 @@ python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape URL [options]
 | `--languages` | Language codes (en-US, es) |
 | `--max-age` | Use cached result if fresher than N seconds |
 | `--no-cache` | Don't cache this result |
+| `--parsers` | Comma-separated parsers (fast-html, fast-markdown, llm-text) |
+| `--block-ads` | Block ads and trackers |
+| `--proxy` | Proxy mode: basic, stealth, residential |
+| `--zero-retention` | Don't store page data on Firecrawl servers |
 | `--json` | Output raw JSON |
 
 **Page Actions** (for dynamic content):
@@ -78,6 +84,9 @@ python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py batch-scrape URL1 UR
 |-----------|-------------|
 | `--formats` | Output: markdown, html, links, screenshot |
 | `--full` | Include navigation and footer |
+| `--concurrency` | Max concurrent scrapes |
+| `--ignore-invalid` | Skip invalid URLs instead of failing |
+| `--zero-retention` | Don't store page data on Firecrawl servers |
 | `--json` | Output raw JSON |
 
 **Job Management:**
@@ -102,6 +111,14 @@ python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py crawl URL [options]
 | `--include` | Only crawl URLs matching these paths (regex) |
 | `--exclude` | Skip URLs matching these paths (regex) |
 | `--sitemap-only` | Only crawl URLs in sitemap (v2.8.0+) |
+| `--prompt` | AI-directed crawling — describe what content to find |
+| `--discovery-depth` | `basic` or `advanced` content discovery strategy |
+| `--entire-domain` | Crawl the entire domain (ignore URL path) |
+| `--delay` | Delay between requests in ms |
+| `--concurrency` | Max concurrent requests |
+| `--robots-agent` | User-agent for robots.txt checking |
+| `--regex-full-url` | Apply include/exclude regex to full URL (not just path) |
+| `--zero-retention` | Don't store page data on Firecrawl servers |
 | `--async` | Return job ID for polling |
 | `--json` | Output raw JSON |
 
@@ -127,6 +144,8 @@ python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py map URL [options]
 | `--search` | Search query to order by relevance |
 | `--no-subdomains` | Exclude subdomains |
 | `--sitemap` | Sitemap handling: include, skip, only |
+| `--ignore-cache` | Bypass cached results |
+| `--timeout` | Request timeout in ms |
 | `--json` | Output raw JSON |
 
 ---
@@ -167,6 +186,8 @@ python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py agent "prompt" [opti
 | `--model` | `spark-1-fast` (10 credits, simple), `spark-1-mini` (default), `spark-1-pro` (thorough) |
 | `--max-credits` | Budget limit |
 | `--webhook` | Completion notification URL (v2.8.0+) |
+| `--strict-urls` | Strictly constrain agent to provided URLs only |
+| `--schema` | JSON schema string for structured output |
 | `--async` | Start async job |
 | `--json` | Output raw JSON |
 

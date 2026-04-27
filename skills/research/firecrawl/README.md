@@ -2,7 +2,7 @@
 
 Cleaner web scraping than `WebFetch` — handles JavaScript-heavy pages, avoids content truncation, and exposes the full Firecrawl v2 API: scrape, crawl, map, search, LLM extraction, autonomous agents, and post-scrape browser interaction. Ships with a token-efficient filter pipeline and a DeepWiki helper for GitHub repo documentation.
 
-**Last updated:** 2026-04-14
+**Last updated:** 2026-04-27
 
 ---
 
@@ -88,15 +88,16 @@ firecrawl scrape URL --only-main-content | \
 | Command | Purpose | Example |
 |---------|---------|---------|
 | `search` | Web search with optional scrape | `firecrawl_api.py search "query" -n 10` |
-| `scrape` | Single URL with page actions | `firecrawl_api.py scrape URL --formats markdown summary` |
+| `scrape` | Single URL with page actions, parsers, proxy | `firecrawl_api.py scrape URL --formats markdown summary` |
 | `batch-scrape` | Multiple URLs concurrently | `firecrawl_api.py batch-scrape URL1 URL2 URL3` |
-| `crawl` | Website crawling | `firecrawl_api.py crawl URL --limit 20` |
+| `crawl` | Website crawling with AI-directed mode | `firecrawl_api.py crawl URL --limit 20` |
 | `map` | URL discovery | `firecrawl_api.py map URL --search "query"` |
 | `extract` | LLM-powered structured extraction | `firecrawl_api.py extract URL --prompt "Find pricing"` |
 | `agent` | Autonomous extraction (no URLs needed) | `firecrawl_api.py agent "Find YC W24 AI startups"` |
 | `parallel-agent` | Bulk agent queries | `firecrawl_api.py parallel-agent "Q1" "Q2" "Q3"` |
 | `interact` | Post-scrape browser interaction | `firecrawl_api.py interact SCRAPE_ID --prompt "Click pricing"` |
 | `interact-stop` | Stop an interact session | `firecrawl_api.py interact-stop SCRAPE_ID` |
+| `crawl-preview` | Preview AI-generated crawl params | `firecrawl_api.py crawl-preview URL --prompt "Find docs"` |
 
 **Agent models:** `spark-1-fast` (10 credits, simple), `spark-1-mini` (default), `spark-1-pro` (thorough).
 
@@ -106,6 +107,28 @@ firecrawl scrape URL --only-main-content | \
 - Persistent profiles via `--profile NAME` to reuse cookies across scrapes (logins)
 
 Interact does **not** return page Markdown — extract specific elements in code mode, or follow up with another `scrape`.
+
+### v2 Parameter Highlights (April 2026 sync)
+
+```bash
+# AI-directed crawling
+firecrawl_api.py crawl URL --prompt "Find all API documentation pages"
+
+# Privacy: zero data retention
+firecrawl_api.py scrape URL --zero-retention
+
+# Scrape with parsers and proxy
+firecrawl_api.py scrape URL --parsers fast-html,fast-markdown --proxy stealth --block-ads
+
+# Agent with strict URL constraint and schema
+firecrawl_api.py agent "Find pricing" --urls https://example.com --strict-urls \
+  --schema '{"plans": [{"name": "string", "price": "string"}]}'
+
+# Geo-targeted search
+firecrawl_api.py search "local restaurants" --country US --time qdr:d
+```
+
+See `references/python-api-reference.md` for the full parameter table per command.
 
 ---
 
