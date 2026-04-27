@@ -37,7 +37,7 @@ BASE_URL = "https://api.exa.ai"
 # Valid category options (same as search)
 VALID_CATEGORIES = [
     "company", "research paper", "news", "pdf", "github",
-    "tweet", "personal site", "people", "financial report"
+    "personal site", "people", "financial report"
 ]
 
 
@@ -61,8 +61,6 @@ def find_similar(
     include_domains: Optional[List[str]] = None,
     exclude_domains: Optional[List[str]] = None,
     # Date filtering
-    start_crawl_date: Optional[str] = None,
-    end_crawl_date: Optional[str] = None,
     start_published_date: Optional[str] = None,
     end_published_date: Optional[str] = None,
     # Content options
@@ -89,6 +87,15 @@ def find_similar(
     # Context (RAG)
     get_context: bool = False,
     context_max_chars: Optional[int] = None,
+    # Content freshness
+    max_age_hours: Optional[int] = None,
+    livecrawl: Optional[str] = None,
+    # Text verbosity and section filtering
+    verbosity: Optional[str] = None,
+    include_sections: Optional[List[str]] = None,
+    exclude_sections: Optional[List[str]] = None,
+    # Highlights
+    highlights_max_chars: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Find pages similar to a reference URL using Exa's /findSimilar endpoint.
@@ -99,8 +106,6 @@ def find_similar(
         category: Filter by category (see VALID_CATEGORIES)
         include_domains: Only include results from these domains
         exclude_domains: Exclude results from these domains
-        start_crawl_date: Results crawled after this date (YYYY-MM-DD)
-        end_crawl_date: Results crawled before this date (YYYY-MM-DD)
         start_published_date: Published after this date (YYYY-MM-DD)
         end_published_date: Published before this date (YYYY-MM-DD)
         get_text: Include full text content
@@ -163,10 +168,6 @@ def find_similar(
         payload["moderation"] = True
 
     # Date filtering
-    if start_crawl_date:
-        payload["startCrawlDate"] = f"{start_crawl_date}T00:00:00.000Z"
-    if end_crawl_date:
-        payload["endCrawlDate"] = f"{end_crawl_date}T23:59:59.999Z"
     if start_published_date:
         payload["startPublishedDate"] = f"{start_published_date}T00:00:00.000Z"
     if end_published_date:
@@ -176,19 +177,27 @@ def find_similar(
     contents: Dict[str, Any] = {}
 
     if get_text:
+        text_config: Dict[str, Any] = {}
         if max_characters:
-            contents["text"] = {"maxCharacters": max_characters}
-        else:
-            contents["text"] = True
+            text_config["maxCharacters"] = max_characters
+        if verbosity:
+            text_config["verbosity"] = verbosity
+        if include_sections:
+            text_config["includeSections"] = include_sections
+        if exclude_sections:
+            text_config["excludeSections"] = exclude_sections
+        contents["text"] = text_config if text_config else True
 
     if get_summary:
         contents["summary"] = {"query": get_summary}
 
     if get_highlights:
-        highlights_config: Dict[str, Any] = {
-            "numSentences": num_sentences,
-            "highlightsPerUrl": highlights_per_url
-        }
+        highlights_config: Dict[str, Any] = {}
+        if highlights_max_chars:
+            highlights_config["maxCharacters"] = highlights_max_chars
+        else:
+            highlights_config["numSentences"] = num_sentences
+            highlights_config["highlightsPerUrl"] = highlights_per_url
         if highlights_query:
             highlights_config["query"] = highlights_query
         contents["highlights"] = highlights_config
@@ -213,6 +222,12 @@ def find_similar(
         else:
             contents["context"] = True
 
+    # Content freshness
+    if max_age_hours is not None:
+        contents["maxAgeHours"] = max_age_hours
+    elif livecrawl:
+        contents["livecrawl"] = livecrawl
+
     if contents:
         payload["contents"] = contents
 
@@ -226,7 +241,7 @@ def find_similar(
     return response.json()
 
 
-def format_results(results: Dict[str, Any], max_text_length: int = 500) -> str:
+def format_results(results: Dict[str, Any], max_text_length: int = 500, show_cost: bool = False) -> str:
     """Format similar results for readable display."""
     output = []
 
@@ -283,10 +298,14 @@ def format_results(results: Dict[str, Any], max_text_length: int = 500) -> str:
                     output.append(f"    Images: {len(extras['imageLinks'])} found")
 
     # Cost
-    if results.get("costDollars"):
+    if show_cost and results.get("costDollars"):
         cost = results["costDollars"]
         output.append(f"\n{'='*60}")
         output.append(f"COST: ${cost.get('total', 0):.4f}")
+        if cost.get("breakDown"):
+            for key, val in cost["breakDown"].items():
+                if isinstance(val, (int, float)):
+                    output.append(f"  {key}: ${val:.4f}")
 
     return "\n".join(output)
 
@@ -310,7 +329,7 @@ Use Cases:
   - Build recommendation systems
   - Competitive analysis and market research
 
-Categories: company, research paper, news, pdf, github, tweet, personal site, people, financial report
+Categories: company, research paper, news, pdf, github, personal site, people, financial report
         """
     )
 
@@ -330,8 +349,6 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
     # Date filtering
     parser.add_argument("--after", help="Published after date (YYYY-MM-DD)")
     parser.add_argument("--before", help="Published before date (YYYY-MM-DD)")
-    parser.add_argument("--crawled-after", help="Crawled after date (YYYY-MM-DD)")
-    parser.add_argument("--crawled-before", help="Crawled before date (YYYY-MM-DD)")
 
     # Content options
     parser.add_argument("--no-text", action="store_true", help="Don't include full text")
@@ -339,6 +356,23 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
     parser.add_argument("--summary", help="Generate summary with this query")
     parser.add_argument("--highlights", action="store_true", help="Include key excerpts")
     parser.add_argument("--highlights-query", help="Custom query for highlights")
+    parser.add_argument("--highlights-max-chars", type=int,
+                        help="Max characters for highlights (preferred over numSentences)")
+
+    # Content freshness
+    parser.add_argument("--max-age-hours", type=int,
+                        help="Max content age in hours (0=always livecrawl, -1=never)")
+    parser.add_argument("--livecrawl", choices=["always", "preferred", "fallback", "never"],
+                        help="(Deprecated: use --max-age-hours) Livecrawl mode")
+
+    # Text verbosity and section filtering (requires --max-age-hours 0)
+    VALID_SECTIONS = ["header", "navigation", "banner", "body", "sidebar", "footer", "metadata"]
+    parser.add_argument("--verbosity", choices=["compact", "standard", "full"],
+                        help="Content verbosity level (requires --max-age-hours 0)")
+    parser.add_argument("--include-sections", nargs="+", choices=VALID_SECTIONS,
+                        help="Only include these page sections (requires --max-age-hours 0)")
+    parser.add_argument("--exclude-sections", nargs="+", choices=VALID_SECTIONS,
+                        help="Exclude these page sections (requires --max-age-hours 0)")
 
     # Subpages
     parser.add_argument("--subpages", type=int, default=0, help="Number of subpages to crawl")
@@ -366,6 +400,7 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
 
     # Output
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
+    parser.add_argument("--cost", action="store_true", help="Show cost breakdown")
     parser.add_argument("--text-limit", type=int, default=500,
                         help="Max text chars to display (default: 500)")
 
@@ -380,13 +415,17 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
             exclude_domains=args.exclude_domains,
             start_published_date=args.after,
             end_published_date=args.before,
-            start_crawl_date=args.crawled_after,
-            end_crawl_date=args.crawled_before,
             get_text=not args.no_text,
             max_characters=args.max_chars,
             get_summary=args.summary,
             get_highlights=args.highlights,
             highlights_query=args.highlights_query,
+            highlights_max_chars=args.highlights_max_chars,
+            max_age_hours=args.max_age_hours,
+            livecrawl=args.livecrawl,
+            verbosity=args.verbosity,
+            include_sections=args.include_sections,
+            exclude_sections=args.exclude_sections,
             subpages=args.subpages,
             subpage_target=args.subpage_target,
             get_links=args.links,
@@ -402,7 +441,7 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
         if args.json:
             print(json.dumps(results, indent=2))
         else:
-            print(format_results(results, max_text_length=args.text_limit))
+            print(format_results(results, max_text_length=args.text_limit, show_cost=args.cost))
 
     except requests.exceptions.HTTPError as e:
         print(f"API Error: {e}", file=sys.stderr)

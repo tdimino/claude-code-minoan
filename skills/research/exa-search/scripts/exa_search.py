@@ -10,9 +10,9 @@ Features:
 - Structured output with outputSchema (deep/deep-reasoning only)
 - Field-level grounding with citations and confidence scores
 - 5 preset schemas: company, paper-survey, competitor-analysis, person, news-digest
-- 9 category filters: company, research paper, news, pdf, github, tweet, personal site, people, financial report
+- 8 category filters: company, research paper, news, pdf, github, personal site, people, financial report
 - Domain inclusion/exclusion filtering
-- Date filtering (crawl date and published date)
+- Date filtering (published date)
 - Text inclusion/exclusion filtering
 - Content retrieval options: text, summary, highlights, context
 - Subpage crawling
@@ -45,7 +45,7 @@ BASE_URL = "https://api.exa.ai"
 # Valid category options
 VALID_CATEGORIES = [
     "company", "research paper", "news", "pdf", "github",
-    "tweet", "personal site", "people", "financial report"
+    "personal site", "people", "financial report"
 ]
 
 # Preset output schemas for structured deep search
@@ -178,8 +178,6 @@ def search(
     include_domains: Optional[List[str]] = None,
     exclude_domains: Optional[List[str]] = None,
     # Date filtering
-    start_crawl_date: Optional[str] = None,
-    end_crawl_date: Optional[str] = None,
     start_published_date: Optional[str] = None,
     end_published_date: Optional[str] = None,
     # Text filtering
@@ -200,6 +198,15 @@ def search(
     # Extras
     get_links: int = 0,
     get_image_links: int = 0,
+    # Content freshness
+    max_age_hours: Optional[int] = None,
+    livecrawl: Optional[str] = None,
+    # Text verbosity and section filtering
+    verbosity: Optional[str] = None,
+    include_sections: Optional[List[str]] = None,
+    exclude_sections: Optional[List[str]] = None,
+    # Highlights
+    highlights_max_chars: Optional[int] = None,
     # Location and moderation
     user_location: Optional[str] = None,
     moderation: bool = False,
@@ -216,8 +223,6 @@ def search(
         num_results: Number of results (max 100)
         include_domains: Only search these domains
         exclude_domains: Exclude these domains
-        start_crawl_date: Results crawled after this date (YYYY-MM-DD)
-        end_crawl_date: Results crawled before this date (YYYY-MM-DD)
         start_published_date: Published after this date (YYYY-MM-DD)
         end_published_date: Published before this date (YYYY-MM-DD)
         include_text: Text that must be present in results (1 string, up to 5 words)
@@ -279,10 +284,6 @@ def search(
         payload["excludeDomains"] = exclude_domains
 
     # Date filtering
-    if start_crawl_date:
-        payload["startCrawlDate"] = f"{start_crawl_date}T00:00:00.000Z"
-    if end_crawl_date:
-        payload["endCrawlDate"] = f"{end_crawl_date}T23:59:59.999Z"
     if start_published_date:
         payload["startPublishedDate"] = f"{start_published_date}T00:00:00.000Z"
     if end_published_date:
@@ -304,19 +305,34 @@ def search(
     contents: Dict[str, Any] = {}
 
     if get_text:
-        contents["text"] = True
+        text_config: Dict[str, Any] = {}
+        if verbosity:
+            text_config["verbosity"] = verbosity
+        if include_sections:
+            text_config["includeSections"] = include_sections
+        if exclude_sections:
+            text_config["excludeSections"] = exclude_sections
+        contents["text"] = text_config if text_config else True
 
     if get_summary:
         contents["summary"] = {"query": get_summary}
 
     if get_highlights:
-        highlights_config: Dict[str, Any] = {
-            "numSentences": num_sentences,
-            "highlightsPerUrl": highlights_per_url
-        }
+        highlights_config: Dict[str, Any] = {}
+        if highlights_max_chars:
+            highlights_config["maxCharacters"] = highlights_max_chars
+        else:
+            highlights_config["numSentences"] = num_sentences
+            highlights_config["highlightsPerUrl"] = highlights_per_url
         if highlights_query:
             highlights_config["query"] = highlights_query
         contents["highlights"] = highlights_config
+
+    # Content freshness
+    if max_age_hours is not None:
+        contents["maxAgeHours"] = max_age_hours
+    elif livecrawl:
+        contents["livecrawl"] = livecrawl
 
     if get_context:
         if context_max_chars:
@@ -417,6 +433,47 @@ def format_results(results: Dict[str, Any], max_text_length: int = 500, show_cos
                 if extras.get('imageLinks'):
                     output.append(f"    Images: {len(extras['imageLinks'])} found")
 
+            # Entity data (company/people categories)
+            if r.get('entities'):
+                for entity in r['entities']:
+                    etype = entity.get('type', 'unknown')
+                    props = entity.get('properties', {})
+                    if etype == 'company':
+                        output.append(f"    ENTITY (company):")
+                        if props.get('name'):
+                            output.append(f"      Name: {props['name']}")
+                        if props.get('foundedYear'):
+                            output.append(f"      Founded: {props['foundedYear']}")
+                        if props.get('description'):
+                            output.append(f"      Description: {props['description'][:200]}")
+                        hq = props.get('headquarters')
+                        if hq:
+                            parts = [hq.get('city'), hq.get('country')]
+                            output.append(f"      HQ: {', '.join(p for p in parts if p)}")
+                        fin = props.get('financials')
+                        if fin:
+                            if fin.get('fundingTotal'):
+                                output.append(f"      Total Funding: ${fin['fundingTotal']:,}")
+                            if fin.get('revenueAnnual'):
+                                output.append(f"      Annual Revenue: ${fin['revenueAnnual']:,}")
+                        wf = props.get('workforce')
+                        if wf and wf.get('total'):
+                            output.append(f"      Employees: {wf['total']:,}")
+                        wt = props.get('webTraffic')
+                        if wt and wt.get('visitsMonthly'):
+                            output.append(f"      Monthly Visits: {wt['visitsMonthly']:,}")
+                    elif etype == 'person':
+                        output.append(f"    ENTITY (person):")
+                        if props.get('name'):
+                            output.append(f"      Name: {props['name']}")
+                        if props.get('location'):
+                            output.append(f"      Location: {props['location']}")
+                        for wh in (props.get('workHistory') or [])[:3]:
+                            title = wh.get('title', '')
+                            company = (wh.get('company') or {}).get('name', '')
+                            if title or company:
+                                output.append(f"      {title}{' @ ' + company if company else ''}")
+
     # Structured output (deep/deep-reasoning with outputSchema)
     if results.get("output"):
         output_data = results["output"]
@@ -475,7 +532,7 @@ Examples:
   %(prog)s "Top AI startups" --deep-reasoning --schema-preset company
   %(prog)s "Who founded OpenAI?" --deep --text-output "Short answer"
 
-Categories: company, research paper, news, pdf, github, tweet, personal site, people, financial report
+Categories: company, research paper, news, pdf, github, personal site, people, financial report
         """
     )
 
@@ -510,8 +567,6 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
     # Date filtering
     parser.add_argument("--after", help="Published after date (YYYY-MM-DD)")
     parser.add_argument("--before", help="Published before date (YYYY-MM-DD)")
-    parser.add_argument("--crawled-after", help="Crawled after date (YYYY-MM-DD)")
-    parser.add_argument("--crawled-before", help="Crawled before date (YYYY-MM-DD)")
 
     # Text filtering
     parser.add_argument("--must-include", nargs="+", help="Text that must be present")
@@ -522,8 +577,25 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
     parser.add_argument("--summary", help="Generate summary with this query")
     parser.add_argument("--highlights", action="store_true", help="Include key excerpts")
     parser.add_argument("--highlights-query", help="Custom query for highlights")
+    parser.add_argument("--highlights-max-chars", type=int,
+                        help="Max characters for highlights (preferred over numSentences)")
     parser.add_argument("--context", action="store_true", help="Combine results into RAG context string")
     parser.add_argument("--context-chars", type=int, help="Max characters for context")
+
+    # Content freshness
+    parser.add_argument("--max-age-hours", type=int,
+                        help="Max content age in hours (0=always livecrawl, -1=never). Requires contents.")
+    parser.add_argument("--livecrawl", choices=["always", "preferred", "fallback", "never"],
+                        help="(Deprecated: use --max-age-hours) Livecrawl mode")
+
+    # Text verbosity and section filtering (requires --max-age-hours 0)
+    VALID_SECTIONS = ["header", "navigation", "banner", "body", "sidebar", "footer", "metadata"]
+    parser.add_argument("--verbosity", choices=["compact", "standard", "full"],
+                        help="Content verbosity level (requires --max-age-hours 0)")
+    parser.add_argument("--include-sections", nargs="+", choices=VALID_SECTIONS,
+                        help="Only include these page sections (requires --max-age-hours 0)")
+    parser.add_argument("--exclude-sections", nargs="+", choices=VALID_SECTIONS,
+                        help="Exclude these page sections (requires --max-age-hours 0)")
 
     # Subpages
     parser.add_argument("--subpages", type=int, default=0, help="Number of subpages to crawl")
@@ -595,16 +667,20 @@ Categories: company, research paper, news, pdf, github, tweet, personal site, pe
             exclude_domains=args.exclude_domains,
             start_published_date=args.after,
             end_published_date=args.before,
-            start_crawl_date=args.crawled_after,
-            end_crawl_date=args.crawled_before,
             include_text=args.must_include,
             exclude_text=args.must_exclude,
             get_text=not args.no_text,
             get_summary=args.summary,
             get_highlights=args.highlights,
             highlights_query=args.highlights_query,
+            highlights_max_chars=args.highlights_max_chars,
             get_context=args.context,
             context_max_chars=args.context_chars,
+            max_age_hours=args.max_age_hours,
+            livecrawl=args.livecrawl,
+            verbosity=args.verbosity,
+            include_sections=args.include_sections,
+            exclude_sections=args.exclude_sections,
             subpages=args.subpages,
             subpage_target=args.subpage_target,
             get_links=args.links,

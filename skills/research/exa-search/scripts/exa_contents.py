@@ -52,6 +52,9 @@ def get_contents(
     get_text: bool = True,
     max_characters: Optional[int] = None,
     include_html_tags: bool = False,
+    verbosity: Optional[str] = None,
+    include_sections: Optional[List[str]] = None,
+    exclude_sections: Optional[List[str]] = None,
     # Summary options
     get_summary: Optional[str] = None,
     summary_schema: Optional[Dict[str, Any]] = None,
@@ -60,15 +63,17 @@ def get_contents(
     highlights_query: Optional[str] = None,
     num_sentences: int = 3,
     highlights_per_url: int = 3,
+    highlights_max_chars: Optional[int] = None,
     # Subpages
     subpages: int = 0,
     subpage_target: Optional[str] = None,
     # Extras
     get_links: int = 0,
     get_image_links: int = 0,
-    # Livecrawl
+    # Freshness
     livecrawl: Optional[str] = None,
     livecrawl_timeout: Optional[int] = None,
+    max_age_hours: Optional[int] = None,
     # Context (RAG)
     get_context: bool = False,
     context_max_chars: Optional[int] = None,
@@ -94,8 +99,9 @@ def get_contents(
         subpage_target: Where to find subpage links
         get_links: Number of links to extract per URL
         get_image_links: Number of images to extract per URL
-        livecrawl: Livecrawl mode - "always", "preferred", "fallback", or "never"
+        livecrawl: (Deprecated: use max_age_hours) Livecrawl mode - "always", "preferred", "fallback", or "never"
         livecrawl_timeout: Timeout in ms for livecrawling
+        max_age_hours: Max page age in hours (0=always livecrawl, -1=never livecrawl)
         get_context: Combine all contents into one RAG context string
         context_max_chars: Limit context string length (None = unlimited)
 
@@ -114,6 +120,12 @@ def get_contents(
             text_config["maxCharacters"] = max_characters
         if include_html_tags:
             text_config["includeHtmlTags"] = True
+        if verbosity:
+            text_config["verbosity"] = verbosity
+        if include_sections:
+            text_config["includeSections"] = include_sections
+        if exclude_sections:
+            text_config["excludeSections"] = exclude_sections
         payload["text"] = text_config if text_config else True
 
     # Summary options
@@ -125,10 +137,12 @@ def get_contents(
 
     # Highlights options
     if get_highlights:
-        highlights_config: Dict[str, Any] = {
-            "numSentences": num_sentences,
-            "highlightsPerUrl": highlights_per_url
-        }
+        highlights_config: Dict[str, Any] = {}
+        if highlights_max_chars:
+            highlights_config["maxCharacters"] = highlights_max_chars
+        else:
+            highlights_config["numSentences"] = num_sentences
+            highlights_config["highlightsPerUrl"] = highlights_per_url
         if highlights_query:
             highlights_config["query"] = highlights_query
         payload["highlights"] = highlights_config
@@ -148,8 +162,10 @@ def get_contents(
             extras["imageLinks"] = get_image_links
         payload["extras"] = extras
 
-    # Livecrawl options
-    if livecrawl:
+    # Freshness options
+    if max_age_hours is not None:
+        payload["maxAgeHours"] = max_age_hours
+    elif livecrawl:
         payload["livecrawl"] = livecrawl
     if livecrawl_timeout:
         payload["livecrawlTimeout"] = livecrawl_timeout
@@ -171,7 +187,7 @@ def get_contents(
     return response.json()
 
 
-def format_results(results: Dict[str, Any], max_text_length: int = 2000) -> str:
+def format_results(results: Dict[str, Any], max_text_length: int = 2000, show_cost: bool = False) -> str:
     """Format content results for readable display."""
     output = []
 
@@ -219,8 +235,9 @@ def format_results(results: Dict[str, Any], max_text_length: int = 2000) -> str:
                 output.append(f"\n    HIGHLIGHTS:")
                 for j, h in enumerate(r['highlights'], 1):
                     score = ""
-                    if r.get('highlightScores') and j <= len(r['highlightScores']):
-                        score = f" (relevance: {r['highlightScores'][j-1]:.2f})"
+                    scores = r.get('highlightScores') or []
+                    if scores and j <= len(scores):
+                        score = f" (relevance: {scores[j-1]:.2f})"
                     output.append(f"    {j}. {h[:200]}...{score}")
 
             # Text
@@ -265,10 +282,14 @@ def format_results(results: Dict[str, Any], max_text_length: int = 2000) -> str:
             output.append(context)
 
     # Cost
-    if results.get("costDollars"):
+    if show_cost and results.get("costDollars"):
         cost = results["costDollars"]
         output.append(f"\n{'='*60}")
         output.append(f"COST: ${cost.get('total', 0):.4f}")
+        if cost.get("breakDown"):
+            for key, val in cost["breakDown"].items():
+                if isinstance(val, (int, float)):
+                    output.append(f"  {key}: ${val:.4f}")
 
     return "\n".join(output)
 
@@ -301,6 +322,15 @@ Livecrawl modes:
     parser.add_argument("--max-chars", type=int, help="Limit text length")
     parser.add_argument("--html", action="store_true", help="Include HTML tags in text")
 
+    # Text verbosity and section filtering (requires --max-age-hours 0)
+    VALID_SECTIONS = ["header", "navigation", "banner", "body", "sidebar", "footer", "metadata"]
+    parser.add_argument("--verbosity", choices=["compact", "standard", "full"],
+                        help="Content verbosity level (requires --max-age-hours 0)")
+    parser.add_argument("--include-sections", nargs="+", choices=VALID_SECTIONS,
+                        help="Only include these page sections (requires --max-age-hours 0)")
+    parser.add_argument("--exclude-sections", nargs="+", choices=VALID_SECTIONS,
+                        help="Exclude these page sections (requires --max-age-hours 0)")
+
     # Summary options
     parser.add_argument("--summary", help="Generate summary with this query")
     parser.add_argument("--summary-schema", type=str, help="JSON schema for structured summaries")
@@ -310,6 +340,8 @@ Livecrawl modes:
     parser.add_argument("--highlights-query", help="Custom query for highlights")
     parser.add_argument("--sentences", type=int, default=3, help="Sentences per highlight")
     parser.add_argument("--highlights-per-url", type=int, default=3, help="Max highlights per URL")
+    parser.add_argument("--highlights-max-chars", type=int,
+                        help="Max characters for highlights (preferred over numSentences)")
 
     # Subpages
     parser.add_argument("--subpages", type=int, default=0, help="Number of subpages to crawl")
@@ -319,9 +351,11 @@ Livecrawl modes:
     parser.add_argument("--links", type=int, default=0, help="Extract N links per URL")
     parser.add_argument("--images", type=int, default=0, help="Extract N images per URL")
 
-    # Livecrawl
+    # Freshness
+    parser.add_argument("--max-age-hours", type=int,
+                        help="Max page age in hours (0=always livecrawl, -1=never livecrawl)")
     parser.add_argument("--livecrawl", choices=["always", "preferred", "fallback", "never"],
-                        help="Livecrawl mode for fresh content")
+                        help="(Deprecated: use --max-age-hours) Livecrawl mode for fresh content")
     parser.add_argument("--timeout", type=int, help="Livecrawl timeout in ms")
 
     # Context (RAG)
@@ -332,6 +366,7 @@ Livecrawl modes:
 
     # Output
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
+    parser.add_argument("--cost", action="store_true", help="Show cost breakdown")
     parser.add_argument("--text-limit", type=int, default=2000,
                         help="Max text chars to display (default: 2000)")
 
@@ -352,18 +387,23 @@ Livecrawl modes:
             get_text=not args.no_text,
             max_characters=args.max_chars,
             include_html_tags=args.html,
+            verbosity=args.verbosity,
+            include_sections=args.include_sections,
+            exclude_sections=args.exclude_sections,
             get_summary=args.summary,
             summary_schema=summary_schema,
             get_highlights=args.highlights,
             highlights_query=args.highlights_query,
             num_sentences=args.sentences,
             highlights_per_url=args.highlights_per_url,
+            highlights_max_chars=args.highlights_max_chars,
             subpages=args.subpages,
             subpage_target=args.subpage_target,
             get_links=args.links,
             get_image_links=args.images,
             livecrawl=args.livecrawl,
             livecrawl_timeout=args.timeout,
+            max_age_hours=args.max_age_hours,
             get_context=args.context,
             context_max_chars=args.context_chars,
         )
@@ -371,7 +411,7 @@ Livecrawl modes:
         if args.json:
             print(json.dumps(results, indent=2))
         else:
-            print(format_results(results, max_text_length=args.text_limit))
+            print(format_results(results, max_text_length=args.text_limit, show_cost=args.cost))
 
     except requests.exceptions.HTTPError as e:
         print(f"API Error: {e}", file=sys.stderr)
