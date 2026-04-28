@@ -146,9 +146,27 @@ def build_font(svg_dir: Path, output: Path):
     fb.setupGlyphOrder(glyph_order)
     fb.setupCharacterMap(cmap)
 
+    cmap_table = fb.font["cmap"]
+    from fontTools.ttLib.tables._c_m_a_p import cmap_format_12
+    for plat_id, enc_id in [(0, 4), (3, 10)]:
+        subtable = cmap_format_12(12)
+        subtable.platEncID = enc_id
+        subtable.platformID = plat_id
+        subtable.format = 12
+        subtable.reserved = 0
+        subtable.length = 0
+        subtable.language = 0
+        subtable.groups = []
+        subtable.cmap = dict(cmap)
+        cmap_table.tables.append(subtable)
+
     name_table = {
         "familyName": "Minoan Glyphs",
         "styleName": "Regular",
+        "uniqueFontIdentifier": "1.0;MinoanGlyphs-Regular",
+        "fullName": "Minoan Glyphs Regular",
+        "version": "Version 1.0",
+        "psName": "MinoanGlyphs-Regular",
     }
     fb.setupNameTable(name_table)
 
@@ -161,6 +179,10 @@ def build_font(svg_dir: Path, output: Path):
     fb.setupHorizontalMetrics(metrics)
     fb.setupHorizontalHeader(ascent=ASCENT, descent=DESCENT)
     fb.setupOS2(sTypoAscender=ASCENT, sTypoDescender=DESCENT, sTypoLineGap=0)
+
+    os2 = fb.font["OS/2"]
+    os2.ulUnicodeRange2 |= 0x02000000
+    os2.panose.bFamilyType = 5
 
     fb.setupGlyf({})
 
