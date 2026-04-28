@@ -233,9 +233,10 @@ Configured in `.mcp.json`: supabase, playwright, context7, shadcn, figma, arxiv,
 
 ## [Ghostty Config](ghostty/README.md) — Terminal for Claude Code
 
-Optimized [Ghostty](https://ghostty.org/) config: Catppuccin Mocha/Latte theme, JetBrains Mono, 100K scrollback, split panes for parallel sessions, prompt jumping, and session persistence.
+Optimized [Ghostty](https://ghostty.org/) config: Catppuccin Mocha/Latte theme, JetBrainsMono Nerd Font with codepoint maps for Linear A/B, Phaistos Disc, and Minoan Glyphs (PUA), 100K scrollback, split panes for parallel sessions, prompt jumping, and session persistence.
 
 ```bash
+brew install --cask font-jetbrains-mono-nerd-font
 cp ghostty/config ~/Library/Application\ Support/com.mitchellh.ghostty/config
 ```
 

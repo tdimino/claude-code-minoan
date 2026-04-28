@@ -5,17 +5,21 @@ Ghostty terminal config optimized for Claude Code workflows. Synthesized from An
 ## Install
 
 ```bash
+# Install fonts
+brew install --cask font-jetbrains-mono-nerd-font
+
+# Copy config
 cp ghostty/config ~/Library/Application\ Support/com.mitchellh.ghostty/config
 ```
 
-Reload with `Cmd+Shift+Comma` or restart Ghostty.
+Restart Ghostty fully (`Cmd+Q` then reopen) to register new fonts.
 
 ## What's Configured
 
 | Category | Settings |
 |----------|----------|
 | **Theme** | Catppuccin Mocha/Latte, Cream (parchment), Knossot (dark), Akrotiri (light) — follows macOS appearance or manual switch |
-| **Font** | JetBrains Mono Nerd Font 15pt + Noto Sans Linear A/B/Symbols 2 fallback cascade |
+| **Font** | JetBrainsMono Nerd Font 15pt, thickened. Codepoint maps: Linear A (U+10600–1077F), Linear B (U+10000–100FF), Phaistos Disc (U+101D0–101FF), Minoan Glyphs PUA (U+E500–E5FF) |
 | **macOS** | Option-as-Alt (required for word nav), transparent titlebar |
 | **Appearance** | 0.90 opacity, blur, balanced padding, bold-is-bright, unfocused split dimming (0.85) |
 | **Persistence** | Tabs/splits restored on restart |
@@ -104,23 +108,22 @@ cp ghostty/themes/* ~/Library/Application\ Support/com.mitchellh.ghostty/themes/
 | **Knossot** | Dark | Palace interior — obsidian walls, Egyptian blue frescoes, saffron and terracotta |
 | **Akrotiri** | Light | Excavated city — sun-bleached plaster, Spring Fresco colors, volcanic earth |
 
-### Font Cascade for Ancient Scripts
+### Codepoint Maps for Ancient Scripts
 
-The config includes fallback fonts for Linear A, Linear B, Phaistos Disc, and custom Minoan glyphs:
+The config uses `font-codepoint-map` (not `font-family`) to map specific Unicode ranges to their rendering fonts. This avoids proportional font metrics polluting the monospace cell width:
 
 ```
-font-family = JetBrains Mono Nerd Font
-font-family = Noto Sans Linear A
-font-family = Noto Sans Linear B
-font-family = Noto Sans Symbols 2
-font-family = Minoan Glyphs
+font-codepoint-map = U+10600-U+1077F=Noto Sans Linear A
+font-codepoint-map = U+10000-U+100FF=Noto Sans Linear B
+font-codepoint-map = U+101D0-U+101FF=Noto Sans Symbols 2
+font-codepoint-map = U+E500-U+E5FF=Minoan Glyphs
 ```
 
 Install the fonts:
 
 ```bash
 brew install --cask font-noto-sans-symbols-2
-# Noto Sans Linear A/B — download from Google Fonts or install via brew
+# Noto Sans Linear A/B — bundled with macOS in /System/Library/Fonts/Supplemental/
 # MinoanGlyphs — build and install from scripts/minoan-glyphs/:
 python3 scripts/minoan-glyphs/build.py --install
 ```
