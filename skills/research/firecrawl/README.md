@@ -1,8 +1,8 @@
 # Firecrawl
 
-Cleaner web scraping than `WebFetch` — handles JavaScript-heavy pages, avoids content truncation, and exposes the full Firecrawl v2 API: scrape, crawl, map, search, LLM extraction, autonomous agents, and post-scrape browser interaction. Ships with a token-efficient filter pipeline and a DeepWiki helper for GitHub repo documentation.
+Cleaner web scraping than `WebFetch` — handles JavaScript-heavy pages, avoids content truncation, and exposes the full Firecrawl v2 API: scrape, crawl, map, search, document parsing (PDF/DOCX/XLSX), LLM extraction, autonomous agents, and post-scrape browser interaction. Ships with a token-efficient filter pipeline and a DeepWiki helper for GitHub repo documentation.
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-04-28
 
 ---
 
@@ -17,7 +17,7 @@ Cleaner web scraping than `WebFetch` — handles JavaScript-heavy pages, avoids 
 ```bash
 npm install -g firecrawl-cli
 firecrawl login --api-key $FIRECRAWL_API_KEY
-pip install firecrawl-py requests   # only needed for firecrawl_api.py
+pip install 'firecrawl-py>=4.17.0' requests   # ≥4.17.0 required for parse
 ```
 
 `FIRECRAWL_API_KEY` lives in `~/.config/env/secrets.env`. Optional: `export FIRECRAWL_NO_TELEMETRY=1`.
@@ -39,7 +39,7 @@ firecrawl/
     interact-reference.md                 # Post-scrape browser interaction (prompt + code modes)
     branding-format.md                    # Brand identity extraction (colors, fonts, UI)
   scripts/
-    firecrawl_api.py                      # Python SDK wrapper — search, scrape, crawl, extract, agent, interact
+    firecrawl_api.py                      # Python SDK wrapper — search, scrape, crawl, parse, extract, agent, interact
     filter_web_results.py                 # Token-efficient post-processor (sections, keywords, fields)
     deepwiki.sh                           # AI-generated wiki for any public GitHub repo
     test_firecrawl.py                     # Test suite (--quick for offline validation)
@@ -92,6 +92,7 @@ firecrawl scrape URL --only-main-content | \
 | `batch-scrape` | Multiple URLs concurrently | `firecrawl_api.py batch-scrape URL1 URL2 URL3` |
 | `crawl` | Website crawling with AI-directed mode | `firecrawl_api.py crawl URL --limit 20` |
 | `map` | URL discovery | `firecrawl_api.py map URL --search "query"` |
+| `parse` | Parse local documents (PDF, DOCX, XLSX) | `firecrawl_api.py parse report.pdf` |
 | `extract` | LLM-powered structured extraction | `firecrawl_api.py extract URL --prompt "Find pricing"` |
 | `agent` | Autonomous extraction (no URLs needed) | `firecrawl_api.py agent "Find YC W24 AI startups"` |
 | `parallel-agent` | Bulk agent queries | `firecrawl_api.py parallel-agent "Q1" "Q2" "Q3"` |
@@ -107,6 +108,19 @@ firecrawl scrape URL --only-main-content | \
 - Persistent profiles via `--profile NAME` to reuse cookies across scrapes (logins)
 
 Interact does **not** return page Markdown — extract specific elements in code mode, or follow up with another `scrape`.
+
+### Document Parsing (new — April 2026)
+
+Parse local documents into clean Markdown via the `/v2/parse` endpoint. Rust-based parser with layout awareness and smart OCR routing. Up to 50 MB per file. Use `parse` for local files; use `scrape` for public URLs pointing to documents.
+
+```bash
+firecrawl_api.py parse report.pdf
+firecrawl_api.py parse data.xlsx --only-main-content
+firecrawl_api.py parse contract.docx --zero-data-retention -o contract.md
+firecrawl_api.py parse invoice.pdf --json
+```
+
+Supported: `.pdf`, `.docx`, `.doc`, `.xlsx`, `.xls`, `.html`, `.htm`, `.odt`, `.rtf`.
 
 ### v2 Parameter Highlights (April 2026 sync)
 
@@ -152,6 +166,7 @@ AI-generated wikis for any public GitHub repo. No API key.
 | Single page → clean Markdown | `firecrawl scrape --only-main-content` |
 | Search + scrape in one shot | `firecrawl search --scrape` |
 | Crawl entire site with progress | `firecrawl crawl --wait --progress` |
+| Local file → markdown (PDF/DOCX/XLSX) | `firecrawl_api.py parse FILE` |
 | Autonomous data finding (no URLs) | `firecrawl_api.py agent` |
 | Structured extraction by prompt | `firecrawl_api.py extract` |
 | Interactive multi-step (forms, login) | `firecrawl_api.py interact` |
