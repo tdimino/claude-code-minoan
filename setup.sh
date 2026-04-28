@@ -40,6 +40,20 @@ fi
 print_green "Claude Code CLI found"
 echo ""
 
+# Setup Fonts
+echo "🔤 Setting up Fonts..."
+echo "----------------------"
+
+if fc-list | grep -qi "JetBrainsMono Nerd Font"; then
+    print_green "JetBrainsMono Nerd Font already installed"
+else
+    print_blue "Installing JetBrainsMono Nerd Font..."
+    brew install --cask font-jetbrains-mono-nerd-font
+    print_green "JetBrainsMono Nerd Font installed"
+fi
+
+echo ""
+
 # Setup Skills
 echo "📚 Setting up Skills..."
 echo "----------------------"
