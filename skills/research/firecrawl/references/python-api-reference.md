@@ -150,6 +150,43 @@ python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py map URL [options]
 
 ---
 
+## parse — Document Parsing
+
+Upload and parse local documents into clean Markdown/JSON. Uses the Firecrawl Rust-based parser with layout awareness and smart OCR routing. For public URLs pointing to documents, use `scrape` instead—it auto-detects file type.
+
+```bash
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py parse FILE [options]
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `FILE` | Path to local file (PDF, DOCX, DOC, XLSX, XLS, HTML, HTM, ODT, RTF) |
+| `--formats` | Output formats: markdown, html (default: markdown) |
+| `--only-main-content` | Strip boilerplate, keep main content only |
+| `--parsers` | Parser hints (e.g. `pdf`) |
+| `--zero-data-retention` | Enable zero data retention mode |
+| `--timeout` | Request timeout in ms |
+| `--json` | Output raw JSON |
+| `-o, --output` | Save output to file |
+
+```bash
+# PDF to markdown
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py parse report.pdf
+
+# Excel with main content only
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py parse data.xlsx --only-main-content
+
+# Word doc with zero data retention, save to file
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py parse contract.docx --zero-data-retention -o contract.md
+
+# Raw JSON for programmatic use
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py parse invoice.pdf --json
+```
+
+Max file size: 50 MB. Supported: `.pdf`, `.docx`, `.doc`, `.xlsx`, `.xls`, `.html`, `.htm`, `.odt`, `.rtf`.
+
+---
+
 ## extract — LLM-Powered Extraction
 
 ```bash

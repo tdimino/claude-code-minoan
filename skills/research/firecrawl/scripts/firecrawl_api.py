@@ -8,6 +8,7 @@ Provides direct API access to ALL Firecrawl v2 endpoints:
 - batch-scrape: Scrape multiple URLs concurrently
 - crawl: Crawl entire sites with link following
 - map: Discover all URLs on a website
+- parse: Upload and parse local documents (PDF, DOCX, XLSX, HTML, ODT, RTF)
 - extract: LLM-powered structured data extraction
 - agent: Autonomous multi-page data extraction (spark-1-fast/mini/pro)
 - parallel-agent: Run multiple agent queries in parallel (v2.8.0+)
@@ -23,6 +24,7 @@ Usage:
     python firecrawl_api.py batch-scrape URL1 URL2 URL3
     python firecrawl_api.py crawl "https://docs.example.com" --limit 10
     python firecrawl_api.py map "https://example.com" --limit 100
+    python firecrawl_api.py parse report.pdf --formats markdown
     python firecrawl_api.py extract "https://example.com/*" --prompt "Find pricing"
     python firecrawl_api.py agent "Find YC W24 AI startups with funding info"
 
@@ -951,6 +953,124 @@ def get_extract_status(job_id: str) -> Dict[str, Any]:
         return response.json()
 
 
+def parse_document(
+    file_path: str,
+    formats: Optional[List[str]] = None,
+    only_main_content: bool = False,
+    parsers: Optional[List[str]] = None,
+    zero_data_retention: bool = False,
+    timeout: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Parse a local document into Markdown/JSON via the /v2/parse endpoint.
+
+    Accepts PDF, DOCX, DOC, XLSX, XLS, HTML, HTM, ODT, RTF files up to 50 MB.
+    For public URLs pointing to documents, use scrape() instead—it auto-detects
+    the file type and parses identically.
+
+    Args:
+        file_path: Path to the local file
+        formats: Output formats (e.g. ["markdown", "html"])
+        only_main_content: Strip boilerplate, keep main content only
+        parsers: Parser hints (e.g. ["pdf"])
+        zero_data_retention: Enable zero data retention mode
+        timeout: Request timeout in ms
+
+    Returns:
+        Dict with parsed document data (markdown, metadata, etc.)
+    """
+    import mimetypes
+    from pathlib import Path
+
+    path = Path(file_path).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+    if path.stat().st_size > 50 * 1024 * 1024:
+        raise ValueError(f"File exceeds 50 MB limit: {path.stat().st_size / 1024 / 1024:.1f} MB")
+
+    if HAS_FIRECRAWL_SDK and not zero_data_retention:
+        from firecrawl.v2.types import ScrapeOptions
+        app = _get_app()
+        opts_kwargs = {}
+        if formats:
+            opts_kwargs["formats"] = formats
+        if only_main_content:
+            opts_kwargs["only_main_content"] = True
+        if parsers:
+            opts_kwargs["parsers"] = parsers
+        if timeout:
+            opts_kwargs["timeout"] = timeout
+        parse_options = ScrapeOptions(**opts_kwargs) if opts_kwargs else None
+
+        result = app.parse(
+            str(path),
+            filename=path.name,
+            content_type=mimetypes.guess_type(str(path))[0],
+            options=parse_options
+        )
+        if hasattr(result, 'model_dump'):
+            data = result.model_dump()
+        elif hasattr(result, '__dict__'):
+            data = vars(result)
+        else:
+            data = result
+        return {"success": True, "data": data}
+    else:
+        content_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+        options = {}
+        if formats:
+            options["formats"] = formats
+        if only_main_content:
+            options["onlyMainContent"] = True
+        if parsers:
+            options["parsers"] = parsers
+        if zero_data_retention:
+            options["zeroDataRetention"] = True
+        if timeout:
+            options["timeout"] = timeout
+
+        with open(path, "rb") as f:
+            files = {"file": (path.name, f, content_type)}
+            data = {}
+            if options:
+                data["options"] = json.dumps(options)
+            response = requests.post(
+                f"{BASE_URL_V2}/parse",
+                headers={"Authorization": f"Bearer {FIRECRAWL_API_KEY}"},
+                files=files,
+                data=data
+            )
+        response.raise_for_status()
+        return response.json()
+
+
+def format_parse_result(result: Dict[str, Any], max_text_length: int = 2000) -> str:
+    """Format parse result for display."""
+    output = []
+    data = result.get("data", result)
+
+    if isinstance(data, dict):
+        metadata = data.get("metadata", {})
+        if metadata:
+            if metadata.get("title"):
+                output.append(f"Title: {metadata['title']}")
+            if metadata.get("contentType"):
+                output.append(f"Content-Type: {metadata['contentType']}")
+            if metadata.get("sourceURL"):
+                output.append(f"Source: {metadata['sourceURL']}")
+
+        if data.get("markdown"):
+            text = data["markdown"][:max_text_length]
+            if len(data["markdown"]) > max_text_length:
+                text += "\n... [truncated]"
+            output.append(f"\n{text}")
+
+        if data.get("links"):
+            output.append(f"\nLinks found: {len(data['links'])}")
+
+    return "\n".join(output) if output else "No parsed content returned"
+
+
 def format_search_results(results: Dict[str, Any], max_text_length: int = 500) -> str:
     """Format search results for display."""
     output = []
@@ -1306,6 +1426,24 @@ def main():
     extract_status_parser.add_argument("job_id", help="Job ID to check")
     extract_status_parser.add_argument("--json", action="store_true", help="Output raw JSON")
 
+    # Parse command
+    parse_parser = subparsers.add_parser("parse",
+        help="Upload and parse local documents (PDF, DOCX, XLSX, HTML, ODT, RTF)")
+    parse_parser.add_argument("file", help="Path to local file to parse")
+    parse_parser.add_argument("--formats", nargs="+", default=["markdown"],
+                              help="Output formats: markdown, html, json (default: markdown)")
+    parse_parser.add_argument("--only-main-content", action="store_true",
+                              help="Strip boilerplate, keep main content only")
+    parse_parser.add_argument("--parsers", nargs="+",
+                              help="Parser hints (e.g. pdf)")
+    parse_parser.add_argument("--zero-data-retention", action="store_true",
+                              help="Enable zero data retention mode")
+    parse_parser.add_argument("--timeout", type=int,
+                              help="Request timeout in ms")
+    parse_parser.add_argument("--json", action="store_true",
+                              help="Output raw JSON")
+    parse_parser.add_argument("-o", "--output", help="Save output to file")
+
     # Interact command
     interact_parser = subparsers.add_parser("interact",
         help="Interact with a scraped page (click, fill, extract)")
@@ -1655,6 +1793,26 @@ def main():
                 if result.get('data'):
                     print(f"\nExtracted data:")
                     print(json.dumps(result['data'], indent=2, default=str))
+
+        elif args.command == "parse":
+            result = parse_document(
+                args.file,
+                formats=args.formats,
+                only_main_content=args.only_main_content,
+                parsers=args.parsers,
+                zero_data_retention=args.zero_data_retention,
+                timeout=args.timeout
+            )
+            if args.json:
+                print(json.dumps(result, indent=2, default=str))
+            elif args.output:
+                data = result.get("data", result)
+                content = data.get("markdown", json.dumps(data, indent=2, default=str))
+                with open(args.output, "w") as f:
+                    f.write(content)
+                print(f"Output saved to {args.output}")
+            else:
+                print(format_parse_result(result))
 
         elif args.command == "interact":
             result = interact(

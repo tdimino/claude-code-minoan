@@ -120,6 +120,26 @@ firecrawl map https://example.com --json --pretty -o urls.json
 
 ---
 
+## parse — Document Parsing
+
+Available in `firecrawl-cli` ≥1.16.0. Currently installed CLI version (1.3.0) does not include `parse`. Use the Python API script (`firecrawl_api.py parse`) as the primary interface until the CLI is upgraded.
+
+```bash
+# Via Python API script (works now):
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py parse FILE [options]
+
+# Via CLI (requires upgrade to 1.16.0+):
+# firecrawl parse FILE [options]
+```
+
+Uploads and parses local documents (PDF, DOCX, XLSX, HTML, ODT, RTF) into clean Markdown/JSON. Powered by a Rust-based parser with layout awareness and smart OCR routing. Max file size: 50 MB.
+
+For public URLs pointing to documents, use `scrape` instead — it auto-detects the file type.
+
+For full parameter documentation, see the parse section in `python-api-reference.md`.
+
+---
+
 ## search — Web Search
 
 ```bash
