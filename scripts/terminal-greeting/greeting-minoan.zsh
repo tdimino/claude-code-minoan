@@ -75,14 +75,15 @@ print(['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'][p])
   local bee=$'\U101F1'
   local lily=$'\U101F6'
   local dolphin=$'\UE503'
+  local swallow=$'\UE504'
 
   echo ""
   echo "  ${saffron}  ┌──${rosette}${saffron}──${bee}${saffron}──${wave}${saffron}──${bee}${saffron}──${lily}${saffron}──┐  ${dim}${moon_phase}${n}"
-  echo "  ${olive}  ${dolphin}${n}"
+  echo "  ${olive}  ${swallow}${n}"
   echo "  ${olive}  ${dolphin}${n}  ${blue}╔══╗${n}"
-  echo "  ${olive}  ${dolphin}${n}  ${blue}║${saffron}${sigil}${blue}║${n}  ${saffron}𐘀${n} ${ochre}${msg}${n} ${saffron}𐘁${n}"
+  echo "  ${olive}  ${swallow}${n}  ${blue}║${saffron}${sigil}${blue}║${n}  ${saffron}𐘀${n} ${ochre}${msg}${n} ${saffron}𐘁${n}"
   echo "  ${olive}  ${dolphin}${n}  ${blue}╚══╝${n}  ${saffron}☉${n}  ${dim}${purple}${inv}${n}"
-  echo "  ${olive}  ${dolphin}${n}"
+  echo "  ${olive}  ${swallow}${n}"
   echo "  ${saffron}  └──${lily}${saffron}──${bee}${saffron}──${wave}${saffron}──${bee}${saffron}──${rosette}${saffron}──┘${n}"
   echo ""
 }
