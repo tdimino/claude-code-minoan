@@ -68,6 +68,8 @@ scripts/minoan-glyphs/
   │   ├── shield.svg
   │   ├── goddess.svg
   │   └── crocus.svg
+  ├── reference/         # Source fresco images + processing intermediates (gitignored)
+  │   └── SOURCES.md     # Provenance and attribution (tracked)
   ├── MinoanGlyphs.ttf   # Built artifact
   └── README.md
 ```
@@ -77,3 +79,30 @@ scripts/minoan-glyphs/
 Glyphs are designed for monospace terminal rendering at 1024 units-per-em. SVG paths are simple geometric outlines — stylized silhouettes, not archaeological reproductions. The Y-axis is flipped during build to convert SVG coordinate space (top-left origin) to font coordinate space (bottom-left origin).
 
 Each glyph references a specific artifact or fresco from Minoan Crete. The dolphin traces the Queen's Megaron profile. The bull captures the leaping pose. The goddess raises her arms in the Palaikastro stance. The crocus blooms as it does in the Saffron Gatherer fresco at Xeste 3.
+
+## SVG Design Methodology
+
+Bold silhouettes optimized for terminal rendering at 14–18px. Not archaeological reproductions—stylized ideograms that read at a glance.
+
+- **15–50 anchor points** per glyph. Fewer = cleaner rasterization at small sizes.
+- **Single contour preferred.** Compound shapes (body + eye) collapse to noise below 16px.
+- **Minimum 125-unit features** (~12% of 1024 UPM em-square). Anything narrower than 1/8 em renders as a single antialiased pixel and disappears.
+- **Squint test at 16px.** If you can't identify the animal at arm's length, the silhouette needs simplification.
+- **Exaggerate diagnostic features.** The dolphin's dorsal fin is proportionally larger than life. The swallow's forked tail streamers are wider than anatomically correct. These are the features that distinguish the glyph from a generic blob.
+
+## Vectorization Pipeline
+
+For glyphs derived from photographic references:
+
+1. **Crop** — `magick in.jpg -crop WxH+X+Y out.jpg` to isolate the motif
+2. **Color isolation** — `magick in.jpg -colorspace HSL -channel G -separate sat.png` to extract by saturation/hue
+3. **Threshold to B&W** — `magick in.png -threshold 50% out.pbm` for a 1-bit mask
+4. **Vectorize** — `vtracer --input in.png --output out.svg --colormode binary` (preferred for grayscale) or `potrace input.pbm -s -o output.svg` (for clean B&W)
+5. **Manual cleanup** — Reduce anchor points, merge paths, enforce 125-unit minimums
+6. **Build font** — `python3 build.py --install`
+
+Automated tracing works well for high-contrast motifs. Fresco subjects with color bleed (e.g., the dolphin's blue merging with patina) require hand-crafted SVGs informed by the reference.
+
+## Reference Sources
+
+Source images are in `reference/` (gitignored, ~34MB). See `reference/SOURCES.md` for provenance and attribution. All source photographs are Wikimedia Commons CC BY-SA 4.0.
