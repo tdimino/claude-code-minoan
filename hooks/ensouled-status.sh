@@ -7,10 +7,10 @@ SESSION_ID=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin)
 # Glyph selection: Minoan theme uses Linear A AB001, default uses Eye of Horus
 if [ "${STATUSLINE_THEME:-}" = "minoan" ]; then
   ENSOULED_GLYPH="𐘀 ensouled"
-  MORTAL_GLYPH="○ mortal"
+  MORTAL_GLYPH="☽ mortal"
 else
   ENSOULED_GLYPH="𓂀 ensouled"
-  MORTAL_GLYPH="○ mortal"
+  MORTAL_GLYPH="☽ mortal"
 fi
 
 # Check per-session marker file
