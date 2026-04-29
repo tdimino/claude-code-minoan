@@ -61,8 +61,8 @@ else:
     token_str = str(used_tokens)
 MUTED = fg(100, 100, 100) if is_light else fg(184, 184, 184)
 if is_light:
-    out += MUTED + " | " + RESET + MUTED + token_str + RESET
+    out += MUTED + "  " + RESET + MUTED + token_str + RESET
 else:
-    out += DIM + " | " + RESET + MUTED + token_str + RESET
+    out += fg(160, 160, 160) + "  " + RESET + MUTED + token_str + RESET
 
 sys.stdout.write(out)

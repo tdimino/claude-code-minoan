@@ -37,7 +37,7 @@ else
 fi
 
 # ── Separator ──
-SEP="${DIM} | ${RESET}"
+SEP="[38;2;160;160;160m  [0m"
 
 # ── Widget 1: Session name (Tyrian purple) ──
 SESSION_NAME=$(echo "$INPUT" | ~/.claude/hooks/session-name.sh 2>/dev/null)
@@ -77,7 +77,7 @@ LINE1="${LINE1}${CRAB_COLOR}${CRAB_MODEL}${RESET}"
 LINE1="${LINE1}${SEP}"
 LINE1="${LINE1}${CONTEXT_BAR}"
 LINE1="${LINE1}${SEP}"
-LINE1="${LINE1}${BLUE}⎇ ${GIT_BRANCH}${RESET}"
+LINE1="${LINE1}${BLUE} ${GIT_BRANCH}${RESET}"
 # [ -n "$GIT_CHANGES" ] && LINE1="${LINE1}${SEP}${YELLOW}${GIT_CHANGES}${RESET}"
 
 # ── Swap ccstatusline config for light/dark (atomic, cached) ──

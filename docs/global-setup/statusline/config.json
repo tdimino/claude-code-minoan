@@ -15,13 +15,13 @@
           "id": "ensouled-sep",
           "type": "custom-text",
           "customText": "  ",
-          "color": "brightBlue"
+          "color": "hex:a0a0a0"
         },
         {
           "id": "soul-name-widget",
           "type": "custom-command",
           "commandPath": "~/.claude/hooks/soul-name.sh",
-          "color": "brightYellow",
+          "color": "hex:DAA520",
           "timeout": 1000
         }
       ],
@@ -29,16 +29,18 @@
         {
           "id": "8447355e-caf8-4c36-af1f-489e3a0e7414",
           "type": "session-clock",
-          "color": "brightGreen"
+          "color": "hex:4CC98E"
         },
         {
           "id": "1c162934-884a-43e0-bdbf-4bda8ab52042",
-          "type": "separator"
+          "type": "custom-text",
+          "customText": "  ",
+          "color": "hex:a0a0a0"
         },
         {
           "id": "9400c301-5b8a-4503-bb47-cd7bc546d9c5",
           "type": "block-timer",
-          "color": "green"
+          "color": "hex:72A85E"
         }
       ]
     ],

@@ -25,14 +25,14 @@
       "_rendered_by": "ccstatusline",
       "widgets": {
         "ensouled-indicator": { "ccstatusline_color": "brightBlue",   "label": "Bright blue" },
-        "soul-name":          { "ccstatusline_color": "brightYellow", "label": "Bright yellow" }
+        "soul-name":          { "ccstatusline_color": "hex:DAA520", "label": "Saffron (Knossos crocus)" }
       }
     },
     "line3": {
       "_rendered_by": "ccstatusline",
       "widgets": {
-        "session-clock": { "ccstatusline_color": "brightGreen", "label": "Bright green" },
-        "block-timer":   { "ccstatusline_color": "green",       "label": "Green" }
+        "session-clock": { "ccstatusline_color": "hex:4CC98E", "label": "Cretan malachite" },
+        "block-timer":   { "ccstatusline_color": "hex:72A85E", "label": "Olive grove" }
       }
     }
   },

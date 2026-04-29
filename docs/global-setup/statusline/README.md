@@ -30,9 +30,10 @@ Line 3: Session: 12m | Block: 3m
 | Token count | Muted grey | `#b8b8b8` | `--color-text-muted` |
 | Git branch | Bright blue | ANSI 94, prefix `⎇` | ccstatusline default |
 | Ensouled | Bright blue | ccstatusline | Default |
-| Soul name | Bright yellow | ccstatusline | Default |
-| Session clock | Bright green | ccstatusline | Default |
-| Block timer | Green | ccstatusline | Default |
+| Soul name | Saffron | `hex:DAA520` | Knossos crocus |
+| Chevrons | Muted grey | `hex:a0a0a0` / `#a0a0a0` | Matching across all lines |
+| Session clock | Cretan malachite | `hex:4CC98E` | Minoan green stone |
+| Block timer | Olive grove | `hex:72A85E` | Cretan hillside |
 
 ### Hook Scripts
 
