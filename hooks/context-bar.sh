@@ -4,6 +4,9 @@ import os, sys, json
 
 is_light = os.environ.get("STATUSLINE_MODE") == "light"
 
+chevron_env = os.environ.get('CHEVRON_RGB', '160;160;160')
+_cr, _cg, _cb = [int(x) for x in chevron_env.replace(',', ';').split(';')]
+
 data = json.load(sys.stdin)
 cw = data.get("context_window", {})
 pct = cw.get("used_percentage")
@@ -63,6 +66,6 @@ MUTED = fg(100, 100, 100) if is_light else fg(184, 184, 184)
 if is_light:
     out += MUTED + "  " + RESET + MUTED + token_str + RESET
 else:
-    out += fg(160, 160, 160) + "  " + RESET + MUTED + token_str + RESET
+    out += fg(_cr, _cg, _cb) + "  " + RESET + MUTED + token_str + RESET
 
 sys.stdout.write(out)

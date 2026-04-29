@@ -19,6 +19,9 @@
           "token-count": { "hex": "#b8b8b8", "rgb": [184, 184, 184], "ansi": "38;2;184;184;184", "label": "Muted grey (--color-text-muted)" }
         },
         "git-branch":    { "ansi": "94", "prefix": "⎇", "label": "Bright blue" }
+      },
+      "separators": {
+        "chevron": { "hex": "#a0a0a0", "rgb": [160, 160, 160], "glyph": "U+E0B1", "label": "Light powerline chevron — all lines" }
       }
     },
     "line2": {
