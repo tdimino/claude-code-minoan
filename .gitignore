@@ -74,3 +74,7 @@ skills/design-media/gemini-claude-resonance/canvas/
 skills/design-media/gemini-claude-resonance/test-results/
 skills/integration-automation/classical-887/.spotify-cache
 skills/research/linear-a-decipherment/data/
+
+# Minoan glyph reference images (source frescos + processing intermediates)
+scripts/minoan-glyphs/reference/*
+!scripts/minoan-glyphs/reference/SOURCES.md
