@@ -11,7 +11,7 @@ Photographic references used for glyph SVG design. All images are Wikimedia Comm
 
 ## Akrotiri Swallow (U+E504)
 
-- **Subject**: Spring Fresco swallows, Xeste 3, Akrotiri, Thera
+- **Subject**: Spring Fresco swallows, Building Delta (Room Delta 2), Akrotiri, Thera
 - **Source**: https://commons.wikimedia.org/wiki/File:Fresco_of_the_Spring.jpg
 - **License**: CC BY-SA 4.0
 - **Used for**: Wing spread, forked tail streamer proportions, diving posture

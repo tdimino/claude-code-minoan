@@ -13,7 +13,7 @@
 # - Linear A brackets 𐘀...𐘁 (AB001/AB002) wrap the greeting
 # - Wave band ∿· replaces diamond interlace (Aegean for Celtic knot)
 # - Moon phase replaces planetary almanac (Minoan lunar calendar)
-# - PUA dolphin (U+E503) margin replaces vine ❧ (Knossos Queen's Megaron)
+# - PUA swallow (U+E504) + dolphin (U+E503) alternating margin replaces vine ❧
 # - Rotating Linear A sigils in the initial box
 # - Sun disc ☉ as solar/chthonic separator
 

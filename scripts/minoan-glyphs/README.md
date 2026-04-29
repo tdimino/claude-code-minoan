@@ -86,7 +86,7 @@ Bold silhouettes optimized for terminal rendering at 14–18px. Not archaeologic
 
 - **15–50 anchor points** per glyph. Fewer = cleaner rasterization at small sizes.
 - **Single contour preferred.** Compound shapes (body + eye) collapse to noise below 16px.
-- **Minimum 125-unit features** (~12% of 1024 UPM em-square). Anything narrower than 1/8 em renders as a single antialiased pixel and disappears.
+- **Minimum 125-unit features** (~12% of 1024 UPM em-square). Anything narrower than 1/8 em renders as a single antialiased pixel and disappears. Tapered tips (fin, beak, tail streamer) may go below 125u at the terminal point—the taper reads as a directional cue even when the tip itself collapses.
 - **Squint test at 16px.** If you can't identify the animal at arm's length, the silhouette needs simplification.
 - **Exaggerate diagnostic features.** The dolphin's dorsal fin is proportionally larger than life. The swallow's forked tail streamers are wider than anatomically correct. These are the features that distinguish the glyph from a generic blob.
 

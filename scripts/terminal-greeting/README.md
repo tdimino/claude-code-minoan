@@ -90,7 +90,7 @@ Add to `~/.zshrc` (replaces or supplements the Illuminated Manuscript greeting):
 source ~/.claude/scripts/terminal-greeting/greeting-minoan.zsh
 ```
 
-Requires: JetBrains Mono Nerd Font, Noto Sans Linear A, Noto Sans Symbols 2 (Phaistos Disc signs), and MinoanGlyphs.ttf (custom PUA dolphin). All are configured in the Ghostty font cascade — see `ghostty/config`.
+Requires: JetBrains Mono Nerd Font, Noto Sans Linear A, Noto Sans Symbols 2 (Phaistos Disc signs), and MinoanGlyphs.ttf (custom PUA dolphin + swallow). All are configured in the Ghostty font cascade — see `ghostty/config`.
 
 ## Pigments
 
