@@ -161,3 +161,17 @@ All page content uses `position: relative; z-index: 1` to layer above the textur
 - Section spacing: `margin-bottom: 3.5rem`
 - Card border-radius: `12px` (cards), `10px` (hook-card, phase-block), `100px` (pills/badges)
 - Ghost section number: `3.2rem` display font, absolute positioned left
+
+## Mermaid Diagram Theme
+
+The `vellum` theme in `beautiful-mermaid` maps CSS variables to hex colors for SVG output:
+
+| DiagramColors | CSS Variable | OKLCH | Hex | Role |
+|---|---|---|---|---|
+| `bg` | `--bg` | `oklch(0.96 0.008 80)` | `#f5f1eb` | Background |
+| `fg` | `--ink` | `oklch(0.22 0.04 270)` | `#2b2836` | Text, node labels |
+| `accent` | `--copper` | `oklch(0.45 0.12 55)` | `#7a5a2e` | Arrowheads, highlights |
+| `line` | `--border` | `oklch(0.82 0.015 75)` | `#cec7b8` | Edges, connectors |
+| `muted` | `--text-dim` | `oklch(0.45 0.01 55)` | `#666059` | Edge labels, secondary text |
+
+Use `--transparent` when inlining SVGs so the panel's `--bg-card` background shows through instead of a hard-coded SVG background.
