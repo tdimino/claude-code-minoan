@@ -36,8 +36,13 @@ else
     BLUE="\033[94m"                      # brightBlue
 fi
 
+# ── Chevron color (shared with context-bar.sh via env) ──
+# ccstatusline equivalent: hex:a0a0a0 in ~/.config/ccstatusline/settings.json
+CHEVRON_RGB="160;160;160"
+export CHEVRON_RGB
+
 # ── Separator ──
-SEP="[38;2;160;160;160m  [0m"
+SEP="\033[38;2;${CHEVRON_RGB}m  \033[0m"
 
 # ── Widget 1: Session name (Tyrian purple) ──
 SESSION_NAME=$(echo "$INPUT" | ~/.claude/hooks/session-name.sh 2>/dev/null)
