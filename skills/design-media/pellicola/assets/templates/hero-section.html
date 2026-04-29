@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Film Title — Hero</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --pel-cream: oklch(97.5% 0.012 85);
+      --pel-cream-deep: oklch(95% 0.015 80);
+      --pel-black: oklch(10% 0 0);
+      --pel-ink: oklch(15% 0.005 80);
+      --pel-ink-muted: oklch(40% 0.01 80);
+      --pel-ink-light: oklch(98% 0 0);
+      --pel-red: oklch(55% 0.22 25);
+      --pel-border: oklch(85% 0.01 80);
+      --pel-border-dark: oklch(25% 0 0);
+      --pel-font-display: 'Playfair Display', 'Cormorant Garamond', serif;
+      --pel-font-body: 'DM Sans', 'Outfit', sans-serif;
+      --pel-ease: cubic-bezier(.19, 1, .22, 1);
+      --pel-ease-back: cubic-bezier(.175, 0, .77, 1);
+      --pel-duration: 0.8s;
+      --pel-duration-long: 1.1s;
+      --pel-duration-short: 0.4s;
+      --pel-content-pad: clamp(1.5rem, 4vw, 3rem);
+      --pel-frame-pad: clamp(0.75rem, 2vw, 1.25rem);
+      --pel-frame-radius: 8px;
+    }
+
+    body {
+      font-family: var(--pel-font-body);
+      background: var(--pel-cream);
+      color: var(--pel-ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    .pel-skip-link {
+      position: fixed; top: -100%; left: 1rem; z-index: 100;
+      padding: 0.5rem 1rem; background: var(--pel-ink); color: var(--pel-ink-light);
+      font-family: var(--pel-font-body); text-decoration: none; border-radius: 4px;
+    }
+    .pel-skip-link:focus { top: 1rem; }
+
+    .pel-frame {
+      background: var(--pel-cream-deep);
+      padding: var(--pel-frame-pad);
+      border-radius: var(--pel-frame-radius);
+      box-shadow: 0 1px 2px oklch(15% 0 0 / 0.04), 0 4px 8px oklch(15% 0 0 / 0.03), 0 8px 24px oklch(15% 0 0 / 0.02);
+    }
+    .pel-frame img {
+      width: 100%; display: block;
+      border-radius: calc(var(--pel-frame-radius) - 2px);
+    }
+
+    .pel-hero {
+      position: relative; min-height: 90vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: var(--pel-content-pad); text-align: center;
+    }
+    .pel-hero__frame { max-width: 900px; width: 100%; margin-bottom: 2rem; }
+    .pel-hero__label {
+      font-size: 0.75rem; font-weight: 500;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--pel-ink-muted); margin-bottom: 0.75rem;
+    }
+    .pel-hero__title {
+      font-family: var(--pel-font-display);
+      font-size: clamp(3rem, 8vw, 7rem); font-weight: 400;
+      line-height: 0.95; letter-spacing: -0.02em; color: var(--pel-ink);
+    }
+    .pel-hero__actions { margin-top: 2rem; }
+    .pel-hero__scroll {
+      position: absolute; bottom: 2rem;
+      color: var(--pel-ink-muted); text-decoration: none;
+      transition: color var(--pel-duration-short) var(--pel-ease);
+    }
+    .pel-hero__scroll:hover { color: var(--pel-ink); }
+
+    .pel-play {
+      display: inline-flex; align-items: center; gap: 0.75rem;
+      background: none; border: none; cursor: pointer; padding: 0; color: var(--pel-ink);
+    }
+    .pel-play__circle {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--pel-red); display: flex; align-items: center; justify-content: center;
+      color: var(--pel-ink-light);
+      transition: transform var(--pel-duration-short) var(--pel-ease);
+      flex-shrink: 0;
+    }
+    .pel-play__icon { margin-left: 2px; }
+    .pel-play__text {
+      font-size: 0.875rem; font-weight: 500;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      opacity: 0; transform: translateX(-8px);
+      transition: opacity var(--pel-duration-short) var(--pel-ease), transform var(--pel-duration-short) var(--pel-ease);
+    }
+    .pel-play:hover .pel-play__circle { transform: scale(1.08); }
+    .pel-play:hover .pel-play__text { opacity: 1; transform: translateX(0); }
+    .pel-play:focus-visible .pel-play__circle { outline: 2px solid var(--pel-ink); outline-offset: 3px; }
+
+    /* Animation */
+    [data-pel] { opacity: 0; transition: opacity var(--pel-duration) var(--pel-ease), transform var(--pel-duration) var(--pel-ease); }
+    [data-pel="y"] { transform: translateY(40px); }
+    [data-pel="alpha"] { transform: none; }
+    [data-pel].is-visible { opacity: 1; transform: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      [data-pel] { opacity: 1 !important; transform: none !important; transition: none !important; }
+      .pel-play__text { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main" class="pel-skip-link">Skip to content</a>
+
+  <main id="main">
+    <section class="pel-hero" aria-label="Film hero">
+      <div class="pel-hero__frame pel-frame" data-pel="alpha">
+        <img src="https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200&h=675&fit=crop" alt="Scene from Film Title" data-pel="parallax">
+      </div>
+      <div class="pel-hero__content" data-pel="y">
+        <p class="pel-hero__label">Documentary</p>
+        <h1 class="pel-hero__title">Film Title</h1>
+      </div>
+      <div class="pel-hero__actions" data-pel="alpha">
+        <button class="pel-play" aria-label="Watch trailer">
+          <span class="pel-play__circle">
+            <svg class="pel-play__icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+              <polygon points="8,5 20,12 8,19" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="pel-play__text">Watch Trailer</span>
+        </button>
+      </div>
+      <a href="#credits" class="pel-hero__scroll" aria-label="Scroll down">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </a>
+    </section>
+  </main>
+
+  <script>
+    (function() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+
+      document.querySelectorAll('[data-pel]').forEach(el => observer.observe(el));
+    })();
+  </script>
+</body>
+</html>

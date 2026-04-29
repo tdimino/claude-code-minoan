@@ -21,3 +21,4 @@ Route discovered needs to the right implementation skill. Only recommend skills 
 | Design-to-code or code-to-design workflow | `/paper-design` | Paper MCP: 21 tools, React+Tailwind export, bi-directional sync |
 | Fast UI draft from screenshot or description | `/gemini-forge` | Gemini 3.1 Pro one-shot code drafts (7.5x cheaper than Opus) |
 | Cross-model visual dialogue, image continuity | `/gemini-claude-resonance` | Claude + Gemini shared visual memory for iterative image work |
+| Film/documentary case study, director portfolio, creative project showcase, production company page | `/pellicola` | Film-frame heroes, credit grids, dark footage galleries, festival awards, scroll choreography, warm analog palette |

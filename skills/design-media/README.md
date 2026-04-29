@@ -56,9 +56,10 @@ The satellite skills adapt patterns from [Impeccable](https://github.com/pbakaus
 
 | Skill | Description |
 |-------|-------------|
+| `pellicola` | Cinematic case study pages: film-frame hero images, crew credit grids, dark footage galleries, festival award sections, scroll-choreographed reveals via `data-pel` attributes. Warm cream palette with Playfair Display / DM Sans typography. 4 modes: `case-study`, `hero`, `credits`, `gallery`. Static HTML, zero build step. Scaffold with `pellicola_generator.py` |
 | `shadcn` | Install, customize, compose shadcn/ui components with Tailwind v4 OKLCH theming |
 | `mindnode-ui` | MindNode-inspired mind mapping interfaces (ReactFlow, D3, 27+ themes) |
-| `vellum-editorial` | Editorial documentation sites: OKLCH palette, Bodoni Moda / Source Serif 4 / Inconsolata typography, crosshatch texture, 21 semantic components (state cards, parity matrices, debugger panels, rings, phase timelines, glossaries). Static HTML, zero build step. Scaffold with `init_project.py` |
+| `vellum-editorial` | Editorial documentation sites: OKLCH palette, Bodoni Moda / Source Serif 4 / Inconsolata typography, crosshatch texture, 22 semantic components (state cards, parity matrices, debugger panels, rings, phase timelines, glossaries, diagram panels). Optional Mermaid diagrams via `beautiful-mermaid` with vellum theme. Static HTML, zero build step. Scaffold with `init_project.py` |
 
 ## Recording & Presentation
 

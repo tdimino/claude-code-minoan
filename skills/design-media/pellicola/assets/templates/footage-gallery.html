@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Film Title — Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --pel-cream: oklch(97.5% 0.012 85);
+      --pel-black: oklch(10% 0 0);
+      --pel-ink: oklch(15% 0.005 80);
+      --pel-ink-muted: oklch(40% 0.01 80);
+      --pel-ink-light: oklch(98% 0 0);
+      --pel-border: oklch(85% 0.01 80);
+      --pel-border-dark: oklch(25% 0 0);
+      --pel-font-display: 'Playfair Display', 'Cormorant Garamond', serif;
+      --pel-font-body: 'DM Sans', 'Outfit', sans-serif;
+      --pel-ease: cubic-bezier(.19, 1, .22, 1);
+      --pel-duration: 0.8s;
+      --pel-duration-short: 0.4s;
+      --pel-content-pad: clamp(1.5rem, 4vw, 3rem);
+      --pel-section-gap: clamp(4rem, 8vw, 8rem);
+      --pel-max-width: 1200px;
+      --pel-stagger-delay: 0.1s;
+    }
+
+    body {
+      font-family: var(--pel-font-body);
+      background: var(--pel-cream);
+      color: var(--pel-ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    .pel-skip-link {
+      position: fixed; top: -100%; left: 1rem; z-index: 100;
+      padding: 0.5rem 1rem; background: var(--pel-ink); color: var(--pel-ink-light);
+      font-family: var(--pel-font-body); text-decoration: none; border-radius: 4px;
+    }
+    .pel-skip-link:focus { top: 1rem; }
+
+    .pel-gallery {
+      background: var(--pel-black);
+      color: var(--pel-ink-light);
+      padding: var(--pel-section-gap) var(--pel-content-pad);
+    }
+
+    .pel-gallery__inner {
+      max-width: var(--pel-max-width);
+      margin: 0 auto;
+    }
+
+    .pel-divider--dark {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+    }
+    .pel-divider--dark::after {
+      content: ''; flex: 1; height: 1px;
+      background: var(--pel-border-dark);
+      transform-origin: left center;
+    }
+    .pel-divider--dark .pel-divider__label {
+      font-size: 0.6875rem; font-weight: 500;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: oklch(70% 0 0); flex-shrink: 0;
+    }
+
+    .pel-gallery__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(0.5rem, 1vw, 1rem);
+    }
+
+    .pel-gallery__item {
+      margin: 0; overflow: hidden; border-radius: 4px;
+    }
+    .pel-gallery__item img {
+      width: 100%; display: block;
+      aspect-ratio: 16 / 10; object-fit: cover;
+      transition: transform var(--pel-duration) var(--pel-ease), filter var(--pel-duration) var(--pel-ease);
+    }
+    .pel-gallery__item:hover img {
+      transform: scale(1.03);
+      filter: brightness(1.08);
+    }
+
+    @media (max-width: 768px) {
+      .pel-gallery__grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .pel-gallery__grid { grid-template-columns: 1fr; }
+    }
+
+    /* Animation */
+    [data-pel] { opacity: 0; transition: opacity var(--pel-duration) var(--pel-ease), transform var(--pel-duration) var(--pel-ease); }
+    [data-pel="line"]::after { transform: scaleX(0); transition: transform var(--pel-duration) var(--pel-ease); }
+    [data-pel="line"].is-visible { opacity: 1; }
+    [data-pel="line"].is-visible::after { transform: scaleX(1); }
+    [data-pel].is-visible { opacity: 1; transform: none; }
+    [data-pel="stagger"] > * {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity var(--pel-duration) var(--pel-ease), transform var(--pel-duration) var(--pel-ease);
+    }
+    [data-pel="stagger"].is-visible > * { opacity: 1; transform: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      [data-pel], [data-pel="stagger"] > * {
+        opacity: 1 !important; transform: none !important; transition: none !important;
+      }
+      [data-pel="line"]::after { transform: scaleX(1) !important; transition: none !important; }
+      .pel-gallery__item img { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main" class="pel-skip-link">Skip to content</a>
+
+  <main id="main">
+    <section class="pel-gallery" aria-label="Gallery">
+      <div class="pel-gallery__inner">
+        <div class="pel-divider pel-divider--dark" data-pel="line">
+          <span class="pel-divider__label">Gallery</span>
+        </div>
+
+        <div class="pel-gallery__grid" data-pel="stagger">
+          <figure class="pel-gallery__item">
+            <img src="https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=800&h=500&fit=crop" alt="Film still — opening scene" loading="lazy">
+          </figure>
+          <figure class="pel-gallery__item">
+            <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&h=500&fit=crop" alt="Film still — interior" loading="lazy">
+          </figure>
+          <figure class="pel-gallery__item">
+            <img src="https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=800&h=500&fit=crop" alt="Film still — landscape" loading="lazy">
+          </figure>
+          <figure class="pel-gallery__item">
+            <img src="https://images.unsplash.com/photo-1524712245354-2c4e5e7121c0?w=800&h=500&fit=crop" alt="Film still — portrait" loading="lazy">
+          </figure>
+          <figure class="pel-gallery__item">
+            <img src="https://images.unsplash.com/photo-1460881680858-30d872d5b530?w=800&h=500&fit=crop" alt="Film still — exterior" loading="lazy">
+          </figure>
+          <figure class="pel-gallery__item">
+            <img src="https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&h=500&fit=crop" alt="Film still — closeup" loading="lazy">
+          </figure>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            if (entry.target.dataset.pel === 'stagger') {
+              Array.from(entry.target.children).forEach((child, i) => {
+                child.style.transitionDelay = `${i * 0.1}s`;
+              });
+            }
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+
+      document.querySelectorAll('[data-pel]').forEach(el => observer.observe(el));
+    })();
+  </script>
+</body>
+</html>
