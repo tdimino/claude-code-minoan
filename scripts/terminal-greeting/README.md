@@ -72,15 +72,15 @@ An Antediluvian-Minoan greeting for new shell sessions. Each launch displays a r
 
 ```
   ┌──𐇵──𐇱──∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿──𐇱──𐇶──┐  🌓
-  (dolphin)
+  (swallow)
   (dolphin)  ╔══╗
-  (dolphin)  ║𐘀║  𐘀 The forge is lit. The bronze awaits the hammer. 𐘁
+  (swallow)  ║𐘀║  𐘀 The forge is lit. The bronze awaits the hammer. 𐘁
   (dolphin)  ╚══╝  ☉  Speak "claude" to wake the artificer.
-  (dolphin)
+  (swallow)
   └──𐇶──𐇱──∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿·∿──𐇱──𐇵──┘
 ```
 
-Corner ornaments are Phaistos Disc signs (𐇵 ROSETTE, 𐇶 LILY, 𐇱 BEE) rendered by Noto Sans Symbols 2. The margin dolphin is a custom PUA glyph (U+E503) from MinoanGlyphs.ttf.
+Corner ornaments are Phaistos Disc signs (𐇵 ROSETTE, 𐇶 LILY, 𐇱 BEE) rendered by Noto Sans Symbols 2. The margin alternates swallow (U+E504) and dolphin (U+E503) PUA glyphs from MinoanGlyphs.ttf.
 
 ## Install
 
@@ -111,7 +111,7 @@ Colors sampled from Knossos frescoes (Dolphin Fresco, Bull-Leaping Fresco, Saffr
 |---------|-------------|--------|
 | Linear A brackets | 𐘀...𐘁 (U+10600, U+10601) | AB001/AB002 — frame the greeting like Ogham ᚛...᚜ |
 | Wave band | ∿· alternating blue/teal | Aegean sea — replaces diamond interlace ◇⋄ |
-| Dolphin margin | U+E503 (MinoanGlyphs.ttf PUA) | Knossos Queen's Megaron fresco |
+| Margin glyphs | Alternating swallow (U+E504) and dolphin (U+E503) | Spring Fresco + Queen's Megaron |
 | Rotating sigils | 𐘀 𐙃 𐘠 𐙋 𐙍 𐙰 | Linear A syllabograms in the initial box |
 | Moon phase | 🌑🌒🌓🌔🌕🌖🌗🌘 | Computed live — Minoan lunar calendar |
 | Sun disc | ☉ (U+2609) | Solar/chthonic separator |
@@ -125,7 +125,7 @@ Colors sampled from Knossos frescoes (Dolphin Fresco, Bull-Leaping Fresco, Saffr
 | JetBrains Mono Nerd Font | Primary terminal font + Nerd Font glyphs | `brew install --cask font-jetbrains-mono-nerd-font` |
 | Noto Sans Linear A | Linear A brackets (𐘀𐘁) + sigils | [Google Fonts](https://fonts.google.com/noto/specimen/Noto+Sans+Linear+A) |
 | Noto Sans Symbols 2 | Phaistos Disc signs (𐇵𐇱𐇶) | `brew install --cask font-noto-sans-symbols-2` |
-| MinoanGlyphs.ttf | PUA dolphin (U+E503) + 13 other Minoan glyphs | `python3 scripts/minoan-glyphs/build.py --install` |
+| MinoanGlyphs.ttf | PUA dolphin (U+E503), swallow (U+E504) + 12 other Minoan glyphs | `python3 scripts/minoan-glyphs/build.py --install` |
 
 ## Greeting Texts
 
