@@ -7,6 +7,18 @@
 import { renderMermaid, renderMermaidAscii, THEMES } from 'beautiful-mermaid';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 
+const LOCAL_THEMES = {
+  "vellum": {
+    bg: "#f5f1eb", fg: "#2b2836", line: "#cec7b8",
+    accent: "#7a5a2e", muted: "#666059"
+  },
+  "blueprint-dark": {
+    bg: "#0a0f1a", fg: "#e2e8f0", line: "#1e3a5f",
+    accent: "#00d4ff", muted: "#64748b"
+  }
+};
+const ALL_THEMES = { ...THEMES, ...LOCAL_THEMES };
+
 const args = process.argv.slice(2);
 
 // Mermaid diagram keywords for inline detection
@@ -24,12 +36,19 @@ let output = null;
 let theme = 'zinc-dark';
 let format = 'ascii';  // ascii | svg
 let useAscii = false;  // true = pure ASCII, false = Unicode box-drawing
+let customColors = null;
+let transparent = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '-i' || args[i] === '--input') input = args[++i];
   else if (args[i] === '-o' || args[i] === '--output') output = args[++i];
   else if (args[i] === '-t' || args[i] === '--theme') theme = args[++i];
   else if (args[i] === '-f' || args[i] === '--format') format = args[++i];
+  else if (args[i] === '--colors') {
+    try { customColors = JSON.parse(args[++i]); }
+    catch (e) { console.error('Error: --colors must be valid JSON.'); process.exit(1); }
+  }
+  else if (args[i] === '--transparent') transparent = true;
   else if (args[i] === '--ascii') useAscii = true;
   else if (args[i] === '--themes') { listThemes(); process.exit(0); }
   else if (args[i] === '-h' || args[i] === '--help') { showHelp(); process.exit(0); }
@@ -38,10 +57,12 @@ for (let i = 0; i < args.length; i++) {
 
 function listThemes() {
   console.log('Available themes:');
-  for (const [name, colors] of Object.entries(THEMES)) {
+  for (const [name, colors] of Object.entries(ALL_THEMES)) {
     const type = isLightTheme(colors.bg) ? 'light' : 'dark';
-    console.log(`  ${name.padEnd(20)} (${type})`);
+    const local = LOCAL_THEMES[name] ? ' *' : '';
+    console.log(`  ${name.padEnd(20)} (${type})${local}`);
   }
+  console.log('\n  * = local theme extension');
 }
 
 function isLightTheme(bg) {
@@ -73,6 +94,9 @@ Options:
   -o, --output FILE   Output file (default: stdout)
   -t, --theme NAME    Theme name for SVG (default: zinc-dark)
   -f, --format TYPE   Output format: ascii | svg (default: ascii)
+  --colors JSON       Custom colors as JSON (mutually exclusive with --theme)
+                      Keys: bg, fg, line, accent, muted (hex values)
+  --transparent       Transparent SVG background (for inlining into themed pages)
   --ascii             Use pure ASCII instead of Unicode box-drawing
   --themes            List available themes
   -h, --help          Show this help
@@ -136,8 +160,12 @@ async function main() {
     process.exit(1);
   }
 
-  // Validate theme
-  if (format === 'svg' && !THEMES[theme]) {
+  if (customColors && theme !== 'zinc-dark') {
+    console.error('Error: --colors and --theme are mutually exclusive.');
+    process.exit(1);
+  }
+
+  if (format === 'svg' && !customColors && !ALL_THEMES[theme]) {
     console.error(`Error: Unknown theme '${theme}'. Use --themes to list available themes.`);
     process.exit(1);
   }
@@ -146,7 +174,10 @@ async function main() {
     let result;
 
     if (format === 'svg') {
-      result = await renderMermaid(diagram, THEMES[theme]);
+      const colors = customColors || ALL_THEMES[theme];
+      const opts = { ...colors };
+      if (transparent) opts.transparent = true;
+      result = await renderMermaid(diagram, opts);
     } else {
       result = renderMermaidAscii(diagram, { useAscii });
     }

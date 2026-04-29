@@ -427,6 +427,48 @@
   position: relative; top: 0.05em;
 }
 
+/* ─── DIAGRAM PANEL ─── */
+.diagram-panel {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+.diagram-panel svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+.diagram-panel__label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 0.75rem;
+}
+.diagram-panel__caption {
+  font-family: var(--display);
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.diagram-panel--copper {
+  border-color: oklch(0.45 0.12 55 / 0.3);
+  background: oklch(0.45 0.12 55 / 0.03);
+}
+.diagram-panel--bleed { padding: 0; }
+.diagram-panel--bleed .diagram-panel__caption { padding: 0.75rem 1.5rem; }
+.diagram-panel--bleed .diagram-panel__label { padding: 1rem 1.5rem 0; }
+
 /* ─── RESPONSIVE ─── */
 @media (max-width: 900px) {
   .phase-timeline { grid-template-columns: repeat(3, 1fr); }
@@ -434,6 +476,8 @@
   .req-card__meta { grid-column: 1 / -1; flex-direction: row; align-items: center; }
 }
 @media (max-width: 640px) {
+  .diagram-panel { padding: 1rem; }
+  .diagram-panel--bleed .diagram-panel__caption { padding: 0.75rem 1rem; }
   .phase-timeline { grid-template-columns: 1fr 1fr; }
   .req-card { grid-template-columns: 1fr; }
   .req-card__id { order: -1; }
