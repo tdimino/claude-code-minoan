@@ -17,6 +17,11 @@
 - **rembg**: Background removal -- `rembg i input.png output.png`
 - **sips**: macOS built-in for quick format conversion and resize
 
+## Vectorization & Font Building
+- **potrace**: Bitmap-to-SVG vectorizer. `brew install potrace`. Best for B&W silhouettes—threshold input to 1-bit first. `potrace input.pbm -s -o output.svg`. Tune: `--turdsize` (speckle suppression), `--alphamax` (corner smoothness 0–1.334), `--opttolerance` (curve optimization). For font glyphs: add `--flat` to omit SVG grouping.
+- **vtracer**: Rust-based image-to-SVG. `uv pip install vtracer`. Handles color, grayscale, and B&W—superior to potrace for non-binary inputs. CLI: `vtracer --input in.png --output out.svg --colormode binary`. Key params: `filter_speckle` (4), `corner_threshold` (60), `segment_length` (4.0), `splice_threshold` (45).
+- **fonttools**: Python font engineering. `uv pip install fonttools`. `FontBuilder` API for TTF/OTF from scratch: define glyph order, cmap, metrics, draw outlines via `TTGlyphPen`. SVG path data requires Y-flip for font coordinates (top-left → bottom-left origin).
+
 ## PDF Extraction
 - **PyMuPDF**: `uv run --with pymupdf python3 -c "import fitz; ..."`
 - Zoom factor: 1=96DPI, 2=192DPI, 3=288DPI
