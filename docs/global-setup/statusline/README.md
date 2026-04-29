@@ -16,7 +16,7 @@ Lines 2-3 are rendered by ccstatusline via `~/.config/ccstatusline/settings.json
 
 ```
 Line 1: session-slug | 🦀: Opus 4.6 | ████░░░░░░ 42% | 84k | ⎇ main
-Line 2: 𓂀 ensouled | Claudius
+Line 2: 𓂀 ensouled  Claudius
 Line 3: Session: 12m | Block: 3m
 ```
 
