@@ -129,7 +129,8 @@ All tools that read session data share `lib/tracker-utils.js`.
 
 | File | ~Lines | Purpose |
 |------|--------|---------|
-| `tracker-utils.js` | 850 | Session parsing--reads `~/.claude/projects/`, `sessions-index.json`, JSONL transcripts. Shared by all `bin/` tools. Installed to `~/.claude/lib/`. |
+| `tracker-utils.js` | 920 | Session parsing--reads `~/.claude/projects/`, `sessions-index.json`, JSONL transcripts. Includes `tryDb()` for optional SQLite fast-path. Shared by all `bin/` tools. Installed to `~/.claude/lib/`. |
+| `tracker-db.js` | 890 | SQLite API for tracker.db--synchronous better-sqlite3, WAL mode, singleton lazy-open. Sessions, tags, checkpoints, phases, phrases, git tracking, FTS5 search. |
 | `claudicle_memory.py` | 300 | Bridge between Claudicle's soul memory and Claude Code hooks. Reads/writes the canonical memory.db. |
 | `usermodel_resolver.py` | 180 | Resolves phone numbers and names to userModel persona files via YAML frontmatter scanning. Used by SMS/Slack response hooks. |
 
@@ -146,6 +147,7 @@ Standalone utilities not loaded by Claude Code's extension system:
 | `syspeek/` | System metrics daemon for statusline integration |
 | `cc-sessions-fzf.sh` | fzf-based interactive session picker |
 | `migrate_to_canonical.py` | One-time migration of SMS/Slack memory to canonical DB |
+| `migrate-to-sqlite.js` | Idempotent migration from JSON/JSONL/YAML sources into tracker.db |
 
 ### Documentation (`docs/`)
 
@@ -176,16 +178,17 @@ Claude Code reasons and calls tools
         │
         ├── Tool executes
         │
-        └── PostToolUse hooks (lint-on-write.py → additionalContext, git-track-post.sh)
+        └── PostToolUse hooks (lint-on-write.py → additionalContext, git-track-post.sh, phase-detect.py)
                 │
                 ▼
         Agent self-corrects from additionalContext if lint violations found
+        Phase detection tracks workflow state (exploring → implementing → testing...)
 
 Session ends or compacts
         │
         ├── PreCompact / SessionEnd → precompact-handoff.py → ~/.claude/handoffs/{id}.yaml
         │
-        └── Stop → stop-handoff.py (throttled), session-tags-infer.py (async)
+        └── Stop → stop-handoff.py (throttled), session-tags-infer.py (async), session-sync-db.py (async)
 
 Session resumes
         │
@@ -210,7 +213,7 @@ Session resumes
 
 ### Session Tracking
 
-Session awareness spans three layers: `bin/` CLI tools (claude-tracker, ccls, ccresume) read session data, `hooks/` (git-track.sh, stop-handoff.py, session-tags-infer.py) write session data, and `lib/tracker-utils.js` (~850 lines) is the shared parser they both depend on. The VS Code extension in `extensions/` provides a GUI view of the same data. Any change to Claude Code's `sessions-index.json` schema affects all of these.
+Session awareness spans three layers: `bin/` CLI tools (claude-tracker, ccls, ccresume) read session data, `hooks/` (git-track.sh, stop-handoff.py, session-tags-infer.py, phase-detect.py, session-sync-db.py) write session data, and `lib/tracker-utils.js` (~920 lines) is the shared parser they both depend on. An optional SQLite layer (`lib/tracker-db.js` + `tracker.db`) consolidates session metadata, checkpoints, workflow phases, and tagged phrases into a single database with FTS5 search. The `tryDb()` wrapper in tracker-utils.js provides transparent fallback--scripts that call it get SQLite acceleration when available, JSONL scan when not. The VS Code extension in `extensions/` provides a GUI view of the same data. Any change to Claude Code's `sessions-index.json` schema affects all of these.
 
 ### Private-to-Public Sync
 
@@ -223,6 +226,8 @@ This repo is the public subset of a private `~/.claude/` directory. The sync wor
 | `precompact-handoff.py` | 430 | PreCompact, SessionEnd | Summarize session via OpenRouter, write handoff YAML |
 | `lint-on-write.py` | 510 | PostToolUse (Write/Edit) | Run linters, return violations as additionalContext |
 | `stop-handoff.py` | 90 | Stop | Throttled heartbeat checkpoint (3-min cooldown) |
+| `phase-detect.py` | 270 | PostToolUse (*) | Rolling-window phase detection with hysteresis, auto-checkpoint on transitions |
+| `session-sync-db.py` | 190 | Stop | Upsert session to tracker.db, close open phases, sync tags |
 
 ## Where to Start
 

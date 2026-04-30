@@ -322,7 +322,81 @@ async function getFirstLineTimestamp(filePath) {
   return '';
 }
 
+function printDbResults(results, escapedTerm) {
+  const tokenPattern = escapedTerm.split(/\s+/).filter(Boolean).join('|');
+  let count = 0;
+
+  for (const r of results) {
+    if (count >= maxResults) {
+      console.log('\x1b[90m... (showing first ' + maxResults + ' results)\x1b[0m\n');
+      return count;
+    }
+    count++;
+
+    const title = r.custom_title || r.auto_title || r.slug || '(untitled)';
+    const projectName = r.project_name || r.project_path.split('/').pop();
+    const age = utils.formatAge(r.modified_at);
+
+    console.log(
+      '\x1b[33m[' + count + ']\x1b[0m \x1b[1m' + projectName +
+      '\x1b[0m \x1b[90m(' + age + ')\x1b[0m' +
+      (r.model_short ? ' \x1b[35m' + r.model_short + '\x1b[0m' : '')
+    );
+
+    if (r.custom_title) {
+      const hl = r.custom_title.replace(new RegExp('(' + tokenPattern + ')', 'gi'), '\x1b[43m\x1b[30m$1\x1b[0m\x1b[1m\x1b[35m');
+      console.log('    \x1b[90mName:\x1b[0m \x1b[1m\x1b[35m' + hl + '\x1b[0m');
+    }
+    if (r.summary) {
+      const hl = r.summary.substring(0, 200).replace(new RegExp('(' + tokenPattern + ')', 'gi'), '\x1b[43m\x1b[30m$1\x1b[0m');
+      console.log('    \x1b[90mSummary:\x1b[0m ' + hl);
+    }
+    if (r.slug) console.log('    \x1b[90mSession:\x1b[0m ' + r.slug);
+    if (r.num_turns) console.log('    \x1b[90mTurns:\x1b[0m ' + r.num_turns + (r.total_cost_usd ? ' · $' + r.total_cost_usd.toFixed(2) : ''));
+    console.log('    \x1b[90mDir:\x1b[0m ' + r.project_path);
+    console.log('    \x1b[90mID:\x1b[0m ' + r.session_id);
+    console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + r.project_path + ' && claude --resume ' + r.session_id + '\x1b[0m');
+    console.log('');
+  }
+  return count;
+}
+
 async function main() {
+  // SQLite fast path — only for --id lookups and --name searches.
+  // Body searches (no --name flag) must fall through to JSONL scan because
+  // FTS5 only indexes metadata (title/slug/summary/first_prompt), not transcript bodies.
+  const db = utils.tryDb();
+  if (db) {
+    try {
+      if (idPrefix) {
+        console.log('\n\x1b[1m\x1b[36mLooking up session:\x1b[0m "' + idPrefix + '" \x1b[90m(sqlite)\x1b[0m\n');
+        const result = db.getSessionById(idPrefix);
+        if (!result) {
+          console.log('\x1b[33mNo session found matching ID prefix "' + idPrefix + '".\x1b[0m\n');
+          return;
+        }
+        printDbResults([result], utils.escapeRegex(idPrefix));
+        return;
+      }
+
+      if (nameOnly) {
+        console.log('\n\x1b[1m\x1b[36mSearching for:\x1b[0m "' + searchTerm + '" \x1b[90m(--name, sqlite)\x1b[0m\n');
+        const results = db.searchSessions(searchTerm, { limit: maxResults, nameOnly: true });
+        if (results.length === 0) {
+          console.log('\x1b[33mNo matches found.\x1b[0m\n');
+          return;
+        }
+        const escapedTerm = utils.escapeRegex(searchTerm);
+        const count = printDbResults(results, escapedTerm);
+        console.log('\x1b[90mFound ' + count + ' session(s) via FTS5.\x1b[0m');
+        console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
+        return;
+      }
+    } catch (e) {
+      console.error('\x1b[33mSQLite search failed, falling back to file scan: ' + e.message + '\x1b[0m\n');
+    }
+  }
+
   // --id mode: lookup by session ID prefix
   if (idPrefix) {
     console.log('\n\x1b[1m\x1b[36mLooking up session:\x1b[0m "' + idPrefix + '"\n');

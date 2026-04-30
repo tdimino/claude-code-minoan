@@ -13,13 +13,16 @@ import fcntl
 import json
 import os
 import pathlib
+import sqlite3
 import subprocess
 import sys
+import time
 import urllib.request
 
 
 TAGS_DIR = pathlib.Path.home() / ".claude" / "session-tags"
 REGISTRY_PATH = pathlib.Path.home() / ".claude" / "session-registry.json"
+DB_PATH = pathlib.Path.home() / ".claude" / "tracker.db"
 TAGS_COOLDOWN = 180  # 3 minutes — matches old stop-handoff.py gate
 LLAMA_SERVER_URL = "http://127.0.0.1:8787/v1/chat/completions"
 
@@ -43,7 +46,10 @@ Required JSON schema:
   "tags": ["string", "..."],        // up to 10 topic tags, 4-5 words each
   "display_tags": ["string", "..."], // exactly 3 most relevant tags, 3-5 words
   "title": "string",                // 5-8 word user-focused session title
-  "summary": "string"               // 2-4 sentence summary of what the user accomplished
+  "summary": "string",              // 2-4 sentence summary of what the user accomplished
+  "notable_phrases": [              // 0-5 short notable excerpts worth remembering
+    {"phrase": "string", "source": "user or assistant", "tags": ["string"]}
+  ]
 }"""
 
 QWEN_LOCAL_USER_TEMPLATE = """\
@@ -68,6 +74,7 @@ Output ONLY valid JSON with these fields:
 - "display_tags": array of exactly 3 most relevant tags (3-5 words each, descriptive and specific)
 - "title": a short descriptive title for this session (5-8 words, no quotes)
 - "summary": a 2-4 sentence summary of what happened in this session (what was built, fixed, or discussed)
+- "notable_phrases": array of 0-5 short notable excerpts worth remembering, each with {"phrase": "...", "source": "user or assistant", "tags": ["..."]}
 
 Example output:
 {{"tags": ["statusline tags feature", "ccstatusline hook design", "plan rename fix"], "display_tags": ["statusline session tags display", "plan rename on creation", "stop hook architecture"], "title": "Session Tags and Plan Rename", "summary": "Extended the statusline with session tag display. Fixed plan rename hook to trigger on file creation. Refactored stop hook to use fire-and-forget pattern for tag inference."}}
@@ -287,10 +294,13 @@ def update_registry(session_id, transcript_path, title, tags, display_tags, summ
     lock_path = pathlib.Path("/tmp") / f"claude-{os.getuid()}" / "session-registry.lock"
     lock_path.parent.mkdir(parents=True, exist_ok=True)
 
+    lock_fd = None
     try:
         lock_fd = open(lock_path, "w")
         fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except (OSError, BlockingIOError):
+        if lock_fd:
+            lock_fd.close()
         return  # Another process holds the lock — skip
 
     try:
@@ -438,6 +448,11 @@ def main():
     # Update session-registry.json with title, tags, summary
     update_registry(session_id, transcript_path, title, tags, display_tags, summary)
 
+    # Store auto-extracted notable phrases in tracker.db
+    notable_phrases = result.get("notable_phrases", [])
+    if notable_phrases and DB_PATH.exists():
+        store_phrases(session_id, notable_phrases)
+
     # Update soul registry topic + summary if this session is registered
     if title or summary:
         cmd = ["python3", str(pathlib.Path.home() / ".claude/hooks/soul-registry.py"),
@@ -450,6 +465,48 @@ def main():
             subprocess.run(cmd, timeout=5, capture_output=True)
         except Exception:
             pass  # Non-critical
+
+
+def store_phrases(session_id, phrases):
+    """Write auto-extracted phrases to tracker.db tagged_phrases table."""
+    conn = None
+    try:
+        conn = sqlite3.connect(str(DB_PATH), timeout=2)
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA busy_timeout = 5000")
+        now = time.strftime("%Y-%m-%dT%H:%M:%S")
+
+        for p in phrases[:5]:
+            phrase_text = p.get("phrase", "").strip()
+            if not phrase_text or len(phrase_text) < 5:
+                continue
+            source = p.get("source", "user")
+            if source not in ("user", "assistant"):
+                source = "user"
+            tags = p.get("tags", [])
+
+            cur = conn.execute(
+                "INSERT INTO tagged_phrases (session_id, phrase, source, phase, timestamp) VALUES (?, ?, ?, ?, ?)",
+                (session_id, phrase_text[:500], source, None, now),
+            )
+            phrase_id = cur.lastrowid
+            for tag in tags[:5]:
+                tag = str(tag).strip().lower()
+                if tag:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO tagged_phrase_tags (phrase_id, tag) VALUES (?, ?)",
+                        (phrase_id, tag),
+                    )
+
+        conn.commit()
+        count = len([p for p in phrases[:5] if p.get("phrase", "").strip() and len(p.get("phrase", "").strip()) >= 5])
+        if count:
+            print(f"session-tags: stored {count} notable phrase(s)", file=sys.stderr)
+    except Exception:
+        pass
+    finally:
+        if conn:
+            conn.close()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Hooks Index
 
-*38 hooks in `~/.claude/hooks/` — 27 bound in settings.json, 4 statusline-only widgets, 1 standalone/subprocess, 6 legacy/utility*
+*40 hooks in `~/.claude/hooks/` — 29 bound in settings.json, 4 statusline-only widgets, 1 standalone/subprocess, 6 legacy/utility*
 
 ## Event Bindings (settings.json)
 
@@ -35,7 +35,8 @@
 | `stop-handoff.py` | Throttled handoff (3min cooldown, 10min idle gate) + soul registry heartbeat |
 | `slack-stop-hook.py` | Process pending Slack messages on stop |
 | `soul-reflect.py` *(async)* | Retrospective cognitive pipeline — monologue, user model, soul state updates via Groq/OpenRouter |
-| `session-tags-infer.py` *(async)* | Infer session tags via llama-server (3-min cooldown), write sidecar JSON + session-registry.json |
+| `session-tags-infer.py` *(async)* | Infer session tags via llama-server (3-min cooldown), write sidecar JSON + session-registry.json + auto-extract notable phrases to tracker.db |
+| `session-sync-db.py` *(async)* | Upsert session metadata to tracker.db, close open phases, sync tags from sidecar JSON |
 | `plan-rename.py stop` | Rename random-named plans to dated slugs, symlink for write-through, open in dabarat |
 
 ### SessionEnd
@@ -66,6 +67,7 @@
 | `dabarat-open.py` *(Write)* | Auto-open written Markdown files in Dabarat preview |
 | `plan-session-rename.py` *(Write)* | Emit plan canonical path as additionalContext when plans are written |
 | `lint-on-write.py` *(Write, Edit)* | Run linters after file edits and return violations as additionalContext for agent self-correction. Dispatches to ESLint (TS/JS), Clippy (Rust), Ruff (Python) + custom-lint.sh (grep-based project convention checks). 5s cooldown, 10-violation cap, 8s subprocess timeout. Inspired by [Factory.ai](https://factory.ai/news/using-linters-to-direct-agents). |
+| `phase-detect.py` *(\*, async)* | Rolling-window workflow phase detection with hysteresis — tracks exploring/planning/implementing/testing/reviewing/debugging/committing/deploying phases, auto-checkpoints on transitions |
 
 ### PostToolUseFailure
 | Hook | Matcher | Description |
@@ -126,6 +128,7 @@ PreToolUse ─→ git-track.sh (Bash)                          │
 PostToolUse ─→ git-track-post.sh (Bash)                    │
             ─→ dabarat-open.py (Write)                     │
             ─→ plan-session-rename.py (Write)              │
+            ─→ phase-detect.py (*, async)                  │
                                                            │
 PostToolUseFailure ─→ error-context-hints.py (Bash)        │
                                                            │
@@ -136,6 +139,7 @@ Stop ─→ terminal-title.sh                                  │
      ─→ slack-stop-hook.py                                 │
      ─→ soul-reflect.py (async, Groq/OpenRouter)           │
      ─→ session-tags-infer.py (async, OpenRouter)          │
+     ─→ session-sync-db.py (async)                         │
      ─→ plan-rename.py stop ──→ dabarat (fire-and-forget)  │
                                                            │
 PreCompact ─→ precompact-handoff.py                        │

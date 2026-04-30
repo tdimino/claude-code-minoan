@@ -68,6 +68,16 @@ if [[ -n "$HASH" ]] || [[ -n "$SWITCHED_BRANCH" ]] || [[ -n "$PUSH_REF" ]]; then
     "$SWITCHED_BRANCH" \
     "$PUSH_REF" \
     >> "$TRACKING_LOG"
+
+  # Auto-checkpoint on commit: write directly to tracker.db
+  DB_PATH="$HOME/.claude/tracker.db"
+  if [[ -n "$HASH" && -n "$SESSION_ID" && -f "$DB_PATH" ]]; then
+    LABEL="commit: ${HASH} $(echo "$COMMIT_MSG" | cut -c1-60)"
+    CURRENT_BRANCH=$(cd "$GIT_ROOT" 2>/dev/null && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    SAFE_SID=$(echo "$SESSION_ID" | sed "s/'/''/g")
+    SAFE_HASH=$(echo "$HASH" | sed "s/'/''/g")
+    sqlite3 "$DB_PATH" "INSERT OR IGNORE INTO checkpoints (session_id, label, phase, git_branch, git_commit_hash, created_at) VALUES ('${SAFE_SID}', '$(echo "$LABEL" | sed "s/'/''/g")', 'committing', '$(echo "$CURRENT_BRANCH" | sed "s/'/''/g")', '${SAFE_HASH}', '${TS}');" 2>/dev/null || true
+  fi
 fi
 
 exit 0
