@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PROJECT THORN — Imperial Intelligence Briefing</title>
+<link rel="icon" type="image/x-icon" href="imperial-favicon/imperial-favicon.ico">
+<link rel="icon" type="image/png" sizes="48x48" href="imperial-favicon/imperial-favicon-48.png">
+<link rel="icon" type="image/png" sizes="32x32" href="imperial-favicon/imperial-favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&display=swap" rel="stylesheet">
@@ -388,7 +391,7 @@
     position: fixed; inset: 0; z-index: 300;
     width: 100%; height: 100%;
     margin: 0; padding: 0;
-    background: rgba(0, 8, 16, 0.85);
+    background: rgba(0, 8, 16, 0.72);
     border: none;
     display: none;
     align-items: center; justify-content: center;
@@ -399,10 +402,10 @@
   }
   @keyframes dossier-bg-in {
     from { background: rgba(0, 8, 16, 0); }
-    to   { background: rgba(0, 8, 16, 0.85); }
+    to   { background: rgba(0, 8, 16, 0.72); }
   }
   .dossier::backdrop {
-    background: rgba(0, 8, 16, 0.85);
+    background: rgba(0, 8, 16, 0.72);
   }
 
   .dossier__card {
@@ -414,9 +417,11 @@
       linear-gradient(180deg, rgba(8, 28, 44, 0.96) 0%, rgba(4, 16, 28, 0.96) 100%);
     border: 1px solid rgba(106, 216, 255, 0.5);
     box-shadow:
-      inset 0 0 60px rgba(106, 216, 255, 0.1),
-      0 0 60px rgba(106, 216, 255, 0.3),
-      0 0 120px rgba(106, 216, 255, 0.15);
+      inset 0 0 30px rgba(106, 216, 255, 0.06),
+      0 0 1px rgba(106, 216, 255, 0.8),
+      0 0 6px rgba(106, 216, 255, 0.45),
+      0 0 18px rgba(106, 216, 255, 0.25),
+      0 0 40px rgba(106, 216, 255, 0.12);
     color: #a8e9ff;
     font-family: 'Departure Mono', monospace;
     animation: dossier-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -868,10 +873,9 @@
 
   .line--dialogue .line__body { color: var(--type-dialogue); }
   .line--narrative .line__body { color: var(--type-narrative); }
-  .line--narrative .line__body br {
+  .line--narrative .line__body .para-break {
     display: block;
-    content: "";
-    margin-top: 0.8em;
+    height: 0.8em;
   }
 
   .line--emote .line__body {
@@ -939,13 +943,21 @@
     text-shadow: 0 0 14px rgba(255,59,48,0.6);
     font-weight: 600;
     cursor: help;
-    border-bottom: 1px dotted var(--red-dim);
+    border-bottom: 1px dotted transparent;
+    transition: border-color 0.3s ease;
+  }
+  .line .thorn.decoded {
+    border-bottom-color: var(--red-dim);
   }
   .line .person {
     color: var(--amber);
     font-weight: 600;
     cursor: help;
-    border-bottom: 1px dotted var(--amber-mute);
+    border-bottom: 1px dotted transparent;
+    transition: border-color 0.3s ease;
+  }
+  .line .person.decoded {
+    border-bottom-color: var(--amber-mute);
   }
 
   /* ═══ DECRYPT ANIMATION ═══ */
@@ -1007,15 +1019,21 @@
 
   .prompt {
     grid-area: prompt;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 10px;
-    height: 36px;
+    gap: 0 10px;
     padding: 0 20px;
     border-top: 1px solid var(--rule-bright);
     background: var(--surface);
     font-size: 12px;
     color: var(--amber-dim);
+  }
+  .prompt > .prompt__sigil,
+  .prompt > .prompt__input,
+  .prompt > .prompt__hint {
+    height: 36px;
+    line-height: 36px;
   }
   .prompt__sigil {
     color: var(--amber);
@@ -1048,9 +1066,11 @@
     padding: 0 20px;
   }
   .prompt__errors.has-errors {
-    max-height: 120px;
+    max-height: 100px;
     padding: 6px 20px;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-bright) transparent;
   }
   .prompt__error-line {
     color: var(--red);
@@ -1295,7 +1315,7 @@
 
     <article class="line line--emote" data-time="01:02" data-block="4">
       <div class="line__time">[01:02:34]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="glances over his shoulder. With an air of bothan confidence, he turns his gaze from your concealed blaster to the overlooking skyline."></span></div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="glances over his shoulder. With an air of Bothan confidence, he turns his gaze from your concealed blaster to the overlooking skyline."></span></div>
     </article>
 
     <article class="line line--dialogue" data-time="01:02" data-block="4">
@@ -1330,11 +1350,7 @@
 
     <article class="line line--narrative" data-time="01:04" data-block="7">
       <div class="line__time">[01:04:18]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Two standard years ago, on a particularly grueling day of the Harvest season, a young miner strode into the Mos Eisley cantina. Following a private rendezvous with an agent of Imperial Intelligence, the young miner ceased being §Vorian Ducal§ and became §Jiff Gorda§. The §Jiff Gorda§ you know of, the one whom you are seeking information about, is merely an actor, a fine actor at that; but in the end, yet another tool of the Empire.
-However, this tool has a codename, ¤Project Thorn¤, and has been one of the focuses of Imperial Intelligence ever since the day of its initiation. ¤Project Thorn¤, quite simply, was designed to deceive and infiltrate the highest ranks of the Rebel Alliance. Once the sleeper had secured an influential position in the Rebellion, he or she would begin feeding data to Imperial Intelligence regarding fleet movements, alliance leadership, imminent rebel attacks, sources of funding and supplies, etcera.
-From a list of promising candidates, a miner on Tatoonie caught the eye of §Agent Cotla§, the man leading ¤Project Thorn¤. Other than one or two physical discrepancies which were later corrected through image design, §Vorian§ bore a striking resemblance to a noble born by the name of §Jiff Gorda§.
-The real §Jiff Gorda§ rebelliously left home in his teens, much to the dismay of the Gordas, a well off family of Corellian nobles and known sympathizers of the Rebellion. Imperial Intelligence felt that the identity of §Jiff Gorda§ would make an ideal front for their new double agent, and thus, it was decided that §Jiff Gorda§ would be terminated. Conveniently, the assassination was conducted on Tatoonie, where Gorda had begun dealing with the local Hutts and crimelords. Imperial Intelligence feared that the Hutts might detect deception on the part of the as of yet-untested §Vorian Ducal§, but it appears that intoxication and riches numb even the mighty senses of overgrown slugs.
-Along with the title and name of the deceased Corellian noble born, §Vorian§—now known as §Jiff§—was granted full access to the Gorda family fortune. Vorian's first true task, which was closely monitored by his superiors, required '§Jiff Gorda§' to join the ranks of an independent group of rebels referred to as 'ECHO'. Vorian's ability to adapt and improvise impressed agents §Cotla§ and §Fenri§, and so the project was continu—&quot;"></span></div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Two standard years ago, on a particularly grueling day of the Harvest season, a young miner strode into the Mos Eisley cantina. Following a private rendezvous with an agent of Imperial Intelligence, the young miner ceased being §Vorian Ducal§ and became §Jiff Gorda§. The §Jiff Gorda§ you know of, the one whom you are seeking information about, is merely an actor, a fine actor at that; but in the end, yet another tool of the Empire.¶However, this tool has a codename, ¤Project Thorn¤, and has been one of the focuses of Imperial Intelligence ever since the day of its initiation. ¤Project Thorn¤, quite simply, was designed to deceive and infiltrate the highest ranks of the Rebel Alliance. Once the sleeper had secured an influential position in the Rebellion, he or she would begin feeding data to Imperial Intelligence regarding fleet movements, alliance leadership, imminent rebel attacks, sources of funding and supplies, et cetera.¶From a list of promising candidates, a miner on Tatooine caught the eye of §Agent Cotla§, the man leading ¤Project Thorn¤. Other than one or two physical discrepancies which were later corrected through image design, §Vorian§ bore a striking resemblance to a noble born by the name of §Jiff Gorda§.¶The real §Jiff Gorda§ rebelliously left home in his teens, much to the dismay of the Gordas, a well off family of Corellian nobles and known sympathizers of the Rebellion. Imperial Intelligence felt that the identity of §Jiff Gorda§ would make an ideal front for their new double agent, and thus, it was decided that §Jiff Gorda§ would be terminated. Conveniently, the assassination was conducted on Tatooine, where Gorda had begun dealing with the local Hutts and crimelords. Imperial Intelligence feared that the Hutts might detect deception on the part of the as of yet-untested §Vorian Ducal§, but it appears that intoxication and riches numb even the mighty senses of overgrown slugs.¶Along with the title and name of the deceased Corellian noble born, §Vorian§—now known as §Jiff§—was granted full access to the Gorda family fortune. Vorian's first true task, which was closely monitored by his superiors, required '§Jiff Gorda§' to join the ranks of an independent group of rebels referred to as 'ECHO'. Vorian's ability to adapt and improvise impressed agents §Cotla§ and §Fenri§, and so the project was continu—&quot;"></span></div>
     </article>
 
     <article class="line line--interrupt" data-time="01:11" data-block="8">
@@ -1392,8 +1408,8 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
     <span class="prompt__sigil">θ-7@imp-int:~$</span>
     <input class="prompt__input" id="prompt-input" type="text" autocomplete="off" spellcheck="false" aria-label="Terminal input">
     <span class="prompt__hint">↺R · ▒V · ⏭SPC · ⟫L · ♪M</span>
+    <div class="prompt__errors" id="prompt-errors"></div>
   </footer>
-  <div class="prompt__errors" id="prompt-errors"></div>
 
 </div>
 
@@ -1631,10 +1647,12 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
     async init() {
       if (this.initialized || this.dead || this.muted) return;
       try {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.master = this.ctx.createGain();
-        this.master.gain.setValueAtTime(1.0, this.ctx.currentTime);
-        this.master.connect(this.ctx.destination);
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          this.master = this.ctx.createGain();
+          this.master.gain.setValueAtTime(1.0, this.ctx.currentTime);
+          this.master.connect(this.ctx.destination);
+        }
 
         this.filter = this.ctx.createBiquadFilter();
         this.filter.type = 'lowpass';
@@ -1752,6 +1770,116 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
       this.master.gain.setValueAtTime(this.master.gain.value || 0.001, this.ctx.currentTime);
       this.master.gain.exponentialRampToValueAtTime(1.0, this.ctx.currentTime + 0.3);
       this.startBase(1.5);
+    },
+
+    async ensureTerminalBuffer() {
+      if (this.buffers.terminal) return;
+      if (!this.ctx) return;
+      try {
+        this.buffers.terminal = await this.loadBuffer('audio-candidates/01-scifi-computer-terminal-unfa.mp3');
+      } catch (e) { console.warn('Terminal SFX load failed:', e); }
+    },
+
+    async ensureMinimalCtx() {
+      if (this.ctx) {
+        if (this.ctx.state === 'suspended') await this.ctx.resume();
+        return true;
+      }
+      try {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.master = this.ctx.createGain();
+        this.master.gain.setValueAtTime(1.0, this.ctx.currentTime);
+        this.master.connect(this.ctx.destination);
+        return true;
+      } catch (e) { return false; }
+    },
+
+    async playTerminalAck() {
+      if (this.muted || this.dead) return;
+      if (!await this.ensureMinimalCtx()) return;
+      await this.ensureTerminalBuffer();
+      if (!this.buffers.terminal) return;
+      const buf = this.buffers.terminal;
+      const dur = 0.4;
+      const maxOffset = Math.max(0, buf.duration - dur - 0.1);
+      const offset = Math.random() * maxOffset;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.18, this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+      g.connect(this.master || this.ctx.destination);
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(g);
+      src.start(0, offset, dur);
+      src.onended = () => { src.disconnect(); g.disconnect(); };
+    },
+
+    async playTerminalDeny() {
+      if (this.muted || this.dead) return;
+      if (!await this.ensureMinimalCtx()) return;
+      const t = this.ctx.currentTime;
+      const dest = this.master || this.ctx.destination;
+      const osc1 = this.ctx.createOscillator();
+      osc1.type = 'square';
+      osc1.frequency.setValueAtTime(220, t);
+      const g1 = this.ctx.createGain();
+      g1.gain.setValueAtTime(0.09, t);
+      g1.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      osc1.connect(g1);
+      g1.connect(dest);
+      osc1.start(t);
+      osc1.stop(t + 0.1);
+      osc1.onended = () => { osc1.disconnect(); g1.disconnect(); };
+      const osc2 = this.ctx.createOscillator();
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(160, t + 0.12);
+      const g2 = this.ctx.createGain();
+      g2.gain.setValueAtTime(0.001, t);
+      g2.gain.setValueAtTime(0.09, t + 0.12);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+      osc2.connect(g2);
+      g2.connect(dest);
+      osc2.start(t + 0.12);
+      osc2.stop(t + 0.24);
+      osc2.onended = () => { osc2.disconnect(); g2.disconnect(); };
+    },
+
+    async playDossierOpen() {
+      if (this.muted || this.dead) return;
+      if (!await this.ensureMinimalCtx()) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, t);
+      osc.frequency.exponentialRampToValueAtTime(1200, t + 0.15);
+      osc.frequency.exponentialRampToValueAtTime(800, t + 0.3);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.08, t);
+      g.gain.setValueAtTime(0.08, t + 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.connect(g);
+      g.connect(this.master || this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.35);
+      osc.onended = () => { osc.disconnect(); g.disconnect(); };
+    },
+
+    async playDossierClose() {
+      if (this.muted || this.dead) return;
+      if (!await this.ensureMinimalCtx()) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, t);
+      osc.frequency.exponentialRampToValueAtTime(300, t + 0.2);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.06, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      osc.connect(g);
+      g.connect(this.master || this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.25);
+      osc.onended = () => { osc.disconnect(); g.disconnect(); };
     },
 
     toggleMute() {
@@ -1933,6 +2061,11 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
     let i = 0;
     while (i < text.length) {
       const ch = text[i];
+      if (ch === '¶') {
+        out += '<span class="para-break"></span>';
+        i++;
+        continue;
+      }
       if (ch === '§') {
         const end = text.indexOf('§', i + 1);
         if (end === -1) { i++; continue; }
@@ -2147,6 +2280,11 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
         span.classList.remove('scrambling');
         span.classList.add('decrypted');
         state.scrambleTimers[charIdx] = null;
+        const pw = span.closest('.person, .thorn');
+        if (pw && !pw.classList.contains('decoded')) {
+          const undone = pw.querySelector('.char--letter:not(.decrypted)');
+          if (!undone) pw.classList.add('decoded');
+        }
         return;
       }
       span.textContent = randomAurebesh();
@@ -2167,6 +2305,7 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
       span.classList.remove('scrambling');
       span.classList.add('filled', 'decrypted');
     });
+    document.querySelectorAll('.person, .thorn').forEach(el => el.classList.add('decoded'));
   }
 
   // ═══ CONTROLS ═══
@@ -2223,6 +2362,7 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
         span.textContent = randomAurebesh();
       }
     });
+    document.querySelectorAll('.person, .thorn').forEach(el => el.classList.remove('decoded'));
 
     // Re-hide all lines
     document.querySelectorAll('.line').forEach(l => {
@@ -2280,8 +2420,39 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
 
   // ═══ TERMINAL PROMPT ═══
 
-  const TERMINAL_ERRORS = [
+  const TERMINAL_CMDS = {
+    'help': 'AVAILABLE: ls · cat · whoami · ping · uptime · date · history · clear · exit · status · scan · locate · decrypt · credits · kill',
+    'ls': 'intercept.log  thorn.enc  ora-profile.dat  handler-notes.redacted  cotla-directives/  signal-archive/',
+    'cat intercept.log': '>>> STREAM ACTIVE · 1 FEED · CHANNEL θ-7\n>>> SEE TRANSCRIPT ABOVE',
+    'cat thorn.enc': 'ERR: FILE ENCRYPTED · AES-256-GCM · CLEARANCE OMEGA REQUIRED',
+    'cat ora-profile.dat': 'DESIGNATION: ORA · SPECIES: BOTHAN · TIER: 3 · RELIABILITY: 4/5\nSEE DOSSIER [CLICK PORTRAIT]',
+    'whoami': 'IMP-INT SURVEILLANCE OPERATOR · TERMINAL θ-7@imp-int\nCLEARANCE: SEC-LULOMEGA · HANDLER: AGENT COTLA',
+    'ping ora': 'PING BTH-7740... REQUEST TIMEOUT\nPING BTH-7740... REQUEST TIMEOUT\nHOST UNREACHABLE · SIGNAL LOST 01:13:58',
+    'ping': 'USAGE: ping <target>\nKNOWN HOSTS: ora · chimera · coruscant · echo-base',
+    'ping chimera': 'PING ISD-CHIMAERA... 47ms\nPING ISD-CHIMAERA... 44ms\nRELAY NOMINAL · UPLINK STABLE',
+    'ping coruscant': 'PING CORUSCANT-PRIME... 890ms\nPING CORUSCANT-PRIME... 912ms\nHIGH LATENCY · 12 RELAY HOPS',
+    'ping echo-base': 'ERR: UNKNOWN HOST · NO ROUTE TO echo-base\n...CROSS-REFERENCING REBEL INTELLIGENCE DATABASE\nMATCH FOUND · FORWARDING TO IMP-INT ANALYSIS',
+    'uptime': 'TERMINAL θ-7 · UP 47d 13h 22m · LOAD: 0.73\nLAST REBOOT: SCHEDULED MAINTENANCE CYCLE',
+    'date': 'IMPERIAL STANDARD DATE: 3.7.12 GrS\nLOCAL: TATOOINE · MOS EISLEY · SECTOR 7-G',
+    'history': '  1  ESTABLISH CHANNEL θ-7 ENC\n  2  VERIFY BIO-SIG ORA\n  3  INIT INTERCEPT STREAM\n  4  LOG CREDIT TX 6000 IC\n  5  FLAG CODENAME UTTERED\n  6  SIGNAL LOST — INVESTIGATING',
+    'exit': 'ERR: TERMINAL LOCKED · INTERCEPT SESSION ACTIVE\nDISCONNECT REQUIRES HANDLER AUTHORIZATION',
+    'status': 'CHANNEL: θ-7 · STATUS: SIGNAL LOST\nASSET: GORDA, J. · COVER: EMBEDDED\nPROJECT: THORN · PRIORITY: OMEGA\nLAST CONTACT: 01:11:58 · INVESTIGATING',
+    'scan': 'SCANNING MOS EISLEY SECTOR 7-G...\nBIO-SIGNATURES: 2,847 · SPECIES: 34\nBOTHAN SIGNATURES: 3 · MATCH ORA: 0\nASSET NOT IN SECTOR · POSSIBLE EXFILTRATION',
+    'locate ora': 'LAST KNOWN: MOS EISLEY CANTINA · SECTOR 7-G\nBIO-TRACK LOST AT 01:13:58\nCOUNTERMEASURE DETECTED · SIGNAL TERMINATED\nDISPATCHING PROBE DROIDS TO LAST COORDINATES',
+    'locate': 'USAGE: locate <target>',
+    'decrypt': 'ERR: DECRYPTION REQUIRES OMEGA CLEARANCE\nCONTACT: AGENT COTLA · AUTHORIZATION CODE NEEDED',
+    'credits': 'LAST TX: 6,000 IC → ORA · CANTINA MEETING\nSOURCE: IMP-INT OPERATIONAL FUND θ-7\nBALANCE: [REDACTED] · HANDLER EYES ONLY',
+    'kill': 'ERR: CANNOT TERMINATE INTERCEPT SESSION\nOPERATOR DOES NOT HAVE kill PRIVILEGES\nCONTACT HANDLER FOR SESSION TERMINATION',
+    'sudo': 'ERR: sudo IS NOT RECOGNIZED IN IMPERIAL SYSTEMS\nIMPERIAL SECURITY DOES NOT NEGOTIATE PRIVILEGES',
+    'rm': 'ERR: DELETION PROHIBITED · ALL INTERCEPTS ARE PERMANENT RECORD\nIMPERIAL DECREE 1138 · TAMPERING IS TREASON',
+    'man': 'THE EMPIRE DOES NOT EXPLAIN ITSELF\nCONSULT YOUR TRAINING MANUAL OR CONTACT YOUR HANDLER',
+  };
+  const TERMINAL_FALLBACK = [
+    'ERR: COMMAND NOT RECOGNIZED · TYPE help FOR AVAILABLE COMMANDS',
     'ERR: CHANNEL θ-7 READ-ONLY · OPERATOR INPUT DISABLED',
+    'ERR: UNAUTHORIZED · SEC-LULOMEGA CLEARANCE REQUIRED',
+    'ERR: TERMINAL RESTRICTED · OBSERVATION MODE ONLY',
+    'ERR: KEYSTROKES LOGGED · IMP-INT MONITORING ACTIVE',
     'ERR: AUTH LEVEL INSUFFICIENT · EYES-ONLY INTERCEPT',
     'ERR: WRITE ACCESS DENIED · PASSIVE MONITORING ONLY',
     'ERR: COMMAND REJECTED · THIS TERMINAL IS A GHOST',
@@ -2290,32 +2461,50 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
     'ERR: OPERATOR CLEARANCE REVOKED · CONTACT HANDLER',
     'ERR: CHANNEL SEALED BY IMP-INT DIRECTIVE 7740',
     'ERR: CANNOT TRANSMIT · ASSET WOULD DETECT PRESENCE',
-    'ERR: TERMINAL RESTRICTED · OBSERVATION MODE ONLY',
   ];
-  let lastErrorIdx = -1;
+  let lastFallbackIdx = -1;
 
   const promptInput = document.getElementById('prompt-input');
   const promptErrors = document.getElementById('prompt-errors');
-
   if (promptInput) {
     promptInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && promptInput.value.trim()) {
         e.preventDefault();
-        const cmd = promptInput.value;
+        const raw = promptInput.value;
+        const cmd = raw.trim().toLowerCase();
         promptInput.value = '';
-        let idx;
-        do { idx = Math.floor(Math.random() * TERMINAL_ERRORS.length); } while (idx === lastErrorIdx && TERMINAL_ERRORS.length > 1);
-        lastErrorIdx = idx;
-        const line = document.createElement('div');
-        line.className = 'prompt__error-line';
-        line.innerHTML = '<span class="err-cmd">$ ' + cmd.replace(/</g, '&lt;') + '</span> → ' + TERMINAL_ERRORS[idx];
-        promptErrors.appendChild(line);
+        if (cmd === 'clear') {
+          promptErrors.innerHTML = '';
+          promptErrors.classList.remove('has-errors');
+          return;
+        }
+        const DENIED_CMDS = new Set(['sudo','rm','kill','exit','decrypt','man']);
+        const match = TERMINAL_CMDS[cmd] || TERMINAL_CMDS[cmd.split(' ')[0]];
+        let response;
+        const verb = cmd.split(' ')[0];
+        if (match) {
+          response = match;
+          if (DENIED_CMDS.has(verb)) { audio.playTerminalDeny(); }
+          else { audio.playTerminalAck(); }
+        } else {
+          let idx;
+          do { idx = Math.floor(Math.random() * TERMINAL_FALLBACK.length); } while (idx === lastFallbackIdx && TERMINAL_FALLBACK.length > 1);
+          lastFallbackIdx = idx;
+          response = TERMINAL_FALLBACK[idx];
+          audio.playTerminalDeny();
+        }
+        const lines = response.split('\n');
+        const block = document.createElement('div');
+        block.className = 'prompt__error-line';
+        function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        block.innerHTML = '<span class="err-cmd">$ ' + esc(raw) + '</span>';
+        for (const l of lines) {
+          block.innerHTML += '<br>' + esc(l);
+        }
+        promptErrors.appendChild(block);
         promptErrors.classList.add('has-errors');
         promptErrors.scrollTop = promptErrors.scrollHeight;
-        log('user', 'Terminal input rejected: ' + cmd);
-        if (promptErrors.children.length > 8) {
-          promptErrors.removeChild(promptErrors.firstChild);
-        }
+        log('user', 'Terminal: ' + cmd);
       }
       e.stopPropagation();
     });
@@ -2341,6 +2530,7 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
       } else {
         dossier.setAttribute('open', '');
       }
+      audio.playDossierOpen();
       log('user', 'Dossier opened · ORA · Tier-3 informant');
     });
     portraitFrame.style.cursor = 'pointer';
@@ -2348,12 +2538,14 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
   document.getElementById('dossier-close').addEventListener('click', () => {
     if (typeof dossier.close === 'function') dossier.close();
     else dossier.removeAttribute('open');
+    audio.playDossierClose();
   });
   // Close on backdrop click
   dossier.addEventListener('click', (e) => {
     if (e.target === dossier) {
       if (typeof dossier.close === 'function') dossier.close();
       else dossier.removeAttribute('open');
+      audio.playDossierClose();
     }
   });
 
@@ -2394,6 +2586,7 @@ Along with the title and name of the deceased Corellian noble born, §Vorian§�
   // Build animation and start (reduced-motion handled inside buildAnimation)
   buildAnimation();
   scheduleInterceptLog();
+
 
   if (!audio.dead && !audio.muted) {
     const resumeAudio = () => {

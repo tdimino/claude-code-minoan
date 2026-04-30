@@ -27,6 +27,7 @@ claude-code-minoan/
 ├── bin/                       # CLI tools (cc, ccls, claude-tracker, etc.)
 ├── lib/                       # Shared libraries (JS + Python)
 ├── scripts/                   # Utility and maintenance scripts
+├── demos/                     # Standalone creative artifacts and showcases
 ├── extensions/                # VS Code extension (claude-session-tracker .vsix builds)
 ├── docs/                      # Guides and references
 ├── ghostty/                   # Terminal emulator config
