@@ -1,6 +1,6 @@
 # Commands Index
 
-*11 custom slash commands in `~/.claude/commands/`*
+*16 custom slash commands in `~/.claude/commands/`*
 
 ## Session Management
 
@@ -13,6 +13,10 @@
 | `session-report.md` | `/session-report` | Generate Markdown dashboard of recent sessions with git activity |
 | `spawn.md` | `/spawn` | Start a new session (interactive, prompt-driven, or headless) |
 | `tag.md` | `/tag` | Attach manual keyword metatags to the current session for search recall |
+| `checkpoint.md` | `/checkpoint` | Create a named bookmark in the current session with git state |
+| `checkpoint-list.md` | `/checkpoint-list` | Query checkpoints by session, phase, or recency |
+| `quote.md` | `/quote` | Capture a notable phrase or excerpt with tags |
+| `quote-search.md` | `/quote-search` | Search captured phrases via FTS5 or by tag |
 
 ## Soul & Identity
 

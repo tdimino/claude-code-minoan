@@ -1,0 +1,1 @@
+{"name": "claude-lib", "private": true, "dependencies": {"better-sqlite3": "^12.9.0"}}

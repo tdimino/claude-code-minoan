@@ -4,8 +4,8 @@
 
 <p align="center">
   <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-83-green.svg" alt="Skills"></a>
-  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-16-purple.svg" alt="Commands"></a>
-  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-44-orange.svg" alt="Hooks"></a>
+  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-20-purple.svg" alt="Commands"></a>
+  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-46-orange.svg" alt="Hooks"></a>
 </p>
 
 # Minoan Claude Code Configuration
@@ -26,12 +26,12 @@ claude-code-minoan/
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
 │   ├── research/                #   Academic, web search, scraping
 │   └── planning-productivity/   #   Session tracking, swarms, iteration loops
-├── hooks/                       # 44 lifecycle hooks (handoffs, terminal UX, lint-on-write, mycelium)
-├── commands/                    # 16 slash commands (session tracking, design, soul, workflows)
+├── hooks/                       # 46 lifecycle hooks (handoffs, terminal UX, lint-on-write, phase-detect, mycelium)
+├── commands/                    # 20 slash commands (session tracking, checkpoints, quotes, design, soul, workflows)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
-├── lib/                         # Shared libraries (tracker-utils.js)
+├── lib/                         # Shared libraries (tracker-utils.js, tracker-db.js)
 ├── ghostty/                     # Ghostty terminal config for Claude Code
 ├── sounds/                      # Notification audio
 └── docs/global-setup/          # Full ~/.claude/ structure reference
@@ -85,7 +85,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Integration & Automation | 30 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator`, `obscura` |
 | Design & Media | 28 | `minoan-frontend-design` (70% win rate), `vellum-editorial`, `gpt-atelier`, `nano-banana-pro`, `gemini-forge`, `sprite-forge`, `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy` |
 | Research | 6 | `academic-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling`, `openplanter` |
-| Planning & Productivity | 7 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite`, `travel-requirements-expert` |
+| Planning & Productivity | 7 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (session checkpoints, workflow phases, tagged phrases via optional SQLite), `travel-requirements-expert` |
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
 
@@ -336,7 +336,7 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 
 ---
 
-**Skills**: 83 | **Commands**: 17 | **Hooks**: 47 | **CLI Tools**: 10
+**Skills**: 83 | **Commands**: 21 | **Hooks**: 49 | **CLI Tools**: 10
 
 ---
 

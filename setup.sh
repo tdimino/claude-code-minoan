@@ -227,6 +227,51 @@ case $hooks_choice in
         ;;
 esac
 
+# Optional SQLite Tracker
+echo "🗃️  Optional: SQLite Tracker..."
+echo "-------------------------------"
+echo ""
+echo "The tracker suite can optionally use SQLite (tracker.db) for faster session"
+echo "search, checkpoints, workflow phase tracking, and tagged phrase capture."
+echo "This requires better-sqlite3 (npm). Without it, everything works via JSON/JSONL."
+echo ""
+echo "  1. Install SQLite tracker (npm install + run migration)"
+echo "  2. Skip (JSON-only mode, all features still work)"
+echo ""
+read -p "Enter choice (1-2): " sqlite_choice
+
+case $sqlite_choice in
+    1)
+        if command -v npm &> /dev/null; then
+            print_blue "Installing better-sqlite3..."
+            mkdir -p ~/.claude/lib
+            cp "$SCRIPT_DIR/lib/tracker-db.js" ~/.claude/lib/tracker-db.js
+            cp "$SCRIPT_DIR/lib/package.json" ~/.claude/lib/package.json
+            (cd ~/.claude/lib && npm install --production 2>&1) && print_green "better-sqlite3 installed"
+
+            print_blue "Running migration..."
+            if [ -f ~/.claude/scripts/migrate-to-sqlite.js ]; then
+                node ~/.claude/scripts/migrate-to-sqlite.js && print_green "SQLite migration complete"
+            elif [ -f "$SCRIPT_DIR/scripts/migrate-to-sqlite.js" ]; then
+                cp "$SCRIPT_DIR/scripts/migrate-to-sqlite.js" ~/.claude/scripts/migrate-to-sqlite.js
+                node ~/.claude/scripts/migrate-to-sqlite.js && print_green "SQLite migration complete"
+            else
+                print_yellow "Migration script not found. Run manually: node ~/.claude/scripts/migrate-to-sqlite.js"
+            fi
+        else
+            print_yellow "npm not found. Install Node.js first, then run:"
+            print_yellow "  cd ~/.claude/lib && npm install --production"
+            print_yellow "  node ~/.claude/scripts/migrate-to-sqlite.js"
+        fi
+        ;;
+    2)
+        print_yellow "Skipping SQLite setup (JSON-only mode)"
+        ;;
+    *)
+        print_yellow "Invalid choice. Skipping SQLite setup"
+        ;;
+esac
+
 echo ""
 echo "=========================="
 echo "✅ Setup Complete!"

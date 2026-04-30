@@ -234,6 +234,12 @@
           "hooks": [
             {"type": "command", "command": "python3 ~/.claude/hooks/image-budget.py", "timeout": 5000}
           ]
+        },
+        {
+          "matcher": "*",
+          "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/phase-detect.py", "async": true}
+          ]
         }
       ],
       "PostToolUseFailure": [
@@ -261,6 +267,7 @@
             {"type": "command", "command": "python3 ~/.claude/hooks/slack-stop-hook.py"},
             {"type": "command", "command": "python3 ~/.claude/hooks/soul-reflect.py", "statusMessage": "Reflecting...", "async": true},
             {"type": "command", "command": "python3 ~/.claude/hooks/session-tags-infer.py", "statusMessage": "Inferring session tags...", "async": true},
+            {"type": "command", "command": "python3 ~/.claude/hooks/session-sync-db.py", "async": true},
             {"type": "command", "command": "python3 ~/.claude/hooks/plan-rename.py stop", "timeout": 10000}
           ]
         }
