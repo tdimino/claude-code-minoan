@@ -2,6 +2,14 @@
 
 Imperial Intelligence terminal intercepting an encrypted transmission from a Bothan informant named Ora on Tatooine. Built from a 2003-era Star Wars Galaxies character bio (Vorian Ducal / Jiff Gorda)—animated with Aurebesh decryption, cue-scored audio, and a holographic dossier modal. Single HTML file, no build step.
 
+![Default state — Aurebesh decryption in progress](screenshot-default.png)
+
+![Decoded transcript with SIGNAL LOST](screenshot-burst.png)
+
+![Interactive terminal — status command](screenshot-terminal.png)
+
+![Holographic dossier modal](screenshot-dossier.png)
+
 ## What this is
 
 The original bio was written ~2003–2005 on the SWG forums as in-character roleplay. Chat-log structure: dialogue, emotes, system messages, narrative monologue, the player tipping 6,000 Imperial credits to a Bothan spy.
@@ -89,8 +97,37 @@ Seven types, each colored and prefixed:
 
 Inline tokens:
 
-- `§Name§` → person tooltip (Vorian Ducal, Jiff Gorda, Cotla, Fenri)
-- `¤Project Thorn¤` → red classified marker with stamp on hover
+- `§Name§` → person tooltip (Vorian Ducal, Jiff Gorda, Cotla, Fenri)—underlines appear only after decryption
+- `¤Project Thorn¤` → red classified marker with stamp on hover—underline hidden until decoded
+- `¶` in narrative data-text → visible paragraph breaks in Block 7's monologue
+
+## Interactive terminal
+
+The command prompt at the bottom accepts in-universe commands with 25+ lore-aware responses.
+
+| Command | Response |
+|---------|----------|
+| `ls` | File listing: intercept.log, thorn.enc, ora-profile.dat... |
+| `whoami` | IMP-INT operator identity, clearance, handler |
+| `ping ora` | Request timeout—host unreachable, signal lost |
+| `ping chimera` | ISD Chimaera relay nominal |
+| `scan` | Mos Eisley sector bio-signatures, Bothan matches |
+| `status` | Channel state, asset cover, project priority |
+| `cat intercept.log` | Points to transcript above |
+| `cat thorn.enc` | Encrypted—clearance required |
+| `history` | Session command log with intercept milestones |
+| `sudo` / `rm` / `kill` | Denied with Imperial authority responses |
+| `help` | List all available commands |
+
+Unrecognized commands draw from 13 atmospheric error messages (read-only terminal, channel sealed, operator clearance revoked).
+
+### Terminal audio
+
+Valid commands trigger a 0.4s burst from `01-scifi-computer-terminal-unfa.mp3` at a random offset. Forbidden commands (`sudo`, `rm`, `kill`, `exit`, `decrypt`, `man`) and unrecognized input produce a square-wave double-beep (220Hz → 160Hz). Both respect the mute toggle.
+
+### Dossier audio
+
+Opening the holographic dossier plays an ascending sine sweep (400→1200→800Hz). Closing plays a descending sweep (800→300Hz).
 
 ## Controls
 
@@ -133,5 +170,23 @@ The animation is state-machine driven (`state.phase`: idle → running → done)
 | `sfx-base.mp3` | 505 KB | Freesound (CC0/CC-BY) |
 | `sfx-accent-a.mp3` | 307 KB | Freesound (CC0/CC-BY) |
 | `sfx-accent-b.mp3` | 280 KB | Freesound (CC0/CC-BY) |
+| `audio-candidates/01-scifi-computer-terminal-unfa.mp3` | 72 KB | Freesound (CC0), terminal command SFX |
+| `imperial-favicon/` | ~10 KB | Imperial cog favicon (ICO + PNG) |
 
 Major Mono Display loaded via Google Fonts (`<link>`) for the ORA name display.
+
+## Built with
+
+Designed and built using [claude-code-minoan](https://github.com/tdimino/claude-code-minoan) skills:
+
+| Skill | Role |
+|-------|------|
+| `minoan-frontend-design` | Creative direction, design pipeline (`/shape` → audit → critique → polish) |
+| `gemini-claude-resonance` | Bothan portrait generation via cross-model visual dialogue |
+| `nano-banana-pro` | Dossier portrait with transmission/scanline effect |
+| `design-critique` | Nielsen heuristic scoring, persona red flags, AI slop detection |
+| `cloudflare` | Deployment to Cloudflare Pages via `wrangler` |
+| `agent-browser` | DOM inspection, visual regression testing, pixel-level debugging |
+| `codex-orchestrator` | Codex subagent review of JS/CSS implementation |
+
+Subagents used during development: `kotharat` (design direction), `bohen` (JS/CSS verification), `scholiast` (Freesound research), `nomos` (architecture review), `sopher` (GitHub research).

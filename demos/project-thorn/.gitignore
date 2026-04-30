@@ -8,3 +8,9 @@ screenshot.png
 
 # Audio candidates (previews, not final assets)
 audio-candidates/
+
+# Wrangler cache
+.wrangler/
+
+# Debug screenshots
+_debug-*.png
