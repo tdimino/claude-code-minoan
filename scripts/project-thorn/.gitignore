@@ -2,4 +2,6 @@
 _stage-*.png
 _final-*.png
 _verify-*.png
+_intercept-test-*.png
+preview-*.png
 screenshot.png
