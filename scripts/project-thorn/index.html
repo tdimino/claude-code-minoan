@@ -6,8 +6,18 @@
 <title>PROJECT THORN — Imperial Intelligence Briefing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Major+Mono+Display&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&display=swap" rel="stylesheet">
 <style>
+  /* Departure Mono — period-correct CRT mono by Helena Zhang.
+     Self-hosted .woff2; fallback to system mono if unavailable.
+     SIL Open Font License — see DepartureMono-LICENSE.txt */
+  @font-face {
+    font-family: 'Departure Mono';
+    src: url('DepartureMono-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
   /* ═══════════════════════════════════════════════════════════════════
      PROJECT THORN — Imperial Intelligence Terminal
      Bloomberg Terminal archetype, amber phosphor monochrome
@@ -49,7 +59,7 @@
     height: 100%;
     background: var(--bg);
     color: var(--amber);
-    font-family: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+    font-family: 'Departure Mono', ui-monospace, 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.55;
     overflow: hidden;
@@ -196,34 +206,20 @@
     height: 100%;
     object-fit: cover;
     display: block;
-    /* Process portrait through the terminal's physical constraints —
-       monochrome green phosphor, low-bandwidth encrypted feed look */
-    filter:
-      grayscale(1)
-      brightness(0.7)
-      contrast(1.6)
-      sepia(0.6)
-      hue-rotate(60deg)
-      saturate(2);
-    mix-blend-mode: screen;
+    /* Seal — already two-tone phosphor on void from ImageMagick threshold pass.
+       Light flicker preserves the "low-bandwidth encrypted feed" feel. */
     animation: portrait-flicker 6s steps(1) infinite;
   }
   @keyframes portrait-flicker {
-    0%, 90%, 100% { opacity: 0.95; filter: grayscale(1) brightness(0.7) contrast(1.6) sepia(0.6) hue-rotate(60deg) saturate(2); }
-    91% { opacity: 0.4; filter: grayscale(1) brightness(0.4) contrast(2.5) sepia(1) hue-rotate(60deg) saturate(3); }
-    92% { opacity: 0.95; }
-    95% { opacity: 0.7; filter: grayscale(1) brightness(0.9) contrast(1.4) sepia(0.6) hue-rotate(60deg) saturate(2) blur(0.5px); }
-    96% { opacity: 0.95; filter: grayscale(1) brightness(0.7) contrast(1.6) sepia(0.6) hue-rotate(60deg) saturate(2); }
-  }
-  .chrome__portrait-frame {
-    /* additional dither pattern */
-    background:
-      var(--surface)
-      repeating-linear-gradient(45deg, transparent 0, transparent 1px, rgba(0,0,0,0.15) 1px, rgba(0,0,0,0.15) 2px);
+    0%, 88%, 100% { opacity: 1; }
+    89% { opacity: 0.5; }
+    90% { opacity: 1; }
+    94% { opacity: 0.8; filter: blur(0.4px); }
+    95% { opacity: 1; filter: none; }
   }
 
   .chrome__sigil {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Departure Mono', monospace;
     font-size: 9px;
     color: var(--amber-mute);
     letter-spacing: 0.18em;
@@ -309,7 +305,7 @@
     border: none;
     border-left: 1px solid var(--rule);
     color: var(--amber-dim);
-    font: 600 10px 'JetBrains Mono', monospace;
+    font: 600 10px 'Departure Mono', monospace;
     letter-spacing: 0.15em;
     padding: 0 16px;
     height: 100%;
@@ -467,21 +463,73 @@
     font-size: 11px;
   }
 
-  .status__live {
+  /* Intercept stream — Empire's surveillance system observing the conversation */
+  .status__intercept {
     margin-left: auto;
     padding: 0 14px;
     border-left: 1px solid var(--rule);
     border-right: none;
-    color: var(--red);
+    flex: 0 0 auto;
+    min-width: 360px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    position: relative;
   }
-  .status__live::before {
+  .status__intercept dt {
+    color: var(--amber-mute);
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+  .status__intercept dt::before {
     content: "●";
-    margin-right: 6px;
+    color: var(--red);
+    margin-right: 5px;
     animation: rec-blink 1.2s steps(1) infinite;
   }
   @keyframes rec-blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0.2; }
+  }
+  .status__intercept-stream {
+    flex: 1;
+    overflow: hidden;
+    height: 14px;
+    position: relative;
+  }
+  .status__intercept-event {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--amber);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    animation: intercept-slide-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .status__intercept-event.exiting {
+    animation: intercept-slide-out 0.35s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  }
+  .status__intercept-event.sev-info { color: var(--amber); }
+  .status__intercept-event.sev-warn { color: #ffc14a; }
+  .status__intercept-event.sev-alert { color: var(--red); text-shadow: 0 0 8px rgba(255,48,48,0.6); }
+  .status__intercept-event .ts {
+    color: var(--amber-faint);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .status__intercept-event .text { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  @keyframes intercept-slide-in {
+    from { transform: translateY(14px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes intercept-slide-out {
+    from { transform: translateY(0); opacity: 1; }
+    to   { transform: translateY(-14px); opacity: 0; }
   }
 
   /* ═══ TRANSCRIPT (the chat log) ═══ */
@@ -839,7 +887,7 @@
   <header class="chrome">
     <div class="chrome__brand">
       <div class="chrome__portrait-frame">
-        <img class="chrome__portrait" src="bothan-ora_image_0_0.jpg" alt="Ora — Bothan informant">
+        <img class="chrome__portrait" src="bothan-ora-seal.png" alt="Ora — Bothan informant">
       </div>
       <div class="chrome__sigil">
         <span class="name">ORA</span>
@@ -888,7 +936,10 @@
     <div class="status__cell"><dt>Handler</dt><dd>AGENT COTLA</dd></div>
     <div class="status__cell"><dt>Cell</dt><dd class="live">ECHO</dd></div>
     <div class="status__cell"><dt>Status</dt><dd class="alert">EMBEDDED</dd></div>
-    <div class="status__cell status__live"><dt>REC</dt><dd>LIVE TRANSMISSION</dd></div>
+    <div class="status__intercept" id="intercept">
+      <dt>INTERCEPT</dt>
+      <div class="status__intercept-stream" id="intercept-stream"></div>
+    </div>
   </dl>
 
   <!-- ═══ TRANSCRIPT ═══ -->
@@ -1110,6 +1161,71 @@
     'Fenri': 'IMP-INT · SECONDARY HANDLER',
   };
 
+  // Intercept log — what the Empire's surveillance system *notices* about the
+  // conversation. Each entry says something the dialogue doesn't say (bio-sig
+  // match, mandatory codename log, countermeasure detection, etc.). Aligned to
+  // transmission timing in absolute ms from page load. Severity drives color.
+  const INTERCEPT_LOG = [
+    { atMs:    400, text: 'CHANNEL OPEN · PRIMARY HANDSHAKE',                   sev: 'info' },
+    { atMs:   1500, text: 'AES-256-GCM · KEY EXCHANGE COMPLETE',                sev: 'info' },
+    { atMs:   3000, text: 'BIO-SIG MATCH 99.7% · ORA VERIFIED',                 sev: 'info' },
+    { atMs:   5500, text: 'BOTHAN VOX ACTIVE · AMBIENT MOS EISLEY',             sev: 'info' },
+    { atMs:   9500, text: 'GLANCE-OVER-SHOULDER · COVER-CHECK BEHAVIOR',        sev: 'info' },
+    { atMs:  13200, text: 'CREDIT TX OBSERVED · 6,000 IC · ACK',                sev: 'alert' },
+    { atMs:  17500, text: 'COVER-NAME UTTERED · "JIFF GORDA"',                  sev: 'info' },
+    { atMs:  21000, text: 'PLAYER GESTURE LOGGED · LOW-AGGRESSION',             sev: 'info' },
+    { atMs:  25000, text: 'BEARD-STROKE · PRE-DISCLOSURE PATTERN',              sev: 'info' },
+    { atMs:  29000, text: 'EXTENDED MONOLOGUE · BUFFER ALLOC 4MB',              sev: 'info' },
+    { atMs:  35000, text: 'CODENAME UTTERED · PROJECT THORN · MANDATORY LOG',   sev: 'alert' },
+    { atMs:  44000, text: 'ASSET ORIGIN DISCLOSED · CROSS-REF ARCHIVE',         sev: 'info' },
+    { atMs:  53000, text: 'ASSASSINATION BRIEF · TATOOINE · VERIFIED',          sev: 'info' },
+    { atMs:  62000, text: 'PKT-LOSS DRIFT · 0.02% → 0.31%',                     sev: 'warn' },
+    { atMs:  72000, text: 'CELL CODENAME · ECHO · CROSS-LISTED 7 TIMES',        sev: 'warn' },
+    { atMs:  79000, text: 'COUNTERMEASURE DETECTED · UNKNOWN ORIGIN',           sev: 'warn' },
+    { atMs:  82500, text: 'SIGNAL DEGRADING · BURST INTERRUPT IMMINENT',        sev: 'alert' },
+    { atMs:  84500, text: 'SIGNAL LOST · ENC TIMEOUT · 4.0s',                   sev: 'alert' },
+  ];
+
+  function formatInterceptTime(ms) {
+    // 01:01:00 base + offset, matching transcript timestamps
+    const total = 3660 + Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+
+  function renderInterceptEvent(entry) {
+    const stream = document.getElementById('intercept-stream');
+    if (!stream) return;
+    // Mark previous entry exiting
+    const prev = stream.querySelector('.status__intercept-event:not(.exiting)');
+    if (prev) {
+      prev.classList.add('exiting');
+      setTimeout(() => prev.remove(), 400);
+    }
+    const evEl = document.createElement('div');
+    evEl.className = 'status__intercept-event sev-' + entry.sev;
+    evEl.innerHTML =
+      '<span class="ts">' + formatInterceptTime(entry.atMs) + '</span>' +
+      '<span class="text">' + entry.text + '</span>';
+    stream.appendChild(evEl);
+  }
+
+  function scheduleInterceptLog() {
+    INTERCEPT_LOG.forEach(entry => {
+      revealTimers.push(setTimeout(() => renderInterceptEvent(entry), entry.atMs));
+    });
+  }
+
+  function flushInterceptLog() {
+    // Show the final entry immediately when SKIP is pressed
+    const stream = document.getElementById('intercept-stream');
+    if (!stream) return;
+    stream.innerHTML = '';
+    renderInterceptEvent(INTERCEPT_LOG[INTERCEPT_LOG.length - 1]);
+  }
+
   const CHAR_MS = 22;       // per-character stagger
   const MIN_LINE_PAUSE = 380;
   const PAUSE_AFTER_LINE = {
@@ -1278,6 +1394,7 @@
       el.style.animation = 'none';
       el.style.opacity = '1';
     });
+    flushInterceptLog();
     triggerSignalLost(true);
     log('state', 'Revealed ' + charCount + ' chars · signal-lost ON');
     const btn = document.getElementById('btn-skip');
@@ -1374,6 +1491,9 @@
 
   // Build the animation (scrolling is now driven by line reveals)
   const totalMs = buildAnimation();
+
+  // Start the intercept stream — Empire's surveillance system observing
+  scheduleInterceptLog();
 })();
 </script>
 
