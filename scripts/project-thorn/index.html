@@ -18,6 +18,13 @@
     font-style: normal;
     font-display: swap;
   }
+  @font-face {
+    font-family: 'Aurebesh';
+    src: url('Aurebesh.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+  }
   /* ═══════════════════════════════════════════════════════════════════
      PROJECT THORN — Imperial Intelligence Terminal
      Bloomberg Terminal archetype, amber phosphor monochrome
@@ -201,21 +208,34 @@
     opacity: 0.7;
   }
 
+  .chrome__portrait-frame {
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .chrome__portrait-frame:hover {
+    box-shadow:
+      inset 0 0 12px rgba(0,0,0,0.6),
+      0 0 24px rgba(106,216,255,0.35),
+      0 0 48px rgba(106,216,255,0.15);
+    transform: translateY(-1px);
+  }
   .chrome__portrait {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
-    /* Seal — already two-tone phosphor on void from ImageMagick threshold pass.
-       Light flicker preserves the "low-bandwidth encrypted feed" feel. */
+    /* Painterly portrait, processed lightly through the CRT —
+       slight saturation pull-back and warmth so it reads as a feed
+       rather than a magazine cover, but the color survives. */
+    filter: saturate(0.85) contrast(1.1) brightness(0.95);
     animation: portrait-flicker 6s steps(1) infinite;
   }
   @keyframes portrait-flicker {
-    0%, 88%, 100% { opacity: 1; }
-    89% { opacity: 0.5; }
-    90% { opacity: 1; }
-    94% { opacity: 0.8; filter: blur(0.4px); }
-    95% { opacity: 1; filter: none; }
+    0%, 88%, 100% { opacity: 1; filter: saturate(0.85) contrast(1.1) brightness(0.95); }
+    89% { opacity: 0.6; filter: saturate(0.4) contrast(1.5) brightness(0.7) hue-rotate(20deg); }
+    90% { opacity: 1; filter: saturate(0.85) contrast(1.1) brightness(0.95); }
+    94% { opacity: 0.85; filter: saturate(0.85) contrast(1.1) brightness(0.95) blur(0.4px); }
+    95% { opacity: 1; filter: saturate(0.85) contrast(1.1) brightness(0.95); }
   }
 
   .chrome__sigil {
@@ -360,6 +380,243 @@
     text-transform: uppercase;
   }
   .chrome__btn:hover::after { opacity: 1; }
+
+  /* ═══ HOLOGRAPHIC DOSSIER MODAL ═══
+     Cyan-blue projection, scan lines, animated grid, Imperial datapad
+     intercept-card aesthetic. <dialog> element with backdrop. */
+  .dossier {
+    position: fixed; inset: 0; z-index: 300;
+    width: 100%; height: 100%;
+    margin: 0; padding: 0;
+    background: rgba(0, 8, 16, 0.85);
+    border: none;
+    display: none;
+    align-items: center; justify-content: center;
+  }
+  .dossier[open] {
+    display: flex;
+    animation: dossier-bg-in 0.3s ease-out forwards;
+  }
+  @keyframes dossier-bg-in {
+    from { background: rgba(0, 8, 16, 0); }
+    to   { background: rgba(0, 8, 16, 0.85); }
+  }
+  .dossier::backdrop {
+    background: rgba(0, 8, 16, 0.85);
+  }
+
+  .dossier__card {
+    position: relative;
+    width: min(640px, 92vw);
+    max-height: 88vh;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(8, 28, 44, 0.96) 0%, rgba(4, 16, 28, 0.96) 100%);
+    border: 1px solid rgba(106, 216, 255, 0.5);
+    box-shadow:
+      inset 0 0 60px rgba(106, 216, 255, 0.1),
+      0 0 60px rgba(106, 216, 255, 0.3),
+      0 0 120px rgba(106, 216, 255, 0.15);
+    color: #a8e9ff;
+    font-family: 'Departure Mono', monospace;
+    animation: dossier-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    transform-origin: center;
+  }
+  @keyframes dossier-rise {
+    from { opacity: 0; transform: translateY(20px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Holographic projection lines — diagonal sweep + horizontal scan */
+  .dossier__card::before {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent 0,
+        transparent 2px,
+        rgba(106, 216, 255, 0.08) 2px,
+        rgba(106, 216, 255, 0.08) 3px
+      );
+    z-index: 2;
+  }
+  .dossier__card::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(106, 216, 255, 0.18) 50%,
+      transparent 100%
+    );
+    background-size: 100% 200%;
+    background-position: 0 -100%;
+    animation: holo-sweep 4s linear infinite;
+    z-index: 3;
+    mix-blend-mode: screen;
+  }
+  @keyframes holo-sweep {
+    0%   { background-position: 0 -100%; }
+    100% { background-position: 0 100%; }
+  }
+
+  .dossier__header {
+    position: relative; z-index: 4;
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(106, 216, 255, 0.3);
+    background: rgba(106, 216, 255, 0.04);
+  }
+  .dossier__portrait {
+    width: 96px; height: 96px;
+    border: 1px solid rgba(106, 216, 255, 0.6);
+    box-shadow: 0 0 16px rgba(106, 216, 255, 0.25);
+    object-fit: cover;
+    filter: saturate(0.75) contrast(1.1) brightness(0.95);
+    flex-shrink: 0;
+  }
+  .dossier__title {
+    flex: 1;
+    font-family: 'Major Mono Display', monospace;
+    font-size: 24px;
+    color: #d8f5ff;
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 12px rgba(106, 216, 255, 0.6);
+    line-height: 1.2;
+  }
+  .dossier__title small {
+    display: block;
+    font-family: 'Departure Mono', monospace;
+    font-size: 9px;
+    color: rgba(106, 216, 255, 0.6);
+    letter-spacing: 0.2em;
+    margin-top: 6px;
+    text-shadow: none;
+  }
+  .dossier__classification {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--red);
+    text-shadow: 0 0 8px rgba(255, 48, 48, 0.6);
+    padding: 3px 8px;
+    border: 1px solid var(--red);
+    flex-shrink: 0;
+  }
+
+  .dossier__body {
+    position: relative; z-index: 4;
+    padding: 20px 24px;
+    overflow-y: auto;
+    max-height: calc(88vh - 200px);
+  }
+  .dossier__section { margin-bottom: 20px; }
+  .dossier__section:last-child { margin-bottom: 0; }
+  .dossier__section h3 {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: rgba(106, 216, 255, 0.6);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px dotted rgba(106, 216, 255, 0.3);
+    font-weight: normal;
+  }
+
+  .dossier__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 20px;
+    font-size: 11px;
+  }
+  .dossier__field {
+    display: flex; flex-direction: column;
+    gap: 2px;
+  }
+  .dossier__field dt {
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: rgba(106, 216, 255, 0.5);
+    text-transform: uppercase;
+  }
+  .dossier__field dd {
+    color: #d8f5ff;
+    font-weight: 500;
+  }
+  .dossier__field dd.alert {
+    color: var(--red);
+    text-shadow: 0 0 6px rgba(255, 48, 48, 0.5);
+  }
+  .dossier__field dd.live { color: #4ce0a0; }
+
+  .dossier__bio {
+    font-size: 11px;
+    line-height: 1.6;
+    color: rgba(216, 245, 255, 0.85);
+    font-style: italic;
+  }
+
+  .dossier__associates {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .dossier__associates li {
+    list-style: none;
+    padding: 4px 0;
+    border-bottom: 1px dotted rgba(106, 216, 255, 0.15);
+  }
+  .dossier__associates li::before {
+    content: "▸ ";
+    color: rgba(106, 216, 255, 0.6);
+  }
+  .dossier__associates li:last-child { border-bottom: none; }
+  .dossier__associates b {
+    color: #d8f5ff;
+    font-weight: 600;
+  }
+  .dossier__associates span {
+    color: rgba(106, 216, 255, 0.5);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  .dossier__close {
+    position: absolute;
+    top: 12px; right: 12px;
+    z-index: 5;
+    width: 28px; height: 28px;
+    background: transparent;
+    border: 1px solid rgba(106, 216, 255, 0.4);
+    color: rgba(106, 216, 255, 0.7);
+    cursor: pointer;
+    font-family: 'Departure Mono', monospace;
+    font-size: 14px;
+    line-height: 1;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .dossier__close:hover {
+    color: #d8f5ff;
+    border-color: #d8f5ff;
+    box-shadow: 0 0 12px rgba(106, 216, 255, 0.5);
+  }
+
+  .dossier__footer {
+    position: relative; z-index: 4;
+    padding: 12px 24px;
+    border-top: 1px solid rgba(106, 216, 255, 0.3);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(106, 216, 255, 0.5);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+  }
+  .dossier__footer .blink {
+    color: var(--red);
+    animation: rec-blink 1.2s steps(1) infinite;
+  }
 
   /* ═══ LIVE LOG PANEL ═══ */
   .log-panel {
@@ -553,10 +810,36 @@
 
   .line {
     display: grid;
-    grid-template-columns: 88px 1fr;
+    grid-template-columns: 88px minmax(0, 1fr);
     gap: 16px;
     margin-bottom: 6px;
     align-items: baseline;
+    min-width: 0;
+  }
+  .line__body {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: normal;
+    white-space: normal;
+  }
+  .char {
+    display: inline-block;
+    width: 1ch;
+    text-align: center;
+    opacity: 0;
+    font-family: 'Aurebesh', 'Departure Mono', monospace;
+    vertical-align: baseline;
+  }
+  .char.filled { opacity: 1; }
+  .char.decrypted { font-family: 'Departure Mono', monospace; }
+  .char.scrambling { opacity: 1; }
+  .char--punct {
+    font-family: 'Departure Mono', monospace;
+  }
+  .person, .thorn {
+    display: inline;
+    word-break: normal;
   }
 
   .line__time {
@@ -585,6 +868,11 @@
 
   .line--dialogue .line__body { color: var(--type-dialogue); }
   .line--narrative .line__body { color: var(--type-narrative); }
+  .line--narrative .line__body br {
+    display: block;
+    content: "";
+    margin-top: 0.8em;
+  }
 
   .line--emote .line__body {
     color: var(--type-emote);
@@ -636,7 +924,8 @@
     text-transform: uppercase;
     text-align: center;
     border-top: 1px solid var(--rule);
-    padding-top: 12px;
+    border-bottom: 1px solid var(--rule);
+    padding: 12px 0;
   }
 
   .line__speaker {
@@ -659,21 +948,10 @@
     border-bottom: 1px dotted var(--amber-mute);
   }
 
-  /* ═══ TYPEWRITER ANIMATION ═══ */
+  /* ═══ DECRYPT ANIMATION ═══ */
 
-  .char {
-    opacity: 0;
-    animation: char-in 1ms steps(1, end) forwards;
-    animation-delay: var(--d, 0ms);
-  }
-  @keyframes char-in {
-    to { opacity: 1; }
-  }
-
-  /* Lines are hidden (display:none) until JS reveals them at their --line-d time.
-     This keeps the transcript scroll height accurate to what's actually visible. */
   .line.pre-reveal { display: none; }
-  .line.revealing {
+  .line.revealed {
     animation: line-show 240ms ease-out forwards;
   }
   @keyframes line-show {
@@ -743,15 +1021,52 @@
     color: var(--amber);
     font-weight: 700;
   }
-  .prompt__cursor {
-    width: 9px; height: 14px;
-    background: var(--amber);
-    box-shadow: 0 0 6px rgba(92,255,144,0.5);
-    animation: cursor-blink 1.06s steps(1) infinite;
+  .prompt__input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--amber);
+    font-family: 'Aurebesh', 'Departure Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    caret-color: var(--amber);
+    padding: 0;
+    height: 100%;
   }
-  @keyframes cursor-blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
+  .prompt__input::placeholder {
+    color: transparent;
+  }
+  .prompt__errors {
+    grid-column: 1 / -1;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    font-size: 11px;
+    padding: 0 20px;
+  }
+  .prompt__errors.has-errors {
+    max-height: 120px;
+    padding: 6px 20px;
+    overflow-y: auto;
+  }
+  .prompt__error-line {
+    color: var(--red);
+    font-family: 'Departure Mono', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    opacity: 0;
+    animation: error-in 0.3s ease forwards;
+  }
+  .prompt__error-line .err-cmd {
+    color: var(--amber-dim);
+    font-family: 'Aurebesh', 'Departure Mono', monospace;
+  }
+  @keyframes error-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   .prompt__hint {
     margin-left: auto;
@@ -805,8 +1120,8 @@
     font-weight: 800;
     letter-spacing: 0.4em !important;
     padding: 28px 0 !important;
-    border-top-width: 2px !important;
-    border-top-style: solid !important;
+    border-width: 2px !important;
+    border-style: solid none !important;
     text-shadow:
       0 0 24px rgba(255,48,48,0.9),
       -2px 0 rgba(255,48,48,0.6),
@@ -850,6 +1165,7 @@
     .char, .line {
       opacity: 1 !important;
       animation: none !important;
+      font-family: 'Departure Mono', monospace !important;
     }
     .ticker__inner, .glow, .flicker, .prompt__cursor {
       animation: none !important;
@@ -887,7 +1203,7 @@
   <header class="chrome">
     <div class="chrome__brand">
       <div class="chrome__portrait-frame">
-        <img class="chrome__portrait" src="bothan-ora-seal.png" alt="Ora — Bothan informant">
+        <img class="chrome__portrait" src="bothan-ora_image_0_0.jpg" alt="Ora — Bothan informant">
       </div>
       <div class="chrome__sigil">
         <span class="name">ORA</span>
@@ -925,6 +1241,9 @@
       <button class="chrome__btn" id="btn-log" data-tip="Display signal trace diagnostics (L)" aria-pressed="false">
         <span class="btn-icon">⟫</span>TRACE
       </button>
+      <button class="chrome__btn" id="btn-mute" data-tip="Toggle audio (M)" aria-pressed="false">
+        <span class="btn-icon" id="mute-icon">♪</span>AUDIO
+      </button>
     </div>
   </header>
 
@@ -945,127 +1264,86 @@
   <!-- ═══ TRANSCRIPT ═══ -->
   <main class="transcript" id="transcript">
 
-    <article class="line line--system" data-time="01:01">
+    <article class="line line--system" data-time="01:01" data-block="1">
       <div class="line__time">[01:01:00]</div>
       <div class="line__body" data-text="Establishing encrypted channel..."></div>
     </article>
 
-    <article class="line line--system" data-time="01:01">
+    <article class="line line--system" data-time="01:01" data-block="1">
       <div class="line__time">[01:01:14]</div>
       <div class="line__body" data-text="Channel secured · AES-256-GCM · Latency 47ms"></div>
     </article>
 
-    <article class="line line--system" data-time="01:01">
+    <article class="line line--system" data-time="01:01" data-block="1">
       <div class="line__time">[01:01:22]</div>
       <div class="line__body" data-text="Informant located — Mos Eisley Cantina, Sector 7-G"></div>
     </article>
 
-    <article class="line line--system" data-time="01:01">
+    <article class="line line--system" data-time="01:01" data-block="1">
       <div class="line__time">[01:01:30]</div>
       <div class="line__body" data-text="Recording initiated"></div>
     </article>
 
-    <article class="line line--break">
-      <div class="line__body">▔▔▔ TRANSMISSION BEGINS ▔▔▔</div>
+    <article class="line line--break" data-block="2">
+      <div class="line__body">TRANSMISSION BEGINS</div>
     </article>
 
-    <article class="line line--dialogue" data-time="01:02">
+    <article class="line line--dialogue" data-time="01:02" data-block="3">
       <div class="line__time">[01:02:08]</div>
       <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Jiff Gorda? What could you possibly wish to know about that fool of a human?&quot;"></span></div>
     </article>
 
-    <article class="line line--emote" data-time="01:02">
+    <article class="line line--emote" data-time="01:02" data-block="4">
       <div class="line__time">[01:02:34]</div>
       <div class="line__body"><span class="line__speaker">Ora</span><span data-text="glances over his shoulder. With an air of bothan confidence, he turns his gaze from your concealed blaster to the overlooking skyline."></span></div>
     </article>
 
-    <article class="line line--dialogue" data-time="01:02">
+    <article class="line line--dialogue" data-time="01:02" data-block="4">
       <div class="line__time">[01:02:51]</div>
       <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Very well. Credits.&quot;"></span></div>
     </article>
 
-    <article class="line line--credit" data-time="01:03">
+    <article class="line line--credit" data-time="01:03" data-block="5">
       <div class="line__time">[01:03:02]</div>
       <div class="line__body" data-text="6,000 IMPERIAL CREDITS TRANSFERRED"></div>
     </article>
 
-    <article class="line line--dialogue" data-time="01:03">
+    <article class="line line--dialogue" data-time="01:03" data-block="6">
       <div class="line__time">[01:03:18]</div>
       <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Jiff Gorda; a name; an alias; a persona to be played, nothing more.&quot;"></span></div>
     </article>
 
-    <article class="line line--action" data-time="01:03">
+    <article class="line line--action" data-time="01:03" data-block="6">
       <div class="line__time">[01:03:33]</div>
       <div class="line__body" data-text="You raise an eyebrow at Ora."></div>
     </article>
 
-    <article class="line line--dialogue" data-time="01:03">
+    <article class="line line--dialogue" data-time="01:03" data-block="6">
       <div class="line__time">[01:03:40]</div>
       <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;I see. Apparently there is much you do not know.&quot;"></span></div>
     </article>
 
-    <article class="line line--emote" data-time="01:04">
+    <article class="line line--emote" data-time="01:04" data-block="6">
       <div class="line__time">[01:04:01]</div>
       <div class="line__body"><span class="line__speaker">Ora</span><span data-text="pauses for a moment, making sure to stroke his beard before continuing,"></span></div>
     </article>
 
-    <article class="line line--narrative" data-time="01:04">
+    <article class="line line--narrative" data-time="01:04" data-block="7">
       <div class="line__time">[01:04:18]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Two standard years ago, on a particularly grueling day of the Harvest season, a young miner strode into the Mos Eisley cantina. Following a private rendezvous with an agent of Imperial Intelligence, the young miner ceased being §Vorian Ducal§ and became §Jiff Gorda§.&quot;"></span></div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Two standard years ago, on a particularly grueling day of the Harvest season, a young miner strode into the Mos Eisley cantina. Following a private rendezvous with an agent of Imperial Intelligence, the young miner ceased being §Vorian Ducal§ and became §Jiff Gorda§. The §Jiff Gorda§ you know of, the one whom you are seeking information about, is merely an actor, a fine actor at that; but in the end, yet another tool of the Empire.
+However, this tool has a codename, ¤Project Thorn¤, and has been one of the focuses of Imperial Intelligence ever since the day of its initiation. ¤Project Thorn¤, quite simply, was designed to deceive and infiltrate the highest ranks of the Rebel Alliance. Once the sleeper had secured an influential position in the Rebellion, he or she would begin feeding data to Imperial Intelligence regarding fleet movements, alliance leadership, imminent rebel attacks, sources of funding and supplies, etcera.
+From a list of promising candidates, a miner on Tatoonie caught the eye of §Agent Cotla§, the man leading ¤Project Thorn¤. Other than one or two physical discrepancies which were later corrected through image design, §Vorian§ bore a striking resemblance to a noble born by the name of §Jiff Gorda§.
+The real §Jiff Gorda§ rebelliously left home in his teens, much to the dismay of the Gordas, a well off family of Corellian nobles and known sympathizers of the Rebellion. Imperial Intelligence felt that the identity of §Jiff Gorda§ would make an ideal front for their new double agent, and thus, it was decided that §Jiff Gorda§ would be terminated. Conveniently, the assassination was conducted on Tatoonie, where Gorda had begun dealing with the local Hutts and crimelords. Imperial Intelligence feared that the Hutts might detect deception on the part of the as of yet-untested §Vorian Ducal§, but it appears that intoxication and riches numb even the mighty senses of overgrown slugs.
+Along with the title and name of the deceased Corellian noble born, §Vorian§—now known as §Jiff§—was granted full access to the Gorda family fortune. Vorian's first true task, which was closely monitored by his superiors, required '§Jiff Gorda§' to join the ranks of an independent group of rebels referred to as 'ECHO'. Vorian's ability to adapt and improvise impressed agents §Cotla§ and §Fenri§, and so the project was continu—&quot;"></span></div>
     </article>
 
-    <article class="line line--narrative" data-time="01:05">
-      <div class="line__time">[01:05:03]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;The §Jiff Gorda§ you know of, the one whom you are seeking information about, is merely an actor, a fine actor at that; but in the end, yet another tool of the Empire.&quot;"></span></div>
-    </article>
-
-    <article class="line line--narrative" data-time="01:05">
-      <div class="line__time">[01:05:38]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;However, this tool has a codename, ¤Project Thorn¤, and has been one of the focuses of Imperial Intelligence ever since the day of its initiation.&quot;"></span></div>
-    </article>
-
-    <article class="line line--narrative" data-time="01:06">
-      <div class="line__time">[01:06:11]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;¤Project Thorn¤, quite simply, was designed to deceive and infiltrate the highest ranks of the Rebel Alliance. Once the sleeper had secured an influential position in the Rebellion, he or she would begin feeding data to Imperial Intelligence regarding fleet movements, alliance leadership, imminent rebel attacks, sources of funding and supplies, etcera.&quot;"></span></div>
-    </article>
-
-    <article class="line line--narrative" data-time="01:07">
-      <div class="line__time">[01:07:24]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;From a list of promising candidates, a miner on Tatoonie caught the eye of §Agent Cotla§, the man leading ¤Project Thorn¤.&quot;"></span></div>
-    </article>
-
-    <article class="line line--narrative" data-time="01:08">
-      <div class="line__time">[01:08:02]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Other than one or two physical discrepancies which were later corrected through image design, §Vorian§ bore a striking resemblance to a noble born by the name of §Jiff Gorda§.&quot;"></span></div>
-    </article>
-
-    <article class="line line--narrative" data-time="01:08">
-      <div class="line__time">[01:08:41]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;The real §Jiff Gorda§ rebelliously left home in his teens, much to the dismay of the Gordas, a well off family of Corellian nobles and known sympathizers of the Rebellion. Imperial Intelligence felt that the identity of §Jiff Gorda§ would make an ideal front for their new double agent, and thus, it was decided that §Jiff Gorda§ would be terminated.&quot;"></span></div>
-    </article>
-
-    <article class="line line--narrative" data-time="01:09">
-      <div class="line__time">[01:09:48]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Conveniently, the assassination was conducted on Tatoonie, where Gorda had begun dealing with the local Hutts and crimelords. Imperial Intelligence feared that the Hutts might detect deception on the part of the as of yet-untested §Vorian Ducal§, but it appears that intoxication and riches numb even the mighty senses of overgrown slugs.&quot;"></span></div>
-    </article>
-
-    <article class="line line--narrative" data-time="01:10">
-      <div class="line__time">[01:10:39]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Along with the title and name of the deceased Corellian noble born, §Vorian§—now known as §Jiff§—was granted full access to the Gorda family fortune.&quot;"></span></div>
-    </article>
-
-    <article class="line line--narrative" data-time="01:11">
-      <div class="line__time">[01:11:08]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Vorian's first true task, which was closely monitored by his superiors, required '§Jiff Gorda§' to join the ranks of an independent group of rebels referred to as 'ECHO'. Vorian's ability to adapt and improvise impressed agents §Cotla§ and §Fenri§, and so the project was continu—&quot;"></span></div>
-    </article>
-
-    <article class="line line--interrupt" data-time="01:11">
+    <article class="line line--interrupt" data-time="01:11" data-block="8">
       <div class="line__time">[01:11:52]</div>
       <div class="line__body" data-text="Ora suddenly goes silent, motioning for you to return at a later time."></div>
     </article>
 
-    <article class="line line--break line--signal-lost" id="signal-lost-marker">
-      <div class="line__body" style="color:var(--red);border-color:var(--red-dim);">▔▔▔ SIGNAL LOST · TRANSMISSION TERMINATED · 01:11:58 ▔▔▔</div>
+    <article class="line line--break line--signal-lost" id="signal-lost-marker" data-block="9">
+      <div class="line__body" style="color:var(--red);border-color:var(--red-dim);">SIGNAL LOST · TRANSMISSION TERMINATED · 01:11:58</div>
     </article>
 
   </main>
@@ -1112,11 +1390,93 @@
   <!-- ═══ PROMPT ═══ -->
   <footer class="prompt">
     <span class="prompt__sigil">θ-7@imp-int:~$</span>
-    <span class="prompt__cursor"></span>
-    <span class="prompt__hint">↺R · ▒V · ⏭SPC · ⟫L</span>
+    <input class="prompt__input" id="prompt-input" type="text" autocomplete="off" spellcheck="false" aria-label="Terminal input">
+    <span class="prompt__hint">↺R · ▒V · ⏭SPC · ⟫L · ♪M</span>
   </footer>
+  <div class="prompt__errors" id="prompt-errors"></div>
 
 </div>
+
+<!-- ═══ HOLOGRAPHIC DOSSIER MODAL ═══ -->
+<dialog class="dossier" id="dossier" aria-labelledby="dossier-title">
+  <div class="dossier__card">
+    <button class="dossier__close" id="dossier-close" aria-label="Close dossier">×</button>
+
+    <header class="dossier__header">
+      <img class="dossier__portrait" src="bothan-ora_image_0_0.jpg" alt="Ora">
+      <h2 class="dossier__title" id="dossier-title">
+        ORA
+        <small>BOTHAN NETWORK · TIER-3 INFORMANT · IMP-INT FILE BTH-7740</small>
+      </h2>
+      <span class="dossier__classification">RESTRICTED</span>
+    </header>
+
+    <div class="dossier__body">
+      <section class="dossier__section">
+        <h3>Identity</h3>
+        <dl class="dossier__grid">
+          <div class="dossier__field"><dt>Designation</dt><dd>ORA</dd></div>
+          <div class="dossier__field"><dt>Species</dt><dd>BOTHAN</dd></div>
+          <div class="dossier__field"><dt>Homeworld</dt><dd>BOTHAWUI (presumed)</dd></div>
+          <div class="dossier__field"><dt>Network</dt><dd>BOTHAN SPYNET (independent cell)</dd></div>
+          <div class="dossier__field"><dt>Operating Region</dt><dd>OUTER RIM · TATOOINE</dd></div>
+          <div class="dossier__field"><dt>Cover</dt><dd>CANTINA INFORMANT</dd></div>
+        </dl>
+      </section>
+
+      <section class="dossier__section">
+        <h3>Performance Record</h3>
+        <dl class="dossier__grid">
+          <div class="dossier__field"><dt>Tier</dt><dd>3 (CONFIRMED)</dd></div>
+          <div class="dossier__field"><dt>Reliability</dt><dd class="live">▮▮▮▮▯ 4/5</dd></div>
+          <div class="dossier__field"><dt>Operations</dt><dd>47 LOGGED</dd></div>
+          <div class="dossier__field"><dt>Burns</dt><dd>0</dd></div>
+          <div class="dossier__field"><dt>Compromised Channels</dt><dd>0</dd></div>
+          <div class="dossier__field"><dt>Falsified Reports</dt><dd>1 (Y-3 / cleared)</dd></div>
+          <div class="dossier__field"><dt>Last Contact</dt><dd>01:11:58 · TODAY</dd></div>
+          <div class="dossier__field"><dt>Status</dt><dd class="alert">SIGNAL LOST · INVESTIGATING</dd></div>
+        </dl>
+      </section>
+
+      <section class="dossier__section">
+        <h3>Pricing &amp; Channels</h3>
+        <dl class="dossier__grid">
+          <div class="dossier__field"><dt>Tariff (Standard Intel)</dt><dd>2,500 IC / item</dd></div>
+          <div class="dossier__field"><dt>Tariff (Codename-tagged)</dt><dd>6,000 IC / item</dd></div>
+          <div class="dossier__field"><dt>Preferred Channel</dt><dd>θ-7 ENC</dd></div>
+          <div class="dossier__field"><dt>Backup Channel</dt><dd>π-3 (compromised Y-2)</dd></div>
+          <div class="dossier__field"><dt>Drop Locations</dt><dd>MOS EISLEY · ANCHORHEAD</dd></div>
+          <div class="dossier__field"><dt>Payment Method</dt><dd>IC IN-PERSON ONLY</dd></div>
+        </dl>
+      </section>
+
+      <section class="dossier__section">
+        <h3>Known Associates</h3>
+        <ul class="dossier__associates">
+          <li><b>JABBA THE HUTT</b> <span>· crime lord, frequent client</span></li>
+          <li><b>UNNAMED BOTHAN HANDLER</b> <span>· cell parent (SPYNET)</span></li>
+          <li><b>VARIOUS HUTT LIEUTENANTS</b> <span>· secondary clients</span></li>
+          <li><b>IMP-INT (THIS FILE)</b> <span>· primary client since Y-2</span></li>
+        </ul>
+      </section>
+
+      <section class="dossier__section">
+        <h3>Behavioral Profile</h3>
+        <p class="dossier__bio">Dispositionally cautious. Prone to glance-over-shoulder behavior under low-stress observation, suggesting either professional paranoia or an active second tail. Strokes beard before disclosure of high-value intel — pre-disclosure tell logged across 31 prior intercepts. Verbal tics include emphatic restatement of key codenames. Exits transmissions abruptly when countermeasures detected; this session is the third such termination in the last 60 days.</p>
+      </section>
+
+      <section class="dossier__section">
+        <h3>Today's Disclosure (Excerpt)</h3>
+        <p class="dossier__bio">Identified §VORIAN DUCAL§ as the true identity behind Imperial sleeper agent §JIFF GORDA§. Detailed cover-construction protocol: assassination of original Gorda on Tatooine, image-design correction of physical discrepancies, full transfer of Gorda family fortune. Named §AGENT COTLA§ and §FENRI§ as Imperial Intelligence handlers. Disclosed cell name ECHO. Transmission terminated mid-sentence at "...the project was continu—" following detection of unknown countermeasure.</p>
+      </section>
+    </div>
+
+    <footer class="dossier__footer">
+      <span>FILE BTH-7740 · IMP-INT/EYES-ONLY</span>
+      <span class="blink">● LIVE</span>
+    </footer>
+  </div>
+</dialog>
 
 <!-- ═══ LIVE LOG PANEL ═══ -->
 <div class="log-panel log-panel--hidden" id="log-panel">
@@ -1212,191 +1572,618 @@
     stream.appendChild(evEl);
   }
 
+  // ═══ AUREBESH DECRYPT ENGINE ═══
+
+  const AUREBESH_POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const FILL_MS = 10;
+  const DECRYPT_MS = 28;
+  const SCRAMBLE_FRAMES = 3;
+  const SCRAMBLE_FRAME_MS = 45;
+  const INTRA_BLOCK_PAUSE = 80;
+  const BLOCK_PAUSE = { 1:200, 2:600, 3:700, 4:400, 5:800, 6:900, 7:1400, 8:800 };
+
+  let userScrolledUp = false;
+  const transcriptEl = document.getElementById('transcript');
+  if (transcriptEl) {
+    transcriptEl.addEventListener('scroll', () => {
+      const gap = transcriptEl.scrollHeight - transcriptEl.scrollTop - transcriptEl.clientHeight;
+      userScrolledUp = gap > 40;
+    }, { passive: true });
+  }
+  function autoScroll(el) {
+    if (!el || userScrolledUp) return;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  const state = {
+    blocks: [],
+    charSpans: [],
+    charMeta: [],
+    fillFrontier: 0,
+    decryptFrontier: 0,
+    fillStartTime: 0,
+    decryptStartTime: 0,
+    blockIdx: 0,
+    phase: 'idle',
+    rafId: null,
+    blockTimerId: null,
+    scrambleTimers: [],
+    lineRevealTimers: [],
+  };
+  const interceptTimers = [];
+
+  // ═══ AUDIO ENGINE ═══
+
+  const audio = {
+    ctx: null,
+    master: null,
+    filter: null,
+    baseSource: null,
+    baseGain: null,
+    accentAGain: null,
+    accentBGain: null,
+    buffers: {},
+    cueTimers: [],
+    muted: false,
+    initialized: false,
+    dead: false,
+
+    async init() {
+      if (this.initialized || this.dead || this.muted) return;
+      try {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.master = this.ctx.createGain();
+        this.master.gain.setValueAtTime(1.0, this.ctx.currentTime);
+        this.master.connect(this.ctx.destination);
+
+        this.filter = this.ctx.createBiquadFilter();
+        this.filter.type = 'lowpass';
+        this.filter.frequency.setValueAtTime(20000, this.ctx.currentTime);
+        this.filter.Q.setValueAtTime(1, this.ctx.currentTime);
+        this.filter.connect(this.master);
+
+        this.baseGain = this.ctx.createGain();
+        this.baseGain.gain.setValueAtTime(0, this.ctx.currentTime);
+        this.baseGain.connect(this.filter);
+
+        this.accentAGain = this.ctx.createGain();
+        this.accentAGain.gain.setValueAtTime(0, this.ctx.currentTime);
+        this.accentAGain.connect(this.filter);
+
+        this.accentBGain = this.ctx.createGain();
+        this.accentBGain.gain.setValueAtTime(0, this.ctx.currentTime);
+        this.accentBGain.connect(this.filter);
+
+        const [base, accentA, accentB] = await Promise.all([
+          this.loadBuffer('sfx-base.mp3'),
+          this.loadBuffer('sfx-accent-a.mp3'),
+          this.loadBuffer('sfx-accent-b.mp3'),
+        ]);
+        this.buffers.base = base;
+        this.buffers.accentA = accentA;
+        this.buffers.accentB = accentB;
+
+        this.initialized = true;
+        log('state', 'Audio engine initialized');
+      } catch (e) {
+        console.warn('Audio init failed:', e);
+        this.dead = true;
+      }
+    },
+
+    async loadBuffer(url) {
+      const resp = await fetch(url);
+      const arr = await resp.arrayBuffer();
+      return this.ctx.decodeAudioData(arr);
+    },
+
+    startBase(fadeDuration) {
+      if (!this.initialized || !this.ctx) return;
+      if (this.baseSource) {
+        try { this.baseSource.stop(); } catch (e) {}
+        try { this.baseSource.disconnect(); } catch (e) {}
+        this.baseSource = null;
+      }
+      this.baseSource = this.ctx.createBufferSource();
+      this.baseSource.buffer = this.buffers.base;
+      this.baseSource.loop = true;
+      this.baseSource.connect(this.baseGain);
+      this.baseGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.baseGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      this.baseGain.gain.exponentialRampToValueAtTime(0.08, this.ctx.currentTime + (fadeDuration || 2));
+      this.baseSource.start(0);
+    },
+
+    playAccent(which, vol) {
+      if (!this.initialized || !this.ctx || this.muted) return null;
+      const buffer = which === 'A' ? this.buffers.accentA : this.buffers.accentB;
+      const gainNode = which === 'A' ? this.accentAGain : this.accentBGain;
+      if (!buffer || !gainNode) return null;
+      gainNode.gain.setValueAtTime(vol, this.ctx.currentTime);
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gainNode);
+      source.start(0);
+      source.onended = () => { source.disconnect(); };
+      return source;
+    },
+
+    rampBase(targetVol, fadeSec) {
+      if (!this.initialized || !this.ctx || !this.baseGain) return;
+      this.baseGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.baseGain.gain.setValueAtTime(Math.max(this.baseGain.gain.value, 0.001), this.ctx.currentTime);
+      this.baseGain.gain.exponentialRampToValueAtTime(Math.max(targetVol, 0.001), this.ctx.currentTime + fadeSec);
+    },
+
+    sweepFilter(targetHz, duration) {
+      if (!this.filter || !this.ctx) return;
+      this.filter.frequency.cancelScheduledValues(this.ctx.currentTime);
+      this.filter.frequency.setValueAtTime(this.filter.frequency.value, this.ctx.currentTime);
+      this.filter.frequency.exponentialRampToValueAtTime(Math.max(targetHz, 20), this.ctx.currentTime + duration);
+    },
+
+    resetFilter() {
+      if (!this.filter || !this.ctx) return;
+      this.filter.frequency.cancelScheduledValues(this.ctx.currentTime);
+      this.filter.frequency.setValueAtTime(20000, this.ctx.currentTime);
+    },
+
+    onSignalLost(immediate) {
+      if (!this.initialized || !this.ctx) return;
+      if (immediate) {
+        this.sweepFilter(200, 0.5);
+        this.rampBase(0.03, 0.5);
+      } else {
+        this.sweepFilter(200, 1.5);
+        this.rampBase(0.03, 3.5);
+      }
+      this.accentAGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.accentAGain.gain.setValueAtTime(Math.max(this.accentAGain.gain.value, 0.001), this.ctx.currentTime);
+      this.accentAGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (immediate ? 0.3 : 1.0));
+      this.accentBGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.accentBGain.gain.setValueAtTime(Math.max(this.accentBGain.gain.value, 0.001), this.ctx.currentTime);
+      this.accentBGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (immediate ? 0.3 : 1.0));
+    },
+
+    onReplay() {
+      if (!this.initialized || !this.ctx) return;
+      this.resetFilter();
+      this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.master.gain.setValueAtTime(this.master.gain.value || 0.001, this.ctx.currentTime);
+      this.master.gain.exponentialRampToValueAtTime(1.0, this.ctx.currentTime + 0.3);
+      this.startBase(1.5);
+    },
+
+    toggleMute() {
+      this.muted = !this.muted;
+      try { localStorage.setItem('thorn-muted', this.muted ? '1' : '0'); } catch (e) {}
+      const btn = document.getElementById('btn-mute');
+      const icon = document.getElementById('mute-icon');
+      if (btn) btn.setAttribute('aria-pressed', this.muted);
+      if (icon) icon.textContent = this.muted ? '\u{266D}' : '\u{266A}';
+      if (this.muted) {
+        if (this.ctx && this.ctx.state === 'running') this.ctx.suspend();
+        this.cueTimers.forEach(clearTimeout);
+        this.cueTimers = [];
+        log('user', 'Audio muted');
+      } else {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        } else if (!this.initialized && !this.dead && state.phase === 'running') {
+          this.init().then(() => { this.startBase(2); });
+        }
+        log('user', 'Audio unmuted');
+      }
+    },
+
+    loadMuteState() {
+      try { this.muted = localStorage.getItem('thorn-muted') === '1'; } catch (e) { this.muted = false; }
+      const btn = document.getElementById('btn-mute');
+      const icon = document.getElementById('mute-icon');
+      if (btn) btn.setAttribute('aria-pressed', this.muted);
+      if (icon && this.muted) icon.textContent = '\u{266D}';
+    },
+  };
+
+  // ═══ CUE-BASED AUDIO CHOREOGRAPHY (Aoidoi) ═══
+
+  const AUDIO_CUES = [
+    { id: 'boot-handshake',     blockIdx: 1, trigger: 'blockStart',        accent: 'B',    vol: 0.06, jitter: 500,  baseVol: null },
+    { id: 'boot-stream',        blockIdx: 1, trigger: 'charFraction:0.7',  accent: 'A',    vol: 0.04, jitter: 800,  baseVol: 0.12, baseFade: 1500 },
+    { id: 'tx-begins',          blockIdx: 2, trigger: 'blockStart',        accent: null,   vol: null, jitter: 0,    baseVol: 0.15, baseFade: 600 },
+    { id: 'ora-glance',         blockIdx: 4, trigger: 'charFraction:0.4',  accent: 'B',    vol: 0.05, jitter: 1000, baseVol: null },
+    { id: 'credit-pulse',       blockIdx: 5, trigger: 'blockStart',        accent: 'A',    vol: 0.10, jitter: 300,  baseVol: null },
+    { id: 'credit-ack',         blockIdx: 5, trigger: 'blockEnd',          accent: 'B',    vol: 0.04, jitter: 500,  baseVol: null },
+    { id: 'alias-stream',       blockIdx: 6, trigger: 'afterMs:2000',      accent: 'A',    vol: 0.06, jitter: 1500, baseVol: null },
+    { id: 'beard-telemetry',    blockIdx: 6, trigger: 'charFraction:0.8',  accent: 'B',    vol: 0.05, jitter: 1200, baseVol: 0.16, baseFade: 2000 },
+    { id: 'story-opens',        blockIdx: 7, trigger: 'charFraction:0.05', accent: 'A',    vol: 0.06, jitter: 2000, baseVol: 0.16, baseFade: 3000 },
+    { id: 'vorian-named',       blockIdx: 7, trigger: 'charFraction:0.18', accent: 'B',    vol: 0.07, jitter: 1500, baseVol: 0.17, baseFade: 3000 },
+    { id: 'thorn-drop-a',       blockIdx: 7, trigger: 'charFraction:0.33', accent: 'A',    vol: 0.08, jitter: 1000, baseVol: 0.18, baseFade: 2000 },
+    { id: 'thorn-drop-b',       blockIdx: 7, trigger: 'charFraction:0.33', accent: 'B',    vol: 0.06, jitter: 1800, baseVol: null },
+    { id: 'selection-stream',   blockIdx: 7, trigger: 'charFraction:0.58', accent: 'A',    vol: 0.07, jitter: 2000, baseVol: null },
+    { id: 'assassination-ping', blockIdx: 7, trigger: 'charFraction:0.73', accent: 'B',    vol: 0.08, jitter: 1200, baseVol: 0.19, baseFade: 3000 },
+    { id: 'hutt-stream',        blockIdx: 7, trigger: 'charFraction:0.85', accent: 'A',    vol: 0.07, jitter: 1800, baseVol: null },
+    { id: 'pre-sever-dip',      blockIdx: 7, trigger: 'charFraction:0.93', accent: 'B',    vol: 0.06, jitter: 800,  baseVol: 0.14, baseFade: 4000 },
+    { id: 'alarm-burst-a',      blockIdx: 8, trigger: 'blockStart',        accent: 'A',    vol: 0.12, jitter: 200,  baseVol: 0.10, baseFade: 500 },
+    { id: 'alarm-burst-b',      blockIdx: 8, trigger: 'blockStart',        accent: 'B',    vol: 0.10, jitter: 200,  baseVol: null },
+    { id: 'channel-collapse',   blockIdx: 8, trigger: 'afterMs:800',       accent: 'kill', vol: null, jitter: 0,    baseVol: 0.05, baseFade: 1400 },
+  ];
+
+  const audioCueEngine = {
+    firedCues: new Set(),
+    activeSources: [],
+
+    reset() {
+      this.firedCues.clear();
+      this.activeSources.forEach(e => { try { e.source.stop(); } catch(x) {} });
+      this.activeSources = [];
+      audio.cueTimers.forEach(clearTimeout);
+      audio.cueTimers = [];
+    },
+
+    onBlockStart(blockIdx) {
+      this._fireCuesByTrigger(blockIdx, 'blockStart');
+      this._scheduleAfterMs(blockIdx);
+    },
+
+    onBlockEnd(blockIdx) {
+      this._fireCuesByTrigger(blockIdx, 'blockEnd');
+    },
+
+    onCharProgress(blockIdx, fraction) {
+      AUDIO_CUES.forEach(cue => {
+        if (cue.blockIdx !== blockIdx) return;
+        if (this.firedCues.has(cue.id)) return;
+        if (!cue.trigger.startsWith('charFraction:')) return;
+        const threshold = parseFloat(cue.trigger.split(':')[1]);
+        if (fraction >= threshold) this._fireCue(cue);
+      });
+    },
+
+    _scheduleAfterMs(blockIdx) {
+      AUDIO_CUES.forEach(cue => {
+        if (cue.blockIdx !== blockIdx || !cue.trigger.startsWith('afterMs:')) return;
+        if (this.firedCues.has(cue.id)) return;
+        const ms = parseInt(cue.trigger.split(':')[1]);
+        const jittered = ms + (Math.random() * 2 - 1) * (cue.jitter || 0);
+        const t = setTimeout(() => {
+          if (!this.firedCues.has(cue.id)) this._fireCue(cue);
+        }, Math.max(0, jittered));
+        audio.cueTimers.push(t);
+      });
+    },
+
+    _fireCuesByTrigger(blockIdx, triggerType) {
+      AUDIO_CUES.forEach(cue => {
+        if (cue.blockIdx !== blockIdx || cue.trigger !== triggerType) return;
+        if (this.firedCues.has(cue.id)) return;
+        const jitterDelay = Math.abs((Math.random() * 2 - 1) * (cue.jitter || 0));
+        if (jitterDelay > 50) {
+          const t = setTimeout(() => this._fireCue(cue), jitterDelay);
+          audio.cueTimers.push(t);
+        } else {
+          this._fireCue(cue);
+        }
+      });
+    },
+
+    _fireCue(cue) {
+      if (this.firedCues.has(cue.id)) return;
+      this.firedCues.add(cue.id);
+
+      if (cue.accent === 'kill') {
+        this.activeSources.forEach(e => { try { e.source.stop(); } catch(x) {} });
+        this.activeSources = [];
+      } else if (cue.accent && audio.initialized && audio.ctx && !audio.muted) {
+        const source = audio.playAccent(cue.accent, cue.vol);
+        if (source) {
+          const entry = { source, which: cue.accent };
+          this.activeSources.push(entry);
+          source.addEventListener('ended', () => {
+            source.disconnect();
+            const idx = this.activeSources.indexOf(entry);
+            if (idx >= 0) this.activeSources.splice(idx, 1);
+          });
+        }
+      }
+
+      if (cue.baseVol != null) {
+        audio.rampBase(cue.baseVol, (cue.baseFade || 1000) / 1000);
+      }
+
+      log('audio', 'Cue: ' + cue.id +
+          (cue.accent ? ' [' + cue.accent + '@' + cue.vol + ']' : '') +
+          (cue.baseVol != null ? ' [base→' + cue.baseVol + ']' : ''));
+    },
+  };
+
+  function randomAurebesh() {
+    return AUREBESH_POOL[Math.floor(Math.random() * AUREBESH_POOL.length)];
+  }
+
   function scheduleInterceptLog() {
+    interceptTimers.length = 0;
     INTERCEPT_LOG.forEach(entry => {
-      revealTimers.push(setTimeout(() => renderInterceptEvent(entry), entry.atMs));
+      interceptTimers.push(setTimeout(() => renderInterceptEvent(entry), entry.atMs));
     });
   }
 
   function flushInterceptLog() {
-    // Show the final entry immediately when SKIP is pressed
+    interceptTimers.forEach(clearTimeout);
+    interceptTimers.length = 0;
     const stream = document.getElementById('intercept-stream');
     if (!stream) return;
     stream.innerHTML = '';
     renderInterceptEvent(INTERCEPT_LOG[INTERCEPT_LOG.length - 1]);
   }
 
-  const CHAR_MS = 22;       // per-character stagger
-  const MIN_LINE_PAUSE = 380;
-  const PAUSE_AFTER_LINE = {
-    'system': 220,
-    'break': 350,
-    'dialogue': 700,
-    'emote': 600,
-    'action': 500,
-    'credit': 800,
-    'narrative': 900,
-    'interrupt': 1400,
-    'signal-lost': 0,
-  };
-
-  // Wrap all `data-text` content in animated character spans, accumulating delay.
-  // Lines start `display: none` (pre-reveal) and are shown at their cumulative time.
-  function buildAnimation() {
-    const lines = document.querySelectorAll('.line');
-    const transcript = document.getElementById('transcript');
-    let cumulativeMs = 800; // initial pause before first line
-    let totalChars = 0;
-
-    // Reduced-motion guard: reveal everything immediately, skip scheduling.
-    // Must be inside buildAnimation so it runs at the right point in the lifecycle.
-    const reducedMotion = window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    log('init', 'Building animation · ' + lines.length + ' lines detected' +
-                (reducedMotion ? ' · reduced-motion ON' : ''));
-
-    lines.forEach((line, idx) => {
-      const typeMatch = [...line.classList].find(c => c.startsWith('line--'));
-      const type = typeMatch ? typeMatch.replace('line--', '') : 'system';
-
-      // Hide line until its reveal time (skipped under reduced-motion)
-      if (!reducedMotion) line.classList.add('pre-reveal');
-
-      const lineRevealTime = cumulativeMs;
-      line.style.setProperty('--line-d', lineRevealTime + 'ms');
-
-      let lineCharCount = 0;
-
-      const textEls = line.querySelectorAll('[data-text]');
-      textEls.forEach((el) => {
-        const raw = el.getAttribute('data-text');
-        el.removeAttribute('data-text');
-        // Char delays are RELATIVE to line reveal time (since the char animation
-        // only starts when the line becomes display: block / non-pre-reveal).
-        el.innerHTML = wrapChars(raw, lineCharCount * CHAR_MS);
-        lineCharCount += stripMarkers(raw).length;
-      });
-
-      totalChars += lineCharCount;
-      const lineDuration = lineCharCount * CHAR_MS;
-      cumulativeMs += lineDuration + (PAUSE_AFTER_LINE[type] || MIN_LINE_PAUSE);
-
-      // Schedule the line's reveal (tracked so SKIP can cancel them).
-      // Skipped under reduced-motion — line is already visible.
-      if (!reducedMotion) {
-        revealTimers.push(setTimeout(() => {
-          line.classList.remove('pre-reveal');
-          line.classList.add('revealing');
-          if (transcript) {
-            requestAnimationFrame(() => {
-              transcript.scrollTop = transcript.scrollHeight;
-            });
-          }
-        }, lineRevealTime));
-      }
-
-      if (line.classList.contains('line--signal-lost')) {
-        if (reducedMotion) {
-          // Apply signal-lost styling immediately for reduced-motion users
-          document.body.classList.add('signal-lost');
-        } else {
-          revealTimers.push(setTimeout(() => {
-            triggerSignalLost(false);
-          }, cumulativeMs));
-        }
-      }
-    });
-
-    log('state', 'Wrapped ' + totalChars + ' chars · total runtime ' + (cumulativeMs/1000).toFixed(1) + 's');
-    return cumulativeMs;
+  function charSpan(ch) {
+    if (ch === '\n') return '<br>';
+    const safe = ch.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    if (ch === ' ') return '<span class="char" data-ch=" "> </span>';
+    const isLetter = /[a-zA-Z]/.test(ch);
+    if (!isLetter) {
+      return '<span class="char char--punct" data-ch="' + safe + '">' + safe + '</span>';
+    }
+    return '<span class="char char--letter" data-ch="' + safe + '">' + randomAurebesh() + '</span>';
   }
 
-  // Strip §...§ and ¤...¤ markers to count actual visible characters
-  function stripMarkers(text) {
-    return text.replace(/§([^§]+)§/g, '$1').replace(/¤([^¤]+)¤/g, '$1');
-  }
-
-  // Wrap each character in a span with animation-delay; honor markup tokens.
-  // §name§   → person tooltip span (amber)
-  // ¤name¤   → thorn (red, classified) span
-  function wrapChars(text, baseDelayMs) {
+  function wrapChars(text) {
     let out = '';
     let i = 0;
-    let charIndex = 0;
-
     while (i < text.length) {
       const ch = text[i];
-
       if (ch === '§') {
         const end = text.indexOf('§', i + 1);
         if (end === -1) { i++; continue; }
         const name = text.substring(i + 1, end);
         const tip = TOOLTIPS[name] || '';
-        out += `<span class="person" data-tip="${tip}">`;
-        for (const c of [...name]) {
-          out += charSpan(c, baseDelayMs + charIndex * CHAR_MS);
-          charIndex++;
-        }
-        out += `</span>`;
+        out += '<span class="person" data-tip="' + tip + '">';
+        for (const c of [...name]) out += charSpan(c);
+        out += '</span>';
         i = end + 1;
         continue;
       }
-
       if (ch === '¤') {
         const end = text.indexOf('¤', i + 1);
         if (end === -1) { i++; continue; }
         const name = text.substring(i + 1, end);
-        out += `<span class="thorn" data-tip="CLASSIFIED · OPERATION CODENAME">`;
-        for (const c of [...name]) {
-          out += charSpan(c, baseDelayMs + charIndex * CHAR_MS);
-          charIndex++;
-        }
-        out += `</span>`;
+        out += '<span class="thorn" data-tip="CLASSIFIED · OPERATION CODENAME">';
+        for (const c of [...name]) out += charSpan(c);
+        out += '</span>';
         i = end + 1;
         continue;
       }
-
-      out += charSpan(ch, baseDelayMs + charIndex * CHAR_MS);
-      charIndex++;
+      out += charSpan(ch);
       i++;
     }
-
     return out;
   }
 
-  function charSpan(ch, delayMs) {
-    if (ch === ' ') return '<span class="char" style="--d:' + delayMs + 'ms"> </span>';
-    if (ch === '\n') return '<br>';
-    // Escape HTML special chars
-    const safe = ch.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    return '<span class="char" style="--d:' + delayMs + 'ms">' + safe + '</span>';
+  function buildAnimation() {
+    const lineEls = document.querySelectorAll('.line');
+    const reducedMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reducedMotion || typeof (window.AudioContext || window.webkitAudioContext) === 'undefined') audio.dead = true;
+
+    log('init', 'Building animation · ' + lineEls.length + ' lines' +
+                (reducedMotion ? ' · reduced-motion ON' : ''));
+
+    state.charSpans = [];
+    state.charMeta = [];
+    state.blocks = [];
+    const blockMap = new Map();
+
+    lineEls.forEach((line, idx) => {
+      const blockIdx = parseInt(line.getAttribute('data-block') || '0', 10);
+      if (!blockMap.has(blockIdx)) {
+        blockMap.set(blockIdx, { lines: [], charStart: state.charSpans.length });
+      }
+      const block = blockMap.get(blockIdx);
+      block.lines.push(line);
+
+      if (!reducedMotion) line.classList.add('pre-reveal');
+
+      const textEls = line.querySelectorAll('[data-text]');
+      textEls.forEach(el => {
+        const raw = el.getAttribute('data-text');
+        el.removeAttribute('data-text');
+        el.innerHTML = wrapChars(raw);
+      });
+
+      const lineChars = line.querySelectorAll('.char');
+      lineChars.forEach(span => {
+        state.charSpans.push(span);
+        state.charMeta.push({
+          targetChar: span.getAttribute('data-ch'),
+          isLetter: span.classList.contains('char--letter'),
+          blockIdx: blockIdx,
+        });
+      });
+      block.charEnd = state.charSpans.length;
+    });
+
+    const sortedKeys = [...blockMap.keys()].sort((a, b) => a - b);
+    state.blocks = sortedKeys.map(k => {
+      const b = blockMap.get(k);
+      return { idx: k, lines: b.lines, charStart: b.charStart, charEnd: b.charEnd,
+               charCount: b.charEnd - b.charStart };
+    });
+
+    log('state', 'Indexed ' + state.charSpans.length + ' chars · ' + state.blocks.length + ' blocks');
+
+    if (reducedMotion) {
+      revealAllImmediate();
+      document.body.classList.add('signal-lost');
+      return;
+    }
+    startAnimation();
+  }
+
+  function startAnimation() {
+    state.phase = 'running';
+    state.blockIdx = 0;
+    state.fillFrontier = 0;
+    state.decryptFrontier = 0;
+    audioCueEngine.reset();
+    beginBlock(0);
+  }
+
+  function beginBlock(blockIdx) {
+    if (blockIdx >= state.blocks.length) {
+      state.phase = 'done';
+      log('state', 'All blocks complete');
+      return;
+    }
+    state.blockIdx = blockIdx;
+    const block = state.blocks[blockIdx];
+
+    log('state', 'Block ' + block.idx + ' · ' + block.charCount + ' chars · ' + block.lines.length + ' lines');
+
+    block.lines.forEach((line, i) => {
+      const tid = setTimeout(() => {
+        line.classList.remove('pre-reveal');
+        line.classList.add('revealed');
+        requestAnimationFrame(() => autoScroll(transcriptEl));
+      }, i * INTRA_BLOCK_PAUSE);
+      state.lineRevealTimers.push(tid);
+    });
+
+    state.fillFrontier = block.charStart;
+    state.decryptFrontier = block.charStart;
+    state.fillStartTime = performance.now();
+    const fillHeadstart = Math.min(block.charCount * 0.3, 40) * FILL_MS;
+    state.decryptStartTime = performance.now() + fillHeadstart;
+
+    audioCueEngine.onBlockStart(block.idx);
+
+    if (!state.rafId) {
+      state.rafId = requestAnimationFrame(animationTick);
+    }
+  }
+
+  function animationTick(timestamp) {
+    if (state.phase !== 'running') {
+      state.rafId = null;
+      return;
+    }
+    const block = state.blocks[state.blockIdx];
+
+    // Fill phase
+    const fillElapsed = timestamp - state.fillStartTime;
+    const fillTarget = block.charStart + Math.floor(fillElapsed / FILL_MS);
+    while (state.fillFrontier < Math.min(fillTarget, block.charEnd)) {
+      const span = state.charSpans[state.fillFrontier];
+      const meta = state.charMeta[state.fillFrontier];
+      span.classList.add('filled');
+      if (!meta.isLetter) span.classList.add('decrypted');
+      state.fillFrontier++;
+    }
+
+    // Decrypt phase
+    const decryptElapsed = timestamp - state.decryptStartTime;
+    if (decryptElapsed > 0) {
+      const decryptTarget = block.charStart + Math.floor(decryptElapsed / DECRYPT_MS);
+      while (state.decryptFrontier < Math.min(decryptTarget, block.charEnd)) {
+        const meta = state.charMeta[state.decryptFrontier];
+        if (meta.isLetter) {
+          startScramble(state.decryptFrontier);
+        }
+        state.decryptFrontier++;
+      }
+    }
+
+    // Cue engine: character progress
+    if (block.charCount > 0) {
+      const charProgress = (state.decryptFrontier - block.charStart) / block.charCount;
+      audioCueEngine.onCharProgress(block.idx, charProgress);
+    }
+
+    // Auto-scroll (suppressed when user scrolls up)
+    if (state.fillFrontier % 12 === 0) {
+      autoScroll(transcriptEl);
+    }
+
+    // Block completion check
+    const fillDone = state.fillFrontier >= block.charEnd;
+    const allScramblesDone = !state.scrambleTimers.some(t => t !== null);
+    const decryptDone = state.decryptFrontier >= block.charEnd && allScramblesDone;
+
+    if (fillDone && decryptDone) {
+      state.rafId = null;
+      // Signal-lost on this block?
+      block.lines.forEach(line => {
+        if (line.classList.contains('line--signal-lost')) {
+          triggerSignalLost(false);
+        }
+      });
+      const pause = BLOCK_PAUSE[block.idx] || 500;
+      const nextIdx = state.blockIdx + 1;
+      if (nextIdx < state.blocks.length) {
+        log('state', 'Block ' + block.idx + ' done · pause ' + pause + 'ms');
+        state.blockTimerId = setTimeout(() => beginBlock(nextIdx), pause);
+        audioCueEngine.onBlockEnd(block.idx);
+      } else {
+        state.phase = 'done';
+        log('state', 'All blocks complete');
+      }
+      return;
+    }
+
+    state.rafId = requestAnimationFrame(animationTick);
+  }
+
+  function startScramble(charIdx) {
+    const span = state.charSpans[charIdx];
+    const meta = state.charMeta[charIdx];
+    let framesLeft = SCRAMBLE_FRAMES;
+    span.classList.add('scrambling');
+
+    function nextFrame() {
+      if (state.phase === 'done') return;
+      if (framesLeft <= 0) {
+        span.textContent = meta.targetChar;
+        span.classList.remove('scrambling');
+        span.classList.add('decrypted');
+        state.scrambleTimers[charIdx] = null;
+        return;
+      }
+      span.textContent = randomAurebesh();
+      framesLeft--;
+      state.scrambleTimers[charIdx] = setTimeout(nextFrame, SCRAMBLE_FRAME_MS);
+    }
+    nextFrame();
+  }
+
+  function revealAllImmediate() {
+    document.querySelectorAll('.line.pre-reveal').forEach(l => {
+      l.classList.remove('pre-reveal');
+      l.classList.add('revealed');
+    });
+    state.charSpans.forEach((span, i) => {
+      const meta = state.charMeta[i];
+      span.textContent = meta.targetChar;
+      span.classList.remove('scrambling');
+      span.classList.add('filled', 'decrypted');
+    });
   }
 
   // ═══ CONTROLS ═══
 
-  // Track all in-flight reveal timers so SKIP can cancel them
-  const revealTimers = [];
-
   function skipAll() {
-    log('user', 'SKIP triggered');
-    // Cancel all pending line-reveal timeouts so signal-lost doesn't fire twice
-    revealTimers.forEach(clearTimeout);
-    revealTimers.length = 0;
-
-    const charCount = document.querySelectorAll('.char').length;
-    // Critical: un-hide any line still in pre-reveal (display: none)
-    document.querySelectorAll('.line.pre-reveal').forEach(l => {
-      l.classList.remove('pre-reveal');
-      l.classList.add('revealing');
-    });
-    document.querySelectorAll('.char, .line').forEach(el => {
-      el.style.animation = 'none';
-      el.style.opacity = '1';
-    });
+    log('user', 'BURST triggered');
+    state.phase = 'done';
+    if (state.rafId) { cancelAnimationFrame(state.rafId); state.rafId = null; }
+    if (state.blockTimerId) { clearTimeout(state.blockTimerId); state.blockTimerId = null; }
+    state.lineRevealTimers.forEach(clearTimeout);
+    state.lineRevealTimers.length = 0;
+    state.scrambleTimers.forEach((t, i) => { if (t !== null) clearTimeout(t); });
+    state.scrambleTimers = [];
+    revealAllImmediate();
     flushInterceptLog();
     triggerSignalLost(true);
-    log('state', 'Revealed ' + charCount + ' chars · signal-lost ON');
+    log('state', 'BURST · ' + state.charSpans.length + ' chars revealed');
     const btn = document.getElementById('btn-skip');
     if (btn) {
       btn.setAttribute('aria-pressed', 'true');
@@ -1407,28 +2194,70 @@
   function triggerSignalLost(immediate) {
     if (document.body.classList.contains('signal-lost')) return;
     document.body.classList.add('signal-lost');
-    // Screen flash effect
     const flash = document.createElement('div');
     flash.className = 'signal-flash';
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 800);
-    log('alert', 'SIGNAL LOST · transmission terminated' + (immediate ? ' (skip)' : ''));
+    audio.onSignalLost(immediate);
+    log('alert', 'SIGNAL LOST · transmission terminated' + (immediate ? ' (burst)' : ''));
   }
 
   function replay() {
-    log('user', 'REPLAY triggered · reloading');
-    // CSS animation-delay timelines can't be re-anchored cleanly mid-flight.
-    // Full reload guarantees a clean start. VHS + log state preserved in sessionStorage.
-    try {
-      if (document.body.classList.contains('vhs-on')) sessionStorage.setItem('vhs', '1');
-      else sessionStorage.removeItem('vhs');
-      if (document.body.classList.contains('log-on')) sessionStorage.setItem('log', '1');
-      else sessionStorage.removeItem('log');
-    } catch (e) {
-      // Safari private mode / quota — proceed anyway
-      console.warn('sessionStorage unavailable:', e);
-    }
-    setTimeout(() => location.reload(), 80);
+    log('user', 'RE-DECRYPT triggered');
+    // Stop everything
+    state.phase = 'idle';
+    if (state.rafId) { cancelAnimationFrame(state.rafId); state.rafId = null; }
+    if (state.blockTimerId) { clearTimeout(state.blockTimerId); state.blockTimerId = null; }
+    state.lineRevealTimers.forEach(clearTimeout);
+    state.lineRevealTimers.length = 0;
+    state.scrambleTimers.forEach((t) => { if (t !== null) clearTimeout(t); });
+    state.scrambleTimers = [];
+    interceptTimers.forEach(clearTimeout);
+    interceptTimers.length = 0;
+
+    // Re-encrypt all chars
+    state.charSpans.forEach((span, i) => {
+      const meta = state.charMeta[i];
+      span.classList.remove('filled', 'decrypted', 'scrambling');
+      if (meta.isLetter) {
+        span.textContent = randomAurebesh();
+      }
+    });
+
+    // Re-hide all lines
+    document.querySelectorAll('.line').forEach(l => {
+      l.classList.remove('revealed');
+      l.classList.add('pre-reveal');
+    });
+
+    // Clear signal-lost
+    document.body.classList.remove('signal-lost');
+    document.querySelectorAll('.signal-flash').forEach(el => el.remove());
+
+    // Clear intercept stream
+    const stream = document.getElementById('intercept-stream');
+    if (stream) stream.innerHTML = '';
+
+    // Clear log entries
+    const logEl = document.getElementById('log-entries');
+    if (logEl) logEl.innerHTML = '';
+
+    // Scroll to top
+    if (transcriptEl) transcriptEl.scrollTop = 0;
+    userScrolledUp = false;
+
+    // Reset frontiers
+    state.fillFrontier = 0;
+    state.decryptFrontier = 0;
+    state.blockIdx = 0;
+
+    log('init', 'RE-DECRYPT · channel re-encrypted · restarting');
+
+    setTimeout(() => {
+      audio.onReplay();
+      startAnimation();
+      scheduleInterceptLog();
+    }, 400);
   }
 
   function toggleLog() {
@@ -1449,12 +2278,84 @@
     log('state', 'VHS degradation: ' + (isOn ? 'ON · chromatic aberration active' : 'OFF · clean signal'));
   }
 
+  // ═══ TERMINAL PROMPT ═══
+
+  const TERMINAL_ERRORS = [
+    'ERR: CHANNEL θ-7 READ-ONLY · OPERATOR INPUT DISABLED',
+    'ERR: AUTH LEVEL INSUFFICIENT · EYES-ONLY INTERCEPT',
+    'ERR: WRITE ACCESS DENIED · PASSIVE MONITORING ONLY',
+    'ERR: COMMAND REJECTED · THIS TERMINAL IS A GHOST',
+    'ERR: NO UPLINK · TRANSMISSION IS ONE-WAY',
+    'ERR: INPUT BUFFER LOCKED · RECORDING IN PROGRESS',
+    'ERR: OPERATOR CLEARANCE REVOKED · CONTACT HANDLER',
+    'ERR: CHANNEL SEALED BY IMP-INT DIRECTIVE 7740',
+    'ERR: CANNOT TRANSMIT · ASSET WOULD DETECT PRESENCE',
+    'ERR: TERMINAL RESTRICTED · OBSERVATION MODE ONLY',
+  ];
+  let lastErrorIdx = -1;
+
+  const promptInput = document.getElementById('prompt-input');
+  const promptErrors = document.getElementById('prompt-errors');
+
+  if (promptInput) {
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && promptInput.value.trim()) {
+        e.preventDefault();
+        const cmd = promptInput.value;
+        promptInput.value = '';
+        let idx;
+        do { idx = Math.floor(Math.random() * TERMINAL_ERRORS.length); } while (idx === lastErrorIdx && TERMINAL_ERRORS.length > 1);
+        lastErrorIdx = idx;
+        const line = document.createElement('div');
+        line.className = 'prompt__error-line';
+        line.innerHTML = '<span class="err-cmd">$ ' + cmd.replace(/</g, '&lt;') + '</span> → ' + TERMINAL_ERRORS[idx];
+        promptErrors.appendChild(line);
+        promptErrors.classList.add('has-errors');
+        promptErrors.scrollTop = promptErrors.scrollHeight;
+        log('user', 'Terminal input rejected: ' + cmd);
+        if (promptErrors.children.length > 8) {
+          promptErrors.removeChild(promptErrors.firstChild);
+        }
+      }
+      e.stopPropagation();
+    });
+    promptInput.addEventListener('keyup', (e) => e.stopPropagation());
+    promptInput.addEventListener('keypress', (e) => e.stopPropagation());
+  }
+
   // ═══ INIT ═══
 
   document.getElementById('btn-skip').addEventListener('click', skipAll);
   document.getElementById('btn-replay').addEventListener('click', replay);
   document.getElementById('btn-vhs').addEventListener('click', toggleVHS);
   document.getElementById('btn-log').addEventListener('click', toggleLog);
+  document.getElementById('btn-mute').addEventListener('click', () => audio.toggleMute());
+
+  // Holographic dossier: click avatar to open
+  const dossier = document.getElementById('dossier');
+  const portraitFrame = document.querySelector('.chrome__portrait-frame');
+  if (portraitFrame && dossier) {
+    portraitFrame.addEventListener('click', () => {
+      if (typeof dossier.showModal === 'function') {
+        dossier.showModal();
+      } else {
+        dossier.setAttribute('open', '');
+      }
+      log('user', 'Dossier opened · ORA · Tier-3 informant');
+    });
+    portraitFrame.style.cursor = 'pointer';
+  }
+  document.getElementById('dossier-close').addEventListener('click', () => {
+    if (typeof dossier.close === 'function') dossier.close();
+    else dossier.removeAttribute('open');
+  });
+  // Close on backdrop click
+  dossier.addEventListener('click', (e) => {
+    if (e.target === dossier) {
+      if (typeof dossier.close === 'function') dossier.close();
+      else dossier.removeAttribute('open');
+    }
+  });
 
   document.addEventListener('keydown', (e) => {
     // Don't intercept keys when the user is in an input/textarea/contenteditable
@@ -1471,6 +2372,7 @@
     if (e.code === 'KeyR') { replay(); }
     if (e.code === 'KeyV') { toggleVHS(); }
     if (e.code === 'KeyL') { toggleLog(); }
+    if (e.code === 'KeyM') { audio.toggleMute(); }
   });
 
   // Restore persisted state from previous session (after replay reload)
@@ -1487,13 +2389,27 @@
     console.warn('sessionStorage unavailable:', e);
   }
 
-  // (Reduced-motion handled inside buildAnimation now — see line ~1133)
+  audio.loadMuteState();
 
-  // Build the animation (scrolling is now driven by line reveals)
-  const totalMs = buildAnimation();
-
-  // Start the intercept stream — Empire's surveillance system observing
+  // Build animation and start (reduced-motion handled inside buildAnimation)
+  buildAnimation();
   scheduleInterceptLog();
+
+  if (!audio.dead && !audio.muted) {
+    const resumeAudio = () => {
+      document.removeEventListener('click', resumeAudio);
+      document.removeEventListener('keydown', resumeAudio);
+      if (!audio.initialized && state.phase === 'running') {
+        audio.init().then(() => {
+          if (state.phase === 'running') {
+            audio.startBase(2);
+          }
+        });
+      }
+    };
+    document.addEventListener('click', resumeAudio);
+    document.addEventListener('keydown', resumeAudio);
+  }
 })();
 </script>
 
