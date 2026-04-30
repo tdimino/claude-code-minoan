@@ -1,6 +1,6 @@
 # Vellum Component Catalog
 
-Copy-paste HTML snippets for all 21 components. Organized by functional role.
+Copy-paste HTML snippets for all 29 components. Organized by functional role.
 
 ---
 
@@ -495,6 +495,240 @@ Horizontal timeline with numbered phase blocks.
 ```
 
 Simple 1px border-top with 2.5rem vertical margin.
+
+---
+
+## Intelligence Components
+
+### Entity Dossier
+
+Full-width profile card with asymmetric hero (logo | content), ghost watermark, and 2-column fact grid. Use `data-watermark` for the ghost text. Secondary variant: lighter bg, reduced opacity, thinner border.
+
+```html
+<!-- Primary dossier -->
+<article class="dossier" data-watermark="CompanyName" id="company-profile" role="region" aria-label="Company profile">
+  <div class="dossier__hero">
+    <div class="dossier__mark">
+      <img src="logos/company.svg" alt="Company logo" width="128" height="128">
+      <span class="dossier__tag">B2B &middot; Category</span>
+      <div class="stat-stack">
+        <div class="stat-stack__item">
+          <div class="stat-stack__label">Founded</div>
+          <div class="stat-stack__value">2023</div>
+        </div>
+        <div class="stat-stack__item">
+          <div class="stat-stack__label">Users</div>
+          <div class="stat-stack__value stat-stack__value--warn">Undisclosed</div>
+        </div>
+      </div>
+    </div>
+    <div class="dossier__summary">
+      <div class="dossier__kicker">Primary profile</div>
+      <h3 class="dossier__name">Company Name</h3>
+      <p class="dossier__subtitle">The Editorial Judgment</p>
+      <p>Summary paragraph about what this entity is and why it matters.</p>
+    </div>
+  </div>
+  <div class="dossier__grid">
+    <div class="dossier__column">
+      <!-- Fact blocks go here -->
+    </div>
+    <div class="dossier__column">
+      <!-- Secondary facts / utterances go here -->
+    </div>
+  </div>
+</article>
+
+<!-- Secondary (diminished) dossier -->
+<article class="dossier dossier--secondary" data-watermark="OtherCo" id="other-profile" role="region" aria-label="Other profile">
+  <div class="dossier__hero">
+    <div class="dossier__mark">
+      <img src="logos/other.png" alt="Other logo" width="128" height="128">
+      <span class="dossier__tag">B2C &middot; Category</span>
+    </div>
+    <div class="dossier__summary">
+      <div class="dossier__kicker">Absorbed — redirects to primary</div>
+      <h3 class="dossier__name">Other Co</h3>
+      <p class="dossier__subtitle">The Concierge Illusion</p>
+      <p>Brief summary of what happened to this entity.</p>
+    </div>
+  </div>
+  <div class="dossier__grid">
+    <div class="dossier__column"><!-- facts --></div>
+    <div class="dossier__column"><!-- facts --></div>
+  </div>
+</article>
+```
+
+Primary: 1.5px `border-strong`, box-shadow, full opacity. Secondary: 1px border, no shadow, 0.92 opacity, smaller typography.
+
+### Stat Stack
+
+Centered label/value pairs below a logo or mark. Values support color variants.
+
+```html
+<div class="stat-stack">
+  <div class="stat-stack__item">
+    <div class="stat-stack__label">Founded</div>
+    <div class="stat-stack__value">2021</div>
+  </div>
+  <div class="stat-stack__item">
+    <div class="stat-stack__label">Traction</div>
+    <div class="stat-stack__value stat-stack__value--warn">Waitlist only</div>
+  </div>
+  <div class="stat-stack__item">
+    <div class="stat-stack__label">Status</div>
+    <div class="stat-stack__value stat-stack__value--dead">Dead</div>
+  </div>
+</div>
+```
+
+Variants: `--warn` (amber, uses `--high`), `--dead` (red, uses `--dealbreaker`), `--good` (green, uses `--shipped`).
+
+### Utterance Block
+
+Icon avatar + monospace quoted text in a tinted row. AI variant uses claude colors.
+
+```html
+<!-- Brand utterance -->
+<div class="utterance utterance--brand">
+  <i class="ph ph-seal-check" aria-hidden="true"></i>
+  <p>&ldquo;We handle everything from booking to loyalty integration.&rdquo;</p>
+</div>
+
+<!-- AI utterance -->
+<div class="utterance utterance--ai">
+  <i class="ph ph-robot" aria-hidden="true"></i>
+  <p>&ldquo;Analysis: this claim contradicts the technical evidence.&rdquo;</p>
+</div>
+```
+
+Default: warm bg + copper icon. `--ai`: claude-bg + claude-colored icon. `--brand`: explicit warm bg (same as default, use for semantic clarity).
+
+### Editorial Note
+
+Full-width 2-column asymmetric block with strong top/bottom borders and ghost watermark. Use for key findings that should lead a section.
+
+```html
+<aside class="editorial-note" data-watermark="KEY FINDING" aria-label="Key finding">
+  <div>
+    <div class="editorial-note__kicker">April 2026 Finding</div>
+    <h3>All three now resolve to one operating entity.</h3>
+    <p>Explanation of the finding with inline references and context.</p>
+  </div>
+  <div class="entity-flow" aria-label="Entity relationships">
+    <!-- Entity nodes here -->
+  </div>
+</aside>
+```
+
+The secondary slot (right column) can contain an entity-flow, stat-stack, or any other component.
+
+### Entity Flow
+
+Vertical list showing entities with logos, labels, and status. Use inside editorial-note secondary slots or standalone.
+
+```html
+<div class="entity-flow" aria-label="Entity flow">
+  <div class="entity-node">
+    <img src="logos/company-a.png" alt="" width="28" height="28">
+    <span class="entity-node__label">Company A</span>
+    <span class="entity-node__status">redirected</span>
+  </div>
+  <div class="entity-node">
+    <img src="logos/company-b.svg" alt="" width="28" height="28">
+    <span class="entity-node__label">Company B</span>
+    <span class="entity-node__status">survivor</span>
+  </div>
+</div>
+```
+
+Logo: 1.8rem square. Borders between rows, no border on last child.
+
+### Fact Block
+
+Icon + monospace label + body paragraph. Warning/critical variants get colored border and background.
+
+```html
+<!-- Standard fact -->
+<div class="fact-block">
+  <div class="fact-block__label">
+    <i class="ph ph-code" aria-hidden="true"></i>
+    Technical Stack
+  </div>
+  <p>Built on Spotnana GDS with NDC integration for direct airline content.</p>
+</div>
+
+<!-- Warning fact -->
+<div class="fact-block fact-block--warning">
+  <div class="fact-block__label">
+    <i class="ph ph-warning" aria-hidden="true"></i>
+    Red Flag
+  </div>
+  <p>No public API documentation despite claiming an open platform.</p>
+</div>
+
+<!-- Critical fact -->
+<div class="fact-block fact-block--critical">
+  <div class="fact-block__label">
+    <i class="ph ph-skull" aria-hidden="true"></i>
+    Critical
+  </div>
+  <p>Domain 301-redirects to competitor. Product is dead.</p>
+</div>
+```
+
+Stack in `.dossier__column` elements. First child has no top border.
+
+### Sub-Navigation
+
+Secondary sticky nav below page-nav. Smaller font, sticks below the page-nav at `top: 3.5rem`.
+
+```html
+<nav class="sub-nav" aria-label="Section pages">
+  <a href="section.html">Hub</a>
+  <a href="section-profiles.html" aria-current="page">Profiles</a>
+  <a href="section-comparison.html">Comparison</a>
+  <a href="section-analysis.html">Analysis</a>
+</nav>
+```
+
+Active state: copper text, tinted bg, bold weight. Adjusts `scroll-margin-top` for anchored content below.
+
+### Source List
+
+Footnote superscripts with copper hover, endnote list with backlinks and source-type tags.
+
+```html
+<!-- Inline footnote reference -->
+<sup><a class="fn-ref" href="#src-1" role="doc-noteref">1</a></sup>
+
+<!-- Endnotes section -->
+<footer class="sources" role="doc-endnotes">
+  <h2><i class="ph ph-books" aria-hidden="true"></i> Sources</h2>
+  <ol>
+    <li id="src-1">
+      Company About page, accessed April 2026.
+      <span class="sources__tag sources__tag--press">PRESS</span>
+      <a href="#" target="_blank" rel="noopener">Link &rarr;</a>
+    </li>
+    <li id="src-2">
+      Internal analysis of redirect chain.
+      <span class="sources__tag sources__tag--finding">FINDING</span>
+    </li>
+    <li id="src-3">
+      &ldquo;Quoted statement from source.&rdquo;
+      <span class="sources__tag sources__tag--quote">QUOTE</span>
+    </li>
+    <li id="src-4">
+      Market data: 2.4M monthly visits.
+      <span class="sources__tag sources__tag--stat">STAT</span>
+    </li>
+  </ol>
+</footer>
+```
+
+Tag variants: `--stat` (subq green), `--quote` (cursor purple), `--finding` (amber), `--press` (neutral muted).
 
 ---
 

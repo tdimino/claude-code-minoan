@@ -1,6 +1,6 @@
 # Vellum Page Architecture
 
-Two page patterns and shared structural elements.
+Six page patterns and shared structural elements.
 
 ## HTML Head (shared)
 
@@ -180,11 +180,227 @@ This triggers the active styling: subq-colored text, tinted background, bold wei
 
 The crosshatch texture sits at `z-index: 0` via `body::before`. All visible content (breadcrumb, header, main, footer) uses `position: relative; z-index: 1` to layer above it.
 
+## Section Hub Pattern
+
+Landing page for a multi-page section. Uses sub-nav for section-internal navigation and a badge header.
+
+```html
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="index.html">&larr; Overview</a> &rsaquo; <span>Section Name</span>
+</nav>
+
+<nav class="page-nav" aria-label="Pages">
+  <a href="index.html">Overview</a>
+  <a href="section.html" aria-current="page">Section</a>
+</nav>
+
+<nav class="sub-nav" aria-label="Section pages">
+  <a href="section.html" aria-current="page">Hub</a>
+  <a href="section-profiles.html">Profiles</a>
+  <a href="section-comparison.html">Comparison</a>
+  <a href="section-analysis.html">Analysis</a>
+</nav>
+
+<header>
+  <img src="badges/section-badge.png" alt="" class="header__badge" width="120" height="120">
+  <p class="header__tag" aria-hidden="true">Section &middot; Hub</p>
+  <h1>Section Title</h1>
+  <p>Section overview description.</p>
+</header>
+
+<main id="main">
+  <section id="key-findings">
+    <span class="section-num" aria-hidden="true">01</span>
+    <h2><i class="ph ph-lightbulb" aria-hidden="true"></i> Key Findings</h2>
+    <!-- State cards or further-cards grid -->
+  </section>
+</main>
+```
+
+The `header__badge` is a decorative image (120x120) used instead of `header__icon` or `header__logo` when the section has its own visual identity.
+
+## Profile Dossier Pattern
+
+Entity/company profiles with narrative hierarchy. Primary dossier gets full visual weight; secondary dossiers are diminished.
+
+```html
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="index.html">&larr; Overview</a> &rsaquo; <a href="section.html">Section</a> &rsaquo; <span>Profiles</span>
+</nav>
+
+<nav class="page-nav" aria-label="Pages">
+  <a href="index.html">Overview</a>
+  <a href="section.html" aria-current="page">Section</a>
+</nav>
+
+<nav class="sub-nav" aria-label="Section pages">
+  <a href="section.html">Hub</a>
+  <a href="section-profiles.html" aria-current="page">Profiles</a>
+  <a href="section-comparison.html">Comparison</a>
+  <a href="section-analysis.html">Analysis</a>
+</nav>
+
+<header>
+  <img src="badges/profiles-badge.png" alt="" class="header__badge" width="120" height="120">
+  <p class="header__tag" aria-hidden="true">Section &middot; Profiles</p>
+  <h1>Entity Profiles</h1>
+  <p>Description of what's being profiled and why.</p>
+</header>
+
+<main id="main">
+  <section id="profiles">
+    <span class="section-num" aria-hidden="true">01</span>
+    <h2><i class="ph ph-binoculars" aria-hidden="true"></i> Profiles</h2>
+    <p class="lead">Introductory summary.</p>
+
+    <!-- Editorial note (key cross-entity finding) -->
+    <aside class="editorial-note" data-watermark="KEY FINDING">
+      <!-- ... -->
+    </aside>
+
+    <div style="display: grid; gap: 1.4rem;">
+      <!-- Primary dossier -->
+      <article class="dossier" data-watermark="Primary">
+        <!-- ... -->
+      </article>
+
+      <!-- Secondary dossiers -->
+      <article class="dossier dossier--secondary" data-watermark="SecondaryA">
+        <!-- ... -->
+      </article>
+      <article class="dossier dossier--secondary" data-watermark="SecondaryB">
+        <!-- ... -->
+      </article>
+    </div>
+  </section>
+
+  <!-- Sources -->
+  <footer class="sources" role="doc-endnotes">
+    <!-- ... -->
+  </footer>
+</main>
+```
+
+Key structural rule: the editorial-note leads the section (key finding above individual profiles). Primary dossier first, secondary dossiers stacked below at reduced visual weight.
+
+## Feature Comparison Pattern
+
+Side-by-side feature/capability comparison with dimension grids and matrices.
+
+```html
+<!-- Same nav structure as Profile Dossier (breadcrumb + page-nav + sub-nav) -->
+
+<header>
+  <img src="badges/comparison-badge.png" alt="" class="header__badge" width="120" height="120">
+  <p class="header__tag" aria-hidden="true">Section &middot; Comparison</p>
+  <h1>Feature Comparison</h1>
+  <p>What we're comparing and on what dimensions.</p>
+</header>
+
+<main id="main">
+  <!-- TOC -->
+  <nav class="toc" aria-label="On this page">
+    <ol class="toc-list">
+      <!-- toc-items for each dimension -->
+    </ol>
+  </nav>
+
+  <section id="dimension-1">
+    <span class="section-num" aria-hidden="true">01</span>
+    <h2><i class="ph ph-scales" aria-hidden="true"></i> Dimension Name</h2>
+    <p class="lead">What this dimension measures.</p>
+
+    <!-- Matrix component for structured comparison -->
+    <div class="matrix matrix--3col">
+      <!-- matrix rows -->
+    </div>
+    <div class="matrix-note matrix-note--neutral">
+      <strong>Note:</strong> Contextual interpretation.
+    </div>
+  </section>
+
+  <!-- More dimension sections -->
+
+  <footer class="sources" role="doc-endnotes">
+    <!-- ... -->
+  </footer>
+</main>
+```
+
+## Analysis / Implications Pattern
+
+Strategic analysis with gap identification, advantage rows, and recommendations.
+
+```html
+<!-- Same nav structure as Profile Dossier (breadcrumb + page-nav + sub-nav) -->
+
+<header>
+  <img src="badges/analysis-badge.png" alt="" class="header__badge" width="120" height="120">
+  <p class="header__tag" aria-hidden="true">Section &middot; Analysis</p>
+  <h1>Strategic Analysis</h1>
+  <p>What the comparison data means for strategy.</p>
+</header>
+
+<main id="main">
+  <nav class="toc" aria-label="On this page">
+    <ol class="toc-list">
+      <!-- toc-items -->
+    </ol>
+  </nav>
+
+  <section id="gaps">
+    <span class="section-num" aria-hidden="true">01</span>
+    <h2><i class="ph ph-magnifying-glass" aria-hidden="true"></i> Competitive Gaps</h2>
+    <p class="lead">Where the opportunity lies.</p>
+
+    <!-- State cards grid for gap items -->
+    <div class="states-grid states-grid--3col">
+      <!-- state-card components -->
+    </div>
+  </section>
+
+  <section id="advantages">
+    <span class="section-num" aria-hidden="true">02</span>
+    <h2><i class="ph ph-trophy" aria-hidden="true"></i> Strategic Advantages</h2>
+
+    <div class="inline-advantages">
+      <!-- advantage-row components -->
+    </div>
+  </section>
+
+  <section id="recommendations">
+    <span class="section-num" aria-hidden="true">03</span>
+    <h2><i class="ph ph-compass" aria-hidden="true"></i> Recommendations</h2>
+    <!-- Pullquote + prose + req-cards -->
+  </section>
+
+  <footer class="sources" role="doc-endnotes">
+    <!-- ... -->
+  </footer>
+</main>
+```
+
+## Inline Page-Specific Style Convention
+
+Pages with entity-specific content (watermark text, custom grid ratios) embed a `<style>` block in `<head>` after the CSS links:
+
+```html
+<link rel="stylesheet" href="_components.css">
+<style>
+  /* Page: [page-name] — entity-specific overrides */
+  .custom-class { /* ... */ }
+</style>
+```
+
+Use sparingly — only for overrides that don't generalize across pages.
+
 ## Accessibility
 
 - Skip link: always first element after `<body>` open
-- `aria-label` on all `<nav>` elements (Breadcrumb, Deep dive pages, On this page)
-- `aria-hidden="true"` on decorative elements (icons, section numbers)
+- `aria-label` on all `<nav>` elements (Breadcrumb, Deep dive pages, Section pages, On this page)
+- `aria-hidden="true"` on decorative elements (icons, section numbers, badges)
 - `role="dialog"` and `aria-label` on auth overlay
+- `role="region"` and `aria-label` on dossier articles
+- `role="doc-endnotes"` on sources footer, `role="doc-noteref"` on footnote links
 - Focus-visible outlines on all interactive elements (2px solid copper, 2px offset)
 - Reduced motion media query disables all animations

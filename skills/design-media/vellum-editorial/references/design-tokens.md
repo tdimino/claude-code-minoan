@@ -21,6 +21,17 @@ Complete reference of CSS custom properties, typography, spacing, and infrastruc
 }
 ```
 
+## Entity Dossier Backgrounds
+
+```css
+:root {
+  --dossier-bg: oklch(0.98 0.008 82);           /* Primary dossier background */
+  --dossier-bg-secondary: oklch(0.965 0.006 82); /* Secondary (diminished) dossier */
+}
+```
+
+Note: `--high` and `--dealbreaker` serve as semantic aliases for status-value coloring in stat stacks (`stat-stack__value--warn` and `stat-stack__value--dead`). `--shipped` serves as `stat-stack__value--good`.
+
 ## Severity Tiers
 
 Each tier follows the `base / bg / border` triple pattern.
