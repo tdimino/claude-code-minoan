@@ -5,3 +5,6 @@ _verify-*.png
 _intercept-test-*.png
 preview-*.png
 screenshot.png
+
+# Audio candidates (previews, not final assets)
+audio-candidates/
