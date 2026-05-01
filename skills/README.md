@@ -32,6 +32,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `claude-md-manager` | CLAUDE.md creation using WHAT/WHY/HOW framework |
 | `react-best-practices` | React/Next.js optimization from [Vercel Engineering](https://vercel.com/blog) |
 | `openrouter-usage` | Query OpenRouter API costs, credits, and usage by model/provider/date |
+| `glossary` | Domain glossary builder — creates `CONTEXT.md` with shared vocabulary, avoid-aliases, and term relationships. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) |
 | `skill-optimizer` | Meta-skill for creating and reviewing other skills |
 
 ### Integration & Automation (`integration-automation/`)
@@ -124,5 +125,6 @@ skill-name/
 - **[flubber](https://github.com/veltman/flubber)** by Noah Veltman — SVG shape morphing for glyph interpolation
 - **[Impeccable](https://github.com/pbakaus/impeccable)** by Paul Bakaus — decomposed design command architecture, font reflex-reject protocol, CSS anti-pattern bans
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** — color science, OKLCH decision matrices, palette generation
+- **[Matt Pocock's Skills](https://github.com/mattpocock/skills)** — `CONTEXT.md` ubiquitous language convention, `/grill-with-docs` pattern
 - **[Open Souls](https://github.com/opensouls/opensouls)** — the AI souls paradigm that shapes our agent architecture
 - **[webgpu-claude-skill](https://github.com/dgreenheck/webgpu-claude-skill)** by Dan Greenheck — Three.js WebGPU + TSL reference skill
