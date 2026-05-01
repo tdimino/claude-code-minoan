@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Portrait Gallery — Project Thorn</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0c0f;
+    color: #c8d0d8;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 14px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #5cff90;
+    margin-bottom: 8px;
+    text-shadow: 0 0 12px rgba(92, 255, 144, 0.3);
+  }
+  .subtitle {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #3a5a4a;
+    margin-bottom: 32px;
+    text-transform: uppercase;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1400px;
+    width: 100%;
+  }
+  .card {
+    background: rgba(16, 22, 28, 0.9);
+    border: 1px solid rgba(92, 255, 144, 0.15);
+    padding: 12px;
+    transition: border-color 0.3s;
+  }
+  .card:hover {
+    border-color: rgba(92, 255, 144, 0.4);
+  }
+  .card.anchor {
+    border-color: rgba(92, 255, 144, 0.35);
+  }
+  .card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: saturate(0.9) contrast(1.05);
+  }
+  .card h2 {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: #5cff90;
+    margin-top: 10px;
+    text-transform: uppercase;
+  }
+  .card .locale {
+    font-size: 11px;
+    color: #7ce5a0;
+    margin-top: 2px;
+  }
+  .card p {
+    font-size: 10px;
+    color: #4a6a5a;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+  <h1>Project Thorn — Character Portrait Gallery</h1>
+  <div class="subtitle">Nano Banana Pro · Gemini 3 Pro Image · Green-bg unified set</div>
+  <div class="grid">
+    <div class="card anchor">
+      <img src="../bothan-ora_image_0_0.jpg" alt="Ora">
+      <h2>Ora</h2>
+      <div class="locale">Mos Eisley Cantina</div>
+      <p>Bothan informant · Style anchor · Original portrait</p>
+    </div>
+    <div class="card anchor">
+      <img src="jiff-gorda-final_0.jpg" alt="Jiff Gorda">
+      <h2>Jiff Gorda</h2>
+      <div class="locale">Green Cantina</div>
+      <p>Blurred patrons · stone archways · smoke haze</p>
+    </div>
+    <div class="card anchor">
+      <img src="fenri-final_0.jpg" alt="Fenri">
+      <h2>Fenri</h2>
+      <div class="locale">Green Nightclub</div>
+      <p>Velvet booths · chrome fixtures · green-gold haze</p>
+    </div>
+    <div class="card anchor">
+      <img src="cotla-final_0.jpg" alt="Agent Cotla">
+      <h2>Agent Cotla</h2>
+      <div class="locale">Green Intel Bureau</div>
+      <p>Holographic screens · terminal rows · green-blue glow</p>
+    </div>
+    <div class="card anchor">
+      <img src="vorian-ducal-final_0.jpg" alt="Vorian Ducal">
+      <h2>Vorian Ducal</h2>
+      <div class="locale">Star Destroyer Bridge</div>
+      <p>Same face as Jiff Gorda · Imperial uniform · green bridge</p>
+    </div>
+    <div class="card">
+      <img src="echo-cell-final_0.jpg" alt="Echo Cell">
+      <h2>Echo Cell</h2>
+      <div class="locale">Holographic Org Chart</div>
+      <p>Surveillance network diagram · blue-cyan projection</p>
+    </div>
+    <div class="card">
+      <img src="project-thorn-final_0.jpg" alt="Project Thorn">
+      <h2>Project Thorn</h2>
+      <div class="locale">Holographic Briefing</div>
+      <p>Operations chart · classified briefing document</p>
+    </div>
+  </div>
+</body>
+</html>

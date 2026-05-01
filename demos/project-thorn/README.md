@@ -33,8 +33,11 @@ The original bio was written ~2003–2005 on the SWG forums as in-character role
 | `Space` | BURST | Burst-decode everything, jump to SIGNAL LOST |
 | `L` | TRACE | Signal-trace diagnostic log overlay |
 | `M` | AUDIO | Mute/unmute (persists via localStorage) |
+| `Up` / `Down` | — | Cycle through terminal command history |
+| `Tab` | — | Autocomplete command or argument |
+| `Ctrl+U` | — | Clear terminal input line |
 
-Portrait click opens the holographic dossier modal.
+Portrait click opens the holographic dossier modal. Type `auth alderaan` in the terminal to unlock clickable dossier cross-links on all marked names in the transcript.
 
 ## Assets
 
@@ -42,8 +45,9 @@ Portrait click opens the holographic dossier modal.
 |------|------|---------|
 | `DepartureMono-Regular.woff2` | 22 KB | SIL OFL (Helena Zhang) |
 | `Aurebesh.woff2` | 12 KB | Fan-made glyph font |
-| `bothan-ora_image_0_0.jpg` | 650 KB | AI-generated portrait |
+| `bothan-ora_image_0_0.jpg` | 650 KB | AI-generated portrait (Gemini 3 Pro Image) |
 | `bothan-ora-seal.png` | 20 KB | AI-generated seal |
+| `jiff-gorda-nar-shaddaa.jpg` | ~200 KB | AI-generated portrait (Gemini 3 Pro Image) |
 | `sfx-base.mp3` | 505 KB | Freesound (CC0/CC-BY) |
 | `sfx-accent-a.mp3` | 307 KB | Freesound (CC0/CC-BY) |
 | `sfx-accent-b.mp3` | 280 KB | Freesound (CC0/CC-BY) |
@@ -58,10 +62,12 @@ Major Mono Display loaded via Google Fonts for the ORA name display.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Single-file anatomy, codemap with line ranges, state machine, extension points |
 | [docs/audio-choreography.md](docs/audio-choreography.md) | 19-cue table, volume arc, 3-track engine |
 | [docs/animation-pipeline.md](docs/animation-pipeline.md) | Aurebesh 3-phase decrypt, block transitions, state machine |
-| [docs/terminal-commands.md](docs/terminal-commands.md) | 25+ commands, responses, denied commands |
+| [docs/terminal-commands.md](docs/terminal-commands.md) | 25+ commands, auth system, history, autocomplete |
 | [docs/line-types-tokens.md](docs/line-types-tokens.md) | 7 line types, inline markers (§, ¤, ¶), tooltips |
 | [docs/design-system.md](docs/design-system.md) | CSS variables, color hierarchy, layer model, responsive tiers |
 | [docs/soul-integration.md](docs/soul-integration.md) | Open Souls / Bazaar integration guide |
+| [docs/portrait-generation.md](docs/portrait-generation.md) | Nano Banana Pro prompts, style-lock technique, iteration log |
+| [gen/compare.html](gen/compare.html) | Portrait gallery — all generated characters, side-by-side comparison |
 | [docs/roadmap.md](docs/roadmap.md) | Multiplayer channel vision |
 
 ## Built with

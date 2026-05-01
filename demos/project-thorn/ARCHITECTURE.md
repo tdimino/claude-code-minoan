@@ -8,7 +8,7 @@ Use this as a template guide. Swap the transcript content, audio cues, and visua
 
 ## Bird's Eye View
 
-A single HTML file (2674 lines, ~98 KB) performing an Imperial Intelligence intercept of a Bothan informant. No build step, no bundler, no npm, no server required—`open index.html` is the full deployment pipeline.
+A single HTML file (3297 lines, ~130 KB) performing an Imperial Intelligence intercept of a Bothan informant. No build step, no bundler, no npm, no server required—`open index.html` is the full deployment pipeline.
 
 Three systems share the file:
 
@@ -16,7 +16,7 @@ Three systems share the file:
 |--------|-------|------|
 | CSS atmosphere + chrome | 13–1253 | Visual identity: phosphor palette, CRT effects, layout, animation states |
 | HTML transcript + chrome | 1255–1542 | Pre-rendered content: character data, dossier modal, terminal UI |
-| JS engine | 1544–2648 | State machine, Aurebesh decrypt animation, Web Audio API, terminal commands |
+| JS engine | 1544–3297 | State machine, Aurebesh decrypt animation, Web Audio API, terminal commands, dossier data, filesystem |
 
 The systems are coupled at DOM boundaries: CSS classes toggled by JS (`revealed`, `decrypted`, `signal-lost`, `vhs-on`), element IDs targeted by JS (`transcript`, `intercept-stream`, `dossier`, `prompt-input`), and `data-block`/`data-text` attributes on `<article>` elements that drive the animation engine.
 
@@ -24,7 +24,7 @@ The systems are coupled at DOM boundaries: CSS classes toggled by JS (`revealed`
 
 ## Codemap
 
-Line ranges are verified against the 2674-line file.
+Line ranges are approximate — verified against the 3297-line file. Dossier content additions shift JS ranges frequently.
 
 ### CSS — Head, Fonts, Variables (1–64)
 
@@ -42,7 +42,7 @@ Four fixed-position overlays stacked via `z-index`: `.vignette` (radial + linear
 
 ### CSS — Holographic Dossier Modal (384–622)
 
-`<dialog>` element styled as a holographic datapad: `backdrop-filter: blur`, scan-line pseudo-elements, a `.dossier__sweep` animation on `::before`. Uses native `<dialog>` API (`showModal()`, `close()`). All dossier fields are static HTML—no JS writes to the dossier body.
+`<dialog>` element styled as a holographic datapad: `backdrop-filter: blur`, scan-line pseudo-elements, a `.dossier__sweep` animation on `::before`. Uses native `<dialog>` API (`showModal()`, `close()`). Dossier content is rendered dynamically by `renderDossier()` from the `DOSSIERS` data object. Portrait images receive CRT scanline overlays, corner brackets, and periodic flicker animation via `.dossier__portrait-frame`.
 
 ### CSS — Live Log Panel (623–684)
 
@@ -123,7 +123,7 @@ Inline token syntax in `data-text`:
 
 ### HTML — Dossier Dialog (1458–1536)
 
-`<dialog id="dossier">` with six sections (Identity, Operational History, Financial, Contact Profile, Assessment, Classification). All fields are static. The `.dossier__sweep` animation runs on `::before` via CSS. Open/close wired to portrait click and `#dossier-close` button in JS (lines 2565–2591).
+`<dialog id="dossier">` with empty shell: header (`#dossier-header`), body (`#dossier-body`), footer (`#dossier-footer`). Content is rendered dynamically by `renderDossier(id)` from the `DOSSIERS` object (line ~2559). Seven dossiers: Ora, Vorian Ducal, Agent Cotla, Fenri, Jiff Gorda, Echo Cell, Project Thorn. Each dossier has typed sections (`grid`, `bio`, `associates`). The `.dossier__sweep` animation runs on `::before` via CSS. Open via portrait click or `dossier <name>` terminal command.
 
 ### HTML — Live Log Panel (1538–1542)
 
@@ -228,19 +228,40 @@ Key methods:
 
 Dossier wiring (2564–2591): portrait click → `dossier.showModal()` + `audio.playDossierOpen()`. Close button + backdrop click → `dossier.close()` + `audio.playDossierClose()`.
 
-### JS — Terminal Command System (2462–2554)
+### JS — Dossier Data + Render (2559–3082)
 
-**`TERMINAL_CMDS`** (2464–2490): plain object mapping command strings to response strings. Multi-line responses use `\n`. Supports exact matches (`'cat intercept.log'`) and prefix-only matches (`'ping'` catches `ping chimera`).
+**`DOSSIERS`** (line ~2559): data object keyed by slug (`'ora'`, `'vorian'`, `'cotla'`, `'fenri'`, `'jiff-gorda'`, `'echo-cell'`, `'thorn'`). Each entry: `name`, `subtitle`, `classification`, `portrait`, `fileRef`, `sections[]`. Section types: `grid` (key-value pairs with optional `cls` for color), `bio` (prose paragraph), `associates` (bulleted list with name + detail).
 
-**`TERMINAL_FALLBACK`** (2491–2505): 13 atmospheric error strings for unrecognized commands. Randomly selected, never repeats consecutively.
+**`renderDossier(id)`** (line ~3027): builds HTML from a DOSSIERS entry. Handles portrait frame (with CRT scanline wrapper), title, classification badge, and iterates sections by type. Empty `sections[]` renders "DOSSIER PENDING" placeholder.
 
-**`DENIED_CMDS`** (2522): `Set(['sudo','rm','kill','exit','decrypt','man'])`. Matched commands play `audio.playTerminalDeny()` even though they return a response (not undefined).
+### JS — Filesystem + Terminal Commands (2452–3175)
 
-Input event on `#prompt-input` (2511–2553): Enter key → normalize to lowercase → look up in `TERMINAL_CMDS` → render output block in `#prompt-errors` → play ack or deny audio. `e.stopPropagation()` on all key events prevents global keydown from intercepting while focused.
+**`TERMINAL_CMDS`** (line ~2452): plain object mapping command strings to response strings. Multi-line responses use `\n`.
+
+**`FS`** (line ~2491): virtual filesystem tree. Directories are nested objects, files are strings, encrypted files are `null`. Supports `ls`, `cat`, `cd`, `pwd` via `TERMINAL_FNS`.
+
+**`TERMINAL_FNS`** (line ~3084): function-based commands (`ls`, `cat`, `cd`, `pwd`, `auth`, `dossier`). The `auth` command accepts a passphrase argument—`alderaan` sets `state.dossierUnlocked = true` and calls `unlockDossierLinks()`, which adds `.dossier-linked` class and click handlers to all `.person`/`.thorn` spans with matching entries in `NAME_TO_DOSSIER`. The `dossier` command accepts a name argument, resolves it against DOSSIERS keys, and calls `renderDossier()`.
+
+**`NAME_TO_DOSSIER`** (line ~1581): maps lowercase transcript names to dossier slugs. Entries: `vorian ducal`, `vorian`, `jiff gorda`, `jiff`, `agent cotla`, `cotla`, `fenri`, `project thorn`, `echo`.
+
+**`unlockDossierLinks()`** (line ~3052): queries all `.person` and `.thorn` spans, matches `textContent` against `NAME_TO_DOSSIER`, adds `.dossier-linked` class and a click handler that calls `renderDossier()`. Click handler guards on `.decoded` class—links are inert until the decrypt animation reveals the name.
+
+**`TERMINAL_FALLBACK`** (line ~2475): 13 atmospheric error strings for unrecognized commands.
+
+**`DENIED_CMDS`** (line ~3148): `Set(['sudo','rm','kill','exit','decrypt','man'])`. Matched commands play `audio.playTerminalDeny()`.
+
+**Input handler** on `#prompt-input` (line ~3232): handles multiple key events:
+
+| Key | Behavior |
+|-----|----------|
+| `Enter` | Parse and execute command (TERMINAL_FNS → TERMINAL_CMDS → DENIED_CMDS → fallback) |
+| `Up` / `Down` | Navigate command history (`cmdHistory[]`, max 50, no consecutive duplicates, not persisted) |
+| `Tab` | Autocomplete via `getCompletions()`. Bare input completes command names; after space, completes arguments contextually (`dossier` → dossier keys, `cat`/`ls`/`cd` → filesystem entries). Multiple matches displayed below prompt; subsequent Tabs cycle through them |
+| `Ctrl+U` | Clear input line |
 
 ### JS — Init (2556–2647)
 
-Button event bindings (2558–2562). Dossier open/close wiring (2564–2591). Global keydown handler (2593–2608): R → `replay()`, Space → `skipAll()`, V → `toggleVHS()`, L → `toggleLog()`, M → `audio.toggleMute()`. Guards: skips if target is input/textarea/contenteditable, skips if modifier key held, skips Space when a button has focus (prevents double-fire).
+Button event bindings (2558–2562). Dossier open/close wiring (2564–2591). Global keydown handler (2593–2608): R → `replay()`, Space → `skipAll()`, V → `toggleVHS()`, L → `toggleLog()`, M → `audio.toggleMute()`. Guards: skips if target is input/textarea/contenteditable, skips if modifier key held, skips Space when a button has focus (prevents double-fire). Prompt-local keydown handler (line ~3232): Up/Down → command history, Tab → autocomplete, Ctrl+U → clear line, Enter → execute. See _JS — Filesystem + Terminal Commands_ above for details.
 
 Session state restore (2611–2623): reads `sessionStorage` for VHS/log state persisted before replay. `audio.loadMuteState()` (2625) reads `localStorage`.
 
@@ -318,9 +339,9 @@ Each entry fires an accent track at a specific narrative moment. Adjust `blockId
 
 Plain object—add key/value pairs. Multi-line responses use `\n`. Prefix matching is automatic: if `cmd.split(' ')[0]` matches a key, that response fires. Add entries to `DENIED_CMDS` (line 2522) for commands that should play the deny sound.
 
-### 5. Dossier Modal — `<dialog id="dossier">` (lines 1458–1536)
+### 5. Dossier System — `DOSSIERS` object (line ~2559)
 
-Replace the `<section>` content inside `.dossier__body` to change the asset profile. The modal frame, sweep animation, scan-line overlay, and open/close audio are all reusable without modification.
+Add entries to the `DOSSIERS` object to create new dossiers. Each entry needs `name`, `subtitle`, `classification`, `portrait` (path to image), `fileRef`, and `sections[]`. Three section types: `grid` (key-value fields), `bio` (prose), `associates` (name + detail list). The `dossier <name>` terminal command and `renderDossier()` function handle rendering automatically. Portrait images receive CRT scanlines and flicker via the `.dossier__portrait-frame` wrapper.
 
 ---
 
@@ -340,7 +361,7 @@ Replace the `<section>` content inside `.dossier__body` to change the asset prof
 
 | File | Size | Purpose |
 |------|------|---------|
-| `index.html` | 98 KB | The entire terminal—CSS, HTML, JS |
+| `index.html` | 130 KB | The entire terminal—CSS, HTML, JS, dossier data |
 | `DepartureMono-Regular.woff2` | 22 KB | Period-correct CRT monospace (Helena Zhang, SIL OFL) |
 | `Aurebesh.woff2` | 12 KB | Star Wars script glyph font for decrypt animation |
 | `bothan-ora_image_0_0.jpg` | 650 KB | Bothan informant portrait (painterly, AI-generated) |
