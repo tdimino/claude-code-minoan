@@ -78,7 +78,9 @@ function collectSessions() {
 
       if (INCREMENTAL) {
         const existing = trackerDb.getSessionById(sessionId);
-        if (existing && existing.transcript_size === stat.size) continue;
+        if (existing && existing.transcript_size === stat.size
+            && existing.summary && existing.num_turns > 0
+            && existing.total_cost_usd > 0) continue;
       }
 
       const regEntry = registry[sessionId] || {};
@@ -120,16 +122,17 @@ function collectSessions() {
         }
       } catch { /* file unreadable */ }
 
-      const customTitle = readCustomTitle(filePath) || regEntry.title || idxEntry.customTitle || null;
-      const autoTitle = sumEntry.title || null;
-      const summary = regEntry.summary || sumEntry.summary || idxEntry.summary || null;
-      firstPrompt = firstPrompt || idxEntry.firstPrompt || sumEntry.first_msg || null;
       slug = slug || readSessionSlug(filePath) || null;
 
       let enriched = {};
       if (!SKIP_ENRICH) {
         try { enriched = parseSessionEnriched(filePath); } catch { /* skip */ }
       }
+
+      const customTitle = readCustomTitle(filePath) || regEntry.title || idxEntry.customTitle || null;
+      const autoTitle = sumEntry.title || null;
+      const summary = regEntry.summary || sumEntry.summary || enriched.summary || idxEntry.summary || null;
+      firstPrompt = firstPrompt || enriched.firstPrompt || idxEntry.firstPrompt || sumEntry.first_msg || null;
 
       const model = enriched.model || sumEntry.model || null;
       const modelShort = enriched.modelShort || (model ? model.replace('claude-opus-4-6', 'opus-4.6').replace(/^claude-/, '') : null);

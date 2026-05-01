@@ -85,7 +85,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Integration & Automation | 30 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator`, `obscura` |
 | Design & Media | 28 | `minoan-frontend-design` (70% win rate), `vellum-editorial`, `gpt-atelier`, `nano-banana-pro`, `gemini-forge`, `sprite-forge`, `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy` |
 | Research | 7 | `omnisearch`, `academic-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling`, `openplanter` |
-| Planning & Productivity | 7 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (session checkpoints, workflow phases, tagged phrases via optional SQLite), `travel-requirements-expert` |
+| Planning & Productivity | 7 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (session checkpoints, workflow phases, tagged phrases, cost tracking via optional SQLite), `travel-requirements-expert` |
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
 
@@ -171,6 +171,24 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 | `ccnew` / `ccresume` | Start new sessions / resume existing ones |
 
 All CLIs share `lib/tracker-utils.js` for session parsing and status detection.
+
+### Session Cost Tracking
+
+The enrichment pipeline (`parseSessionEnriched` in `lib/tracker-utils.js`) scans full JSONL transcripts to aggregate token usage from every API call, then computes USD cost using Anthropic's published pricing:
+
+| Model Tier | Input | Output | Cache Read | Cache Write |
+|------------|-------|--------|------------|-------------|
+| Opus 4.5+ | $5/MTok | $25/MTok | $0.50/MTok | $6.25/MTok |
+| Opus 4.0/4.1 | $15/MTok | $75/MTok | $1.50/MTok | $18.75/MTok |
+| Sonnet 4.x | $3/MTok | $15/MTok | $0.30/MTok | $3.75/MTok |
+| Haiku 4.5 | $1/MTok | $5/MTok | $0.10/MTok | $1.25/MTok |
+| Haiku 3.5 | $0.80/MTok | $4/MTok | $0.08/MTok | $1/MTok |
+
+Run `node scripts/migrate-to-sqlite.js --incremental` to enrich existing sessions. The migration is idempotent and self-healing — sessions missing summary, turn count, or cost data are automatically re-processed.
+
+```bash
+sqlite3 ~/.claude/tracker.db "SELECT short_id, num_turns, printf('\$%.2f', total_cost_usd), model_short FROM sessions ORDER BY total_cost_usd DESC LIMIT 10;"
+```
 
 ---
 
