@@ -240,6 +240,60 @@ class SlackAdapter:
         except Exception as e:
             log.error("Failed to post to %s: %s", channel, e)
 
+    def post_ai(self, channel: str, text: str, thread_ts: Optional[str] = None,
+                feedback: bool = True):
+        """Post a message with AI feedback buttons."""
+        blocks = [
+            {"type": "section", "text": {"type": "mrkdwn", "text": text}},
+        ]
+        if feedback:
+            blocks.append({
+                "type": "actions",
+                "elements": [{
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": ":+1:"},
+                    "action_id": "ai_feedback_positive",
+                    "value": "positive",
+                }, {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": ":-1:"},
+                    "action_id": "ai_feedback_negative",
+                    "value": "negative",
+                }],
+            })
+        kwargs = {"channel": channel, "text": text, "blocks": blocks}
+        if thread_ts:
+            kwargs["thread_ts"] = thread_ts
+        try:
+            self.app.client.chat_postMessage(**kwargs)
+        except Exception as e:
+            log.error("Failed to post AI message to %s: %s", channel, e)
+
+    def start_stream(self, channel: str, thread_ts: Optional[str] = None) -> dict:
+        """Start a streaming message."""
+        kwargs = {"channel": channel}
+        if thread_ts:
+            kwargs["thread_ts"] = thread_ts
+        try:
+            return self.app.client.chat_startStream(**kwargs)
+        except Exception as e:
+            log.error("Failed to start stream in %s: %s", channel, e)
+            return {}
+
+    def append_stream(self, stream_id: str, text: str):
+        """Append to an active stream."""
+        try:
+            self.app.client.chat_appendStream(stream_id=stream_id, text=text)
+        except Exception as e:
+            log.error("Failed to append to stream %s: %s", stream_id, e)
+
+    def stop_stream(self, stream_id: str):
+        """Finalize a streaming message."""
+        try:
+            self.app.client.chat_stopStream(stream_id=stream_id)
+        except Exception as e:
+            log.error("Failed to stop stream %s: %s", stream_id, e)
+
     def react(self, channel: str, ts: str, emoji: str, remove: bool = False):
         """Add or remove a reaction."""
         try:

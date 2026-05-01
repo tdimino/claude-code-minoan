@@ -4,6 +4,7 @@ Shared Slack API utilities — auth, rate limiting, API calls, formatters.
 All slack_*.py scripts import from this module.
 
 Requires: SLACK_BOT_TOKEN environment variable (xoxb-*)
+Optional: SLACK_USER_TOKEN environment variable (xoxp-*) for workspace-wide search
 Install: pip install requests
 """
 
@@ -16,7 +17,22 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
+SLACK_USER_TOKEN = os.environ.get("SLACK_USER_TOKEN")
 BASE_URL = "https://slack.com/api"
+
+_USER_TOKEN_METHODS = {"search.messages", "search.files"}
+
+
+def _get_token(method: str, token_override: str = None) -> str:
+    if token_override:
+        return token_override
+    if method in _USER_TOKEN_METHODS and SLACK_USER_TOKEN:
+        return SLACK_USER_TOKEN
+    if not SLACK_BOT_TOKEN:
+        print("Error: SLACK_BOT_TOKEN not set.", file=sys.stderr)
+        print("Get a Bot token at https://api.slack.com/apps", file=sys.stderr)
+        sys.exit(1)
+    return SLACK_BOT_TOKEN
 
 # Slack rate limits (corrected Feb 2026 per official docs)
 # Tier 1 reduction (1/min) only applies to conversations.history/replies
@@ -41,6 +57,10 @@ RATE_LIMITS = {
     "users.lookupByEmail":    {"calls": 50, "period": 60},  # Tier 3
     "files.getUploadURLExternal":   {"calls": 100, "period": 60},  # Tier 4
     "files.completeUploadExternal": {"calls": 100, "period": 60},  # Tier 4
+    "assistant.search.context":     {"calls": 20, "period": 60},   # Tier 2 (RTS API)
+    "chat.startStream":             {"calls": 50, "period": 60},   # Tier 3
+    "chat.appendStream":            {"calls": 50, "period": 60},   # Tier 3
+    "chat.stopStream":              {"calls": 50, "period": 60},   # Tier 3
 }
 
 # Track last call time per method for local rate limiting
@@ -56,13 +76,14 @@ class SlackError(Exception):
         super().__init__(f"{method}: {error}" + (f" — {detail}" if detail else ""))
 
 
-def _headers() -> Dict[str, str]:
-    if not SLACK_BOT_TOKEN:
+def _headers(token: str = None) -> Dict[str, str]:
+    t = token or SLACK_BOT_TOKEN
+    if not t:
         print("Error: SLACK_BOT_TOKEN not set.", file=sys.stderr)
         print("Get a Bot token at https://api.slack.com/apps", file=sys.stderr)
         sys.exit(1)
     return {
-        "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
+        "Authorization": f"Bearer {t}",
         "Content-Type": "application/json; charset=utf-8",
     }
 
@@ -106,13 +127,14 @@ _GET_METHODS = {
 }
 
 
-def slack_api(method: str, retries: int = 2, **params) -> Dict[str, Any]:
+def slack_api(method: str, retries: int = 2, token: str = None, **params) -> Dict[str, Any]:
     """
     Call a Slack Web API method. Handles rate limiting and retries.
 
     Args:
         method: Slack API method (e.g. "chat.postMessage")
         retries: Number of 429 retries (default 2)
+        token: Override token (default: auto-select via _get_token)
         **params: Method parameters
 
     Returns:
@@ -122,24 +144,25 @@ def slack_api(method: str, retries: int = 2, **params) -> Dict[str, Any]:
         SlackError: If Slack returns ok=false
     """
     _enforce_rate_limit(method)
+    auth_token = _get_token(method, token)
 
     for attempt in range(retries + 1):
         if method in _GET_METHODS:
             resp = requests.get(
                 f"{BASE_URL}/{method}",
-                headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
+                headers={"Authorization": f"Bearer {auth_token}"},
                 params=params,
             )
         elif method in _FORM_ENCODED_METHODS:
             resp = requests.post(
                 f"{BASE_URL}/{method}",
-                headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
+                headers={"Authorization": f"Bearer {auth_token}"},
                 data=params,
             )
         else:
             resp = requests.post(
                 f"{BASE_URL}/{method}",
-                headers=_headers(),
+                headers=_headers(auth_token),
                 json=params,
             )
 
@@ -239,6 +262,17 @@ def format_ts(ts: str) -> str:
         return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
     except (ValueError, TypeError, OSError):
         return ts
+
+
+def ensure_channel_membership(channel_id: str) -> bool:
+    """Join a channel if not already a member. Returns True on success."""
+    try:
+        slack_api("conversations.join", channel=channel_id)
+        return True
+    except SlackError as e:
+        if e.error == "already_in_channel":
+            return True
+        return False
 
 
 def format_message(msg: Dict, resolve_users: bool = False) -> str:

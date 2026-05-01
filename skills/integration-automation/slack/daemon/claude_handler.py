@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import subprocess
-from typing import Optional
+from typing import Callable, Optional
 
 import session_store
 import soul_engine
@@ -232,6 +232,107 @@ async def async_process(
         return "Claude returned an empty response."
 
     # Parse through soul engine or return raw
+    if use_soul:
+        response = soul_engine.parse_response(
+            full_response, user_id=user_id, channel=channel, thread_ts=thread_ts
+        )
+    else:
+        response = full_response
+
+    if len(response) > MAX_RESPONSE_LENGTH:
+        response = response[:MAX_RESPONSE_LENGTH] + "\n\n_(truncated)_"
+
+    return response
+
+
+async def async_process_streaming(
+    text: str,
+    channel: str,
+    thread_ts: str,
+    user_id: Optional[str] = None,
+    soul_enabled: bool = True,
+    allowed_tools: Optional[str] = None,
+    on_chunk: Optional[Callable[[str], None]] = None,
+) -> str:
+    """Process via SDK with streaming chunk delivery.
+
+    Calls on_chunk() for each TextBlock as it arrives.
+    When soul engine is on, chunks are accumulated and the full response
+    is returned (can't stream XML-tagged output meaningfully).
+    """
+    from claude_agent_sdk import (
+        query,
+        ClaudeAgentOptions,
+        AssistantMessage,
+        ResultMessage,
+        TextBlock,
+    )
+
+    session_id = session_store.get(channel, thread_ts)
+    tools = allowed_tools or CLAUDE_ALLOWED_TOOLS
+
+    use_soul = soul_enabled and SOUL_ENGINE_ENABLED and user_id
+    if use_soul:
+        prompt = soul_engine.build_prompt(
+            text, user_id=user_id, channel=channel, thread_ts=thread_ts
+        )
+        soul_engine.store_user_message(text, user_id, channel, thread_ts)
+    else:
+        prompt = text
+
+    log.info(
+        "SDK stream: channel=%s thread=%s resume=%s soul=%s",
+        channel, thread_ts, session_id or "new",
+        "on" if use_soul else "off",
+    )
+
+    env_overrides = {
+        "CLAUDECODE": "",
+        "CLAUDE_CODE_SSE_PORT": "",
+        "CLAUDE_CODE_ENTRYPOINT": "",
+        "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "",
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + os.environ.get("PATH", ""),
+    }
+
+    options = ClaudeAgentOptions(
+        allowed_tools=tools.split(","),
+        cwd=str(CLAUDE_CWD),
+        permission_mode="bypassPermissions",
+        env=env_overrides,
+    )
+    if session_id:
+        options.resume = session_id
+
+    full_response = ""
+    new_session_id = None
+
+    try:
+        async for message in query(prompt=prompt, options=options):
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        full_response += block.text
+                        if on_chunk and not use_soul:
+                            on_chunk(block.text)
+            elif isinstance(message, ResultMessage):
+                new_session_id = message.session_id
+                if message.is_error:
+                    log.error("SDK stream error: %s", message.result)
+                    return f"Claude error: {message.result}"
+                if message.result and not full_response:
+                    full_response = message.result
+    except Exception as e:
+        log.error("SDK stream failed: %s", e)
+        return f"Error invoking Claude: {e}"
+
+    if new_session_id:
+        session_store.save(channel, thread_ts, new_session_id)
+    elif session_id:
+        session_store.touch(channel, thread_ts)
+
+    if not full_response:
+        return "Claude returned an empty response."
+
     if use_soul:
         response = soul_engine.parse_response(
             full_response, user_id=user_id, channel=channel, thread_ts=thread_ts

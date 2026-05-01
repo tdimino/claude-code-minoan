@@ -23,10 +23,12 @@ import claude_handler
 import session_store
 import soul_memory
 from config import (
+    AI_BLOCKS_ENABLED,
     CLAUDE_ALLOWED_TOOLS,
     CLAUDE_CWD,
     LOG_DIR,
     SOUL_ENGINE_ENABLED,
+    STREAMING_ENABLED,
     TERMINAL_SESSION_TOOLS,
     TERMINAL_SOUL_ENABLED,
 )
@@ -95,7 +97,10 @@ class Claudicle:
 
             try:
                 if msg["origin"] == "slack":
-                    await self._handle_slack_message(msg)
+                    if STREAMING_ENABLED and self._slack:
+                        await self._handle_slack_message_streaming(msg)
+                    else:
+                        await self._handle_slack_message(msg)
                 elif msg["origin"] == "terminal":
                     await self._handle_terminal_message(msg)
             except Exception as e:
@@ -129,6 +134,38 @@ class Claudicle:
         if self._slack:
             self._slack.post(channel, response, thread_ts)
             self._slack.react(channel, thread_ts, "hourglass_flowing_sand", remove=True)
+
+        self._ui.log_slack_out(channel, response)
+
+    async def _handle_slack_message_streaming(self, msg: dict):
+        """Process a Slack message with streaming response delivery."""
+        user = msg["display_name"]
+        channel = msg["channel"]
+        thread_ts = msg["thread_ts"]
+        text = msg["text"]
+        user_id = msg["user_id"]
+
+        self._ui.log_slack_in(user, channel, text)
+
+        stream_result = self._slack.start_stream(channel, thread_ts)
+        stream_id = stream_result.get("stream_id") if stream_result else None
+
+        if not stream_id:
+            await self._handle_slack_message(msg)
+            return
+
+        try:
+            response = await claude_handler.async_process_streaming(
+                text,
+                channel=channel,
+                thread_ts=thread_ts,
+                user_id=user_id,
+                soul_enabled=True,
+                allowed_tools=CLAUDE_ALLOWED_TOOLS,
+                on_chunk=lambda chunk: self._slack.append_stream(stream_id, chunk),
+            )
+        finally:
+            self._slack.stop_stream(stream_id)
 
         self._ui.log_slack_out(channel, response)
 

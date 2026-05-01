@@ -41,5 +41,12 @@ TERMINAL_SOUL_ENABLED = os.environ.get(
     "SLACK_DAEMON_TERMINAL_SOUL", "false"
 ).lower() == "true"
 
+# Streaming
+STREAMING_ENABLED = os.environ.get("SLACK_DAEMON_STREAMING", "false").lower() == "true"
+STREAMING_CHUNK_DELAY = float(os.environ.get("SLACK_DAEMON_STREAM_DELAY", "0.05"))
+
+# AI Block Kit
+AI_BLOCKS_ENABLED = os.environ.get("SLACK_DAEMON_AI_BLOCKS", "false").lower() == "true"
+
 # Logging
 LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")

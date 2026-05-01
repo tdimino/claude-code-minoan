@@ -18,7 +18,7 @@ Local ML inference, RAG, browser automation, messaging, telephony, physical medi
 | `netlify-integration` | Deploy Netlify projects with serverless functions |
 | `parakeet` | Local speech-to-text via NVIDIA Parakeet TDT 0.6B |
 | `rlama` | Fully local RAG with Ollama (default: retrieve-only, Claude synthesizes) |
-| `slack` | Slack workspace integration — post, read, search, react, upload |
+| `slack` | Slack workspace integration — 9 scripts (post, read, search, stream, react, upload, channels, users), dual-token support, RTS API search, chat streaming, AI Block Kit, Session Bridge, Claudicle unified launcher |
 | `slack-respond` | Process Slack messages as Claudicle with persistent memory |
 | `supabase-skill` | Supabase project management via MCP |
 | `telegram` | Telegram Bot API — send (text, Markdown, inline keyboards), check inbox, callback queries, bot/listener health, memory context. REST-based (no asyncio). Supports approval gates with tappable buttons. |
