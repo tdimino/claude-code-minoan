@@ -1192,7 +1192,8 @@
 
   /* ═══ RESPONSIVE ═══ */
 
-  @media (max-width: 768px) {
+  /* Tier 1: Tablet — hide ticker, single column */
+  @media (max-width: 1024px) {
     .terminal {
       grid-template-columns: 1fr;
       grid-template-areas:
@@ -1203,9 +1204,54 @@
     }
     .ticker { display: none; }
     .transcript { border-right: none; }
-    .line { grid-template-columns: 60px 1fr; gap: 10px; }
+    .chrome__brand { min-width: unset; }
     .chrome__title { font-size: 9px; }
-    .chrome__title .sep { margin: 0 6px; }
+    .chrome__title .sep { margin: 0 8px; }
+    .status { overflow-x: auto; }
+  }
+
+  /* Tier 2: Phone landscape / small tablet */
+  @media (max-width: 768px) {
+    .chrome { height: 72px; }
+    .chrome__portrait-frame { width: 56px; height: 56px; }
+    .chrome__title { padding: 0 10px; display: none; }
+    .chrome__controls { flex-shrink: 0; margin-left: auto; }
+    .chrome__btn .btn-key { display: none; }
+    .chrome__btn { padding: 0 10px; font-size: 9px; }
+    .line { grid-template-columns: 60px 1fr; gap: 10px; }
+    .line--break { grid-template-columns: 1fr; }
+    .line__time { font-size: 10px; }
+    .status__cell:nth-child(n+4) { display: none; }
+    .dossier__card { width: 100vw; max-height: 100dvh; }
+    .dossier__header { padding: 16px; gap: 12px; }
+    .dossier__body { padding: 16px; max-height: calc(100dvh - 200px); }
+    .dossier__portrait { width: 72px; height: 72px; }
+    .dossier__title { font-size: 18px; }
+    .log-panel { width: 100%; right: 0; left: 0; bottom: 44px; }
+  }
+
+  /* Tier 3: Phone portrait */
+  @media (max-width: 480px) {
+    .chrome { height: 56px; }
+    .chrome__portrait-frame { width: 44px; height: 44px; }
+    .chrome__sigil .name { font-size: 13px; }
+    .chrome__sigil .role { display: none; }
+    .chrome__sigil .meta { font-size: 7px; }
+    .chrome__title { display: none; }
+    .chrome__controls { margin-left: auto; }
+    .chrome__btn { font-size: 0; padding: 0 8px; }
+    .chrome__btn .btn-icon { font-size: 14px; }
+    .line { grid-template-columns: 1fr; gap: 0; }
+    .line--break { grid-template-columns: 1fr; }
+    .line__time { display: none; }
+    .status__cell { padding: 0 8px; font-size: 8px; }
+    .status__cell:nth-child(n+3) { display: none; }
+    .prompt { padding: 0 10px; font-size: 11px; }
+    .prompt > .prompt__sigil,
+    .prompt > .prompt__input,
+    .prompt > .prompt__hint { height: 44px; line-height: 44px; }
+    .prompt__hint { display: none; }
+    .transcript { padding: 8px 10px; }
   }
 </style>
 </head>
