@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>PROJECT THORN — Imperial Intelligence Briefing</title>
 <link rel="icon" type="image/x-icon" href="imperial-favicon/imperial-favicon.ico">
 <link rel="icon" type="image/png" sizes="48x48" href="imperial-favicon/imperial-favicon-48.png">
@@ -138,11 +138,8 @@
       "transcript ticker"
       "prompt prompt";
     height: 100vh;
-    width: 100vw;
-    max-width: 1400px;
-    margin: 0 auto;
-    border-left: 1px solid var(--rule);
-    border-right: 1px solid var(--rule);
+    height: 100dvh;
+    width: 100%;
   }
 
   /* ═══ CHROME (HEADER) ═══ */
@@ -1024,6 +1021,7 @@
     align-items: center;
     gap: 0 10px;
     padding: 0 20px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     border-top: 1px solid var(--rule-bright);
     background: var(--surface);
     font-size: 12px;
