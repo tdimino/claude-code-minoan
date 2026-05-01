@@ -52,15 +52,53 @@ More constraints produce more mechanical output. The SKILL.md body should contai
 
 ```
 minoan-frontend-design/
-├── SKILL.md                          947 words — syncretic-v3 creative core
+├── SKILL.md                          syncretic-v3 creative core
 ├── README.md                         This file
 ├── LICENSE.txt                       Apache 2.0
-├── references/
-│   ├── creative-arsenal.md           30+ named CSS techniques with code
-│   ├── design-dials.md               3 calibration scales (variance, motion, density)
-│   ├── editorial-patterns.md         Eval-derived patterns: grids, accents, photos, ghost text
-│   ├── design-system-checklist.md    Accessibility, tokens, responsive, component states
-│   └── vercel-web-interface-guidelines.md  Engineering standards from Vercel
+├── references/                       36 reference docs across 7 categories
+│   ├── Techniques
+│   │   ├── creative-arsenal.md           30+ named CSS techniques with code
+│   │   ├── design-dials.md               3 calibration scales (variance, motion, density)
+│   │   ├── editorial-patterns.md         Eval-derived patterns: grids, accents, ghost text
+│   │   ├── sunny-mode-technique.md       @property palette transitions, physics Easter eggs
+│   │   ├── text-animation-catalog.md     24 named text animation effects with timing specs
+│   │   ├── character-grid-backgrounds.md Monospace grid texture backgrounds
+│   │   └── vhs-post-processing.md        VHS/CRT post-processing effects
+│   ├── Landing Page Components
+│   │   ├── marquee-component.md          Infinite logo ticker (CSS animation, a11y, responsive)
+│   │   ├── gallery-component.md          Horizontal scroll gallery (mixed sizes, snap, lightbox)
+│   │   ├── research-card-component.md    Article cards (metadata, inline data viz, category tags)
+│   │   ├── article-layout.md             Long-form with sticky TOC, block quotes, citations
+│   │   └── inline-dataviz.md             CSS-only charts, stat callouts, animated counters
+│   ├── Design Systems
+│   │   ├── design-system-checklist.md    Accessibility, tokens, responsive, component states
+│   │   ├── linear-design-md.md           DESIGN.md exemplar from Linear
+│   │   ├── astryx-hero.md                Depth-parallax editorial hero pattern
+│   │   └── personas.md                   5 evaluation archetypes + project-specific
+│   ├── Quality & Anti-patterns
+│   │   ├── anti-patterns.md              Condensed checklist from Impeccable v1.6.0
+│   │   ├── heuristics-scoring.md         Nielsen's 10, P0-P3 severity
+│   │   └── cognitive-load.md             8-item cognitive load checklist
+│   ├── Impeccable Domain Refs
+│   │   ├── impeccable-typography.md      Font loading, OpenType, scales
+│   │   ├── impeccable-color-contrast.md  OKLCH, dark mode tokens
+│   │   ├── impeccable-spatial.md         Container queries, optical alignment
+│   │   ├── impeccable-motion.md          Cubic-bezier values, stagger formula, reduced-motion
+│   │   ├── impeccable-interaction.md     Popover API, roving tabindex, dialog
+│   │   ├── impeccable-responsive.md      Pointer/hover queries, safe areas, srcset
+│   │   └── impeccable-ux-writing.md      Error templates, voice matrix
+│   ├── Color Science
+│   │   ├── color-science-deep.md         Color spaces, HSL limitations, chroma, harmony
+│   │   └── color-tools-palette.md        Palette generation, CSS Color 4/5, semantic tokens
+│   ├── Site Studies
+│   │   ├── stripe-design-tokens.md       Stripe token system
+│   │   ├── stripe-component-patterns.md  Stripe component patterns
+│   │   ├── stripe-signature-techniques.md Stripe signature effects
+│   │   ├── mintlify-design-tokens.md     Mintlify dark-first tokens
+│   │   ├── mintlify-component-patterns.md Mintlify component patterns
+│   │   ├── mintlify-signature-techniques.md Mintlify signature effects
+│   │   ├── rothenberg-portfolio-patterns.md Dark editorial portfolio archetype
+│   │   └── vercel-web-interface-guidelines.md Engineering standards from Vercel
 └── eval/
     ├── run_eval.py                   Blind A/B eval pipeline (~1400 lines)
     ├── prompts.json                  50 test prompts across 8 categories
