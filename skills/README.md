@@ -81,6 +81,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) v2 — JS rendering, site crawls, Agent API, Interact API |
 | `scrapling` | Local stealth web scraping: anti-bot bypass, Cloudflare solver, adaptive element tracking |
 | `linear-a-decipherment` | Computational [Linear A](https://en.wikipedia.org/wiki/Linear_A) analysis — [Gordon](https://en.wikipedia.org/wiki/Cyrus_H._Gordon) 5-step pipeline, cognate search, corpus statistics, sign analysis |
+| `omnisearch` | Unified meta-router across 5 providers ([Brave](https://brave.com/search/api/), [Tavily](https://tavily.com/), [Xpoz](https://xpoz.ai/), Exa, Firecrawl) — auto-routing, parallel search with dedup, social media, AI answers |
 
 ### Planning & Productivity (`planning-productivity/`)
 | Skill | Description |
