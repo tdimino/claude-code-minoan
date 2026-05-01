@@ -10,5 +10,6 @@ Reference documentation for the Minoan Claude Code configuration.
 | [guides/progressive-disclosure.md](guides/progressive-disclosure.md) | The `agent_docs/` pattern — decision matrix, 6-tier memory hierarchy, design principles |
 | [guides/session-continuity.md](guides/session-continuity.md) | Triple-handoff system — PreCompact, SessionEnd, Stop hooks, handoff YAML, resume workflow |
 | [guides/subagent-filesystem.md](guides/subagent-filesystem.md) | Subagent filesystem boundary — why agents can't write outside project root, relay pattern workaround, permission configuration |
+| [guides/model-version-pinning.md](guides/model-version-pinning.md) | Pinning Claude Code to Opus 4.6 — settings.json, CLI flags, agent frontmatter, precedence rules |
 | [ecosystem.md](ecosystem.md) | Companion projects — Claudicle, Dabarat, ClipLog, claude-peers |
 | [tmux-claude-workflow.md](tmux-claude-workflow.md) | Tmux-based multi-session workflow for Claude Code — split panes, session naming, and parallel development patterns |
