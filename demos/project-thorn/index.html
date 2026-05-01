@@ -507,6 +507,19 @@
     border: 1px solid var(--red);
     flex-shrink: 0;
   }
+  .dossier__classification--classified {
+    color: var(--amber);
+    border-color: var(--amber);
+    text-shadow: 0 0 8px rgba(124, 229, 160, 0.4);
+  }
+  .dossier__classification--eyes-only {
+    animation: rec-blink 1.2s steps(1) infinite;
+  }
+  .dossier__classification--encrypted {
+    color: rgba(106, 216, 255, 0.3);
+    border-color: rgba(106, 216, 255, 0.2);
+    text-shadow: none;
+  }
 
   .dossier__body {
     position: relative; z-index: 4;
@@ -1461,80 +1474,9 @@
 <dialog class="dossier" id="dossier" aria-labelledby="dossier-title">
   <div class="dossier__card">
     <button class="dossier__close" id="dossier-close" aria-label="Close dossier">×</button>
-
-    <header class="dossier__header">
-      <img class="dossier__portrait" src="bothan-ora_image_0_0.jpg" alt="Ora">
-      <h2 class="dossier__title" id="dossier-title">
-        ORA
-        <small>BOTHAN NETWORK · TIER-3 INFORMANT · IMP-INT FILE BTH-7740</small>
-      </h2>
-      <span class="dossier__classification">RESTRICTED</span>
-    </header>
-
-    <div class="dossier__body">
-      <section class="dossier__section">
-        <h3>Identity</h3>
-        <dl class="dossier__grid">
-          <div class="dossier__field"><dt>Designation</dt><dd>ORA</dd></div>
-          <div class="dossier__field"><dt>Species</dt><dd>BOTHAN</dd></div>
-          <div class="dossier__field"><dt>Homeworld</dt><dd>BOTHAWUI (presumed)</dd></div>
-          <div class="dossier__field"><dt>Network</dt><dd>BOTHAN SPYNET (independent cell)</dd></div>
-          <div class="dossier__field"><dt>Operating Region</dt><dd>OUTER RIM · TATOOINE</dd></div>
-          <div class="dossier__field"><dt>Cover</dt><dd>CANTINA INFORMANT</dd></div>
-        </dl>
-      </section>
-
-      <section class="dossier__section">
-        <h3>Performance Record</h3>
-        <dl class="dossier__grid">
-          <div class="dossier__field"><dt>Tier</dt><dd>3 (CONFIRMED)</dd></div>
-          <div class="dossier__field"><dt>Reliability</dt><dd class="live">▮▮▮▮▯ 4/5</dd></div>
-          <div class="dossier__field"><dt>Operations</dt><dd>47 LOGGED</dd></div>
-          <div class="dossier__field"><dt>Burns</dt><dd>0</dd></div>
-          <div class="dossier__field"><dt>Compromised Channels</dt><dd>0</dd></div>
-          <div class="dossier__field"><dt>Falsified Reports</dt><dd>1 (Y-3 / cleared)</dd></div>
-          <div class="dossier__field"><dt>Last Contact</dt><dd>01:11:58 · TODAY</dd></div>
-          <div class="dossier__field"><dt>Status</dt><dd class="alert">SIGNAL LOST · INVESTIGATING</dd></div>
-        </dl>
-      </section>
-
-      <section class="dossier__section">
-        <h3>Pricing &amp; Channels</h3>
-        <dl class="dossier__grid">
-          <div class="dossier__field"><dt>Tariff (Standard Intel)</dt><dd>2,500 IC / item</dd></div>
-          <div class="dossier__field"><dt>Tariff (Codename-tagged)</dt><dd>6,000 IC / item</dd></div>
-          <div class="dossier__field"><dt>Preferred Channel</dt><dd>θ-7 ENC</dd></div>
-          <div class="dossier__field"><dt>Backup Channel</dt><dd>π-3 (compromised Y-2)</dd></div>
-          <div class="dossier__field"><dt>Drop Locations</dt><dd>MOS EISLEY · ANCHORHEAD</dd></div>
-          <div class="dossier__field"><dt>Payment Method</dt><dd>IC IN-PERSON ONLY</dd></div>
-        </dl>
-      </section>
-
-      <section class="dossier__section">
-        <h3>Known Associates</h3>
-        <ul class="dossier__associates">
-          <li><b>JABBA THE HUTT</b> <span>· crime lord, frequent client</span></li>
-          <li><b>UNNAMED BOTHAN HANDLER</b> <span>· cell parent (SPYNET)</span></li>
-          <li><b>VARIOUS HUTT LIEUTENANTS</b> <span>· secondary clients</span></li>
-          <li><b>IMP-INT (THIS FILE)</b> <span>· primary client since Y-2</span></li>
-        </ul>
-      </section>
-
-      <section class="dossier__section">
-        <h3>Behavioral Profile</h3>
-        <p class="dossier__bio">Dispositionally cautious. Prone to glance-over-shoulder behavior under low-stress observation, suggesting either professional paranoia or an active second tail. Strokes beard before disclosure of high-value intel — pre-disclosure tell logged across 31 prior intercepts. Verbal tics include emphatic restatement of key codenames. Exits transmissions abruptly when countermeasures detected; this session is the third such termination in the last 60 days.</p>
-      </section>
-
-      <section class="dossier__section">
-        <h3>Today's Disclosure (Excerpt)</h3>
-        <p class="dossier__bio">Identified §VORIAN DUCAL§ as the true identity behind Imperial sleeper agent §JIFF GORDA§. Detailed cover-construction protocol: assassination of original Gorda on Tatooine, image-design correction of physical discrepancies, full transfer of Gorda family fortune. Named §AGENT COTLA§ and §FENRI§ as Imperial Intelligence handlers. Disclosed cell name ECHO. Transmission terminated mid-sentence at "...the project was continu—" following detection of unknown countermeasure.</p>
-      </section>
-    </div>
-
-    <footer class="dossier__footer">
-      <span>FILE BTH-7740 · IMP-INT/EYES-ONLY</span>
-      <span class="blink">● LIVE</span>
-    </footer>
+    <header class="dossier__header" id="dossier-header"></header>
+    <div class="dossier__body" id="dossier-body"></div>
+    <footer class="dossier__footer" id="dossier-footer"></footer>
   </div>
 </dialog>
 
@@ -2465,7 +2407,7 @@
   // ═══ TERMINAL PROMPT ═══
 
   const TERMINAL_CMDS = {
-    'help': 'AVAILABLE: ls · cat · cd · pwd · whoami · ping · uptime · date · history · clear · exit · status · scan · locate · decrypt · credits · kill',
+    'help': 'AVAILABLE: ls · cat · cd · pwd · dossier · whoami · ping · uptime · date · history · clear · exit · status · scan · locate · decrypt · credits · kill',
     'whoami': 'IMP-INT SURVEILLANCE OPERATOR · TERMINAL θ-7@imp-int\nCLEARANCE: SEC-LULOMEGA · HANDLER: AGENT COTLA',
     'ping ora': 'PING BTH-7740... REQUEST TIMEOUT\nPING BTH-7740... REQUEST TIMEOUT\nHOST UNREACHABLE · SIGNAL LOST 01:13:58',
     'ping': 'USAGE: ping <target>\nKNOWN HOSTS: ora · chimera · coruscant · echo-base',
@@ -2522,12 +2464,12 @@
       'analysis.dat': 'SIGNAL ANALYSIS · 47 INTERCEPTS LOGGED\nPATTERN: ORA TRANSMITS 02:00-04:00 LOCAL\nCOUNTERMEASURE FREQ: 12% · RISING\nRECOMMENDATION: INCREASE SURVEILLANCE',
     },
     'dossiers': {
-      'ora.dat': 'SEE DOSSIER MODAL [CLICK PORTRAIT]',
-      'vorian.dat': 'DESIGNATION: VORIAN DUCAL\nSPECIES: HUMAN · HOMEWORLD: CORELLIA (CLAIMED)\nSTATUS: EMBEDDED · COVER: JIFF GORDA\nCELL: ECHO · HANDLER: AGENT COTLA',
-      'cotla.dat': 'DESIGNATION: AGENT COTLA\nRANK: SENIOR HANDLER · IMP-INT\nSPECIALTY: DEEP COVER OPERATIONS\nASSETS: 7 ACTIVE · 3 DORMANT',
-      'fenri.dat': 'DESIGNATION: FENRI\nSPECIES: UNKNOWN · HOMEWORLD: UNKNOWN\nSTATUS: ECHO CELL MEMBER\nTHREAT: LOW · UNAWARE OF VORIAN\'S ALLEGIANCE',
-      'jiff-gorda.dat': 'COVER IDENTITY FILE\nNAME: JIFF GORDA · SPECIES: HUMAN\nOCCUPATION: CORELLIAN FREIGHTER PILOT\nSTATUS: DECEASED (ORIGINAL) · IDENTITY ASSUMED BY VORIAN DUCAL',
-      'echo-cell.dat': 'REBEL CELL DESIGNATION: ECHO\nMEMBERS: 4 CONFIRMED · 2 SUSPECTED\nTHREAT LEVEL: MODERATE\nSTATUS: UNDER SURVEILLANCE · INFILTRATED',
+      'ora.dat': 'SEE DOSSIER MODAL [CLICK PORTRAIT]\nOR TYPE: dossier ora',
+      'vorian.dat': 'DESIGNATION: VORIAN DUCAL\nSPECIES: HUMAN · HOMEWORLD: CORELLIA (CLAIMED)\nSTATUS: EMBEDDED · COVER: JIFF GORDA\nCELL: ECHO · HANDLER: AGENT COTLA\nTYPE: dossier vorian',
+      'cotla.dat': 'DESIGNATION: AGENT COTLA\nRANK: SENIOR HANDLER · IMP-INT\nSPECIALTY: DEEP COVER OPERATIONS\nASSETS: 7 ACTIVE · 3 DORMANT\nTYPE: dossier cotla',
+      'fenri.dat': 'DESIGNATION: FENRI\nSPECIES: UNKNOWN · HOMEWORLD: UNKNOWN\nSTATUS: ECHO CELL MEMBER\nTHREAT: LOW · UNAWARE OF VORIAN\'S ALLEGIANCE\nTYPE: dossier fenri',
+      'jiff-gorda.dat': 'COVER IDENTITY FILE\nNAME: JIFF GORDA · SPECIES: HUMAN\nOCCUPATION: CORELLIAN FREIGHTER PILOT\nSTATUS: DECEASED (ORIGINAL) · IDENTITY ASSUMED BY VORIAN DUCAL\nTYPE: dossier jiff-gorda',
+      'echo-cell.dat': 'REBEL CELL DESIGNATION: ECHO\nMEMBERS: 4 CONFIRMED · 2 SUSPECTED\nTHREAT LEVEL: MODERATE\nSTATUS: UNDER SURVEILLANCE · INFILTRATED\nTYPE: dossier echo-cell',
     },
   };
 
@@ -2567,6 +2509,183 @@
     promptSigil.textContent = 'θ-7@imp-int:' + path + '$';
   }
 
+  // ═══ DOSSIER TEMPLATE SYSTEM ═══
+
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  const DOSSIERS = {
+    'ora': {
+      name: 'ORA',
+      subtitle: 'BOTHAN NETWORK · TIER-3 INFORMANT · IMP-INT FILE BTH-7740',
+      classification: 'RESTRICTED',
+      portrait: 'bothan-ora_image_0_0.jpg',
+      portraitAlt: 'Ora',
+      fileRef: 'FILE BTH-7740 · IMP-INT/EYES-ONLY',
+      sections: [
+        {
+          title: 'Identity',
+          type: 'grid',
+          fields: [
+            { label: 'Designation', value: 'ORA' },
+            { label: 'Species', value: 'BOTHAN' },
+            { label: 'Homeworld', value: 'BOTHAWUI (presumed)' },
+            { label: 'Network', value: 'BOTHAN SPYNET (independent cell)' },
+            { label: 'Operating Region', value: 'OUTER RIM · TATOOINE' },
+            { label: 'Cover', value: 'CANTINA INFORMANT' },
+          ]
+        },
+        {
+          title: 'Performance Record',
+          type: 'grid',
+          fields: [
+            { label: 'Tier', value: '3 (CONFIRMED)' },
+            { label: 'Reliability', value: '▮▮▮▮▯ 4/5', cls: 'live' },
+            { label: 'Operations', value: '47 LOGGED' },
+            { label: 'Burns', value: '0' },
+            { label: 'Compromised Channels', value: '0' },
+            { label: 'Falsified Reports', value: '1 (Y-3 / cleared)' },
+            { label: 'Last Contact', value: '01:11:58 · TODAY' },
+            { label: 'Status', value: 'SIGNAL LOST · INVESTIGATING', cls: 'alert' },
+          ]
+        },
+        {
+          title: 'Pricing & Channels',
+          type: 'grid',
+          fields: [
+            { label: 'Tariff (Standard Intel)', value: '2,500 IC / item' },
+            { label: 'Tariff (Codename-tagged)', value: '6,000 IC / item' },
+            { label: 'Preferred Channel', value: 'θ-7 ENC' },
+            { label: 'Backup Channel', value: 'π-3 (compromised Y-2)' },
+            { label: 'Drop Locations', value: 'MOS EISLEY · ANCHORHEAD' },
+            { label: 'Payment Method', value: 'IC IN-PERSON ONLY' },
+          ]
+        },
+        {
+          title: 'Known Associates',
+          type: 'associates',
+          items: [
+            { name: 'JABBA THE HUTT', detail: 'crime lord, frequent client' },
+            { name: 'UNNAMED BOTHAN HANDLER', detail: 'cell parent (SPYNET)' },
+            { name: 'VARIOUS HUTT LIEUTENANTS', detail: 'secondary clients' },
+            { name: 'IMP-INT (THIS FILE)', detail: 'primary client since Y-2' },
+          ]
+        },
+        {
+          title: 'Behavioral Profile',
+          type: 'bio',
+          text: 'Dispositionally cautious. Prone to glance-over-shoulder behavior under low-stress observation, suggesting either professional paranoia or an active second tail. Strokes beard before disclosure of high-value intel — pre-disclosure tell logged across 31 prior intercepts. Verbal tics include emphatic restatement of key codenames. Exits transmissions abruptly when countermeasures detected; this session is the third such termination in the last 60 days.',
+        },
+        {
+          title: "Today's Disclosure (Excerpt)",
+          type: 'bio',
+          text: 'Identified §VORIAN DUCAL§ as the true identity behind Imperial sleeper agent §JIFF GORDA§. Detailed cover-construction protocol: assassination of original Gorda on Tatooine, image-design correction of physical discrepancies, full transfer of Gorda family fortune. Named §AGENT COTLA§ and §FENRI§ as Imperial Intelligence handlers. Disclosed cell name ECHO. Transmission terminated mid-sentence at "…the project was continu—" following detection of unknown countermeasure.',
+        },
+      ],
+    },
+    'vorian': {
+      name: 'VORIAN DUCAL',
+      subtitle: 'IMPERIAL SLEEPER AGENT · COVER: JIFF GORDA · FILE IMP-SA-2291',
+      classification: 'EYES-ONLY',
+      portrait: null,
+      portraitAlt: 'Vorian Ducal',
+      fileRef: 'FILE IMP-SA-2291 · IMP-INT/EYES-ONLY',
+      sections: [],
+    },
+    'cotla': {
+      name: 'AGENT COTLA',
+      subtitle: 'SENIOR HANDLER · IMP-INT · DEEP COVER OPERATIONS',
+      classification: 'CLASSIFIED',
+      portrait: null,
+      portraitAlt: 'Agent Cotla',
+      fileRef: 'FILE IMP-HND-0091 · IMP-INT/CLASSIFIED',
+      sections: [],
+    },
+    'fenri': {
+      name: 'FENRI',
+      subtitle: 'ECHO CELL MEMBER · SPECIES UNKNOWN',
+      classification: 'RESTRICTED',
+      portrait: null,
+      portraitAlt: 'Fenri',
+      fileRef: 'FILE RBL-ECH-004 · IMP-INT/RESTRICTED',
+      sections: [],
+    },
+    'jiff-gorda': {
+      name: 'JIFF GORDA',
+      subtitle: 'COVER IDENTITY · DECEASED (ORIGINAL) · ASSUMED BY VORIAN DUCAL',
+      classification: 'CLASSIFIED',
+      portrait: null,
+      portraitAlt: 'Jiff Gorda',
+      fileRef: 'FILE CVR-JG-1187 · IMP-INT/CLASSIFIED',
+      sections: [],
+    },
+    'echo-cell': {
+      name: 'ECHO CELL',
+      subtitle: 'REBEL CELL · 4 CONFIRMED · 2 SUSPECTED · UNDER SURVEILLANCE',
+      classification: 'RESTRICTED',
+      portrait: null,
+      portraitAlt: 'Echo Cell',
+      fileRef: 'FILE RBL-ECH-000 · IMP-INT/RESTRICTED',
+      sections: [],
+    },
+  };
+
+  function renderDossier(id) {
+    const d = DOSSIERS[id];
+    if (!d) return;
+    const el = document.getElementById('dossier');
+    const header = document.getElementById('dossier-header');
+    const body = document.getElementById('dossier-body');
+    const footer = document.getElementById('dossier-footer');
+
+    var h = '';
+    if (d.portrait) {
+      h += '<img class="dossier__portrait" src="' + escHtml(d.portrait) + '" alt="' + escHtml(d.portraitAlt || d.name) + '">';
+    }
+    h += '<h2 class="dossier__title" id="dossier-title">' + escHtml(d.name);
+    if (d.subtitle) h += '<small>' + escHtml(d.subtitle) + '</small>';
+    h += '</h2>';
+    var clsMap = { 'CLASSIFIED': 'classified', 'EYES-ONLY': 'eyes-only', 'ENCRYPTED': 'encrypted' };
+    var clsMod = clsMap[d.classification] ? ' dossier__classification--' + clsMap[d.classification] : '';
+    h += '<span class="dossier__classification' + clsMod + '">' + escHtml(d.classification) + '</span>';
+    header.innerHTML = h;
+
+    var b = '';
+    for (var si = 0; si < d.sections.length; si++) {
+      var sec = d.sections[si];
+      b += '<section class="dossier__section"><h3>' + escHtml(sec.title) + '</h3>';
+      if (sec.type === 'grid') {
+        b += '<dl class="dossier__grid">';
+        for (var fi = 0; fi < sec.fields.length; fi++) {
+          var f = sec.fields[fi];
+          var ddCls = f.cls ? ' class="' + escHtml(f.cls) + '"' : '';
+          b += '<div class="dossier__field"><dt>' + escHtml(f.label) + '</dt><dd' + ddCls + '>' + escHtml(f.value) + '</dd></div>';
+        }
+        b += '</dl>';
+      } else if (sec.type === 'bio') {
+        b += '<p class="dossier__bio">' + escHtml(sec.text) + '</p>';
+      } else if (sec.type === 'associates') {
+        b += '<ul class="dossier__associates">';
+        for (var ai = 0; ai < sec.items.length; ai++) {
+          var a = sec.items[ai];
+          b += '<li><b>' + escHtml(a.name) + '</b> <span>· ' + escHtml(a.detail) + '</span></li>';
+        }
+        b += '</ul>';
+      }
+      b += '</section>';
+    }
+    if (d.sections.length === 0) {
+      b = '<section class="dossier__section"><h3>Status</h3><p class="dossier__bio">DOSSIER PENDING · DATA NOT YET COMPILED</p></section>';
+    }
+    body.innerHTML = b;
+
+    footer.innerHTML = '<span>' + escHtml(d.fileRef) + '</span><span class="blink">● LIVE</span>';
+
+    if (typeof el.showModal === 'function') { el.showModal(); }
+    else { el.setAttribute('open', ''); }
+    audio.playDossierOpen();
+    log('user', 'Dossier opened · ' + d.name);
+  }
+
   const TERMINAL_FNS = {
     'ls': function(args) {
       const target = args ? fsParsePath(args) : fsCwd;
@@ -2599,6 +2718,21 @@
     },
     'pwd': function() {
       return '/' + (fsCwd.length ? fsCwd.join('/') : '');
+    },
+    'dossier': function(args) {
+      if (!args) {
+        return 'AVAILABLE DOSSIERS: ' + Object.keys(DOSSIERS).join(' · ') + '\nUSAGE: dossier <name>';
+      }
+      var id = args.toLowerCase().replace(/\s+/g, '-');
+      if (!DOSSIERS[id]) {
+        var match = Object.keys(DOSSIERS).find(function(k) {
+          return DOSSIERS[k].name.toLowerCase() === args.toLowerCase();
+        });
+        if (!match) return 'ERR: NO DOSSIER ON FILE · ' + args.toUpperCase();
+        id = match;
+      }
+      renderDossier(id);
+      return 'LOADING DOSSIER: ' + DOSSIERS[id].name;
     },
   };
 
@@ -2666,13 +2800,7 @@
   const portraitFrame = document.querySelector('.chrome__portrait-frame');
   if (portraitFrame && dossier) {
     portraitFrame.addEventListener('click', () => {
-      if (typeof dossier.showModal === 'function') {
-        dossier.showModal();
-      } else {
-        dossier.setAttribute('open', '');
-      }
-      audio.playDossierOpen();
-      log('user', 'Dossier opened · ORA · Tier-3 informant');
+      renderDossier('ora');
     });
     portraitFrame.style.cursor = 'pointer';
   }
