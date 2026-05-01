@@ -17,7 +17,7 @@ import json
 import sys
 
 sys.path.insert(0, __import__("os").path.dirname(__file__))
-from _slack_utils import slack_api, paginate, resolve_channel, SlackError
+from _slack_utils import slack_api, paginate, resolve_channel, ensure_channel_membership, SlackError
 
 
 def list_channels(types: str = "public_channel,private_channel",
@@ -56,6 +56,8 @@ def main():
     parser = argparse.ArgumentParser(description="Manage Slack channels")
     parser.add_argument("--info", help="Get detailed info for a channel")
     parser.add_argument("--join", help="Join a channel")
+    parser.add_argument("--join-all-public", action="store_true",
+                        help="Join all public channels the bot is not a member of")
     parser.add_argument("--filter", help="Filter channels by name pattern")
     parser.add_argument("--members", action="store_true", help="Show member counts")
     parser.add_argument("--private", action="store_true", help="Include private channels")
@@ -86,6 +88,16 @@ def main():
             channel_id = resolve_channel(args.join)
             join_channel(channel_id)
             print(f"Joined {args.join}")
+
+        elif args.join_all_public:
+            channels = list_channels("public_channel")
+            joined = 0
+            for ch in channels:
+                if not ch.get("is_member"):
+                    if ensure_channel_membership(ch["id"]):
+                        print(f"  Joined #{ch['name']}")
+                        joined += 1
+            print(f"Joined {joined} new channels ({len(channels)} total public)")
 
         else:
             types = "public_channel"

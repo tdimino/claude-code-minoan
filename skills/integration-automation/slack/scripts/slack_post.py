@@ -56,6 +56,42 @@ def delete_message(channel_id: str, ts: str) -> dict:
     return slack_api("chat.delete", channel=channel_id, ts=ts)
 
 
+def build_ai_response_blocks(text: str, feedback: bool = True) -> list:
+    """Build Block Kit blocks for an AI response with feedback buttons."""
+    blocks = [
+        {"type": "section", "text": {"type": "mrkdwn", "text": text}},
+    ]
+    if feedback:
+        blocks.append({
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": ":+1:"},
+                    "action_id": "ai_feedback_positive",
+                    "value": "positive",
+                },
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": ":-1:"},
+                    "action_id": "ai_feedback_negative",
+                    "value": "negative",
+                },
+            ],
+        })
+    return blocks
+
+
+def post_ai_message(channel_id: str, text: str, thread_ts: str = None,
+                    feedback: bool = True) -> dict:
+    """Post a message with AI Block Kit components."""
+    blocks = build_ai_response_blocks(text, feedback=feedback)
+    params = {"channel": channel_id, "text": text, "blocks": blocks}
+    if thread_ts:
+        params["thread_ts"] = thread_ts
+    return slack_api("chat.postMessage", **params)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Post messages to Slack")
     parser.add_argument("channel", help="Channel name (#general) or ID (C12345)")
@@ -66,6 +102,8 @@ def main():
     parser.add_argument("--update", help="Timestamp of message to update")
     parser.add_argument("--delete", help="Timestamp of message to delete")
     parser.add_argument("--unfurl", action="store_true", help="Unfurl links in message")
+    parser.add_argument("--ai", action="store_true", help="Post with AI feedback buttons")
+    parser.add_argument("--no-feedback", action="store_true", help="Disable feedback buttons (with --ai)")
     parser.add_argument("--json", action="store_true", help="Output raw JSON response")
     args = parser.parse_args()
 
@@ -99,6 +137,21 @@ def main():
             else:
                 ts = result.get("scheduled_message_id", "")
                 print(f"Scheduled message in {args.channel} (id: {ts})")
+
+        elif args.ai:
+            if not args.text:
+                print("Error: --ai requires message text", file=sys.stderr)
+                sys.exit(1)
+            result = post_ai_message(
+                channel_id, args.text, args.thread,
+                feedback=not args.no_feedback,
+            )
+            if args.json:
+                print(json.dumps(result, indent=2))
+            else:
+                ts = result.get("ts", "")
+                thread_info = f" (thread: {args.thread})" if args.thread else ""
+                print(f"Posted AI message to {args.channel}{thread_info} [ts: {ts}]")
 
         else:
             if not args.text:

@@ -7,8 +7,8 @@ Rate limits vary by app type. The May 2025 changes only reduced `conversations.h
 | Tier | Rate | Burst | Methods |
 |------|------|-------|---------|
 | **Tier 1** | **1/min** | None | `conversations.history`, `conversations.replies` (commercial non-Marketplace only) |
-| **Tier 2** | 20/min | 3 burst | `conversations.list`, `users.list`, `search.messages`, `search.files` |
-| **Tier 3** | 50/min | 5 burst | `reactions.*`, `conversations.info`, `conversations.join`, `users.info`, `users.lookupByEmail`, `chat.update`, `chat.delete`, `chat.scheduleMessage` |
+| **Tier 2** | 20/min | 3 burst | `conversations.list`, `users.list`, `search.messages`, `search.files`, `assistant.search.context` |
+| **Tier 3** | 50/min | 5 burst | `reactions.*`, `conversations.info`, `conversations.join`, `users.info`, `users.lookupByEmail`, `chat.update`, `chat.delete`, `chat.scheduleMessage`, `chat.startStream`, `chat.appendStream`, `chat.stopStream` |
 | **Tier 4** | 100+/min | Varies | `files.getUploadURLExternal`, `files.completeUploadExternal` |
 | **Special** | 1/sec/channel | 1 burst | `chat.postMessage` (per-channel, not global) |
 
@@ -47,8 +47,12 @@ Our `_slack_utils.py` handles this automatically:
 
 ### Search is moderate
 - 20 queries/min = fine for interactive use
-- Bot tokens only search channels the bot is in
-- For workspace-wide search, use a user token with `search:read` scope
+- **RTS API** (`assistant.search.context`): Tier 2 (20/min). Searches messages, files, channels, and users with a bot token. Requires granular `search:read.*` scopes.
+- **Legacy**: Bot tokens only search channels the bot is in. For workspace-wide search, set `SLACK_USER_TOKEN` (user token with `search:read` scope).
+
+### Streaming is comfortable
+- `chat.startStream`, `chat.appendStream`, `chat.stopStream` at Tier 3 (50/min)
+- `chat.appendStream` can be called frequently within a single stream without per-call rate limiting
 
 ## Marketplace vs Non-Marketplace
 
