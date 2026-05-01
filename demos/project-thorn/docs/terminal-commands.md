@@ -1,20 +1,30 @@
 # Terminal Commands
 
-The command prompt at the bottom accepts in-universe commands. 25+ lore-aware responses plus 13 atmospheric error messages for unrecognized input.
+The command prompt at the bottom accepts in-universe commands. A virtual filesystem with directory navigation, 25+ lore-aware responses, and 13 atmospheric error messages for unrecognized input.
 
-## Commands
+## Filesystem Commands
+
+The terminal implements a virtual filesystem with three directories (`cotla-directives/`, `signal-archive/`, `dossiers/`) and various intelligence files. The prompt sigil updates to show the current directory.
+
+| Command | Response |
+|---------|----------|
+| `ls` | List files in current directory (directories shown with trailing `/`) |
+| `ls <path>` | List files in a specific directory |
+| `cat <file>` | Display file contents; encrypted files (`.enc`) return denial |
+| `cat <dir/file>` | Relative paths work from any directory |
+| `cd <dir>` | Change directory; supports `..`, `/`, `~` |
+| `pwd` | Print current working directory |
+
+## Static Commands
 
 | Command | Response |
 |---------|----------|
 | `help` | List all available commands |
-| `ls` | File listing: intercept.log, thorn.enc, ora-profile.dat... |
 | `whoami` | IMP-INT operator identity, clearance, handler |
 | `ping ora` | Request timeout—host unreachable, signal lost |
 | `ping chimera` | ISD Chimaera relay nominal |
 | `scan` | Mos Eisley sector bio-signatures, Bothan matches |
 | `status` | Channel state, asset cover, project priority |
-| `cat intercept.log` | Points to transcript above |
-| `cat thorn.enc` | Encrypted—clearance required |
 | `history` | Session command log with intercept milestones |
 | `date` | Imperial standard date/time |
 | `uptime` | Channel uptime since establishment |
@@ -49,10 +59,22 @@ Valid commands trigger a 0.4s burst from `01-scifi-computer-terminal-unfa.mp3` a
 
 ## Adding Commands
 
-Add to the `TERMINAL_CMDS` object (line 2464 in index.html):
+**Static commands** — add to the `TERMINAL_CMDS` object:
 
 ```js
 TERMINAL_CMDS['newcommand'] = 'Response text here.\nSecond line.';
 ```
 
-For denied commands, add to the `DENIED_CMDS` Set (line 2522).
+**Function commands** — add to `TERMINAL_FNS` for commands that need arguments or state:
+
+```js
+TERMINAL_FNS['newcmd'] = function(args) {
+  return 'Response for: ' + args;
+};
+```
+
+`TERMINAL_FNS` is checked before `TERMINAL_CMDS`. The function receives the command arguments as a trimmed string.
+
+For denied commands, add to the `DENIED_CMDS` Set.
+
+**Filesystem files** — add entries to the `FILESYSTEM` object. String values are file contents, `null` values are encrypted, and nested objects are directories.
