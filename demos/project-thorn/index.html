@@ -2465,11 +2465,7 @@
   // ═══ TERMINAL PROMPT ═══
 
   const TERMINAL_CMDS = {
-    'help': 'AVAILABLE: ls · cat · whoami · ping · uptime · date · history · clear · exit · status · scan · locate · decrypt · credits · kill',
-    'ls': 'intercept.log  thorn.enc  ora-profile.dat  handler-notes.redacted  cotla-directives/  signal-archive/',
-    'cat intercept.log': '>>> STREAM ACTIVE · 1 FEED · CHANNEL θ-7\n>>> SEE TRANSCRIPT ABOVE',
-    'cat thorn.enc': 'ERR: FILE ENCRYPTED · AES-256-GCM · CLEARANCE OMEGA REQUIRED',
-    'cat ora-profile.dat': 'DESIGNATION: ORA · SPECIES: BOTHAN · TIER: 3 · RELIABILITY: 4/5\nSEE DOSSIER [CLICK PORTRAIT]',
+    'help': 'AVAILABLE: ls · cat · cd · pwd · whoami · ping · uptime · date · history · clear · exit · status · scan · locate · decrypt · credits · kill',
     'whoami': 'IMP-INT SURVEILLANCE OPERATOR · TERMINAL θ-7@imp-int\nCLEARANCE: SEC-LULOMEGA · HANDLER: AGENT COTLA',
     'ping ora': 'PING BTH-7740... REQUEST TIMEOUT\nPING BTH-7740... REQUEST TIMEOUT\nHOST UNREACHABLE · SIGNAL LOST 01:13:58',
     'ping': 'USAGE: ping <target>\nKNOWN HOSTS: ora · chimera · coruscant · echo-base',
@@ -2508,6 +2504,104 @@
   ];
   let lastFallbackIdx = -1;
 
+  // ═══ VIRTUAL FILESYSTEM ═══
+
+  const FILESYSTEM = {
+    'intercept.log': '>>> STREAM ACTIVE · 1 FEED · CHANNEL θ-7\n>>> SEE TRANSCRIPT ABOVE',
+    'thorn.enc': null,
+    'ora-profile.dat': 'DESIGNATION: ORA · SPECIES: BOTHAN · TIER: 3 · RELIABILITY: 4/5\nSEE DOSSIER [CLICK PORTRAIT]',
+    'handler-notes.redacted': '[REDACTED] · HANDLER EYES ONLY\nCLEARANCE: OMEGA-PRIME REQUIRED',
+    'cotla-directives': {
+      'directive-001.txt': 'DIRECTIVE 001 · MAINTAIN COVER AT ALL COSTS\nASSET GORDA IS PRIORITY ALPHA\nDO NOT BREAK EMBED UNDER ANY CIRCUMSTANCES',
+      'directive-002.txt': 'DIRECTIVE 002 · MONITOR ORA CONTACTS\nLOG ALL CREDIT TRANSACTIONS > 1000 IC\nFLAG ANY MENTION OF PROJECT THORN',
+      'standing-orders.enc': null,
+    },
+    'signal-archive': {
+      'capture-001.log': 'CAPTURE 001 · 3.7.10 GrS · ROUTINE\nORA → UNKNOWN · RE: SPICE SHIPMENT\nINTEL VALUE: LOW · FILED',
+      'capture-002.log': 'CAPTURE 002 · 3.7.11 GrS · FLAGGED\nORA → [ENCRYPTED] · RE: "THE PROJECT"\nINTEL VALUE: HIGH · FORWARDED TO COTLA',
+      'analysis.dat': 'SIGNAL ANALYSIS · 47 INTERCEPTS LOGGED\nPATTERN: ORA TRANSMITS 02:00-04:00 LOCAL\nCOUNTERMEASURE FREQ: 12% · RISING\nRECOMMENDATION: INCREASE SURVEILLANCE',
+    },
+    'dossiers': {
+      'ora.dat': 'SEE DOSSIER MODAL [CLICK PORTRAIT]',
+      'vorian.dat': 'DESIGNATION: VORIAN DUCAL\nSPECIES: HUMAN · HOMEWORLD: CORELLIA (CLAIMED)\nSTATUS: EMBEDDED · COVER: JIFF GORDA\nCELL: ECHO · HANDLER: AGENT COTLA',
+      'cotla.dat': 'DESIGNATION: AGENT COTLA\nRANK: SENIOR HANDLER · IMP-INT\nSPECIALTY: DEEP COVER OPERATIONS\nASSETS: 7 ACTIVE · 3 DORMANT',
+      'fenri.dat': 'DESIGNATION: FENRI\nSPECIES: UNKNOWN · HOMEWORLD: UNKNOWN\nSTATUS: ECHO CELL MEMBER\nTHREAT: LOW · UNAWARE OF VORIAN\'S ALLEGIANCE',
+      'jiff-gorda.dat': 'COVER IDENTITY FILE\nNAME: JIFF GORDA · SPECIES: HUMAN\nOCCUPATION: CORELLIAN FREIGHTER PILOT\nSTATUS: DECEASED (ORIGINAL) · IDENTITY ASSUMED BY VORIAN DUCAL',
+      'echo-cell.dat': 'REBEL CELL DESIGNATION: ECHO\nMEMBERS: 4 CONFIRMED · 2 SUSPECTED\nTHREAT LEVEL: MODERATE\nSTATUS: UNDER SURVEILLANCE · INFILTRATED',
+    },
+  };
+
+  let fsCwd = [];
+  const promptSigil = document.querySelector('.prompt__sigil');
+
+  function fsResolve(pathSegments) {
+    let node = FILESYSTEM;
+    for (const seg of pathSegments) {
+      if (node === null || typeof node === 'string') return undefined;
+      if (!(seg in node)) return undefined;
+      node = node[seg];
+    }
+    return node;
+  }
+
+  function fsIsDir(node) {
+    return node !== null && typeof node === 'object';
+  }
+
+  function fsParsePath(arg) {
+    if (arg.startsWith('~/')) arg = '/' + arg.substring(2);
+    else if (arg === '~') arg = '/';
+    let segments = arg.startsWith('/') ? [] : [...fsCwd];
+    const parts = arg.split('/').filter(Boolean);
+    for (const p of parts) {
+      if (p === '.') continue;
+      if (p === '..') { segments.pop(); continue; }
+      segments.push(p);
+    }
+    return segments;
+  }
+
+  function fsUpdatePrompt() {
+    if (!promptSigil) return;
+    const path = fsCwd.length === 0 ? '~' : '~/' + fsCwd.join('/');
+    promptSigil.textContent = 'θ-7@imp-int:' + path + '$';
+  }
+
+  const TERMINAL_FNS = {
+    'ls': function(args) {
+      const target = args ? fsParsePath(args) : fsCwd;
+      const node = fsResolve(target);
+      if (node === undefined) return 'ERR: NO SUCH DIRECTORY · ' + args;
+      if (!fsIsDir(node)) return 'ERR: NOT A DIRECTORY · ' + args;
+      const entries = Object.keys(node).map(function(k) {
+        return fsIsDir(node[k]) ? k + '/' : k;
+      });
+      return entries.join('  ');
+    },
+    'cat': function(args) {
+      if (!args) return 'USAGE: cat <filename>';
+      const segments = fsParsePath(args);
+      const node = fsResolve(segments);
+      if (node === undefined) return 'ERR: FILE NOT FOUND · ' + args;
+      if (fsIsDir(node)) return 'ERR: IS A DIRECTORY · USE ls ' + args;
+      if (node === null) return 'ERR: FILE ENCRYPTED · AES-256-GCM · CLEARANCE OMEGA REQUIRED';
+      return node;
+    },
+    'cd': function(args) {
+      if (!args || args === '/' || args === '~') { fsCwd = []; fsUpdatePrompt(); return '/'; }
+      const segments = fsParsePath(args);
+      const node = fsResolve(segments);
+      if (node === undefined) return 'ERR: NO SUCH DIRECTORY · ' + args;
+      if (!fsIsDir(node)) return 'ERR: NOT A DIRECTORY · ' + args;
+      fsCwd = segments;
+      fsUpdatePrompt();
+      return '/' + (fsCwd.length ? fsCwd.join('/') : '');
+    },
+    'pwd': function() {
+      return '/' + (fsCwd.length ? fsCwd.join('/') : '');
+    },
+  };
+
   const promptInput = document.getElementById('prompt-input');
   const promptErrors = document.getElementById('prompt-errors');
   if (promptInput) {
@@ -2523,11 +2617,14 @@
           return;
         }
         const DENIED_CMDS = new Set(['sudo','rm','kill','exit','decrypt','man']);
-        const match = TERMINAL_CMDS[cmd] || TERMINAL_CMDS[cmd.split(' ')[0]];
-        let response;
         const verb = cmd.split(' ')[0];
-        if (match) {
-          response = match;
+        const cmdArgs = cmd.substring(verb.length).trim();
+        let response;
+        if (TERMINAL_FNS[verb]) {
+          response = TERMINAL_FNS[verb](cmdArgs);
+          audio.playTerminalAck();
+        } else if (TERMINAL_CMDS[cmd] || TERMINAL_CMDS[verb]) {
+          response = TERMINAL_CMDS[cmd] || TERMINAL_CMDS[verb];
           if (DENIED_CMDS.has(verb)) { audio.playTerminalDeny(); }
           else { audio.playTerminalAck(); }
         } else {
