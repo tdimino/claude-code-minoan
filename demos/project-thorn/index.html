@@ -472,13 +472,56 @@
     border-bottom: 1px solid rgba(106, 216, 255, 0.3);
     background: rgba(106, 216, 255, 0.04);
   }
-  .dossier__portrait {
+  .dossier__portrait-frame {
+    position: relative;
     width: 96px; height: 96px;
+    flex-shrink: 0;
     border: 1px solid rgba(106, 216, 255, 0.6);
     box-shadow: 0 0 16px rgba(106, 216, 255, 0.25);
+    overflow: hidden;
+  }
+  .dossier__portrait-frame::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 1px,
+      rgba(0,0,0,0.35) 1px,
+      rgba(0,0,0,0.35) 2px
+    );
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    z-index: 2;
+  }
+  .dossier__portrait-frame::before {
+    content: "";
+    position: absolute; inset: 2px;
+    background:
+      linear-gradient(90deg, rgba(106,216,255,0.7) 0 6px, transparent 6px) top left / 6px 1px no-repeat,
+      linear-gradient(180deg, rgba(106,216,255,0.7) 0 6px, transparent 6px) top left / 1px 6px no-repeat,
+      linear-gradient(270deg, rgba(106,216,255,0.7) 0 6px, transparent 6px) top right / 6px 1px no-repeat,
+      linear-gradient(180deg, rgba(106,216,255,0.7) 0 6px, transparent 6px) top right / 1px 6px no-repeat,
+      linear-gradient(90deg, rgba(106,216,255,0.7) 0 6px, transparent 6px) bottom left / 6px 1px no-repeat,
+      linear-gradient(0deg, rgba(106,216,255,0.7) 0 6px, transparent 6px) bottom left / 1px 6px no-repeat,
+      linear-gradient(270deg, rgba(106,216,255,0.7) 0 6px, transparent 6px) bottom right / 6px 1px no-repeat,
+      linear-gradient(0deg, rgba(106,216,255,0.7) 0 6px, transparent 6px) bottom right / 1px 6px no-repeat;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .dossier__portrait {
+    width: 100%; height: 100%;
     object-fit: cover;
+    display: block;
     filter: saturate(0.75) contrast(1.1) brightness(0.95);
-    flex-shrink: 0;
+    animation: dossier-portrait-flicker 8s steps(1) infinite;
+  }
+  @keyframes dossier-portrait-flicker {
+    0%, 90%, 100% { opacity: 1; filter: saturate(0.75) contrast(1.1) brightness(0.95); }
+    91% { opacity: 0.5; filter: saturate(0.3) contrast(1.4) brightness(0.6) hue-rotate(25deg); }
+    92% { opacity: 1; filter: saturate(0.75) contrast(1.1) brightness(0.95); }
+    96% { opacity: 0.8; filter: saturate(0.75) contrast(1.1) brightness(0.95) blur(0.5px); }
+    97% { opacity: 1; filter: saturate(0.75) contrast(1.1) brightness(0.95); }
   }
   .dossier__title {
     flex: 1;
@@ -1135,6 +1178,17 @@
     box-shadow: 0 4px 24px rgba(0,0,0,0.8), 0 0 20px rgba(255,59,48,0.2);
   }
 
+  .person.dossier-linked.decoded, .thorn.dossier-linked.decoded {
+    cursor: pointer;
+    transition: text-shadow 0.2s, color 0.2s;
+  }
+  .person.dossier-linked.decoded:hover {
+    text-shadow: 0 0 8px rgba(92, 255, 144, 0.6), 0 0 16px rgba(92, 255, 144, 0.3);
+  }
+  .thorn.dossier-linked.decoded:hover {
+    text-shadow: 0 0 8px rgba(255, 48, 48, 0.6), 0 0 16px rgba(255, 48, 48, 0.3);
+  }
+
   /* ═══ END-STATE / SIGNAL LOST ═══ */
 
   body.signal-lost .line:not(.line--signal-lost) {
@@ -1238,7 +1292,7 @@
     .dossier__card { width: 100vw; max-height: 100dvh; }
     .dossier__header { padding: 16px; gap: 12px; }
     .dossier__body { padding: 16px; max-height: calc(100dvh - 200px); }
-    .dossier__portrait { width: 72px; height: 72px; }
+    .dossier__portrait-frame { width: 72px; height: 72px; }
     .dossier__title { font-size: 18px; }
     .log-panel { width: 100%; right: 0; left: 0; bottom: 44px; }
   }
@@ -1407,7 +1461,7 @@
 
     <article class="line line--narrative" data-time="01:04" data-block="7">
       <div class="line__time">[01:04:18]</div>
-      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Two standard years ago, on a particularly grueling day of the Harvest season, a young miner strode into the Mos Eisley cantina. Following a private rendezvous with an agent of Imperial Intelligence, the young miner ceased being §Vorian Ducal§ and became §Jiff Gorda§. The §Jiff Gorda§ you know of, the one whom you are seeking information about, is merely an actor, a fine actor at that; but in the end, yet another tool of the Empire.¶However, this tool has a codename, ¤Project Thorn¤, and has been one of the focuses of Imperial Intelligence ever since the day of its initiation. ¤Project Thorn¤, quite simply, was designed to deceive and infiltrate the highest ranks of the Rebel Alliance. Once the sleeper had secured an influential position in the Rebellion, he or she would begin feeding data to Imperial Intelligence regarding fleet movements, alliance leadership, imminent rebel attacks, sources of funding and supplies, et cetera.¶From a list of promising candidates, a miner on Tatooine caught the eye of §Agent Cotla§, the man leading ¤Project Thorn¤. Other than one or two physical discrepancies which were later corrected through image design, §Vorian§ bore a striking resemblance to a noble born by the name of §Jiff Gorda§.¶The real §Jiff Gorda§ rebelliously left home in his teens, much to the dismay of the Gordas, a well off family of Corellian nobles and known sympathizers of the Rebellion. Imperial Intelligence felt that the identity of §Jiff Gorda§ would make an ideal front for their new double agent, and thus, it was decided that §Jiff Gorda§ would be terminated. Conveniently, the assassination was conducted on Tatooine, where Gorda had begun dealing with the local Hutts and crimelords. Imperial Intelligence feared that the Hutts might detect deception on the part of the as of yet-untested §Vorian Ducal§, but it appears that intoxication and riches numb even the mighty senses of overgrown slugs.¶Along with the title and name of the deceased Corellian noble born, §Vorian§—now known as §Jiff§—was granted full access to the Gorda family fortune. Vorian's first true task, which was closely monitored by his superiors, required '§Jiff Gorda§' to join the ranks of an independent group of rebels referred to as 'ECHO'. Vorian's ability to adapt and improvise impressed agents §Cotla§ and §Fenri§, and so the project was continu—&quot;"></span></div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Two standard years ago, on a particularly grueling day of the Harvest season, a young miner strode into the Mos Eisley cantina. Following a private rendezvous with an agent of Imperial Intelligence, the young miner ceased being §Vorian Ducal§ and became §Jiff Gorda§. The §Jiff Gorda§ you know of, the one whom you are seeking information about, is merely an actor, a fine actor at that; but in the end, yet another tool of the Empire.¶However, this tool has a codename, ¤Project Thorn¤, and has been one of the focuses of Imperial Intelligence ever since the day of its initiation. ¤Project Thorn¤, quite simply, was designed to deceive and infiltrate the highest ranks of the Rebel Alliance. Once the sleeper had secured an influential position in the Rebellion, he or she would begin feeding data to Imperial Intelligence regarding fleet movements, alliance leadership, imminent rebel attacks, sources of funding and supplies, et cetera.¶From a list of promising candidates, a miner on Tatooine caught the eye of §Agent Cotla§, the man leading ¤Project Thorn¤. Other than one or two physical discrepancies which were later corrected through image design, §Vorian§ bore a striking resemblance to a noble born by the name of §Jiff Gorda§.¶The real §Jiff Gorda§ rebelliously left home in his teens, much to the dismay of the Gordas, a well off family of Corellian nobles and known sympathizers of the Rebellion. Imperial Intelligence felt that the identity of §Jiff Gorda§ would make an ideal front for their new double agent, and thus, it was decided that §Jiff Gorda§ would be terminated. Conveniently, the assassination was conducted on Tatooine, where Gorda had begun dealing with the local Hutts and crimelords. Imperial Intelligence feared that the Hutts might detect deception on the part of the as of yet-untested §Vorian Ducal§, but it appears that intoxication and riches numb even the mighty senses of overgrown slugs.¶Along with the title and name of the deceased Corellian noble born, §Vorian§—now known as §Jiff§—was granted full access to the Gorda family fortune. Vorian's first true task, which was closely monitored by his superiors, required '§Jiff Gorda§' to join the ranks of an independent group of rebels referred to as '¤ECHO¤'. Vorian's ability to adapt and improvise impressed agents §Cotla§ and §Fenri§, and so the project was continu—&quot;"></span></div>
     </article>
 
     <article class="line line--interrupt" data-time="01:11" data-block="8">
@@ -1521,6 +1575,19 @@
     'Agent Cotla': 'IMP-INT · PROJECT THORN HANDLER',
     'Cotla': 'IMP-INT · LEAD HANDLER',
     'Fenri': 'IMP-INT · SECONDARY HANDLER',
+    'ECHO': 'REBEL CELL · UNDER SURVEILLANCE',
+  };
+
+  const NAME_TO_DOSSIER = {
+    'vorian ducal': 'vorian',
+    'vorian': 'vorian',
+    'jiff gorda': 'jiff-gorda',
+    'jiff': 'jiff-gorda',
+    'agent cotla': 'cotla',
+    'cotla': 'cotla',
+    'fenri': 'fenri',
+    'project thorn': 'thorn',
+    'echo': 'echo-cell',
   };
 
   // Intercept log — what the Empire's surveillance system *notices* about the
@@ -1611,6 +1678,7 @@
     blockTimerId: null,
     scrambleTimers: [],
     lineRevealTimers: [],
+    dossierUnlocked: false,
   };
   const interceptTimers = [];
 
@@ -2586,48 +2654,418 @@
       name: 'VORIAN DUCAL',
       subtitle: 'IMPERIAL SLEEPER AGENT · COVER: JIFF GORDA · FILE IMP-SA-2291',
       classification: 'EYES-ONLY',
-      portrait: null,
+      portrait: 'gen/vorian-ducal-final_0.jpg',
       portraitAlt: 'Vorian Ducal',
       fileRef: 'FILE IMP-SA-2291 · IMP-INT/EYES-ONLY',
-      sections: [],
+      sections: [
+        {
+          title: 'True Identity',
+          type: 'grid',
+          fields: [
+            { label: 'Designation', value: 'VORIAN DUCAL' },
+            { label: 'Species', value: 'HUMAN' },
+            { label: 'Homeworld', value: 'TATOOINE' },
+            { label: 'Prior Occupation', value: 'MINER · TATOOINE MINERAL EXTRACTION' },
+            { label: 'Age at Recruitment', value: 'EARLY 20s' },
+            { label: 'Recruited By', value: 'AGENT COTLA' },
+            { label: 'Recruitment Date', value: 'HARVEST SEASON · Y-2' },
+            { label: 'Recruitment Site', value: 'MOS EISLEY CANTINA' },
+          ]
+        },
+        {
+          title: 'Cover Profile',
+          type: 'grid',
+          fields: [
+            { label: 'Cover Name', value: 'JIFF GORDA' },
+            { label: 'Cover Origin', value: 'CORELLIA · HOUSE GORDA' },
+            { label: 'Cover Backstory', value: 'NOBLE BORN · LEFT HOME IN TEENS' },
+            { label: 'Original Status', value: 'TERMINATED · TATOOINE · Y-2' },
+            { label: 'Image Design', value: '2 PHYSICAL CORRECTIONS · CLEARED' },
+            { label: 'Financial Access', value: 'GORDA FORTUNE · FULL TRANSFER' },
+            { label: 'Cover Depth', value: '▮▮▮▮▮ 5/5', cls: 'live' },
+          ]
+        },
+        {
+          title: 'Operational Status',
+          type: 'grid',
+          fields: [
+            { label: 'Project', value: 'THORN' },
+            { label: 'Classification', value: 'EYES-ONLY' },
+            { label: 'Phase', value: 'INFILTRATION (ACTIVE)' },
+            { label: 'Cell Placement', value: 'ECHO' },
+            { label: 'Primary Handler', value: 'AGENT COTLA' },
+            { label: 'Secondary Handler', value: 'FENRI' },
+            { label: 'Adaptability', value: '▮▮▮▮▮ 5/5', cls: 'live' },
+            { label: 'Compromise Risk', value: 'ELEVATED · SEE ADVISORY', cls: 'alert' },
+          ]
+        },
+        {
+          title: 'Known Associates',
+          type: 'associates',
+          items: [
+            { name: 'AGENT COTLA', detail: 'primary handler, Project Thorn lead' },
+            { name: 'FENRI', detail: 'secondary handler, field evaluation' },
+            { name: 'ECHO CELL', detail: 'infiltration target, currently embedded' },
+            { name: 'HOUSE GORDA', detail: 'Corellian nobles, rebel sympathizers, unaware of substitution' },
+            { name: 'LOCAL HUTTS', detail: 'Tatooine contacts, tested early cover (passed)' },
+          ]
+        },
+        {
+          title: 'Psychological Assessment',
+          type: 'bio',
+          text: 'Exceptional adaptability under uncontrolled field conditions. Transitioned from manual labor background to aristocratic cover without detectable behavioral discontinuity. Performance during initial Hutt interactions exceeded projections despite zero prior intelligence training. No ideological markers of concern. Motivation assessed as economic and advancement-driven. No familial attachments to Tatooine of operational relevance. Handlers note sustained improvisation capacity under pressure. Recommended for extended deep cover without reservation.',
+        },
+        {
+          title: 'Operational Timeline',
+          type: 'bio',
+          text: 'Y-2 HARVEST: Identified from candidate pool by Agent Cotla. Physical match to Jiff Gorda rated at 94% — two discrepancies corrected via image design (ref: IMP-SA-2291-ANNEX-C). Original Gorda terminated on Tatooine during Hutt dealings. Identity transfer executed same cycle. Y-2 to Y-1: Cover consolidation. Assumed Gorda financial assets, established Corellian backstory, passed Hutt scrutiny. Y-1: First operational tasking — infiltration of rebel cell ECHO. Assessment by Cotla and Fenri: exceeded expectations. PRESENT: Embedded in ECHO. Awaiting activation order for Phase 3 — penetration of Alliance command structure.',
+        },
+        {
+          title: 'Force Sensitivity Assessment [UMBRA]',
+          type: 'bio',
+          text: 'CLASSIFICATION: UMBRA · INQUISITORIUS LIAISON ONLY — During IMP-INT training phase, visiting Sith Inquisitor flagged subject VORIAN DUCAL for latent Force sensitivity. Subject untrained. Apparently unaware of ability. Inquisitorius formally notified per standing protocol. Decision to retain subject in Project Thorn pending review — operational value of embedded Force-sensitive asset within Rebel Alliance command structure assessed as unprecedented. Sustained improvisation capacity under field pressure noted across multiple evaluations; correlation with low-level Force intuition not ruled out. Recommend continued observation. Do not inform subject.',
+        },
+        {
+          title: 'Security Advisory',
+          type: 'bio',
+          text: 'PRIORITY: Source ORA (BTH-7740) disclosed true identity of VORIAN DUCAL and cover construction protocol via intercepted transmission TODAY at 01:11:58. Transmission recipient unknown. Ora named Agent Cotla, Fenri, cell designation ECHO, and Project Thorn by codename. Signal lost mid-disclosure — extent of compromise undetermined. Recommend immediate assessment of VORIAN cover integrity and contingency activation review for Project Thorn.',
+        },
+      ],
     },
     'cotla': {
       name: 'AGENT COTLA',
       subtitle: 'SENIOR HANDLER · IMP-INT · DEEP COVER OPERATIONS',
       classification: 'CLASSIFIED',
-      portrait: null,
+      portrait: 'gen/cotla-final_0.jpg',
       portraitAlt: 'Agent Cotla',
       fileRef: 'FILE IMP-HND-0091 · IMP-INT/CLASSIFIED',
-      sections: [],
+      sections: [
+        {
+          title: 'Identity',
+          type: 'grid',
+          fields: [
+            { label: 'Designation', value: 'AGENT COTLA' },
+            { label: 'Species', value: 'HUMAN' },
+            { label: 'Homeworld', value: '[REDACTED]' },
+            { label: 'Rank', value: 'SENIOR HANDLER' },
+            { label: 'Division', value: 'IMPERIAL INTELLIGENCE · DEEP COVER OPS' },
+            { label: 'Clearance', value: 'OMEGA' },
+          ]
+        },
+        {
+          title: 'Service Record',
+          type: 'grid',
+          fields: [
+            { label: 'Years Active', value: '14 STANDARD' },
+            { label: 'Specialty', value: 'DEEP COVER CONSTRUCTION · IDENTITY FABRICATION' },
+            { label: 'Active Assets', value: '7', cls: 'live' },
+            { label: 'Dormant Assets', value: '3' },
+            { label: 'Operations Led', value: '12 (9 SUCCESSFUL · 2 ONGOING · 1 COMPROMISED)' },
+            { label: 'Asset Losses', value: '1 (Y-6 · NON-ATTRIBUTABLE)' },
+            { label: 'Performance Rating', value: '▮▮▮▮▮ 5/5', cls: 'live' },
+          ]
+        },
+        {
+          title: 'Project Thorn — Lead',
+          type: 'grid',
+          fields: [
+            { label: 'Role', value: 'PROJECT LEAD · SOLE ARCHITECT' },
+            { label: 'Asset', value: 'VORIAN DUCAL (COVER: JIFF GORDA)' },
+            { label: 'Initiated', value: 'Y-2 · HARVEST SEASON' },
+            { label: 'Current Phase', value: 'INFILTRATION (ACTIVE)' },
+            { label: 'Target', value: 'REBEL ALLIANCE COMMAND STRUCTURE' },
+            { label: 'Intelligence Objectives', value: 'FLEET MOVEMENTS · LEADERSHIP · FUNDING SOURCES' },
+            { label: 'Methods Deployed', value: 'IDENTITY TERMINATION · IMAGE DESIGN · FORTUNE TRANSFER' },
+            { label: 'Project Status', value: 'ACTIVE · POTENTIAL COMPROMISE', cls: 'alert' },
+          ]
+        },
+        {
+          title: 'Known Assets & Contacts',
+          type: 'associates',
+          items: [
+            { name: 'VORIAN DUCAL', detail: 'primary asset, Project Thorn (active)' },
+            { name: 'FENRI', detail: 'field evaluator, Project Thorn (role under review)' },
+            { name: '[6 ADDITIONAL ACTIVE]', detail: 'designations withheld per compartment protocol' },
+            { name: '[3 DORMANT]', detail: 'available for reactivation' },
+            { name: 'ORA (BTH-7740)', detail: 'paid informant, Bothan Spynet (independent)' },
+          ]
+        },
+        {
+          title: 'Officer Profile',
+          type: 'bio',
+          text: 'Methodical operational planner with zero tolerance for uncontrolled variables. Personally selects and recruits all deep cover assets — refuses delegation of candidate evaluation. Architect of the identity termination protocol used in Project Thorn: locating physical doubles, fabricating death of the original, transferring financial and social infrastructure to the replacement. One prior asset loss in 14 years of service, attributed to external compromise rather than handler error. Known internally for exhaustive pre-operational modeling — simulates cover failure scenarios before deployment. Maintains direct contact with all active assets despite seniority that would permit subordinate handoff.',
+        },
+        {
+          title: 'Security Exposure',
+          type: 'bio',
+          text: 'Source ORA (BTH-7740) named AGENT COTLA by designation in intercepted transmission TODAY at 01:11:58. Ora identified Cotla as the man leading Project Thorn and described recruitment methodology in operational detail. This is the first confirmed external disclosure of Cotla\'s identity in connection with deep cover operations. Transmission recipient unknown. Extent of downstream exposure undetermined. Recommend immediate operational security review across all 7 active asset portfolios — if Ora possessed knowledge of Project Thorn, other Cotla-led operations may also be penetrated.',
+        },
+      ],
     },
     'fenri': {
       name: 'FENRI',
       subtitle: 'ECHO CELL MEMBER · SPECIES UNKNOWN',
       classification: 'RESTRICTED',
-      portrait: null,
+      portrait: 'gen/fenri-final_0.jpg',
       portraitAlt: 'Fenri',
       fileRef: 'FILE RBL-ECH-004 · IMP-INT/RESTRICTED',
-      sections: [],
+      sections: [
+        {
+          title: 'Identity',
+          type: 'grid',
+          fields: [
+            { label: 'Designation', value: 'FENRI (MONONYM · ALIAS PROBABLE)' },
+            { label: 'Species', value: 'UNKNOWN' },
+            { label: 'Homeworld', value: 'UNKNOWN' },
+            { label: 'Affiliation', value: 'ECHO CELL' },
+            { label: 'Role in Cell', value: 'UNDETERMINED' },
+            { label: 'Threat Level', value: 'LOW (PRE-DISCLOSURE)', cls: 'live' },
+          ]
+        },
+        {
+          title: 'Intelligence Summary',
+          type: 'grid',
+          fields: [
+            { label: 'First Logged', value: 'Y-1 · ECHO SURVEILLANCE' },
+            { label: 'Contacts Observed', value: '3' },
+            { label: 'Voice Intercepts', value: '0' },
+            { label: 'Visual Captures', value: '1 (LOW RESOLUTION)' },
+            { label: 'Biometric Match', value: 'NO MATCH IN ISB DATABASE' },
+            { label: 'Financial Trail', value: 'NONE IDENTIFIED' },
+            { label: 'Cover Occupation', value: 'UNKNOWN' },
+            { label: 'Data Confidence', value: '▮▯▯▯▯ 1/5', cls: 'alert' },
+          ]
+        },
+        {
+          title: 'Known Associates',
+          type: 'associates',
+          items: [
+            { name: 'ECHO CELL', detail: 'confirmed member, role undetermined' },
+            { name: 'JIFF GORDA', detail: 'observed interaction x2 (cover context)' },
+          ]
+        },
+        {
+          title: 'Behavioral Profile',
+          type: 'bio',
+          text: 'Insufficient observational data for full profile. Three logged contacts indicate subject operates in upscale venues inconsistent with typical rebel cell patterns. Clothing and bearing suggest aristocratic background or cultivated persona. No known species markers in available visual capture. Notably absent from standard rebel communication channels monitored by SIGINT. Overall pattern: low operational footprint, high social mobility. Either exceptionally disciplined or not primarily an operational combatant.',
+        },
+        {
+          title: 'Disclosure Re-Assessment',
+          type: 'bio',
+          text: 'UPDATED TODAY: Source ORA (BTH-7740) referenced FENRI alongside AGENT COTLA as co-evaluator of VORIAN DUCAL during Project Thorn infiltration tasking. Prior assessment categorized FENRI as low-threat ECHO cell member unaware of VORIAN true allegiance. Ora\'s disclosure places FENRI in direct operational proximity to a senior IMP-INT handler. Possible interpretations: (1) FENRI is an undisclosed IMP-INT asset operating under separate compartment, (2) Ora conflated FENRI\'s role with COTLA\'s, (3) FENRI occupies a liaison position not captured in current intelligence. Threat level under review. Recommend priority identification and biometric capture.',
+        },
+      ],
     },
     'jiff-gorda': {
       name: 'JIFF GORDA',
       subtitle: 'COVER IDENTITY · DECEASED (ORIGINAL) · ASSUMED BY VORIAN DUCAL',
       classification: 'CLASSIFIED',
-      portrait: null,
+      portrait: 'gen/jiff-gorda-final_0.jpg',
       portraitAlt: 'Jiff Gorda',
       fileRef: 'FILE CVR-JG-1187 · IMP-INT/CLASSIFIED',
-      sections: [],
+      sections: [
+        {
+          title: 'Original Subject',
+          type: 'grid',
+          fields: [
+            { label: 'Name', value: 'JIFF GORDA (ORIGINAL)' },
+            { label: 'Species', value: 'HUMAN' },
+            { label: 'Homeworld', value: 'CORELLIA' },
+            { label: 'Family', value: 'HOUSE GORDA · CORELLIAN NOBILITY' },
+            { label: 'Family Affiliation', value: 'KNOWN REBEL SYMPATHIZERS' },
+            { label: 'Occupation', value: 'FREIGHTER PILOT · HUTT DEALINGS' },
+            { label: 'Status', value: 'TERMINATED · TATOOINE · Y-2', cls: 'alert' },
+          ]
+        },
+        {
+          title: 'Cover Identity as Constructed',
+          type: 'grid',
+          fields: [
+            { label: 'Cover Name', value: 'JIFF GORDA' },
+            { label: 'Assumed By', value: 'VORIAN DUCAL (IMP-SA-2291)' },
+            { label: 'Cover Origin', value: 'CORELLIA · HOUSE GORDA' },
+            { label: 'Cover Backstory', value: 'NOBLE BORN · LEFT HOME IN TEENS · FREELANCE PILOT' },
+            { label: 'Financial Assets', value: 'GORDA FAMILY FORTUNE · FULL TRANSFER' },
+            { label: 'Cell Placement', value: 'ECHO (ECH-001)' },
+            { label: 'Cover Depth', value: '▮▮▮▮▮ 5/5', cls: 'live' },
+          ]
+        },
+        {
+          title: 'Identity Fabrication Record',
+          type: 'grid',
+          fields: [
+            { label: 'Physical Match', value: '94% PRE-MODIFICATION' },
+            { label: 'Image Design', value: '2 CORRECTIONS APPLIED (ANNEX-C)' },
+            { label: 'Biographical Transfer', value: 'COMPLETE' },
+            { label: 'Financial Transfer', value: 'COMPLETE · ALL ACCOUNTS' },
+            { label: 'Social Infrastructure', value: 'COMPLETE · FAMILY CONTACTS UNAWARE' },
+            { label: 'Hutt Verification', value: 'PASSED · NO SUSPICION DETECTED' },
+            { label: 'Fabrication Rating', value: 'TOTAL REPLACEMENT — NOT A LEGEND' },
+          ]
+        },
+        {
+          title: 'Family Background',
+          type: 'bio',
+          text: 'House Gorda: minor Corellian noble family with documented sympathies toward the Rebel Alliance. Original subject left home in his teens — departure described as rebellious, cause unrecorded. Family remained unaware of departure circumstances. Subject drifted to Outer Rim, took up freelance piloting, established contact with Tatooine Hutt operations. Imperial Intelligence assessed that House Gorda\'s rebel connections made the identity ideal cover for infiltration — a returning prodigal from a sympathizer family would face minimal vetting from rebel recruiters.',
+        },
+        {
+          title: 'Termination Record',
+          type: 'bio',
+          text: 'Original subject JIFF GORDA terminated on Tatooine during active Hutt dealings. Assassination staged to appear consistent with Hutt-related violence — no investigation triggered. Body disposed per standard protocol. Timing coordinated with VORIAN DUCAL recruitment to minimize identity gap. No witnesses. No loose contacts. Imperial Intelligence assessed Hutt associates as low risk for detection — "intoxication and riches numb even the mighty senses of overgrown slugs" (source: ORA, BTH-7740, quoting handler rationale).',
+        },
+        {
+          title: 'Cover Integrity',
+          type: 'bio',
+          text: 'Cover has held without incident from Y-2 through present. ECHO cell members accepted JIFF GORDA at face value. House Gorda has not been contacted and remains unaware of original subject\'s death. Hutt associates on Tatooine passed initial verification without suspicion. Cover rated TOTAL — this is not a fabricated legend but a real person\'s life, appropriated in full. TODAY: Source ORA (BTH-7740) disclosed the cover construction protocol in intercepted transmission. If recipient was a rebel operative, the name JIFF GORDA is now flagged. Cover integrity downgraded to COMPROMISED PENDING ASSESSMENT.',
+        },
+      ],
     },
     'echo-cell': {
       name: 'ECHO CELL',
       subtitle: 'REBEL CELL · 4 CONFIRMED · 2 SUSPECTED · UNDER SURVEILLANCE',
       classification: 'RESTRICTED',
-      portrait: null,
+      portrait: 'gen/echo-cell-final_0.jpg',
       portraitAlt: 'Echo Cell',
       fileRef: 'FILE RBL-ECH-000 · IMP-INT/RESTRICTED',
-      sections: [],
+      sections: [
+        {
+          title: 'Cell Profile',
+          type: 'grid',
+          fields: [
+            { label: 'Designation', value: 'ECHO' },
+            { label: 'Classification', value: 'INDEPENDENT REBEL CELL' },
+            { label: 'Operating Region', value: 'OUTER RIM · MULTIPLE SYSTEMS' },
+            { label: 'Confirmed Members', value: '4' },
+            { label: 'Suspected Members', value: '2' },
+            { label: 'Threat Level', value: 'MODERATE' },
+            { label: 'Surveillance Status', value: 'ACTIVE · INFILTRATED', cls: 'live' },
+            { label: 'First Logged', value: 'Y-3 · SIGINT CROSS-REFERENCE' },
+          ]
+        },
+        {
+          title: 'Known Members',
+          type: 'associates',
+          items: [
+            { name: 'ECH-001 · JIFF GORDA', detail: 'Human male, Corellian — IMP-INT ASSET (see FILE IMP-SA-2291)' },
+            { name: 'ECH-002 · [UNIDENTIFIED]', detail: 'Mon Calamari, senior tactician (confirmed)' },
+            { name: 'ECH-003 · [UNIDENTIFIED]', detail: 'Rodian, logistics and procurement (confirmed)' },
+            { name: 'ECH-004 · FENRI', detail: 'species unknown, role undetermined (confirmed — see FILE RBL-ECH-004)' },
+            { name: 'ECH-005 · [UNIDENTIFIED]', detail: 'Wookiee, suspected muscle/enforcement (suspected)' },
+            { name: 'ECH-006 · [UNIDENTIFIED]', detail: 'Twi\'lek female, suspected courier (suspected)' },
+          ]
+        },
+        {
+          title: 'Surveillance Summary',
+          type: 'grid',
+          fields: [
+            { label: 'SIGINT Intercepts', value: '23 (7 CROSS-LISTED TO THORN)' },
+            { label: 'Visual Surveillance', value: '11 CAPTURES' },
+            { label: 'Meetings Logged', value: '8' },
+            { label: 'Known Safe Houses', value: '2 (TATOOINE · 1 OFF-WORLD)' },
+            { label: 'Comms Channel', value: 'ROTATING · PATTERN NOT YET BROKEN' },
+            { label: 'Alliance Affiliation', value: 'INDEPENDENT — NO CONFIRMED CHAIN TO HIGH COMMAND' },
+            { label: 'Data Confidence', value: '▮▮▮▯▯ 3/5' },
+          ]
+        },
+        {
+          title: 'Operational Assessment',
+          type: 'bio',
+          text: 'Small independent cell operating without confirmed chain of command to Alliance High Command. Typical structure: compartmented, decentralized, members identified by function rather than rank. Multi-species composition consistent with Outer Rim rebel recruitment patterns. Cell activity concentrated in logistics and low-level disruption — no confirmed direct action against Imperial military targets. Assessment: ECHO is a support cell, not a strike team. Value to Project Thorn lies in using ECHO as a stepping stone to higher Alliance echelons, not in ECHO itself.',
+        },
+        {
+          title: 'Infiltration Status',
+          type: 'bio',
+          text: 'IMP-INT asset VORIAN DUCAL (cover: Jiff Gorda, ECH-001) embedded in ECHO since Y-1. Asset has achieved trusted member status. Cell members are unaware of Gorda\'s true allegiance. Asset reports indicate ECHO maintains intermittent contact with at least one Alliance regional coordinator — identity not yet obtained. This contact represents the primary pathway to Phase 4 of Project Thorn: penetration of Alliance command structure. Cell designation ECHO was disclosed by source ORA (BTH-7740) in today\'s intercept — cell may become aware of surveillance if Ora\'s transmission reached its recipient.',
+        },
+      ],
+    },
+    'thorn': {
+      name: 'PROJECT THORN',
+      subtitle: 'IMPERIAL INTELLIGENCE · DEEP COVER INFILTRATION PROGRAM',
+      classification: 'EYES-ONLY',
+      portrait: 'gen/project-thorn-final_0.jpg',
+      portraitAlt: 'Project Thorn',
+      fileRef: 'FILE OPS-THN-0001 · IMP-INT/EYES-ONLY',
+      sections: [
+        {
+          title: 'Program Overview',
+          type: 'grid',
+          fields: [
+            { label: 'Codename', value: 'THORN' },
+            { label: 'Classification', value: 'EYES-ONLY' },
+            { label: 'Division', value: 'IMPERIAL INTELLIGENCE · DEEP COVER OPS' },
+            { label: 'Objective', value: 'INFILTRATE REBEL ALLIANCE COMMAND STRUCTURE' },
+            { label: 'Project Lead', value: 'AGENT COTLA (IMP-HND-0091)' },
+            { label: 'Initiated', value: 'Y-2 · HARVEST SEASON' },
+            { label: 'Authorization', value: 'DIRECTOR-LEVEL · IMP-INT HIGH COMMAND' },
+          ]
+        },
+        {
+          title: 'Operational Phases',
+          type: 'grid',
+          fields: [
+            { label: 'Phase 1', value: 'RECRUITMENT — COMPLETED Y-2' },
+            { label: 'Phase 2', value: 'COVER CONSTRUCTION — COMPLETED Y-2' },
+            { label: 'Phase 3', value: 'INFILTRATION — ACTIVE', cls: 'live' },
+            { label: 'Phase 4', value: 'ACTIVATION — PENDING' },
+            { label: 'Current Asset', value: 'VORIAN DUCAL (COVER: JIFF GORDA)' },
+            { label: 'Target Cell', value: 'ECHO' },
+            { label: 'Ultimate Target', value: 'ALLIANCE HIGH COMMAND' },
+            { label: 'Program Status', value: 'ACTIVE · POTENTIAL COMPROMISE', cls: 'alert' },
+          ]
+        },
+        {
+          title: 'Intelligence Objectives',
+          type: 'grid',
+          fields: [
+            { label: 'Primary', value: 'FLEET MOVEMENTS · BATTLE PLANS' },
+            { label: 'Secondary', value: 'ALLIANCE LEADERSHIP IDENTITIES' },
+            { label: 'Tertiary', value: 'FUNDING CHANNELS · SUPPLY LINES' },
+            { label: 'Bonus', value: 'IMMINENT ATTACK WARNINGS' },
+          ]
+        },
+        {
+          title: 'Personnel',
+          type: 'associates',
+          items: [
+            { name: 'AGENT COTLA', detail: 'project lead, sole architect' },
+            { name: 'VORIAN DUCAL', detail: 'embedded asset (cover: Jiff Gorda)' },
+            { name: 'FENRI', detail: 'field evaluator (role under review)' },
+            { name: 'ORA (BTH-7740)', detail: 'paid informant, source of this intercept' },
+            { name: 'IMP-INT IMAGE DESIGN UNIT', detail: 'physical modification support' },
+          ]
+        },
+        {
+          title: 'Methodology',
+          type: 'bio',
+          text: 'Identity replacement protocol. Select candidate from general population with high physical similarity to a target of strategic value. Terminate the original. Correct remaining physical discrepancies via image design. Transfer all financial assets, social connections, and biographical infrastructure to the replacement. Deploy replacement into target organization under the assumed identity. The replacement retains no connection to prior life. Cover depth is total — the assumed identity is not a legend but a real person\'s documented history, appropriated wholesale.',
+        },
+        {
+          title: 'Compromise Assessment',
+          type: 'bio',
+          text: 'Source ORA (BTH-7740) disclosed Project Thorn by codename, methodology, personnel, and target cell in intercepted transmission TODAY at 01:11:58. This represents a catastrophic intelligence breach if the transmission reached its intended recipient. Ora described the identity replacement protocol in operational detail, named Agent Cotla as project lead, identified Vorian Ducal as the embedded asset, and disclosed the cover identity of Jiff Gorda. Transmission terminated mid-sentence — the phrase "the project was continu—" suggests additional operational details were forthcoming. Recipient unknown. Signal lost. Recommend: (1) immediate damage assessment, (2) contingency planning for asset extraction, (3) evaluation of whether Phase 4 activation should be accelerated before cover collapses.',
+        },
+      ],
     },
   };
+
+  function unlockDossierLinks() {
+    var spans = document.querySelectorAll('.person, .thorn');
+    for (var i = 0; i < spans.length; i++) {
+      var span = spans[i];
+      var text = span.textContent.trim().toLowerCase();
+      var dossierId = NAME_TO_DOSSIER[text];
+      if (dossierId && DOSSIERS[dossierId]) {
+        span.classList.add('dossier-linked');
+        span.setAttribute('data-dossier', dossierId);
+        span.addEventListener('click', function(e) {
+          if (!this.classList.contains('decoded')) return;
+          var did = this.getAttribute('data-dossier');
+          if (did) renderDossier(did);
+        });
+      }
+    }
+  }
 
   function renderDossier(id) {
     const d = DOSSIERS[id];
@@ -2639,7 +3077,7 @@
 
     var h = '';
     if (d.portrait) {
-      h += '<img class="dossier__portrait" src="' + escHtml(d.portrait) + '" alt="' + escHtml(d.portraitAlt || d.name) + '">';
+      h += '<div class="dossier__portrait-frame"><img class="dossier__portrait" src="' + escHtml(d.portrait) + '" alt="' + escHtml(d.portraitAlt || d.name) + '"></div>';
     }
     h += '<h2 class="dossier__title" id="dossier-title">' + escHtml(d.name);
     if (d.subtitle) h += '<small>' + escHtml(d.subtitle) + '</small>';
@@ -2719,6 +3157,17 @@
     'pwd': function() {
       return '/' + (fsCwd.length ? fsCwd.join('/') : '');
     },
+    'auth': function(args) {
+      if (!args) return 'USAGE: auth <passphrase>\nENTER OMEGA CLEARANCE PASSPHRASE TO UNLOCK DOSSIER CROSS-LINKS';
+      if (args.toLowerCase() === 'alderaan') {
+        if (state.dossierUnlocked) return 'ALREADY AUTHENTICATED · DOSSIER CROSS-LINKS ACTIVE';
+        state.dossierUnlocked = true;
+        unlockDossierLinks();
+        log('state', 'Dossier cross-links unlocked via auth');
+        return 'AUTHENTICATION ACCEPTED · OMEGA CLEARANCE GRANTED\nDOSSIER CROSS-LINKS ENABLED · CLICK ANY HIGHLIGHTED NAME IN TRANSCRIPT';
+      }
+      return 'ERR: AUTHENTICATION FAILED · INVALID PASSPHRASE\nATTEMPT LOGGED · SEC-LULOMEGA';
+    },
     'dossier': function(args) {
       if (!args) {
         return 'AVAILABLE DOSSIERS: ' + Object.keys(DOSSIERS).join(' · ') + '\nUSAGE: dossier <name>';
@@ -2738,13 +3187,122 @@
 
   const promptInput = document.getElementById('prompt-input');
   const promptErrors = document.getElementById('prompt-errors');
+  const cmdHistory = [];
+  var historyIdx = -1;
+  var historySaved = '';
+  var tabState = null;
+
+  function getCompletions(input) {
+    var text = input.toLowerCase();
+    var spaceIdx = text.indexOf(' ');
+    if (spaceIdx === -1) {
+      var allCmds = Object.keys(TERMINAL_FNS).concat(Object.keys(TERMINAL_CMDS)).concat(['clear']);
+      var seen = {};
+      var unique = [];
+      for (var i = 0; i < allCmds.length; i++) {
+        if (!seen[allCmds[i]]) { seen[allCmds[i]] = true; unique.push(allCmds[i]); }
+      }
+      return unique.filter(function(c) { return c.indexOf(text) === 0; });
+    }
+    var verb = text.substring(0, spaceIdx);
+    var partial = text.substring(spaceIdx + 1);
+    if (verb === 'dossier') {
+      return Object.keys(DOSSIERS).filter(function(k) { return k.indexOf(partial) === 0; });
+    }
+    if (verb === 'cat' || verb === 'ls' || verb === 'cd') {
+      var segments = partial ? fsParsePath(partial) : fsCwd.slice();
+      var dirSegments, prefix;
+      if (partial && partial.indexOf('/') !== -1) {
+        var lastSlash = partial.lastIndexOf('/');
+        dirSegments = fsParsePath(partial.substring(0, lastSlash) || '/');
+        prefix = partial.substring(lastSlash + 1);
+      } else {
+        dirSegments = fsCwd.slice();
+        prefix = partial;
+      }
+      var dirNode = fsResolve(dirSegments);
+      if (!dirNode || !fsIsDir(dirNode)) return [];
+      var entries = Object.keys(dirNode).filter(function(k) { return k.indexOf(prefix) === 0; });
+      if (verb === 'cd') entries = entries.filter(function(k) { return fsIsDir(dirNode[k]); });
+      return entries;
+    }
+    return [];
+  }
+
   if (promptInput) {
     promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'u' && e.ctrlKey) {
+        e.preventDefault();
+        promptInput.value = '';
+        tabState = null;
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (cmdHistory.length === 0) return;
+        if (historyIdx === -1) historySaved = promptInput.value;
+        if (historyIdx < cmdHistory.length - 1) {
+          historyIdx++;
+          promptInput.value = cmdHistory[cmdHistory.length - 1 - historyIdx];
+        }
+        tabState = null;
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (historyIdx === -1) return;
+        historyIdx--;
+        if (historyIdx === -1) {
+          promptInput.value = historySaved;
+        } else {
+          promptInput.value = cmdHistory[cmdHistory.length - 1 - historyIdx];
+        }
+        tabState = null;
+        return;
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var input = promptInput.value;
+        if (tabState && tabState.prefix === input.substring(0, tabState.prefix.length) && tabState.matches.length > 1) {
+          tabState.idx = (tabState.idx + 1) % tabState.matches.length;
+        } else {
+          var matches = getCompletions(input);
+          if (matches.length === 0) return;
+          var spaceIdx = input.indexOf(' ');
+          tabState = { prefix: spaceIdx === -1 ? input : input.substring(0, spaceIdx + 1), matches: matches, idx: 0 };
+        }
+        var match = tabState.matches[tabState.idx];
+        var hasSpace = tabState.prefix.indexOf(' ') !== -1;
+        if (hasSpace) {
+          promptInput.value = tabState.prefix + match;
+        } else {
+          promptInput.value = match;
+        }
+        if (tabState.matches.length > 1) {
+          var block = document.createElement('div');
+          block.className = 'prompt__error-line';
+          block.textContent = tabState.matches.join('  ');
+          promptErrors.appendChild(block);
+          promptErrors.classList.add('has-errors');
+          promptErrors.scrollTop = promptErrors.scrollHeight;
+        }
+        return;
+      }
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Tab') {
+        tabState = null;
+      }
       if (e.key === 'Enter' && promptInput.value.trim()) {
         e.preventDefault();
         const raw = promptInput.value;
         const cmd = raw.trim().toLowerCase();
         promptInput.value = '';
+        if (cmdHistory.length === 0 || cmdHistory[cmdHistory.length - 1] !== raw.trim()) {
+          cmdHistory.push(raw.trim());
+          if (cmdHistory.length > 50) cmdHistory.shift();
+        }
+        historyIdx = -1;
+        historySaved = '';
+        tabState = null;
         if (cmd === 'clear') {
           promptErrors.innerHTML = '';
           promptErrors.classList.remove('has-errors');

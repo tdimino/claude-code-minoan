@@ -2,6 +2,16 @@
 
 The command prompt at the bottom accepts in-universe commands. A virtual filesystem with directory navigation, 25+ lore-aware responses, and 13 atmospheric error messages for unrecognized input.
 
+## Authentication
+
+| Command | Response |
+|---------|----------|
+| `auth <passphrase>` | Authenticate for Omega clearance. Passphrase: `alderaan` |
+
+On success: grants Omega clearance, enables clickable dossier cross-links on all `§`-marked person names and `¤`-marked classified names in the transcript. Clicking a linked name opens its dossier modal. Visual indicator on hover: green glow for `.person` spans, red glow for `.thorn` spans. Re-running after authentication returns `ALREADY AUTHENTICATED`. Failed passphrase returns `AUTHENTICATION FAILED` and logs the attempt.
+
+Linked names: Vorian Ducal, Jiff Gorda, Agent Cotla, Fenri, Project Thorn, ECHO.
+
 ## Filesystem Commands
 
 The terminal implements a virtual filesystem with three directories (`cotla-directives/`, `signal-archive/`, `dossiers/`) and various intelligence files. The prompt sigil updates to show the current directory.
@@ -78,3 +88,27 @@ TERMINAL_FNS['newcmd'] = function(args) {
 For denied commands, add to the `DENIED_CMDS` Set.
 
 **Filesystem files** — add entries to the `FILESYSTEM` object. String values are file contents, `null` values are encrypted, and nested objects are directories.
+
+## Input Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Up` / `Down` | Cycle through command history |
+| `Tab` | Autocomplete command or argument |
+| `Ctrl+U` | Clear the current input line |
+
+### Command History
+
+Up/Down arrows navigate previous commands (most recent first). No consecutive duplicates stored. Capped at 50 entries. History resets on page reload (not persisted).
+
+### Tab Autocomplete
+
+Tab completes based on cursor context:
+
+| Context | Completes against |
+|---------|-------------------|
+| Bare input (no space) | All command names (`TERMINAL_FNS` + `TERMINAL_CMDS` + `clear`) |
+| `dossier <partial>` | Dossier keys from `DOSSIERS` object |
+| `cat <partial>` / `ls <partial>` / `cd <partial>` | Filesystem entries in the current (or specified) directory; `cd` filters to directories only |
+
+Single match: completes inline. Multiple matches: displays all options below the prompt, subsequent Tab presses cycle through them. Tab state resets on any other keypress.
