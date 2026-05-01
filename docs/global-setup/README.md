@@ -320,11 +320,11 @@ Documents loaded on demand to keep base context small. Each file covers one doma
 
 ### `settings.json` — Hooks, MCP, Model
 
-The runtime configuration. Key sections:
+The runtime configuration. The `model` field uses a pinned ID (`claude-opus-4-6`) rather than the alias (`opus`) to prevent version drift when Anthropic updates the default. See [Model Version Pinning](../guides/model-version-pinning.md) for the full guide. Key sections:
 
 ```json
 {
-  "model": "opus",
+  "model": "claude-opus-4-6",
   "alwaysThinkingEnabled": true,
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
