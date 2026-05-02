@@ -1,0 +1,116 @@
+Name: Vorian Ducal
+Era: This character was designed for Rise of the Empire.
+Species: Human (base connotation of human)
+Age: 24
+Homeworld: Corellia
+Height: 1.82 meters
+Weight: 153lbs
+Hair: Dark Brown (obstensibly black, but actually a darker shade of brown)
+Eyes: Blue-in-Blue (Natural/possibly artificial genetic mutation)
+Class: Soldier
+Level: 4
+Credits: 7000
+Experience: 10,000/16,000
+Force Points: 4
+Dark Side Points: 0
+
+Ability Scores:
+Str: 10(+0)
+Dex: 18(+4)
+Con: 16(+3)
+Int: 15(+2)
+Wis: 14(+2)
+Cha: 14(+2)
+----------------------|
+VP/WP: 16/16
+Defense: 18 (10 natural, +3 class, +5 Dex)
+Speed: 10m
+BAB: +3
+Rep: +1
+----------------------|
+Melee: +8 (+3 BAB, +5 Dex)
+Range: +8(+3 BAB, +5 Dex)
+----------------------|
+Weapon: Tehk'la Blade(x2)
+Damage:2d4
+Critical: 19-20
+Range:---
+Weight: 1kg
+Type: Piercing
+Size: Small
+Special Properties: ---
+----------------------|
+Weapon: DL-44
+Damage:3d8
+Critical: 20
+Range:8m
+Weight: 1.3kg
+Type: Energy
+Size: Medium
+Fort DC: 18
+Multifire/Autofire: M
+Hardness: 5
+Special Properties: ---
+----------------------|
+Armor/Protective Equip.: None
+----------------------|
+Saves:
+FS: +3 (+1 class, +2 Con)
+RS: +8 (+1 class, +5 Dex, +2(lightning reflexes))
+WS: +3 (+1 class, +2 Wis)
+----------------------|
+Feats:
+Weapon Group Proficiency (Vibro Weapons)
+Weapon Group Proficiency (blaster pistols)
+Weapon Group Proficiency (blaster Rifles)
+Weapon Group Proficiency (simple weapons)
+Weapon Finesse(Short VibroDagger)
+Uncanny Dodge
+TrailBlazing
+Two Weapon Fighting
+Track
+Heart
+Lightning Reflexes
+Speak/Read/Speak Nagaian.
+
+----------------------|
+Skills:
+Skill Points:Total:56, 1st level:32(6+2(int)*4),2nd lvl: 8(6+2), 3rd lvl 8, 4th lvl:8
+Class Skills: ---
+Survival +7
+Search +7
+Move Silently +7
+Hide +7
+Jump +7
+Spot +7
+Listen +7
+Bluff +2
+Diplomacy +2
+Gather Information +2
+Intimidation +2
+Profession(Military Agent) +7
+-----------------------|
+Gear:
+Tehk'la Blade(x2)
+
+Battle Suit
+DL-44
+-----------------------|
+Background:
+Denzo is from Nagai, a planet that has waged war against the Tof's for centuries. Denzo is a
+respected warrior and soldier of his family. He has fought the Tof's with the undying obsession
+of achieving freedom from their powerful enemies, it is for this reason that, like many Nagai, he
+is nearly fearless in combat, which could sometimes lead him to reckless leaps into combat of nearly
+impossible odds. He is quiet and dark in personality, taking everything around him seriously, those who
+manage to gain his comfort, could perhaps hear his dark sense of humour. He is very observant and perceptive.
+He seems focused at all times, as if concentrated in a task of utter importance, he does this with speed
+but he is very calm and patient.
+
+The Tof invasion has lasted for several centuries and they are still much stronger than the Nagai. Like all
+entities with power, they will seek to increase it. They have released an unknown number of scouts to explore the
+known galaxy and seek out new conquerable worlds, in which case if they find them: They will be endangered. The Tof's
+are an incredible Empire and they can prove an annoyance even to the Empire itself. The Nagai, being an honorable people
+would never allow such a threat to linger free without having their hearts know that they have at least attempted to stop
+them. In response to the threat, Nagai Intel has sent around a dozen scouts/soldiers that fit the profile to find and assassinate
+the Tof units. The problem: finding them. With only his honor, faith and zealous loyalty, Denzo Shiba was one of the dozen
+members in the task force...

@@ -13,8 +13,6 @@ import argparse
 import base64
 import json
 import os
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -31,7 +29,6 @@ class NanoBananaProClient:
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
     DEFAULT_MODEL = "gemini-3-pro-image-preview"
-    FLASH_MODEL = "gemini-3.1-flash-image-preview"
 
     def __init__(self, api_key: str, model: str = DEFAULT_MODEL):
         self.api_key = api_key
@@ -224,61 +221,6 @@ class NanoBananaProClient:
             raise Exception(f"Failed to save images: {e}")
 
 
-def process_badge(source_path: str, output_path: str, canvas_size: int = 200,
-                   content_size: int = 164, fuzz: int = 18) -> str:
-    """
-    Post-process a generated image into a transparent-background PNG badge.
-
-    Uses ImageMagick corner-flood to remove background while preserving the
-    subject, then trims, resizes, and centers on a transparent canvas.
-
-    Args:
-        source_path: Path to source image (JPEG from Gemini)
-        output_path: Path for output PNG (will use PNG32: prefix for 8-bit RGBA)
-        canvas_size: Total badge dimension (default 200px)
-        content_size: Content area dimension after trim+resize (default 164px)
-        fuzz: Color matching tolerance percentage for background removal (default 18%)
-
-    Returns:
-        Path to the output PNG file
-    """
-    magick = shutil.which("magick")
-    if not magick:
-        raise RuntimeError("ImageMagick 7 (magick) not found. Install via: brew install imagemagick")
-
-    # Get source image dimensions for corner coordinates
-    result = subprocess.run(
-        [magick, "identify", "-format", "%w %h", source_path],
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"Failed to identify image: {result.stderr}")
-
-    w, h = result.stdout.strip().split()
-    max_x, max_y = int(w) - 1, int(h) - 1
-
-    # Corner-flood background removal → trim → resize → center on canvas
-    cmd = [
-        magick, source_path,
-        "-fuzz", f"{fuzz}%",
-        "-fill", "none", "-draw", f"alpha 0,0 floodfill",
-        "-fill", "none", "-draw", f"alpha 0,{max_y} floodfill",
-        "-fill", "none", "-draw", f"alpha {max_x},0 floodfill",
-        "-fill", "none", "-draw", f"alpha {max_x},{max_y} floodfill",
-        "-trim", "+repage",
-        "-resize", f"{content_size}x{content_size}",
-        "-gravity", "center",
-        "-extent", f"{canvas_size}x{canvas_size}",
-        f"PNG32:{output_path}"
-    ]
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"ImageMagick badge processing failed: {result.stderr}")
-
-    return output_path
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Generate images using Nano Banana Pro (Gemini 3 Pro Image)",
@@ -302,12 +244,9 @@ Examples:
     parser.add_argument("prompt", help="Text prompt describing the image to generate")
     parser.add_argument("--api-key", help="Gemini API key (or set GEMINI_API_KEY env var)")
     parser.add_argument("--model", default=NanoBananaProClient.DEFAULT_MODEL,
-                       help=f"Model ID (default: {NanoBananaProClient.DEFAULT_MODEL}). "
-                            f"Use {NanoBananaProClient.FLASH_MODEL} for faster/cheaper generation")
-    parser.add_argument("--fast", action="store_true",
-                       help=f"Use Nano Banana 2 ({NanoBananaProClient.FLASH_MODEL}) for faster generation")
+                       help=f"Model to use (default: {NanoBananaProClient.DEFAULT_MODEL})")
     parser.add_argument("--aspect-ratio", default="16:9",
-                       choices=["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+                       choices=["1:1", "3:4", "4:3", "9:16", "16:9"],
                        help="Image aspect ratio (default: 16:9)")
     parser.add_argument("--temperature", type=float, default=0.7,
                        help="Sampling temperature 0.0-1.0 (default: 0.7)")
@@ -319,16 +258,6 @@ Examples:
                        help="Base filename for saved files (default: generated)")
     parser.add_argument("--verbose", action="store_true",
                        help="Show full API response")
-    parser.add_argument("--badge", action="store_true",
-                       help="Post-process into a transparent-background PNG badge. "
-                            "Forces 1:1 aspect ratio. Uses ImageMagick corner-flood "
-                            "to remove background, then trims and centers on canvas.")
-    parser.add_argument("--badge-size", type=int, default=200,
-                       help="Badge canvas size in pixels (default: 200)")
-    parser.add_argument("--badge-content", type=int, default=164,
-                       help="Badge content area size after trim (default: 164)")
-    parser.add_argument("--badge-fuzz", type=int, default=18,
-                       help="Background removal fuzz tolerance %% (default: 18)")
 
     args = parser.parse_args()
 
@@ -339,20 +268,13 @@ Examples:
               file=sys.stderr)
         sys.exit(1)
 
-    # Badge mode forces 1:1 aspect ratio
-    if args.badge:
-        args.aspect_ratio = "1:1"
-
     # Initialize client
-    model = NanoBananaProClient.FLASH_MODEL if args.fast else args.model
-    client = NanoBananaProClient(api_key, model)
+    client = NanoBananaProClient(api_key, args.model)
 
     print(f"🎨 Generating image with Nano Banana Pro...")
-    print(f"   Model: {model}")
+    print(f"   Model: {args.model}")
     print(f"   Prompt: {args.prompt}")
     print(f"   Aspect Ratio: {args.aspect_ratio}")
-    if args.badge:
-        print(f"   Badge mode: {args.badge_content}px content → {args.badge_size}px canvas")
     print()
 
     try:
@@ -377,29 +299,6 @@ Examples:
             args.filename,
             debug=args.verbose
         )
-
-        # Badge post-processing: remove background, trim, resize, output PNG
-        if args.badge and saved_files:
-            print("🔧 Badge post-processing...")
-            badge_outputs = []
-            for fpath in saved_files:
-                if not fpath.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
-                    continue
-                badge_name = Path(fpath).stem + "_badge.png"
-                badge_path = str(output_dir / badge_name)
-                try:
-                    result = process_badge(
-                        fpath, badge_path,
-                        canvas_size=args.badge_size,
-                        content_size=args.badge_content,
-                        fuzz=args.badge_fuzz
-                    )
-                    badge_outputs.append(result)
-                    print(f"   ✓ Badge: {result}")
-                except RuntimeError as e:
-                    print(f"   ⚠ Badge failed for {fpath}: {e}")
-            if badge_outputs:
-                saved_files = badge_outputs
 
         print()
         print(f"✅ Success! Generated {len(saved_files)} file(s)")

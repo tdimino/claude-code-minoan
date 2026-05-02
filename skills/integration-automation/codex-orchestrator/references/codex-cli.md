@@ -84,8 +84,8 @@ codex plugin install <name>            # Install a Codex plugin
 
 ```bash
 -m, --model <MODEL>                    # Select model
-    --model gpt-5.4                    # Flagship — coding + reasoning unified
-    --model gpt-5.4-pro                # Deeper reasoning, hardest problems
+    --model gpt-5.5                    # Flagship — agentic, 2M context
+    --model gpt-5.5-pro                # Deeper reasoning, hardest problems
     --model gpt-5-mini                 # Cost-optimized, fast iteration
 ```
 
@@ -116,7 +116,7 @@ codex plugin install <name>            # Install a Codex plugin
 
 ```bash
 -c, --config <key=value>               # Override config
-    -c model="gpt-5.4"                   # Set model
+    -c model="gpt-5.5"                   # Set model
     -c 'sandbox_permissions=["disk-full-read-access"]'
 ```
 
@@ -154,12 +154,12 @@ Located at `~/.codex/config.toml`:
 
 ```toml
 # Default settings
-model = "gpt-5.4"
+model = "gpt-5.5"
 sandbox = "workspace-write"
 
 # Custom profiles
 [profile.reviewer]
-model = "gpt-5.4"
+model = "gpt-5.5"
 
 [profile.quick]
 model = "gpt-5-mini"
@@ -215,7 +215,7 @@ codex "Help me debug the login failure"
 codex exec --ask-for-approval on-failure "Fix all lint errors"
 
 # Use specific model
-codex --model gpt-5.4 "Design a caching system"
+codex --model gpt-5.5 "Design a caching system"
 
 # Read-only analysis
 codex --sandbox read-only "Analyze the codebase architecture"

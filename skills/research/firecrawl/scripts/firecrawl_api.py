@@ -159,15 +159,19 @@ def scrape(
     url: str,
     formats: Optional[List[str]] = None,
     only_main_content: bool = True,
+    only_clean_content: bool = False,
     include_tags: Optional[List[str]] = None,
     exclude_tags: Optional[List[str]] = None,
     timeout: int = 30000,
     actions: Optional[List[Dict[str, Any]]] = None,
     location: Optional[Dict[str, Any]] = None,
     max_age: Optional[int] = None,
+    min_age: Optional[int] = None,
     store_in_cache: bool = True,
     profile: Optional[Dict[str, Any]] = None,
     parsers: Optional[List[str]] = None,
+    pdf_mode: Optional[str] = None,
+    pdf_max_pages: Optional[int] = None,
     block_ads: bool = False,
     proxy: Optional[str] = None,
     zero_data_retention: bool = False,
@@ -179,6 +183,8 @@ def scrape(
         url: URL to scrape
         formats: Output formats - ["markdown", "html", "links", "screenshot", "summary", "images", "branding"]
         only_main_content: Extract only main content, skip nav/footer
+        only_clean_content: Aggressive content cleaning — strips nav, ads, cookie banners.
+                            Stronger than only_main_content. Maps to API onlyCleanContent.
         include_tags: Whitelist specific HTML tags
         exclude_tags: Blacklist specific HTML tags
         timeout: Timeout in milliseconds
@@ -186,9 +192,12 @@ def scrape(
                  Example: [{"type": "click", "selector": "#load-more"}, {"type": "wait", "milliseconds": 2000}]
         location: Geo-targeting - {"country": "US", "languages": ["en-US"]}
         max_age: Maximum cache age in seconds (use cached result if fresher)
+        min_age: Minimum cache age in seconds (force fresh scrape if cached result is newer)
         store_in_cache: Whether to cache this scrape result (default: True)
         profile: Persistent browser profile - {"name": "my-profile", "saveChanges": True}
         parsers: Document parsers to use (e.g., ["pdf"])
+        pdf_mode: PDF parsing mode — "fast" (text-layer only), "auto" (default), "ocr" (force OCR)
+        pdf_max_pages: Maximum pages to parse from a PDF document
         block_ads: Block ads during scraping
         proxy: Proxy routing (e.g., "stealth", "residential")
         zero_data_retention: Don't store scrape data on Firecrawl servers
@@ -204,6 +213,8 @@ def scrape(
         "timeout": timeout
     }
 
+    if only_clean_content:
+        payload["onlyCleanContent"] = True
     if include_tags:
         payload["includeTags"] = include_tags
     if exclude_tags:
@@ -214,12 +225,21 @@ def scrape(
         payload["location"] = location
     if max_age is not None:
         payload["maxAge"] = max_age
+    if min_age is not None:
+        payload["minAge"] = min_age
     if not store_in_cache:
         payload["storeInCache"] = False
     if profile:
         payload["profile"] = profile
     if parsers:
         payload["parsers"] = parsers
+    if pdf_mode or pdf_max_pages is not None:
+        pdf_options: Dict[str, Any] = {}
+        if pdf_mode:
+            pdf_options["mode"] = pdf_mode
+        if pdf_max_pages is not None:
+            pdf_options["maxPages"] = pdf_max_pages
+        payload["pdfOptions"] = pdf_options
     if block_ads:
         payload["blockAds"] = True
     if proxy:
@@ -227,9 +247,18 @@ def scrape(
     if zero_data_retention:
         payload["zeroDataRetention"] = True
 
-    # Use direct HTTP when newer params (profile, max_age, store_in_cache) are set,
-    # since the SDK may not support them yet. Fall back to SDK for basic scrapes.
-    use_sdk = HAS_FIRECRAWL_SDK and not profile and max_age is None and store_in_cache
+    # Use direct HTTP when newer params are set, since the SDK may not support them yet.
+    # Fall back to SDK for basic scrapes.
+    use_sdk = (
+        HAS_FIRECRAWL_SDK
+        and not profile
+        and max_age is None
+        and min_age is None
+        and store_in_cache
+        and not only_clean_content
+        and pdf_mode is None
+        and pdf_max_pages is None
+    )
     if use_sdk:
         app = _get_app()
         # New SDK uses scrape() with keyword args
@@ -958,6 +987,8 @@ def parse_document(
     formats: Optional[List[str]] = None,
     only_main_content: bool = False,
     parsers: Optional[List[str]] = None,
+    pdf_mode: Optional[str] = None,
+    pdf_max_pages: Optional[int] = None,
     zero_data_retention: bool = False,
     timeout: Optional[int] = None
 ) -> Dict[str, Any]:
@@ -973,6 +1004,8 @@ def parse_document(
         formats: Output formats (e.g. ["markdown", "html"])
         only_main_content: Strip boilerplate, keep main content only
         parsers: Parser hints (e.g. ["pdf"])
+        pdf_mode: PDF parsing mode — "fast" (text-layer only), "auto" (default), "ocr" (force OCR)
+        pdf_max_pages: Maximum pages to parse from a PDF document
         zero_data_retention: Enable zero data retention mode
         timeout: Request timeout in ms
 
@@ -998,6 +1031,13 @@ def parse_document(
             opts_kwargs["only_main_content"] = True
         if parsers:
             opts_kwargs["parsers"] = parsers
+        if pdf_mode or pdf_max_pages is not None:
+            pdf_options: Dict[str, Any] = {}
+            if pdf_mode:
+                pdf_options["mode"] = pdf_mode
+            if pdf_max_pages is not None:
+                pdf_options["maxPages"] = pdf_max_pages
+            opts_kwargs["pdf_options"] = pdf_options
         if timeout:
             opts_kwargs["timeout"] = timeout
         parse_options = ScrapeOptions(**opts_kwargs) if opts_kwargs else None
@@ -1024,6 +1064,13 @@ def parse_document(
             options["onlyMainContent"] = True
         if parsers:
             options["parsers"] = parsers
+        if pdf_mode or pdf_max_pages is not None:
+            pdf_options = {}
+            if pdf_mode:
+                pdf_options["mode"] = pdf_mode
+            if pdf_max_pages is not None:
+                pdf_options["maxPages"] = pdf_max_pages
+            options["pdfOptions"] = pdf_options
         if zero_data_retention:
             options["zeroDataRetention"] = True
         if timeout:
@@ -1285,15 +1332,21 @@ def main():
     scrape_parser.add_argument("--formats", nargs="+", default=["markdown"],
                                help="Output formats: markdown, html, links, screenshot, summary, images, branding")
     scrape_parser.add_argument("--full", action="store_true", help="Include nav/footer")
+    scrape_parser.add_argument("--only-clean-content", action="store_true",
+                               help="Aggressive content cleaning — strips nav, ads, cookie banners (stronger than --only-main-content)")
     scrape_parser.add_argument("--actions", help="JSON array of page actions (click, write, wait, scroll, screenshot)")
     scrape_parser.add_argument("--country", help="Country code for geo-targeting (e.g., US, GB, DE)")
     scrape_parser.add_argument("--languages", nargs="+", help="Languages for geo-targeting (e.g., en-US es)")
     scrape_parser.add_argument("--max-age", type=int, help="Use cached result if fresher than N seconds")
+    scrape_parser.add_argument("--min-age", type=int, help="Reject cached result if newer than N seconds (force fresh)")
     scrape_parser.add_argument("--no-cache", action="store_true", help="Don't cache this scrape result")
     scrape_parser.add_argument("--profile", help="Persistent browser profile name (share state across scrapes)")
     scrape_parser.add_argument("--no-save-changes", action="store_true",
                                help="Load profile state but don't save changes back (read-only session)")
     scrape_parser.add_argument("--parsers", nargs="+", help="Document parsers (e.g., pdf)")
+    scrape_parser.add_argument("--pdf-mode", choices=["fast", "auto", "ocr"],
+                               help="PDF parsing mode: fast (text layer only), auto (default), ocr (force OCR)")
+    scrape_parser.add_argument("--pdf-max-pages", type=int, help="Maximum pages to parse from a PDF")
     scrape_parser.add_argument("--block-ads", action="store_true", help="Block ads during scraping")
     scrape_parser.add_argument("--proxy", help="Proxy routing (e.g., stealth, residential)")
     scrape_parser.add_argument("--zero-retention", action="store_true", help="Don't store data on Firecrawl servers")
@@ -1436,6 +1489,10 @@ def main():
                               help="Strip boilerplate, keep main content only")
     parse_parser.add_argument("--parsers", nargs="+",
                               help="Parser hints (e.g. pdf)")
+    parse_parser.add_argument("--pdf-mode", choices=["fast", "auto", "ocr"],
+                              help="PDF parsing mode: fast (text layer only), auto (default), ocr (force OCR)")
+    parse_parser.add_argument("--pdf-max-pages", type=int,
+                              help="Maximum pages to parse from a PDF")
     parse_parser.add_argument("--zero-data-retention", action="store_true",
                               help="Enable zero data retention mode")
     parse_parser.add_argument("--timeout", type=int,
@@ -1516,12 +1573,16 @@ def main():
                 args.url,
                 formats=args.formats,
                 only_main_content=not args.full,
+                only_clean_content=getattr(args, 'only_clean_content', False),
                 actions=actions,
                 location=location,
                 max_age=getattr(args, 'max_age', None),
+                min_age=getattr(args, 'min_age', None),
                 store_in_cache=not getattr(args, 'no_cache', False),
                 profile=profile,
                 parsers=getattr(args, 'parsers', None),
+                pdf_mode=getattr(args, 'pdf_mode', None),
+                pdf_max_pages=getattr(args, 'pdf_max_pages', None),
                 block_ads=getattr(args, 'block_ads', False),
                 proxy=getattr(args, 'proxy', None),
                 zero_data_retention=getattr(args, 'zero_retention', False),
@@ -1800,6 +1861,8 @@ def main():
                 formats=args.formats,
                 only_main_content=args.only_main_content,
                 parsers=args.parsers,
+                pdf_mode=getattr(args, 'pdf_mode', None),
+                pdf_max_pages=getattr(args, 'pdf_max_pages', None),
                 zero_data_retention=args.zero_data_retention,
                 timeout=args.timeout
             )
