@@ -327,6 +327,7 @@ git clone https://github.com/tdimino/cliplog
 cd cliplog && uv sync
 uv run python cliplog.py                           # run daemon
 uv run python cliplog_query.py today --source claude  # query Claude copies
+uv run python cliplog_query.py today --table          # box-drawing table output
 uv run python cliplog_query.py search "function"   # full-text search
 uv run python cliplog_query.py stats               # per-app breakdown
 ```

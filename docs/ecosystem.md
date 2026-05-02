@@ -56,6 +56,7 @@ git clone https://github.com/tdimino/cliplog
 cd cliplog && uv sync
 uv run python cliplog.py                           # run daemon
 uv run python cliplog_query.py today --source claude  # query Claude copies
+uv run python cliplog_query.py today --table          # box-drawing table output
 ```
 
 ### claude-peers-mcp -- Inter-Agent Messaging
