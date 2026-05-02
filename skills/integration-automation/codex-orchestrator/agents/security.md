@@ -107,6 +107,13 @@ Structure findings as:
 Document assumptions about the threat model
 ```
 
+## Web Research Skills
+
+For CVE lookups, vulnerability advisories, and security documentation:
+
+- **`$exa-search`** — Search for CVEs, security advisories, OWASP documentation, and vulnerability databases.
+- **`$omnisearch`** — Multi-provider search for security news, exploit disclosures, and threat intelligence.
+
 ## Red Flags to Always Check
 
 - Hardcoded credentials or API keys
