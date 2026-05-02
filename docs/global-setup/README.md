@@ -320,39 +320,63 @@ Documents loaded on demand to keep base context small. Each file covers one doma
 
 ### `settings.json` — Hooks, MCP, Model
 
-The runtime configuration. The `model` field uses a pinned ID (`claude-opus-4-6`) rather than the alias (`opus`) to prevent version drift when Anthropic updates the default. See [Model Version Pinning](../guides/model-version-pinning.md) for the full guide. Key sections:
+The runtime configuration. The `model` field uses a pinned ID (`claude-opus-4-6`) rather than the alias (`opus`) to prevent version drift when Anthropic updates the default. See [Model Version Pinning](../guides/model-version-pinning.md) for the full guide. A complete example with all hooks, permissions, MCP servers, and plugins is at [`settings.json`](settings.json) in this directory. Key sections:
 
 ```json
 {
   "model": "claude-opus-4-6",
   "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "ENABLE_TOOL_SEARCH": "true",
+    "MCP_TIMEOUT": "10000",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "MAX_THINKING_TOKENS": "10000"
+  },
+  "permissions": {
+    "allow": [
+      "mcp__pencil",
+      "mcp__claude-peers__list_peers",
+      "mcp__claude-peers__check_messages",
+      "mcp__claude-peers__set_summary",
+      "Bash(python3:*)",
+      "Bash(~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh:*)",
+      "Bash(~/.claude/skills/codex-orchestrator/scripts/codex-status.sh:*)",
+      "Bash(~/.claude/skills/codex-orchestrator/scripts/codex-version-check.sh:*)"
+    ]
   },
   "hooks": {
     "SessionStart": [...],
     "UserPromptSubmit": [...],
+    "PreToolUse": [...],
+    "PostToolUse": [...],
+    "PostToolUseFailure": [...],
+    "PermissionRequest": [...],
     "Stop": [...],
     "SessionEnd": [...],
-    "PreCompact": [...],
-    "PreToolUse": [...],
-    "PostToolUse": [...]
+    "PreCompact": [],
+    "SubagentStart": [...],
+    "SubagentStop": [...]
   },
   "statusLine": {
     "type": "command",
     "command": "~/.claude/hooks/statusline-monitor.sh"
   },
   "mcpServers": {
+    "pencil": {...},
+    "claude-peers": {...},
     "supabase": {...},
     "ghidra": {...},
     "mcp-google-sheets": {...}
   },
   "enabledPlugins": {
-    "feature-dev@claude-code-plugins": true,
     "compound-engineering@every-marketplace": true,
-    "document-skills@anthropic-agent-skills": true,
+    "feature-dev@claude-code-plugins": true,
     "pr-review-toolkit@claude-code-plugins": true,
     "llm-application-dev@claude-code-workflows": true,
+    "agent-evaluation@context-engineering-marketplace": true,
+    "model-trainer@huggingface-skills": true,
+    "evals-skills@hamelsmu-evals-skills": true,
     ...
   }
 }

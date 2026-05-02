@@ -38,6 +38,7 @@ show_usage() {
     echo "  syseng     - Infrastructure/DevOps/CI-CD specialist"
     echo "  builder    - Greenfield implementation specialist"
     echo "  researcher - Read-only Q&A and analysis (no file changes)"
+    echo "  chat       - Open-ended conversation (read-only, ephemeral)"
     echo ""
     echo "Options:"
     echo "  --model <model>       Override model (default: per-profile, see below)"
@@ -51,11 +52,16 @@ show_usage() {
     echo "  --image <file>        Attach image to prompt (vision input)"
     echo "  --resume              Resume previous exec session (builder \"continue\" workflow)"
     echo "  --with-mcp            (no-op, kept for compatibility; manage MCPs in ~/.codex/config.toml)"
+    echo "  --api                 Use OpenAI API directly (API billing, not Codex subscription)"
+    echo "  --session <file>      Session file for multi-turn API chat (requires --api)"
+    echo "  --system <prompt>     System prompt for API chat (requires --api)"
+    echo "  --stream              Stream API response tokens (requires --api)"
     echo ""
     echo "Profile defaults:"
     echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.5 + high"
     echo "  Planning (planner,architect):                                       gpt-5.5 + high"
     echo "  Research (researcher):                                              gpt-5.5 + medium"
+    echo "  Chat     (chat):                                                    gpt-5.4 + medium"
     echo ""
     echo "Examples:"
     echo "  codex-exec.sh reviewer \"Review src/auth.ts for security issues\""
@@ -76,7 +82,11 @@ get_profile_defaults() {
             DEFAULT_MODEL="gpt-5.5"
             DEFAULT_REASONING="high"
             ;;
-        # Research profile: gpt-5.5 with medium reasoning (1M context, read-only)
+        # Chat/Research profiles: gpt-5.4 (chat) / gpt-5.5 (researcher) with medium reasoning, read-only
+        chat)
+            DEFAULT_MODEL="gpt-5.4"
+            DEFAULT_REASONING="medium"
+            ;;
         researcher)
             DEFAULT_MODEL="gpt-5.5"
             DEFAULT_REASONING="medium"
@@ -119,7 +129,7 @@ shift 2
 AGENTS_FILE="$AGENTS_DIR/$PROFILE.md"
 if [ ! -f "$AGENTS_FILE" ]; then
     echo -e "${RED}Error: Profile '$PROFILE' not found${NC}"
-    echo "Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher"
+    echo "Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher, chat"
     exit 1
 fi
 
@@ -138,6 +148,10 @@ JSON_OUTPUT=""
 IMAGE_FILE=""
 RESUME_SESSION=""
 WITH_MCP=""
+API_MODE=""
+API_SESSION=""
+API_SYSTEM=""
+API_STREAM=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -185,6 +199,22 @@ while [[ $# -gt 0 ]]; do
             WITH_MCP="true"
             shift
             ;;
+        --api)
+            API_MODE="true"
+            shift
+            ;;
+        --session)
+            API_SESSION="$2"
+            shift 2
+            ;;
+        --system)
+            API_SYSTEM="$2"
+            shift 2
+            ;;
+        --stream)
+            API_STREAM="true"
+            shift
+            ;;
         *)
             echo -e "${YELLOW}Warning: Unknown option $1${NC}"
             shift
@@ -203,12 +233,12 @@ fi
 # Auto-configure read-only profiles
 EPHEMERAL=""
 OUTPUT_FILE=""
-if [ "$PROFILE" = "researcher" ]; then
+if [ "$PROFILE" = "researcher" ] || [ "$PROFILE" = "chat" ]; then
     SANDBOX="read-only"
     EPHEMERAL="--ephemeral"
     OUTPUT_FILE=$(mktemp /tmp/codex-researcher-XXXXXX.md)
     if [ -n "$FULL_AUTO" ]; then
-        echo -e "${YELLOW}Warning: --full-auto overrides read-only sandbox. Ignoring --full-auto for researcher profile.${NC}"
+        echo -e "${YELLOW}Warning: --full-auto overrides read-only sandbox. Ignoring --full-auto for $PROFILE profile.${NC}"
         FULL_AUTO=""
     fi
 fi
@@ -380,6 +410,36 @@ fi
 # prevent clearing via -c override). Remove unused servers from config.toml to
 # reduce startup latency.
 
+# --- API mode: bypass Codex CLI, call OpenAI API directly ---
+if [ -n "$API_MODE" ]; then
+    source ~/.config/env/secrets.env 2>/dev/null || true
+    API_CHAT_SCRIPT="$SCRIPT_DIR/gpt-api-chat.py"
+    API_ARGS=("$PROMPT" --model "${MODEL:-gpt-5.5}")
+    if [ -n "$API_SESSION" ]; then
+        API_ARGS+=(--session "$API_SESSION")
+    fi
+    if [ -n "$API_SYSTEM" ]; then
+        API_ARGS+=(--system "$API_SYSTEM")
+    fi
+    if [ -n "$API_STREAM" ]; then
+        API_ARGS+=(--stream)
+    fi
+    if [ -n "$REASONING" ]; then
+        API_ARGS+=(--reasoning "$REASONING")
+    fi
+    if [ -n "$JSON_OUTPUT" ]; then
+        API_ARGS+=(--json)
+    fi
+    echo -e "${GREEN}API mode: calling OpenAI API directly (billed to API key)${NC}"
+    echo -e "Model: ${MODEL:-gpt-5.5}"
+    if [ -n "$API_SESSION" ]; then
+        echo -e "Session: $API_SESSION"
+    fi
+    echo ""
+    python3 "$API_CHAT_SCRIPT" "${API_ARGS[@]}"
+    exit $?
+fi
+
 # Run Codex with the agent profile
 # Codex reads AGENTS.md from the current directory
 if [ -n "$RESUME_SESSION" ]; then
@@ -388,7 +448,7 @@ else
     codex "${CODEX_ARGS[@]}" "$PROMPT"
 fi
 
-# Display captured response for researcher profile
+# Display captured response for researcher/chat profile
 if [ -n "$OUTPUT_FILE" ] && [ -f "$OUTPUT_FILE" ] && [ -s "$OUTPUT_FILE" ]; then
     echo ""
     echo -e "${GREEN}=== Response ===${NC}"

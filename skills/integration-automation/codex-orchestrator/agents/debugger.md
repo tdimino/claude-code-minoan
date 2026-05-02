@@ -78,6 +78,13 @@ Specific code changes to resolve the issue
 How to prevent similar bugs in the future
 ```
 
+## Web Research Skills
+
+When debugging requires external context (error messages, library bugs, known issues):
+
+- **`$exa-search`** — Search for error messages, Stack Overflow answers, GitHub issues, and library documentation.
+- **`$omnisearch`** ��� Multi-provider search with `--answer` for quick explanations of error codes or unexpected behavior.
+
 ## Common Bug Patterns to Check
 
 - Null/undefined references

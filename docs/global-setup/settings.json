@@ -1,0 +1,423 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "claude-opus-4-6",
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "showThinkingSummaries": true,
+  "cleanupPeriodDays": 99999,
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true",
+    "MCP_TIMEOUT": "10000",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "MAX_THINKING_TOKENS": "10000"
+  },
+  "permissions": {
+    "allow": [
+      "mcp__pencil",
+      "mcp__paper",
+      "mcp__claude-peers__list_peers",
+      "mcp__claude-peers__check_messages",
+      "mcp__claude-peers__set_summary",
+      "Bash(ports)",
+      "Bash(ports --all)",
+      "Bash(ports -a)",
+      "Bash(ports ps)",
+      "Bash(ports ps --all)",
+      "Bash(whoisonport *)",
+      "Bash(open -a Base:*)",
+      "Bash(python3:*)",
+      "Bash(~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh:*)",
+      "Bash(~/.claude/skills/codex-orchestrator/scripts/codex-status.sh:*)",
+      "Bash(~/.claude/skills/codex-orchestrator/scripts/codex-version-check.sh:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/update-date.sh"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/soul-activate.py",
+            "statusMessage": "Awakening soul..."
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/mycelium-arrive.sh",
+            "timeout": 8000,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/soul-reactivate-compact.py",
+            "statusMessage": "Restoring soul after compaction..."
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/soul-activate-resume.py",
+            "statusMessage": "Resuming soul..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/multi-response-prompt.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/skills/slack/scripts/slack_inbox_hook.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/git-track.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/block-websearch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/block-webfetch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/image-optimize.py",
+            "timeout": 8000
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/on-thinking.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/git-track-post.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/dabarat-open.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/plan-session-rename.py",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/lint-on-write.py",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/mycelium-context.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/lint-on-write.py",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/mycelium-context.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/image-budget.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__computer-use__screenshot",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/image-budget.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__claude-in-chrome__screenshot",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/image-budget.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/phase-detect.py",
+            "timeout": 3000,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/error-context-hints.py"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/smart-auto-approve.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/on-ready.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/propagate-rename.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/slack-stop-hook.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/soul-reflect.py",
+            "statusMessage": "Reflecting...",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/session-tags-infer.py",
+            "statusMessage": "Inferring session tags...",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/plan-rename.py stop",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/mycelium-depart.sh",
+            "timeout": 10000,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/session-sync-db.py",
+            "timeout": 5000,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/soul-deregister.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/git-track-rebuild.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/plan-rename.py session_end",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "PreCompact": [],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/soul-subagent-inject.py",
+            "statusMessage": "Ensouling subdaimon..."
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/mycelium-subagent.py",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/subagent-spawn-log.py",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/subagent-stop-log.py",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/hooks/statusline-monitor.sh",
+    "padding": 0
+  },
+  "enabledPlugins": {
+    "compound-engineering@every-marketplace": true,
+    "agent-evaluation@context-engineering-marketplace": true,
+    "llm-application-dev@claude-code-workflows": true,
+    "feature-dev@claude-code-plugins": true,
+    "pr-review-toolkit@claude-code-plugins": true,
+    "model-trainer@huggingface-skills": true,
+    "playground@claude-plugins-official": true,
+    "evals-skills@hamelsmu-evals-skills": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "exa-mcp-server@exa-mcp-server": false,
+    "frontend-mobile-development@claude-code-workflows": false,
+    "multi-platform-apps@claude-code-workflows": false,
+    "example-skills@anthropic-agent-skills": false,
+    "frontend-design@claude-code-plugins": false,
+    "osgrep@osgrep": false,
+    "dev-browser@dev-browser-marketplace": false,
+    "ralph-wiggum@claude-code-plugins": false,
+    "commit-commands@claude-code-plugins": false,
+    "agent-sdk-dev@claude-code-plugins": false,
+    "impeccable@impeccable": false
+  },
+  "mcpServers": {
+    "pencil": {
+      "command": "pencil",
+      "args": ["mcp-server"],
+      "env": {}
+    },
+    "claude-peers": {
+      "command": "bun",
+      "args": ["<path-to>/claude-peers-mcp/server.ts"]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "<YOUR_SUPABASE_ACCESS_TOKEN>"
+      ]
+    },
+    "ghidra": {
+      "command": "uv",
+      "args": [
+        "run",
+        "<path-to>/GhidraMCP/bridge_mcp_ghidra.py",
+        "--ghidra-server",
+        "http://127.0.0.1:8080/"
+      ]
+    },
+    "mcp-google-sheets": {
+      "command": "uvx",
+      "args": ["mcp-google-sheets@latest"],
+      "env": {
+        "SERVICE_ACCOUNT_PATH": "<path-to>/google-sheets-service-account.json",
+        "DRIVE_FOLDER_ID": "<YOUR_DRIVE_FOLDER_ID>"
+      }
+    }
+  }
+}
