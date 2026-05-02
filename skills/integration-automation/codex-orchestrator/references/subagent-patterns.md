@@ -202,15 +202,15 @@ wait
 | Profile Use Case | Recommended Model |
 |-----------------|-------------------|
 | Quick checks | gpt-5-mini |
-| Detailed review | gpt-5.4 |
-| Complex architecture | gpt-5.4-pro |
+| Detailed review | gpt-5.5 |
+| Complex architecture | gpt-5.5-pro |
 | Simple docs | gpt-5-mini |
-| Security audit | gpt-5.4 |
+| Security audit | gpt-5.5 |
 
 ```bash
 # Override model for cost savings
 ./scripts/codex-exec.sh reviewer "Quick style check" --model gpt-5-mini
 
 # Use full power for complex tasks
-./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.4-pro
+./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.5-pro
 ```

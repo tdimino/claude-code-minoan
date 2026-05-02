@@ -417,6 +417,51 @@ def run_tests(tests: List[Callable], verbose: bool = False) -> Dict[str, Any]:
     }
 
 
+def test_scrape_only_clean_content() -> TestResult:
+    """Test scrape with only_clean_content (v2.9)."""
+    try:
+        result = fc.scrape(TEST_URL, formats=["markdown"], only_clean_content=True)
+        if "data" in result or "markdown" in str(result):
+            return TestResult("Scrape (only_clean_content)", True, "Clean content scrape worked", result)
+        return TestResult("Scrape (only_clean_content)", False, f"Unexpected response: {str(result)[:100]}")
+    except Exception as e:
+        return TestResult("Scrape (only_clean_content)", False, f"Error: {str(e)}")
+
+
+def test_scrape_min_age() -> TestResult:
+    """Test scrape with min_age=0 to force fresh (v2.9)."""
+    try:
+        result = fc.scrape(TEST_URL, formats=["markdown"], min_age=0)
+        if "data" in result or "markdown" in str(result):
+            return TestResult("Scrape (min_age)", True, "min_age=0 fresh scrape worked", result)
+        return TestResult("Scrape (min_age)", False, f"Unexpected response: {str(result)[:100]}")
+    except Exception as e:
+        return TestResult("Scrape (min_age)", False, f"Error: {str(e)}")
+
+
+def test_scrape_pdf_options() -> TestResult:
+    """Test scrape with pdf_mode (v2.9). Uses a PDF URL."""
+    pdf_url = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+    try:
+        result = fc.scrape(pdf_url, formats=["markdown"], pdf_mode="fast", pdf_max_pages=5)
+        if "data" in result or "markdown" in str(result):
+            return TestResult("Scrape (pdf_options)", True, "PDF mode scrape worked", result)
+        return TestResult("Scrape (pdf_options)", False, f"Unexpected response: {str(result)[:100]}")
+    except Exception as e:
+        return TestResult("Scrape (pdf_options)", False, f"Error: {str(e)}")
+
+
+def test_parse_pdf_options() -> TestResult:
+    """Test parse_document with pdf_mode (v2.9)."""
+    try:
+        result = fc.parse_document(TEST_URL, formats=["markdown"], pdf_mode="auto", pdf_max_pages=10)
+        if "data" in result or "markdown" in str(result):
+            return TestResult("Parse (pdf_options)", True, "PDF parse with options worked", result)
+        return TestResult("Parse (pdf_options)", False, f"Unexpected response: {str(result)[:100]}")
+    except Exception as e:
+        return TestResult("Parse (pdf_options)", False, f"Error: {str(e)}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Test Firecrawl API wrapper")
     parser.add_argument("--quick", action="store_true", help="Run quick tests only (no async jobs)")
@@ -434,6 +479,10 @@ def main():
     ]
 
     async_tests = [
+        test_scrape_only_clean_content,
+        test_scrape_min_age,
+        test_scrape_pdf_options,
+        test_parse_pdf_options,
         test_scrape_with_location,
         test_scrape_with_cache,
         test_scrape_with_parsers,

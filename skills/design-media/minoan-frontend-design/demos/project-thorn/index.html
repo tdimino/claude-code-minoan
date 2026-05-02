@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROJECT THORN — Imperial Intelligence Briefing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&display=swap" rel="stylesheet">
+<style>
+  /* Departure Mono — period-correct CRT mono by Helena Zhang.
+     Self-hosted .woff2; fallback to system mono if unavailable.
+     SIL Open Font License — see DepartureMono-LICENSE.txt */
+  @font-face {
+    font-family: 'Departure Mono';
+    src: url('DepartureMono-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  /* ═══════════════════════════════════════════════════════════════════
+     PROJECT THORN — Imperial Intelligence Terminal
+     Bloomberg Terminal archetype, amber phosphor monochrome
+     ═══════════════════════════════════════════════════════════════════ */
+
+  :root {
+    /* Imperial green phosphor — SWG / Tantive IV / ISD bridge aesthetic */
+    --bg: #050a07;
+    --surface: #08120c;
+    --rule: #143020;
+    --rule-bright: #265840;
+    --amber: #7ce5a0;            /* primary phosphor green — slightly desaturated for Imperial CRT, not Matrix */
+    --amber-dim: #4ba670;
+    --amber-mute: #2d6a45;
+    --amber-faint: #14331f;
+    --cyan: #6ad8ff;             /* Imperial display cyan */
+    --cyan-dim: #2a7a9a;
+    --red: #ff3030;              /* Imperial red — classified alerts */
+    --red-dim: #8a1818;
+    --paper: #c8f5d0;
+
+    --type-dialogue: #a8ffb8;    /* bright phosphor green for NPC speech */
+    --type-narrative: #5cff90;   /* primary green */
+    --type-emote: #3ab368;       /* dimmer green-italic */
+    --type-system: #1f7a40;      /* mute green for system msgs */
+    --type-action: #6ad8ff;      /* cyan for player actions */
+    --type-credit: #ff3030;      /* red for credit transfers */
+    --type-thorn: #ff3030;       /* red for classified */
+
+    --char-stagger: 22ms;
+    --pause-short: 400ms;
+    --pause-med: 800ms;
+    --pause-long: 1400ms;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--amber);
+    font-family: 'Departure Mono', ui-monospace, 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ═══ ATMOSPHERE LAYERS ═══ */
+
+  .scanlines {
+    position: fixed; inset: 0; z-index: 100;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      rgba(0,0,0,0.18) 2px,
+      rgba(0,0,0,0.18) 3px
+    );
+    mix-blend-mode: multiply;
+  }
+
+  .vignette {
+    position: fixed; inset: 0; z-index: 99;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%),
+      linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 8%, transparent 92%, rgba(0,0,0,0.4) 100%);
+  }
+
+  .glow {
+    position: fixed; inset: 0; z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 40%, rgba(92,255,144,0.08) 0%, transparent 60%);
+    animation: ambient 8s ease-in-out infinite;
+  }
+  @keyframes ambient {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  .flicker {
+    position: fixed; inset: 0; z-index: 101;
+    pointer-events: none;
+    background: rgba(92,255,144,0.02);
+    animation: flicker 7s steps(1) infinite;
+  }
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 0; }
+    96% { opacity: 1; }
+    97% { opacity: 0; }
+    98% { opacity: 0.5; }
+  }
+
+  /* ═══ TERMINAL FRAME ═══ */
+
+  .terminal {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-columns: 1fr 200px;
+    grid-template-areas:
+      "chrome chrome"
+      "status status"
+      "transcript ticker"
+      "prompt prompt";
+    height: 100vh;
+    width: 100vw;
+    max-width: 1400px;
+    margin: 0 auto;
+    border-left: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+  }
+
+  /* ═══ CHROME (HEADER) ═══ */
+
+  .chrome {
+    grid-area: chrome;
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid var(--rule-bright);
+    background: linear-gradient(180deg, #0c1810 0%, #050a07 100%);
+    height: 96px;
+  }
+
+  .chrome__brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 18px;
+    border-right: 1px solid var(--rule);
+    flex-shrink: 0;
+    min-width: 320px;
+  }
+
+  .chrome__portrait-frame {
+    position: relative;
+    flex-shrink: 0;
+    width: 80px; height: 80px;
+    border: 1px solid var(--rule-bright);
+    background: var(--surface);
+    overflow: hidden;
+    box-shadow:
+      inset 0 0 12px rgba(0,0,0,0.6),
+      0 0 16px rgba(92,255,144,0.06);
+  }
+
+  .chrome__portrait-frame::after {
+    /* CRT scanline overlay specifically on the avatar */
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 1px,
+      rgba(0,0,0,0.4) 1px,
+      rgba(0,0,0,0.4) 2px
+    );
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .chrome__portrait-frame::before {
+    /* Corner brackets */
+    content: "";
+    position: absolute; inset: 2px;
+    background:
+      linear-gradient(90deg, var(--amber) 0 8px, transparent 8px) top left / 8px 1px no-repeat,
+      linear-gradient(180deg, var(--amber) 0 8px, transparent 8px) top left / 1px 8px no-repeat,
+      linear-gradient(270deg, var(--amber) 0 8px, transparent 8px) top right / 8px 1px no-repeat,
+      linear-gradient(180deg, var(--amber) 0 8px, transparent 8px) top right / 1px 8px no-repeat,
+      linear-gradient(90deg, var(--amber) 0 8px, transparent 8px) bottom left / 8px 1px no-repeat,
+      linear-gradient(0deg, var(--amber) 0 8px, transparent 8px) bottom left / 1px 8px no-repeat,
+      linear-gradient(270deg, var(--amber) 0 8px, transparent 8px) bottom right / 8px 1px no-repeat,
+      linear-gradient(0deg, var(--amber) 0 8px, transparent 8px) bottom right / 1px 8px no-repeat;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.7;
+  }
+
+  .chrome__portrait {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    /* Seal — already two-tone phosphor on void from ImageMagick threshold pass.
+       Light flicker preserves the "low-bandwidth encrypted feed" feel. */
+    animation: portrait-flicker 6s steps(1) infinite;
+  }
+  @keyframes portrait-flicker {
+    0%, 88%, 100% { opacity: 1; }
+    89% { opacity: 0.5; }
+    90% { opacity: 1; }
+    94% { opacity: 0.8; filter: blur(0.4px); }
+    95% { opacity: 1; filter: none; }
+  }
+
+  .chrome__sigil {
+    font-family: 'Departure Mono', monospace;
+    font-size: 9px;
+    color: var(--amber-mute);
+    letter-spacing: 0.18em;
+    line-height: 1.6;
+    text-transform: uppercase;
+    flex: 1;
+    min-width: 0;
+  }
+  .chrome__sigil .name {
+    display: block;
+    color: var(--amber);
+    font-family: 'Major Mono Display', monospace;
+    font-size: 16px;
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+  .chrome__sigil .role {
+    display: block;
+    color: var(--amber-dim);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    margin-bottom: 2px;
+  }
+  .chrome__sigil .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    font-size: 8px;
+    color: var(--amber-faint);
+  }
+  .chrome__sigil .meta b {
+    color: var(--amber-mute);
+    font-weight: normal;
+  }
+  .chrome__sigil .reliability {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--amber);
+  }
+  .chrome__sigil .reliability::before {
+    content: "▮▮▮▮▯";
+    color: var(--amber);
+    letter-spacing: -1px;
+  }
+
+  .chrome__title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .chrome__title .sep {
+    color: var(--amber-faint);
+    margin: 0 14px;
+  }
+  .chrome__title .classified {
+    color: var(--red);
+    text-shadow: 0 0 12px rgba(255,59,48,0.6);
+    animation: classified-pulse 1.8s ease-in-out infinite;
+    font-weight: 600;
+  }
+  @keyframes classified-pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  .chrome__controls {
+    display: flex;
+    align-items: center;
+    border-left: 1px solid var(--rule);
+  }
+  .chrome__btn {
+    position: relative;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--rule);
+    color: var(--amber-dim);
+    font: 600 10px 'Departure Mono', monospace;
+    letter-spacing: 0.15em;
+    padding: 0 16px;
+    height: 100%;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chrome__btn:first-child { border-left: none; }
+  .chrome__btn:hover {
+    color: var(--amber);
+    background: rgba(92,255,144,0.05);
+  }
+  .chrome__btn[aria-pressed="true"] {
+    color: var(--red);
+    background: rgba(255,48,48,0.1);
+    box-shadow: inset 0 -2px 0 var(--red);
+  }
+  .chrome__btn .btn-icon {
+    font-size: 12px;
+    color: var(--amber-mute);
+    transition: color 0.15s;
+  }
+  .chrome__btn:hover .btn-icon { color: var(--amber); }
+  .chrome__btn[aria-pressed="true"] .btn-icon { color: var(--red); }
+  .chrome__btn .btn-key {
+    font-size: 8px;
+    color: var(--amber-faint);
+    margin-left: 4px;
+    padding: 1px 4px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+  }
+  .chrome__btn:hover .btn-key { color: var(--amber-mute); border-color: var(--amber-mute); }
+  .chrome__btn::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    padding: 6px 10px;
+    background: var(--surface);
+    border: 1px solid var(--rule-bright);
+    color: var(--amber-dim);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    text-transform: uppercase;
+  }
+  .chrome__btn:hover::after { opacity: 1; }
+
+  /* ═══ LIVE LOG PANEL ═══ */
+  .log-panel {
+    position: fixed;
+    bottom: 50px;
+    right: 16px;
+    z-index: 150;
+    width: 320px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--rule-bright);
+    border-radius: 0;
+    font-size: 10px;
+    color: var(--amber-dim);
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.8), 0 0 16px rgba(92,255,144,0.08);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .log-panel--hidden {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+  .log-panel__title {
+    color: var(--amber);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .log-panel__title::before {
+    content: "▮ ";
+    color: var(--red);
+    animation: rec-blink 1.2s steps(1) infinite;
+  }
+  .log-entry {
+    padding: 2px 0;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    border-bottom: 1px dotted var(--rule);
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry .log-time { color: var(--amber-faint); margin-right: 6px; }
+  .log-entry .log-tag {
+    display: inline-block;
+    padding: 0 4px;
+    margin-right: 6px;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .log-entry .log-tag--init { color: var(--cyan); }
+  .log-entry .log-tag--state { color: var(--amber); }
+  .log-entry .log-tag--alert { color: var(--red); }
+  .log-entry .log-tag--user { color: var(--cyan); }
+  .log-entry .log-msg { color: var(--amber-dim); }
+  .log-panel::-webkit-scrollbar { width: 4px; }
+  .log-panel::-webkit-scrollbar-thumb { background: var(--rule-bright); }
+
+  /* ═══ STATUS STRIP (Bloomberg-dense data row) ═══ */
+
+  .status {
+    grid-area: status;
+    display: flex;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+    height: 28px;
+    overflow: hidden;
+  }
+
+  .status__cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    border-right: 1px solid var(--rule);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .status__cell dt {
+    color: var(--amber-mute);
+    font-weight: 400;
+  }
+  .status__cell dd {
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .status__cell dd.alert { color: var(--red); }
+  .status__cell dd.live { color: var(--cyan); }
+
+  .status__bars {
+    display: inline-block;
+    color: var(--amber);
+    letter-spacing: -1px;
+    font-size: 11px;
+  }
+
+  /* Intercept stream — Empire's surveillance system observing the conversation */
+  .status__intercept {
+    margin-left: auto;
+    padding: 0 14px;
+    border-left: 1px solid var(--rule);
+    border-right: none;
+    flex: 0 0 auto;
+    min-width: 360px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  .status__intercept dt {
+    color: var(--amber-mute);
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+  .status__intercept dt::before {
+    content: "●";
+    color: var(--red);
+    margin-right: 5px;
+    animation: rec-blink 1.2s steps(1) infinite;
+  }
+  @keyframes rec-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.2; }
+  }
+  .status__intercept-stream {
+    flex: 1;
+    overflow: hidden;
+    height: 14px;
+    position: relative;
+  }
+  .status__intercept-event {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--amber);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    animation: intercept-slide-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .status__intercept-event.exiting {
+    animation: intercept-slide-out 0.35s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  }
+  .status__intercept-event.sev-info { color: var(--amber); }
+  .status__intercept-event.sev-warn { color: #ffc14a; }
+  .status__intercept-event.sev-alert { color: var(--red); text-shadow: 0 0 8px rgba(255,48,48,0.6); }
+  .status__intercept-event .ts {
+    color: var(--amber-faint);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .status__intercept-event .text { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  @keyframes intercept-slide-in {
+    from { transform: translateY(14px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes intercept-slide-out {
+    from { transform: translateY(0); opacity: 1; }
+    to   { transform: translateY(-14px); opacity: 0; }
+  }
+
+  /* ═══ TRANSCRIPT (the chat log) ═══ */
+
+  .transcript {
+    grid-area: transcript;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 24px 32px 24px 24px;
+    background: var(--bg);
+    border-right: 1px solid var(--rule);
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-bright) transparent;
+  }
+  .transcript::-webkit-scrollbar { width: 8px; }
+  .transcript::-webkit-scrollbar-track { background: transparent; }
+  .transcript::-webkit-scrollbar-thumb {
+    background: var(--rule-bright);
+    border-radius: 0;
+  }
+
+  .line {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 16px;
+    margin-bottom: 6px;
+    align-items: baseline;
+  }
+
+  .line__time {
+    color: var(--amber-faint);
+    font-size: 11px;
+    user-select: none;
+    text-align: right;
+    padding-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .line__body {
+    color: var(--type-narrative);
+    text-shadow: 0 0 10px rgba(92,255,144,0.25);
+  }
+
+  .line--system .line__body {
+    color: var(--type-system);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .line--system .line__body::before {
+    content: ">>> ";
+    color: var(--amber-mute);
+  }
+
+  .line--dialogue .line__body { color: var(--type-dialogue); }
+  .line--narrative .line__body { color: var(--type-narrative); }
+
+  .line--emote .line__body {
+    color: var(--type-emote);
+    font-style: italic;
+  }
+  .line--emote .line__body::before {
+    content: "* ";
+    color: var(--amber-mute);
+    font-style: normal;
+  }
+
+  .line--action .line__body {
+    color: var(--type-action);
+    text-shadow: 0 0 10px rgba(106,216,255,0.3);
+  }
+  .line--action .line__body::before {
+    content: "→ ";
+    color: var(--cyan-dim);
+  }
+
+  .line--credit .line__body {
+    color: var(--type-credit);
+    text-shadow: 0 0 12px rgba(255,59,48,0.4);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .line--credit .line__body::before {
+    content: "▮ ";
+    color: var(--red-dim);
+  }
+
+  .line--interrupt .line__body {
+    color: var(--amber-mute);
+    font-style: italic;
+  }
+  .line--interrupt .line__body::before {
+    content: "▮ ";
+    color: var(--red);
+  }
+
+  .line--break {
+    grid-template-columns: 1fr;
+    margin: 12px 0;
+  }
+  .line--break .line__body {
+    color: var(--amber-faint);
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    text-align: center;
+    border-top: 1px solid var(--rule);
+    padding-top: 12px;
+  }
+
+  .line__speaker {
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .line__speaker::after { content: ": "; color: var(--amber-dim); }
+
+  .line .thorn {
+    color: var(--type-thorn);
+    text-shadow: 0 0 14px rgba(255,59,48,0.6);
+    font-weight: 600;
+    cursor: help;
+    border-bottom: 1px dotted var(--red-dim);
+  }
+  .line .person {
+    color: var(--amber);
+    font-weight: 600;
+    cursor: help;
+    border-bottom: 1px dotted var(--amber-mute);
+  }
+
+  /* ═══ TYPEWRITER ANIMATION ═══ */
+
+  .char {
+    opacity: 0;
+    animation: char-in 1ms steps(1, end) forwards;
+    animation-delay: var(--d, 0ms);
+  }
+  @keyframes char-in {
+    to { opacity: 1; }
+  }
+
+  /* Lines are hidden (display:none) until JS reveals them at their --line-d time.
+     This keeps the transcript scroll height accurate to what's actually visible. */
+  .line.pre-reveal { display: none; }
+  .line.revealing {
+    animation: line-show 240ms ease-out forwards;
+  }
+  @keyframes line-show {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ═══ TICKER ═══ */
+
+  .ticker {
+    grid-area: ticker;
+    overflow: hidden;
+    background: var(--surface);
+    position: relative;
+    padding: 8px 0;
+  }
+  .ticker::before, .ticker::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    height: 24px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .ticker::before {
+    top: 0;
+    background: linear-gradient(180deg, var(--surface) 0%, transparent 100%);
+  }
+  .ticker::after {
+    bottom: 0;
+    background: linear-gradient(0deg, var(--surface) 0%, transparent 100%);
+  }
+  .ticker__inner {
+    animation: ticker-scroll 60s linear infinite;
+  }
+  .ticker__row {
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .ticker__row dt { color: var(--amber-mute); margin-bottom: 2px; }
+  .ticker__row dd { color: var(--amber-dim); font-weight: 600; }
+  .ticker__row dd.alert { color: var(--red); }
+  .ticker__row dd.live { color: var(--cyan); }
+  @keyframes ticker-scroll {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+  }
+
+  /* ═══ PROMPT ═══ */
+
+  .prompt {
+    grid-area: prompt;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 20px;
+    border-top: 1px solid var(--rule-bright);
+    background: var(--surface);
+    font-size: 12px;
+    color: var(--amber-dim);
+  }
+  .prompt__sigil {
+    color: var(--amber);
+    font-weight: 700;
+  }
+  .prompt__cursor {
+    width: 9px; height: 14px;
+    background: var(--amber);
+    box-shadow: 0 0 6px rgba(92,255,144,0.5);
+    animation: cursor-blink 1.06s steps(1) infinite;
+  }
+  @keyframes cursor-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  .prompt__hint {
+    margin-left: auto;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--amber-faint);
+    text-transform: uppercase;
+  }
+
+  /* ═══ TOOLTIPS ═══ */
+
+  .person, .thorn { position: relative; }
+  .person:hover::after, .thorn:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--rule-bright);
+    color: var(--amber);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    z-index: 200;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.8), 0 0 20px rgba(92,255,144,0.1);
+    pointer-events: none;
+  }
+  .thorn:hover::after {
+    border-color: var(--red);
+    color: var(--red);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.8), 0 0 20px rgba(255,59,48,0.2);
+  }
+
+  /* ═══ END-STATE / SIGNAL LOST ═══ */
+
+  body.signal-lost .line:not(.line--signal-lost) {
+    opacity: 0.35;
+    transition: opacity 0.8s;
+  }
+  body.signal-lost .glow { opacity: 0.2; }
+
+  /* Make SIGNAL LOST hit hard — bigger, glitchy, chromatic */
+  .line--break.line--signal-lost .line__body {
+    color: var(--red) !important;
+    border-color: var(--red) !important;
+    font-size: 20px !important;
+    font-weight: 800;
+    letter-spacing: 0.4em !important;
+    padding: 28px 0 !important;
+    border-top-width: 2px !important;
+    border-top-style: solid !important;
+    text-shadow:
+      0 0 24px rgba(255,48,48,0.9),
+      -2px 0 rgba(255,48,48,0.6),
+      2px 0 rgba(106,216,255,0.4);
+    animation: signal-lost-pulse 1.4s steps(2) infinite;
+  }
+  @keyframes signal-lost-pulse {
+    0%, 100% { opacity: 1; transform: translateX(0); }
+    50% { opacity: 0.65; transform: translateX(-2px); }
+  }
+
+  /* Screen flash when SIGNAL LOST hits */
+  .signal-flash {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(255,48,48,0.5);
+    pointer-events: none;
+    opacity: 0;
+    animation: signal-flash 0.7s ease-out forwards;
+  }
+  @keyframes signal-flash {
+    0% { opacity: 0; }
+    8% { opacity: 1; }
+    20% { opacity: 0.2; }
+    30% { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+
+  /* Glitch out the previous (interrupt) line on signal lost */
+  body.signal-lost .line--interrupt .line__body {
+    animation: glitch-out 0.4s steps(3) 2;
+  }
+  @keyframes glitch-out {
+    0%, 100% { transform: translateX(0); }
+    33% { transform: translateX(-3px); filter: hue-rotate(80deg); }
+    66% { transform: translateX(2px); filter: hue-rotate(-30deg); }
+  }
+
+  /* ═══ REDUCED MOTION ═══ */
+
+  @media (prefers-reduced-motion: reduce) {
+    .char, .line {
+      opacity: 1 !important;
+      animation: none !important;
+    }
+    .ticker__inner, .glow, .flicker, .prompt__cursor {
+      animation: none !important;
+    }
+  }
+
+  /* ═══ RESPONSIVE ═══ */
+
+  @media (max-width: 768px) {
+    .terminal {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "chrome"
+        "status"
+        "transcript"
+        "prompt";
+    }
+    .ticker { display: none; }
+    .transcript { border-right: none; }
+    .line { grid-template-columns: 60px 1fr; gap: 10px; }
+    .chrome__title { font-size: 9px; }
+    .chrome__title .sep { margin: 0 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+<div class="vignette"></div>
+<div class="flicker"></div>
+
+<div class="terminal">
+
+  <!-- ═══ CHROME ═══ -->
+  <header class="chrome">
+    <div class="chrome__brand">
+      <div class="chrome__portrait-frame">
+        <img class="chrome__portrait" src="bothan-ora-seal.png" alt="Ora — Bothan informant">
+      </div>
+      <div class="chrome__sigil">
+        <span class="name">ORA</span>
+        <span class="role">Bothan Network · Tier-3 Informant</span>
+        <div class="meta">
+          <span><b>OPS:</b> 47</span>
+          <span><b>BURNS:</b> 0</span>
+        </div>
+        <div class="meta">
+          <span class="reliability">&nbsp;RELIABLE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chrome__title">
+      Imperial Intelligence
+      <span class="sep">/</span>
+      Sec-Lvl <span style="color:var(--amber)">OMEGA</span>
+      <span class="sep">/</span>
+      Encrypted Channel <span style="color:var(--amber)">θ-7</span>
+      <span class="sep">/</span>
+      <span class="classified">PROJECT THORN</span>
+    </div>
+
+    <div class="chrome__controls">
+      <button class="chrome__btn" id="btn-replay" data-tip="Re-decrypt channel from initial intercept (R)">
+        <span class="btn-icon">↺</span>RE-DECRYPT
+      </button>
+      <button class="chrome__btn" id="btn-vhs" data-tip="Apply analog feed degradation (V)" aria-pressed="false">
+        <span class="btn-icon">▒</span>DEGRADE
+      </button>
+      <button class="chrome__btn" id="btn-skip" data-tip="Burst-decode full intercept (SPC)">
+        <span class="btn-icon">⏭</span>BURST
+      </button>
+      <button class="chrome__btn" id="btn-log" data-tip="Display signal trace diagnostics (L)" aria-pressed="false">
+        <span class="btn-icon">⟫</span>TRACE
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ STATUS STRIP ═══ -->
+  <dl class="status">
+    <div class="status__cell"><dt>Asset</dt><dd>GORDA, J.</dd></div>
+    <div class="status__cell"><dt>Cover</dt><dd>JIFF GORDA</dd></div>
+    <div class="status__cell"><dt>Origin</dt><dd>VORIAN DUCAL · TATOOINE</dd></div>
+    <div class="status__cell"><dt>Handler</dt><dd>AGENT COTLA</dd></div>
+    <div class="status__cell"><dt>Cell</dt><dd class="live">ECHO</dd></div>
+    <div class="status__cell"><dt>Status</dt><dd class="alert">EMBEDDED</dd></div>
+    <div class="status__intercept" id="intercept">
+      <dt>INTERCEPT</dt>
+      <div class="status__intercept-stream" id="intercept-stream"></div>
+    </div>
+  </dl>
+
+  <!-- ═══ TRANSCRIPT ═══ -->
+  <main class="transcript" id="transcript">
+
+    <article class="line line--system" data-time="01:01">
+      <div class="line__time">[01:01:00]</div>
+      <div class="line__body" data-text="Establishing encrypted channel..."></div>
+    </article>
+
+    <article class="line line--system" data-time="01:01">
+      <div class="line__time">[01:01:14]</div>
+      <div class="line__body" data-text="Channel secured · AES-256-GCM · Latency 47ms"></div>
+    </article>
+
+    <article class="line line--system" data-time="01:01">
+      <div class="line__time">[01:01:22]</div>
+      <div class="line__body" data-text="Informant located — Mos Eisley Cantina, Sector 7-G"></div>
+    </article>
+
+    <article class="line line--system" data-time="01:01">
+      <div class="line__time">[01:01:30]</div>
+      <div class="line__body" data-text="Recording initiated"></div>
+    </article>
+
+    <article class="line line--break">
+      <div class="line__body">▔▔▔ TRANSMISSION BEGINS ▔▔▔</div>
+    </article>
+
+    <article class="line line--dialogue" data-time="01:02">
+      <div class="line__time">[01:02:08]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Jiff Gorda? What could you possibly wish to know about that fool of a human?&quot;"></span></div>
+    </article>
+
+    <article class="line line--emote" data-time="01:02">
+      <div class="line__time">[01:02:34]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="glances over his shoulder. With an air of bothan confidence, he turns his gaze from your concealed blaster to the overlooking skyline."></span></div>
+    </article>
+
+    <article class="line line--dialogue" data-time="01:02">
+      <div class="line__time">[01:02:51]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Very well. Credits.&quot;"></span></div>
+    </article>
+
+    <article class="line line--credit" data-time="01:03">
+      <div class="line__time">[01:03:02]</div>
+      <div class="line__body" data-text="6,000 IMPERIAL CREDITS TRANSFERRED"></div>
+    </article>
+
+    <article class="line line--dialogue" data-time="01:03">
+      <div class="line__time">[01:03:18]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Jiff Gorda; a name; an alias; a persona to be played, nothing more.&quot;"></span></div>
+    </article>
+
+    <article class="line line--action" data-time="01:03">
+      <div class="line__time">[01:03:33]</div>
+      <div class="line__body" data-text="You raise an eyebrow at Ora."></div>
+    </article>
+
+    <article class="line line--dialogue" data-time="01:03">
+      <div class="line__time">[01:03:40]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;I see. Apparently there is much you do not know.&quot;"></span></div>
+    </article>
+
+    <article class="line line--emote" data-time="01:04">
+      <div class="line__time">[01:04:01]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="pauses for a moment, making sure to stroke his beard before continuing,"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:04">
+      <div class="line__time">[01:04:18]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Two standard years ago, on a particularly grueling day of the Harvest season, a young miner strode into the Mos Eisley cantina. Following a private rendezvous with an agent of Imperial Intelligence, the young miner ceased being §Vorian Ducal§ and became §Jiff Gorda§.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:05">
+      <div class="line__time">[01:05:03]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;The §Jiff Gorda§ you know of, the one whom you are seeking information about, is merely an actor, a fine actor at that; but in the end, yet another tool of the Empire.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:05">
+      <div class="line__time">[01:05:38]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;However, this tool has a codename, ¤Project Thorn¤, and has been one of the focuses of Imperial Intelligence ever since the day of its initiation.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:06">
+      <div class="line__time">[01:06:11]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;¤Project Thorn¤, quite simply, was designed to deceive and infiltrate the highest ranks of the Rebel Alliance. Once the sleeper had secured an influential position in the Rebellion, he or she would begin feeding data to Imperial Intelligence regarding fleet movements, alliance leadership, imminent rebel attacks, sources of funding and supplies, etcera.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:07">
+      <div class="line__time">[01:07:24]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;From a list of promising candidates, a miner on Tatoonie caught the eye of §Agent Cotla§, the man leading ¤Project Thorn¤.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:08">
+      <div class="line__time">[01:08:02]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Other than one or two physical discrepancies which were later corrected through image design, §Vorian§ bore a striking resemblance to a noble born by the name of §Jiff Gorda§.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:08">
+      <div class="line__time">[01:08:41]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;The real §Jiff Gorda§ rebelliously left home in his teens, much to the dismay of the Gordas, a well off family of Corellian nobles and known sympathizers of the Rebellion. Imperial Intelligence felt that the identity of §Jiff Gorda§ would make an ideal front for their new double agent, and thus, it was decided that §Jiff Gorda§ would be terminated.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:09">
+      <div class="line__time">[01:09:48]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Conveniently, the assassination was conducted on Tatoonie, where Gorda had begun dealing with the local Hutts and crimelords. Imperial Intelligence feared that the Hutts might detect deception on the part of the as of yet-untested §Vorian Ducal§, but it appears that intoxication and riches numb even the mighty senses of overgrown slugs.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:10">
+      <div class="line__time">[01:10:39]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Along with the title and name of the deceased Corellian noble born, §Vorian§—now known as §Jiff§—was granted full access to the Gorda family fortune.&quot;"></span></div>
+    </article>
+
+    <article class="line line--narrative" data-time="01:11">
+      <div class="line__time">[01:11:08]</div>
+      <div class="line__body"><span class="line__speaker">Ora</span><span data-text="&quot;Vorian's first true task, which was closely monitored by his superiors, required '§Jiff Gorda§' to join the ranks of an independent group of rebels referred to as 'ECHO'. Vorian's ability to adapt and improvise impressed agents §Cotla§ and §Fenri§, and so the project was continu—&quot;"></span></div>
+    </article>
+
+    <article class="line line--interrupt" data-time="01:11">
+      <div class="line__time">[01:11:52]</div>
+      <div class="line__body" data-text="Ora suddenly goes silent, motioning for you to return at a later time."></div>
+    </article>
+
+    <article class="line line--break line--signal-lost" id="signal-lost-marker">
+      <div class="line__body" style="color:var(--red);border-color:var(--red-dim);">▔▔▔ SIGNAL LOST · TRANSMISSION TERMINATED · 01:11:58 ▔▔▔</div>
+    </article>
+
+  </main>
+
+  <!-- ═══ TICKER ═══ -->
+  <aside class="ticker" aria-hidden="true">
+    <div class="ticker__inner">
+      <dl class="ticker__row"><dt>Signal</dt><dd>74% <span class="status__bars">▮▮▮▮▮▮▯▯</span></dd></dl>
+      <dl class="ticker__row"><dt>Encrypt</dt><dd>AES-256-GCM</dd></dl>
+      <dl class="ticker__row"><dt>Channel</dt><dd>θ-7</dd></dl>
+      <dl class="ticker__row"><dt>Sector</dt><dd>7-G MOS EISLEY</dd></dl>
+      <dl class="ticker__row"><dt>Frequency</dt><dd>142.08 MHz</dd></dl>
+      <dl class="ticker__row"><dt>Intercepts</dt><dd class="alert">3 ACTIVE</dd></dl>
+      <dl class="ticker__row"><dt>Authority</dt><dd>COTLA / FENRI</dd></dl>
+      <dl class="ticker__row"><dt>Priority</dt><dd class="alert">OMEGA</dd></dl>
+      <dl class="ticker__row"><dt>Uplink</dt><dd>ISD CHIMAERA</dd></dl>
+      <dl class="ticker__row"><dt>Relay</dt><dd>ST-4-α</dd></dl>
+      <dl class="ticker__row"><dt>Latency</dt><dd>47ms</dd></dl>
+      <dl class="ticker__row"><dt>Pkt-Loss</dt><dd>0.02%</dd></dl>
+      <dl class="ticker__row"><dt>Asset</dt><dd>GORDA, J.</dd></dl>
+      <dl class="ticker__row"><dt>Status</dt><dd class="live">EMBEDDED</dd></dl>
+      <dl class="ticker__row"><dt>Cell</dt><dd>ECHO</dd></dl>
+      <dl class="ticker__row"><dt>Scan</dt><dd>38% <span class="status__bars">▮▮▮▯▯▯▯▯</span></dd></dl>
+      <!-- duplicate for seamless loop -->
+      <dl class="ticker__row"><dt>Signal</dt><dd>74% <span class="status__bars">▮▮▮▮▮▮▯▯</span></dd></dl>
+      <dl class="ticker__row"><dt>Encrypt</dt><dd>AES-256-GCM</dd></dl>
+      <dl class="ticker__row"><dt>Channel</dt><dd>θ-7</dd></dl>
+      <dl class="ticker__row"><dt>Sector</dt><dd>7-G MOS EISLEY</dd></dl>
+      <dl class="ticker__row"><dt>Frequency</dt><dd>142.08 MHz</dd></dl>
+      <dl class="ticker__row"><dt>Intercepts</dt><dd class="alert">3 ACTIVE</dd></dl>
+      <dl class="ticker__row"><dt>Authority</dt><dd>COTLA / FENRI</dd></dl>
+      <dl class="ticker__row"><dt>Priority</dt><dd class="alert">OMEGA</dd></dl>
+      <dl class="ticker__row"><dt>Uplink</dt><dd>ISD CHIMAERA</dd></dl>
+      <dl class="ticker__row"><dt>Relay</dt><dd>ST-4-α</dd></dl>
+      <dl class="ticker__row"><dt>Latency</dt><dd>47ms</dd></dl>
+      <dl class="ticker__row"><dt>Pkt-Loss</dt><dd>0.02%</dd></dl>
+      <dl class="ticker__row"><dt>Asset</dt><dd>GORDA, J.</dd></dl>
+      <dl class="ticker__row"><dt>Status</dt><dd class="live">EMBEDDED</dd></dl>
+      <dl class="ticker__row"><dt>Cell</dt><dd>ECHO</dd></dl>
+      <dl class="ticker__row"><dt>Scan</dt><dd>38% <span class="status__bars">▮▮▮▯▯▯▯▯</span></dd></dl>
+    </div>
+  </aside>
+
+  <!-- ═══ PROMPT ═══ -->
+  <footer class="prompt">
+    <span class="prompt__sigil">θ-7@imp-int:~$</span>
+    <span class="prompt__cursor"></span>
+    <span class="prompt__hint">↺R · ▒V · ⏭SPC · ⟫L</span>
+  </footer>
+
+</div>
+
+<!-- ═══ LIVE LOG PANEL ═══ -->
+<div class="log-panel log-panel--hidden" id="log-panel">
+  <div class="log-panel__title">SIGNAL TRACE · [L] TO TOGGLE</div>
+  <div id="log-entries"></div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ═══ LIVE LOGGER ═══
+  const logEntries = document.getElementById('log-entries');
+  function log(tag, msg) {
+    const now = new Date();
+    const time = String(now.getHours()).padStart(2,'0') + ':' +
+                 String(now.getMinutes()).padStart(2,'0') + ':' +
+                 String(now.getSeconds()).padStart(2,'0');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML =
+      '<span class="log-time">' + time + '</span>' +
+      '<span class="log-tag log-tag--' + tag + '">[' + tag.toUpperCase() + ']</span>' +
+      '<span class="log-msg">' + msg + '</span>';
+    if (logEntries) {
+      logEntries.appendChild(entry);
+      const panel = document.getElementById('log-panel');
+      if (panel) panel.scrollTop = panel.scrollHeight;
+    }
+    console.log('[' + tag + ']', msg);
+  }
+
+  log('init', 'Session log initialized');
+
+  const TOOLTIPS = {
+    'Vorian Ducal': 'TRUE IDENTITY · TATOOINE MINER',
+    'Vorian': 'TRUE IDENTITY · TATOOINE MINER',
+    'Jiff Gorda': 'COVER ID · CORELLIAN NOBLE · DECEASED',
+    'Jiff': 'COVER ID · CORELLIAN NOBLE',
+    'Agent Cotla': 'IMP-INT · PROJECT THORN HANDLER',
+    'Cotla': 'IMP-INT · LEAD HANDLER',
+    'Fenri': 'IMP-INT · SECONDARY HANDLER',
+  };
+
+  // Intercept log — what the Empire's surveillance system *notices* about the
+  // conversation. Each entry says something the dialogue doesn't say (bio-sig
+  // match, mandatory codename log, countermeasure detection, etc.). Aligned to
+  // transmission timing in absolute ms from page load. Severity drives color.
+  const INTERCEPT_LOG = [
+    { atMs:    400, text: 'CHANNEL OPEN · PRIMARY HANDSHAKE',                   sev: 'info' },
+    { atMs:   1500, text: 'AES-256-GCM · KEY EXCHANGE COMPLETE',                sev: 'info' },
+    { atMs:   3000, text: 'BIO-SIG MATCH 99.7% · ORA VERIFIED',                 sev: 'info' },
+    { atMs:   5500, text: 'BOTHAN VOX ACTIVE · AMBIENT MOS EISLEY',             sev: 'info' },
+    { atMs:   9500, text: 'GLANCE-OVER-SHOULDER · COVER-CHECK BEHAVIOR',        sev: 'info' },
+    { atMs:  13200, text: 'CREDIT TX OBSERVED · 6,000 IC · ACK',                sev: 'alert' },
+    { atMs:  17500, text: 'COVER-NAME UTTERED · "JIFF GORDA"',                  sev: 'info' },
+    { atMs:  21000, text: 'PLAYER GESTURE LOGGED · LOW-AGGRESSION',             sev: 'info' },
+    { atMs:  25000, text: 'BEARD-STROKE · PRE-DISCLOSURE PATTERN',              sev: 'info' },
+    { atMs:  29000, text: 'EXTENDED MONOLOGUE · BUFFER ALLOC 4MB',              sev: 'info' },
+    { atMs:  35000, text: 'CODENAME UTTERED · PROJECT THORN · MANDATORY LOG',   sev: 'alert' },
+    { atMs:  44000, text: 'ASSET ORIGIN DISCLOSED · CROSS-REF ARCHIVE',         sev: 'info' },
+    { atMs:  53000, text: 'ASSASSINATION BRIEF · TATOOINE · VERIFIED',          sev: 'info' },
+    { atMs:  62000, text: 'PKT-LOSS DRIFT · 0.02% → 0.31%',                     sev: 'warn' },
+    { atMs:  72000, text: 'CELL CODENAME · ECHO · CROSS-LISTED 7 TIMES',        sev: 'warn' },
+    { atMs:  79000, text: 'COUNTERMEASURE DETECTED · UNKNOWN ORIGIN',           sev: 'warn' },
+    { atMs:  82500, text: 'SIGNAL DEGRADING · BURST INTERRUPT IMMINENT',        sev: 'alert' },
+    { atMs:  84500, text: 'SIGNAL LOST · ENC TIMEOUT · 4.0s',                   sev: 'alert' },
+  ];
+
+  function formatInterceptTime(ms) {
+    // 01:01:00 base + offset, matching transcript timestamps
+    const total = 3660 + Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+
+  function renderInterceptEvent(entry) {
+    const stream = document.getElementById('intercept-stream');
+    if (!stream) return;
+    // Mark previous entry exiting
+    const prev = stream.querySelector('.status__intercept-event:not(.exiting)');
+    if (prev) {
+      prev.classList.add('exiting');
+      setTimeout(() => prev.remove(), 400);
+    }
+    const evEl = document.createElement('div');
+    evEl.className = 'status__intercept-event sev-' + entry.sev;
+    evEl.innerHTML =
+      '<span class="ts">' + formatInterceptTime(entry.atMs) + '</span>' +
+      '<span class="text">' + entry.text + '</span>';
+    stream.appendChild(evEl);
+  }
+
+  function scheduleInterceptLog() {
+    INTERCEPT_LOG.forEach(entry => {
+      revealTimers.push(setTimeout(() => renderInterceptEvent(entry), entry.atMs));
+    });
+  }
+
+  function flushInterceptLog() {
+    // Show the final entry immediately when SKIP is pressed
+    const stream = document.getElementById('intercept-stream');
+    if (!stream) return;
+    stream.innerHTML = '';
+    renderInterceptEvent(INTERCEPT_LOG[INTERCEPT_LOG.length - 1]);
+  }
+
+  const CHAR_MS = 22;       // per-character stagger
+  const MIN_LINE_PAUSE = 380;
+  const PAUSE_AFTER_LINE = {
+    'system': 220,
+    'break': 350,
+    'dialogue': 700,
+    'emote': 600,
+    'action': 500,
+    'credit': 800,
+    'narrative': 900,
+    'interrupt': 1400,
+    'signal-lost': 0,
+  };
+
+  // Wrap all `data-text` content in animated character spans, accumulating delay.
+  // Lines start `display: none` (pre-reveal) and are shown at their cumulative time.
+  function buildAnimation() {
+    const lines = document.querySelectorAll('.line');
+    const transcript = document.getElementById('transcript');
+    let cumulativeMs = 800; // initial pause before first line
+    let totalChars = 0;
+
+    // Reduced-motion guard: reveal everything immediately, skip scheduling.
+    // Must be inside buildAnimation so it runs at the right point in the lifecycle.
+    const reducedMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    log('init', 'Building animation · ' + lines.length + ' lines detected' +
+                (reducedMotion ? ' · reduced-motion ON' : ''));
+
+    lines.forEach((line, idx) => {
+      const typeMatch = [...line.classList].find(c => c.startsWith('line--'));
+      const type = typeMatch ? typeMatch.replace('line--', '') : 'system';
+
+      // Hide line until its reveal time (skipped under reduced-motion)
+      if (!reducedMotion) line.classList.add('pre-reveal');
+
+      const lineRevealTime = cumulativeMs;
+      line.style.setProperty('--line-d', lineRevealTime + 'ms');
+
+      let lineCharCount = 0;
+
+      const textEls = line.querySelectorAll('[data-text]');
+      textEls.forEach((el) => {
+        const raw = el.getAttribute('data-text');
+        el.removeAttribute('data-text');
+        // Char delays are RELATIVE to line reveal time (since the char animation
+        // only starts when the line becomes display: block / non-pre-reveal).
+        el.innerHTML = wrapChars(raw, lineCharCount * CHAR_MS);
+        lineCharCount += stripMarkers(raw).length;
+      });
+
+      totalChars += lineCharCount;
+      const lineDuration = lineCharCount * CHAR_MS;
+      cumulativeMs += lineDuration + (PAUSE_AFTER_LINE[type] || MIN_LINE_PAUSE);
+
+      // Schedule the line's reveal (tracked so SKIP can cancel them).
+      // Skipped under reduced-motion — line is already visible.
+      if (!reducedMotion) {
+        revealTimers.push(setTimeout(() => {
+          line.classList.remove('pre-reveal');
+          line.classList.add('revealing');
+          if (transcript) {
+            requestAnimationFrame(() => {
+              transcript.scrollTop = transcript.scrollHeight;
+            });
+          }
+        }, lineRevealTime));
+      }
+
+      if (line.classList.contains('line--signal-lost')) {
+        if (reducedMotion) {
+          // Apply signal-lost styling immediately for reduced-motion users
+          document.body.classList.add('signal-lost');
+        } else {
+          revealTimers.push(setTimeout(() => {
+            triggerSignalLost(false);
+          }, cumulativeMs));
+        }
+      }
+    });
+
+    log('state', 'Wrapped ' + totalChars + ' chars · total runtime ' + (cumulativeMs/1000).toFixed(1) + 's');
+    return cumulativeMs;
+  }
+
+  // Strip §...§ and ¤...¤ markers to count actual visible characters
+  function stripMarkers(text) {
+    return text.replace(/§([^§]+)§/g, '$1').replace(/¤([^¤]+)¤/g, '$1');
+  }
+
+  // Wrap each character in a span with animation-delay; honor markup tokens.
+  // §name§   → person tooltip span (amber)
+  // ¤name¤   → thorn (red, classified) span
+  function wrapChars(text, baseDelayMs) {
+    let out = '';
+    let i = 0;
+    let charIndex = 0;
+
+    while (i < text.length) {
+      const ch = text[i];
+
+      if (ch === '§') {
+        const end = text.indexOf('§', i + 1);
+        if (end === -1) { i++; continue; }
+        const name = text.substring(i + 1, end);
+        const tip = TOOLTIPS[name] || '';
+        out += `<span class="person" data-tip="${tip}">`;
+        for (const c of [...name]) {
+          out += charSpan(c, baseDelayMs + charIndex * CHAR_MS);
+          charIndex++;
+        }
+        out += `</span>`;
+        i = end + 1;
+        continue;
+      }
+
+      if (ch === '¤') {
+        const end = text.indexOf('¤', i + 1);
+        if (end === -1) { i++; continue; }
+        const name = text.substring(i + 1, end);
+        out += `<span class="thorn" data-tip="CLASSIFIED · OPERATION CODENAME">`;
+        for (const c of [...name]) {
+          out += charSpan(c, baseDelayMs + charIndex * CHAR_MS);
+          charIndex++;
+        }
+        out += `</span>`;
+        i = end + 1;
+        continue;
+      }
+
+      out += charSpan(ch, baseDelayMs + charIndex * CHAR_MS);
+      charIndex++;
+      i++;
+    }
+
+    return out;
+  }
+
+  function charSpan(ch, delayMs) {
+    if (ch === ' ') return '<span class="char" style="--d:' + delayMs + 'ms"> </span>';
+    if (ch === '\n') return '<br>';
+    // Escape HTML special chars
+    const safe = ch.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return '<span class="char" style="--d:' + delayMs + 'ms">' + safe + '</span>';
+  }
+
+  // ═══ CONTROLS ═══
+
+  // Track all in-flight reveal timers so SKIP can cancel them
+  const revealTimers = [];
+
+  function skipAll() {
+    log('user', 'SKIP triggered');
+    // Cancel all pending line-reveal timeouts so signal-lost doesn't fire twice
+    revealTimers.forEach(clearTimeout);
+    revealTimers.length = 0;
+
+    const charCount = document.querySelectorAll('.char').length;
+    // Critical: un-hide any line still in pre-reveal (display: none)
+    document.querySelectorAll('.line.pre-reveal').forEach(l => {
+      l.classList.remove('pre-reveal');
+      l.classList.add('revealing');
+    });
+    document.querySelectorAll('.char, .line').forEach(el => {
+      el.style.animation = 'none';
+      el.style.opacity = '1';
+    });
+    flushInterceptLog();
+    triggerSignalLost(true);
+    log('state', 'Revealed ' + charCount + ' chars · signal-lost ON');
+    const btn = document.getElementById('btn-skip');
+    if (btn) {
+      btn.setAttribute('aria-pressed', 'true');
+      setTimeout(() => btn.setAttribute('aria-pressed', 'false'), 600);
+    }
+  }
+
+  function triggerSignalLost(immediate) {
+    if (document.body.classList.contains('signal-lost')) return;
+    document.body.classList.add('signal-lost');
+    // Screen flash effect
+    const flash = document.createElement('div');
+    flash.className = 'signal-flash';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 800);
+    log('alert', 'SIGNAL LOST · transmission terminated' + (immediate ? ' (skip)' : ''));
+  }
+
+  function replay() {
+    log('user', 'REPLAY triggered · reloading');
+    // CSS animation-delay timelines can't be re-anchored cleanly mid-flight.
+    // Full reload guarantees a clean start. VHS + log state preserved in sessionStorage.
+    try {
+      if (document.body.classList.contains('vhs-on')) sessionStorage.setItem('vhs', '1');
+      else sessionStorage.removeItem('vhs');
+      if (document.body.classList.contains('log-on')) sessionStorage.setItem('log', '1');
+      else sessionStorage.removeItem('log');
+    } catch (e) {
+      // Safari private mode / quota — proceed anyway
+      console.warn('sessionStorage unavailable:', e);
+    }
+    setTimeout(() => location.reload(), 80);
+  }
+
+  function toggleLog() {
+    const panel = document.getElementById('log-panel');
+    const btn = document.getElementById('btn-log');
+    const isHidden = panel.classList.toggle('log-panel--hidden');
+    document.body.classList.toggle('log-on', !isHidden);
+    btn.setAttribute('aria-pressed', !isHidden);
+    log('user', 'LOG panel ' + (isHidden ? 'hidden' : 'visible'));
+  }
+
+  function toggleVHS() {
+    document.body.classList.toggle('vhs-on');
+    const isOn = document.body.classList.contains('vhs-on');
+    const btn = document.getElementById('btn-vhs');
+    btn.setAttribute('aria-pressed', isOn);
+    log('user', 'VHS toggled');
+    log('state', 'VHS degradation: ' + (isOn ? 'ON · chromatic aberration active' : 'OFF · clean signal'));
+  }
+
+  // ═══ INIT ═══
+
+  document.getElementById('btn-skip').addEventListener('click', skipAll);
+  document.getElementById('btn-replay').addEventListener('click', replay);
+  document.getElementById('btn-vhs').addEventListener('click', toggleVHS);
+  document.getElementById('btn-log').addEventListener('click', toggleLog);
+
+  document.addEventListener('keydown', (e) => {
+    // Don't intercept keys when the user is in an input/textarea/contenteditable
+    if (e.target && (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.isContentEditable)) return;
+    // Don't hijack browser shortcuts (Cmd+R reload, Cmd+L address bar, etc.)
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // Don't double-fire when a button has focus (Space triggers default button click)
+    if (e.code === 'Space' && e.target && e.target.tagName === 'BUTTON') return;
+
+    if (e.code === 'Space') { e.preventDefault(); skipAll(); }
+    if (e.code === 'KeyR') { replay(); }
+    if (e.code === 'KeyV') { toggleVHS(); }
+    if (e.code === 'KeyL') { toggleLog(); }
+  });
+
+  // Restore persisted state from previous session (after replay reload)
+  try {
+    if (sessionStorage.getItem('vhs') === '1') {
+      toggleVHS();
+      sessionStorage.removeItem('vhs');
+    }
+    if (sessionStorage.getItem('log') === '1') {
+      toggleLog();
+      sessionStorage.removeItem('log');
+    }
+  } catch (e) {
+    console.warn('sessionStorage unavailable:', e);
+  }
+
+  // (Reduced-motion handled inside buildAnimation now — see line ~1133)
+
+  // Build the animation (scrolling is now driven by line reveals)
+  const totalMs = buildAnimation();
+
+  // Start the intercept stream — Empire's surveillance system observing
+  scheduleInterceptLog();
+})();
+</script>
+
+<style>
+  /* VHS mode — applied via body.vhs-on */
+  body.vhs-on .terminal {
+    filter: contrast(1.15) saturate(1.3);
+  }
+  body.vhs-on .scanlines {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      rgba(0,0,0,0.32) 2px,
+      rgba(0,0,0,0.32) 3px
+    );
+  }
+  body.vhs-on .transcript .line__body {
+    text-shadow:
+      -1.5px 0 0 rgba(255,0,80,0.6),
+      1.5px 0 0 rgba(0,180,255,0.6),
+      0 0 12px rgba(92,255,144,0.4);
+  }
+  body.vhs-on .glow { opacity: 1.5; }
+</style>
+
+</body>
+</html>
