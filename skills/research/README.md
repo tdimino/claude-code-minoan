@@ -5,6 +5,7 @@ Web search, academic research, scraping, and computational analysis.
 | Skill | Description |
 |-------|-------------|
 | `academic-research` | Paper search, literature reviews, and research synthesis via Exa and arXiv |
+| `ancient-near-east-research` | Biblical Hebrew, Semitic linguistics, cuneiform, Minoan/Aegean archaeology --- Sefaria, CDLI/ORACC APIs + web discovery |
 | `exa-search` | Neural web search with 5 specialized scripts (search, contents, similar, research, find) |
 | `firecrawl` | Cloud web scraping to markdown — single pages, site crawls, search, agent extraction |
 | `omnisearch` | Unified meta-router across 5 providers (Brave, Tavily, Xpoz, Exa, Firecrawl) — auto-routes, parallel search, dedup, social media |
@@ -21,6 +22,7 @@ Web search, academic research, scraping, and computational analysis.
 | No API key available | `scrapling` (100% local) |
 | Neural / semantic search | `exa-search` |
 | Academic papers | `academic-research` (Exa + arXiv MCP) |
+| ANE primary sources (Hebrew, cuneiform) | `ancient-near-east-research` (Sefaria + CDLI/ORACC) |
 | Multi-provider parallel search | `omnisearch --parallel` |
 | Twitter / Reddit / Instagram | `omnisearch --social` or `xpoz_search.py` |
 | AI-synthesized answer | `omnisearch --answer` |
