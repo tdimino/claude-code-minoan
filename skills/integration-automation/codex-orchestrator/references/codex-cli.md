@@ -104,13 +104,14 @@ codex plugin install <name>            # Install a Codex plugin
 -a, --ask-for-approval <POLICY>
     --ask-for-approval untrusted       # Ask for non-trusted commands (default)
     --ask-for-approval on-failure      # Only ask if command fails
-    --ask-for-approval on-request      # Barely ever ask (used by --full-auto)
+    --ask-for-approval on-request      # Barely ever ask
     --ask-for-approval never           # Never ask for approval
 
---full-auto                            # Convenience: -a on-request + --sandbox workspace-write
+--full-auto                            # DEPRECATED (PR #20133, 2026-04-29). Causes hangs (Issue #7852).
+                                       # Use: -a never --sandbox workspace-write
 ```
 
-**Important**: In non-interactive `exec` mode, the default `untrusted` policy blocks writes since there's no TUI to approve them. Use `--full-auto` for unattended write operations.
+**Important**: In `codex exec` mode, `--sandbox workspace-write` automatically sets `approval: never`. No separate approval flag is needed. Pipe `/dev/null` into stdin as a safety net against interactive prompts.
 
 ### Configuration
 
