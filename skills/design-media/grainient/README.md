@@ -60,7 +60,8 @@ grainient/
     ├── detail-effects.md                 SVG icons, inset borders, grid overlay, scrollbar, typography
     ├── color-system.md                   Full palette, --grn-* tokens, elevation strategy
     ├── composability.md                  6-layer z-index stack, recipes, performance budget
-    └── anti-patterns.md                  17 anti-patterns with wrong/right code examples
+    ├── anti-patterns.md                  17 anti-patterns with wrong/right code examples
+    └── glass-hero-palette.md             Glass Hero palette preset: mint/violet tokens, Geist typography
 ```
 
 ## Usage
@@ -87,7 +88,7 @@ python3 scripts/validate_grainient.py hero.html
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--mode` | (required) | `hero`, `bento`, `ticker`, `page`, `catalog` |
-| `--accent` | `#C2F13C` | Primary accent hex color |
+| `--accent` | `#C2F13C` | Primary accent hex (use `#57FFA8` for glass-hero palette) |
 | `--bg` | `#000000` | Body background hex |
 | `--surface` | `#141414` | Surface elevation hex |
 | `--font` | `Inter` | Body font family |
@@ -150,11 +151,17 @@ Layer 5  z-index: 100  Glassmorphism nav (position: fixed)
 - **Spring timing only.** Never use `ease` — always `--grn-spring-*` cubic-bezier tokens.
 - **`overflow: clip` over `overflow: hidden`** on containers (never on body).
 
+## Palette Presets
+
+The default lime green (`#C2F13C`) can be swapped for alternative palettes:
+
+**Glass Hero (Mint/Violet):** Mint green `#57FFA8` accent, violet `#A78BFA` secondary, blue-tinted near-black `#0a0a0c` base. See `references/glass-hero-palette.md` for the full token block, Geist typography, and glassmorphism recipes. For the full 3D glass experience, use threejs-particle-canvas Mode 6.
+
 ## Cross-Skill Relationships
 
 - **rocaille-shader** — Three.js shader path. Grainient uses raw WebGL2 for the fullscreen gradient; rocaille-shader owns the Three.js pipeline.
 - **minoan-frontend-design** — Broader creative direction. Grainient provides the dark-mode cinematic vocabulary.
-- **threejs-particle-canvas** — No overlap. Different visual domains.
+- **threejs-particle-canvas Mode 6 (glass-hero)** — Full 3D glass with MeshPhysicalMaterial refraction, dispersion, iridescence. Grainient's glass-hero palette provides the flat CSS equivalent.
 
 ## Attribution
 
@@ -166,3 +173,4 @@ Techniques derived from the Framer/WebGL dark-mode SaaS landing page pattern. Un
 - **Glassmorphism** — CSS `backdrop-filter` with semi-transparent dark backgrounds
 - **9-layer box shadows** — Multi-layer elevation system for dark-on-dark depth
 - **Ticker marquee** — DOM-reordering infinite scroll pattern with speed variance
+- **Glass Hero palette** — Color system and glassmorphism recipes deconstructed from [kaolti's glass-hero experiment](https://experiments.thisiswhitespace.com/glass-hero) (thisiswhitespace.com, May 2026)
