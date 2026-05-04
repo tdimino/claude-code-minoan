@@ -104,6 +104,25 @@ All effects read from `--grn-*` CSS custom properties. Override at `:root` to re
 
 **Font:** Inter at weights 400, 500, 600. Always set `-webkit-font-smoothing: antialiased`.
 
+### Palette Presets
+
+**Default (Lime):** `--grn-accent: #C2F13C` — the canonical grainient.supply lime green.
+
+**Glass Hero (Mint/Violet):** Override `:root` with the glass-hero palette for kaolti's dark glass aesthetic — mint green `#57FFA8` accent, violet `#A78BFA` secondary, blue-tinted near-black `#0a0a0c` base. Includes Geist typography tokens and glass-edge border values. See `references/glass-hero-palette.md` for the full token block, typography scale, glassmorphism recipes, and differences from default grainient.
+
+```css
+/* Quick swap — glass-hero palette */
+:root {
+  --grn-bg: #0a0a0c;
+  --grn-accent: #57FFA8;
+  --grn-accent-40: rgba(87, 255, 168, 0.4);
+  --grn-accent-20: rgba(87, 255, 168, 0.2);
+  --grn-border: rgba(255, 255, 255, 0.11);
+}
+```
+
+For the full 3D glass experience with MeshPhysicalMaterial refraction/dispersion/iridescence, use threejs-particle-canvas Mode 6 (glass-hero).
+
 ## Layer Stack (Composability)
 
 Every grainient page is a z-index stack of 6 layers:
@@ -131,7 +150,7 @@ See `references/composability.md` for composition recipes and performance budget
 6. **DPR clamp at 1.5** for WebGL canvas. Full DPR for CSS.
 7. **`requestAnimationFrame` only.** Never `setInterval` for animation.
 8. **`overflow: clip` over `overflow: hidden`** on individual containers, never on body.
-9. **Inter font, antialiased.** No other fonts.
+9. **Inter font, antialiased.** Default font for all modes. Palette presets (e.g., glass-hero) may override `--grn-font` — see Palette Presets section.
 
 ## Anti-Patterns
 
@@ -187,11 +206,13 @@ Load on-demand when implementing specific effects:
 | `references/color-system.md` | Full palette, CSS custom properties, dark-on-dark elevation |
 | `references/composability.md` | Layer stack, composition recipes, performance budget |
 | `references/anti-patterns.md` | 16+ anti-patterns with wrong/right code examples |
+| `references/glass-hero-palette.md` | Glass Hero palette preset: mint/violet tokens, Geist typography, glassmorphism recipes |
 
 ## Cross-Skill Relationships
 
 - **rocaille-shader**: Cross-ref for Three.js shader path. Grainient owns CSS/surface effects, not shader pipelines.
 - **minoan-frontend-design**: Broader creative direction. Grainient provides grainient.supply's specific vocabulary.
+- **threejs-particle-canvas Mode 6 (glass-hero)**: Full 3D glass with MeshPhysicalMaterial refraction, dispersion, iridescence. Grainient's glass-hero palette provides the flat CSS equivalent; Mode 6 provides the physically-accurate 3D version.
 
 ## Attribution
 
