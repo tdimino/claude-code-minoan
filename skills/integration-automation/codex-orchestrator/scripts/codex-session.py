@@ -173,7 +173,7 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
                 cmd.append(prompt)
         else:
             # Non-interactive exec mode
-            # Researcher: read-only sandbox, ephemeral, no --full-auto
+            # Researcher: read-only sandbox, ephemeral
             if profile == "researcher":
                 cmd = [
                     "codex", "exec",
@@ -184,20 +184,17 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
                     prompt
                 ]
             else:
-                # All write-capable profiles: --full-auto enables unattended writes.
-                # Without it, codex exec cannot approve writes (no TUI) and writes
-                # fail silently.
                 cmd = [
                     "codex", "exec",
                     "--skip-git-repo-check",
                     "--model", "gpt-5.5",
                     "--sandbox", "workspace-write",
-                    "--full-auto",
                     prompt
                 ]
 
         # Run from current directory so Codex can access project files
-        result = subprocess.run(cmd, text=True)
+        stdin_arg = None if interactive else subprocess.DEVNULL
+        result = subprocess.run(cmd, text=True, stdin=stdin_arg)
 
         return result.returncode
 

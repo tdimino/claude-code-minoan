@@ -105,10 +105,10 @@ if grep -q 'EPHEMERAL="--ephemeral"' "$SKILL_DIR/scripts/codex-exec.sh"; then
 else
     test_fail "Researcher missing ephemeral flag"
 fi
-if grep -q 'full-auto.*read-only' "$SKILL_DIR/scripts/codex-exec.sh"; then
-    test_pass "Researcher guards against --full-auto"
+if grep -q 'SANDBOX="read-only"' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "Researcher defaults to read-only sandbox"
 else
-    test_fail "Researcher missing --full-auto guard"
+    test_fail "Researcher missing read-only sandbox default"
 fi
 # Verify Exa codex-agent-guide exists for web search
 EXA_GUIDE="$HOME/.claude/skills/exa-search/codex-agent-guide.md"
@@ -118,17 +118,17 @@ else
     test_fail "Exa codex-agent-guide.md missing"
 fi
 
-# Test 8: Write profiles auto-enable --full-auto
+# Test 8: Write profiles use workspace-write sandbox (auto-approves in exec mode)
 echo -e "\n${YELLOW}Test 8: Write Profile Defaults${NC}"
-if grep -q 'PROFILE.*!=.*researcher.*FULL_AUTO' "$SKILL_DIR/scripts/codex-exec.sh"; then
-    test_pass "Write profiles auto-enable --full-auto"
+if grep -q 'SANDBOX="workspace-write"' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "Write profiles default to workspace-write sandbox"
 else
-    test_fail "Write profiles missing --full-auto default"
+    test_fail "Write profiles missing workspace-write default"
 fi
-if grep -q '\-\-no-auto' "$SKILL_DIR/scripts/codex-exec.sh"; then
-    test_pass "--no-auto escape hatch exists"
+if grep -q 'dev/null' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "stdin piped from /dev/null to prevent hangs"
 else
-    test_fail "--no-auto escape hatch missing"
+    test_fail "Missing /dev/null stdin redirect"
 fi
 
 # Test 9: Backup/Restore Safety

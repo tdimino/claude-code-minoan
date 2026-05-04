@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-04-23 | Codex CLI v0.122.0 | Models: GPT-5.5 family
+> Last updated: 2026-05-03 | Codex CLI v0.122.0 | Models: GPT-5.5 family
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -62,6 +62,7 @@ Billed at standard API rates.
 | `syseng` | Infrastructure, DevOps, CI/CD | Deployment, containers, observability |
 | `builder` | Greenfield implementation | New features from specs |
 | `researcher` | Read-only Q&A and analysis | Questions, comparisons (no file changes) |
+| `chat` | Open-ended conversation | General questions, brainstorming (read-only, ephemeral) |
 
 ## Quick Start
 
@@ -122,6 +123,7 @@ Each profile has a default model and reasoning effort. User flags override these
 | **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.5` | `high` |
 | **Planning** | planner, architect | `gpt-5.5` | `high` |
 | **Research** | researcher | `gpt-5.5` | `medium` |
+| **Chat** | chat | `gpt-5.4` | `medium` |
 
 ### Available Models (Apr 2026)
 
@@ -219,6 +221,16 @@ Every ExecPlan includes:
 - **Idempotence and Recovery** - Safe retry and rollback paths
 - **Interfaces and Dependencies** - Required types, signatures, libraries
 
+## Parallel Execution
+
+Multiple codex-orchestrator instances can run concurrently in the same directory. Each instance manages its own PID-scoped AGENTS.md backup (``.AGENTS.md.codex-backup.<PID>``), so sibling processes never interfere with each other.
+
+- **Startup:** Orphan backups from dead processes are detected and restored automatically.
+- **Cleanup:** The last instance to exit restores the original AGENTS.md. Live siblings are detected via `kill -0`.
+- **Sentinel detection:** Injected AGENTS.md files (both symlinks and `--web-search` concatenated files) are identified by path or `# CODEX-ORCHESTRATOR-INJECTED` marker.
+
+If a previous run crashed and left a stale backup, the next invocation recovers automatically.
+
 ## Script Options
 
 ### codex-exec.sh
@@ -236,6 +248,10 @@ Every ExecPlan includes:
 | `--image <file>` | Attach image to prompt (vision input) |
 | `--resume` | Resume previous exec session (builder "continue" workflow) |
 | `--with-mcp` | Keep global MCP servers enabled (no-op, kept for compatibility) |
+| `--api` | Use OpenAI API directly (API billing, not Codex subscription) |
+| `--session <file>` | Session file for multi-turn API chat (requires `--api`) |
+| `--system <prompt>` | System prompt for API chat (requires `--api`) |
+| `--stream` | Stream API response tokens (requires `--api`) |
 
 ## Notable Recent CLI Features (v0.110–v0.122)
 
@@ -267,7 +283,8 @@ codex-orchestrator/
 │   ├── researcher.md
 │   ├── reviewer.md
 │   ├── security.md
-│   └── syseng.md
+│   ├── syseng.md
+│   └── chat.md
 ├── references/            # Documentation
 │   ├── agents-md-format.md
 │   ├── codex-cli.md
@@ -313,13 +330,21 @@ export OPENAI_API_KEY=sk-...
 
 ### "Profile not found"
 
-Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`
+Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`, `chat`
 
 Check profiles exist:
 
 ```bash
 ls ./agents/
 ```
+
+### "Codex produced no output"
+
+The researcher/chat profiles capture output to a temp file. If Codex exits without writing to it, the script warns and exits 1. Common causes:
+
+- Codex session too short to produce a response
+- Model returned empty response (retry)
+- AGENTS.md was missing (check for stale `.AGENTS.md.codex-backup.*` files in working directory)
 
 ### Poor Results
 

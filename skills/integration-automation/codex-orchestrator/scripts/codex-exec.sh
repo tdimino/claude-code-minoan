@@ -44,8 +44,7 @@ show_usage() {
     echo "  --model <model>       Override model (default: per-profile, see below)"
     echo "  --reasoning <level>   Override reasoning effort: minimal, low, medium, high, xhigh"
     echo "  --sandbox <mode>      Sandbox mode: read-only, workspace-write, danger-full-access"
-    echo "  --full-auto           Run in full-auto mode (default for write profiles)"
-    echo "  --no-auto             Disable auto --full-auto (require manual approval)"
+    echo "  --no-approve          Force read-only sandbox (no file writes)"
     echo "  --web-search          Enable Exa web search (injects guide into AGENTS.md)"
     echo "  --search              Enable native Codex web search (works in all sandboxes)"
     echo "  --json                Output JSONL event stream (pipe to jq, logs, etc.)"
@@ -65,7 +64,7 @@ show_usage() {
     echo ""
     echo "Examples:"
     echo "  codex-exec.sh reviewer \"Review src/auth.ts for security issues\""
-    echo "  codex-exec.sh debugger \"Debug the login failure in auth.ts\" --full-auto"
+    echo "  codex-exec.sh debugger \"Debug the login failure in auth.ts\""
     echo "  codex-exec.sh architect \"Design a caching layer for the API\""
     echo "  codex-exec.sh researcher \"Explain the authentication flow in this project\""
     echo "  codex-exec.sh researcher \"What are the latest React patterns?\" --search"
@@ -103,7 +102,7 @@ get_profile_defaults() {
     esac
 }
 
-# Detect if an AGENTS.md is one we injected (symlink into our agents dir).
+# Detect if an AGENTS.md is one we injected (symlink or sentinel-marked file).
 is_our_injection() {
     local file="$1"
     if [ -L "$file" ]; then
@@ -112,6 +111,8 @@ is_our_injection() {
         case "$target" in
             */.claude/skills/codex-orchestrator/agents/*) return 0 ;;
         esac
+    elif [ -f "$file" ] && head -1 "$file" 2>/dev/null | grep -q "^# CODEX-ORCHESTRATOR-INJECTED"; then
+        return 0
     fi
     return 1
 }
@@ -140,8 +141,6 @@ get_profile_defaults "$PROFILE"
 MODEL=""
 REASONING=""
 SANDBOX="workspace-write"
-FULL_AUTO=""
-NO_AUTO=""
 WEB_SEARCH=""
 NATIVE_SEARCH=""
 JSON_OUTPUT=""
@@ -168,11 +167,11 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --full-auto)
-            FULL_AUTO="--full-auto"
+            echo -e "${YELLOW}Warning: --full-auto is deprecated (Codex PR #20133). --sandbox workspace-write already auto-approves in exec mode.${NC}"
             shift
             ;;
-        --no-auto)
-            NO_AUTO="true"
+        --no-approve|--no-auto)
+            SANDBOX="read-only"
             shift
             ;;
         --web-search)
@@ -236,88 +235,57 @@ OUTPUT_FILE=""
 if [ "$PROFILE" = "researcher" ] || [ "$PROFILE" = "chat" ]; then
     SANDBOX="read-only"
     EPHEMERAL="--ephemeral"
-    OUTPUT_FILE=$(mktemp /tmp/codex-researcher-XXXXXX.md)
-    if [ -n "$FULL_AUTO" ]; then
-        echo -e "${YELLOW}Warning: --full-auto overrides read-only sandbox. Ignoring --full-auto for $PROFILE profile.${NC}"
-        FULL_AUTO=""
-    fi
-fi
-
-# Auto-enable --full-auto for write-capable profiles in non-interactive exec mode.
-# Without this, codex exec cannot approve writes (no TUI) and writes fail silently.
-# Use --no-auto to opt out if needed.
-if [ "$PROFILE" != "researcher" ] && [ -z "$FULL_AUTO" ] && [ -z "$NO_AUTO" ]; then
-    FULL_AUTO="--full-auto"
+    OUTPUT_FILE=$(mktemp /tmp/codex-researcher-XXXXXXXX)
 fi
 
 # Save current directory
 WORK_DIR="$(pwd)"
 
-# --- Robust AGENTS.md backup/restore ---
-BACKUP_NAME=".AGENTS.md.codex-orchestrator-backup"
-BACKUP_PATH="$WORK_DIR/$BACKUP_NAME"
+# --- PID-scoped AGENTS.md backup/restore (parallel-safe) ---
+# Each instance manages its own backup. No shared lock state.
+BACKUP_PATH="$WORK_DIR/.AGENTS.md.codex-backup.$$"
 AGENTS_TARGET="$WORK_DIR/AGENTS.md"
 HAD_EXISTING_AGENTS=""
 
-# Phase 0: Migrate old PID-based backups from previous versions
-for old_backup in "$WORK_DIR"/AGENTS.md.backup.*; do
-    [ -e "$old_backup" ] || continue
-    echo -e "${YELLOW}Warning: Found stale backup from previous run: $old_backup${NC}"
-    if [ ! -e "$AGENTS_TARGET" ] && [ ! -L "$AGENTS_TARGET" ]; then
-        if [ ! -L "$old_backup" ]; then
-            echo -e "${YELLOW}Restoring AGENTS.md from stale backup: $old_backup${NC}"
-            mv "$old_backup" "$AGENTS_TARGET"
+# crash recovery: clean orphan backups from dead processes and stale injections
+for orphan in "$WORK_DIR"/.AGENTS.md.codex-backup.* "$WORK_DIR"/AGENTS.md.backup.* "$WORK_DIR"/.AGENTS.md.codex-orchestrator-backup; do
+    [ -e "$orphan" ] || continue
+    orphan_pid="${orphan##*.}"
+    case "$orphan_pid" in
+        *codex-orchestrator-backup) orphan_pid="" ;;
+    esac
+    if [ -z "$orphan_pid" ] || ! kill -0 "$orphan_pid" 2>/dev/null; then
+        if ([ ! -e "$AGENTS_TARGET" ] || is_our_injection "$AGENTS_TARGET") && [ ! -L "$orphan" ]; then
+            echo -e "${YELLOW}Restoring AGENTS.md from orphaned backup: $orphan${NC}"
+            mv "$orphan" "$AGENTS_TARGET"
         else
-            echo -e "${YELLOW}Removing stale symlink backup: $old_backup${NC}"
-            rm -f "$old_backup"
+            rm -f "$orphan"
         fi
-    else
-        rm -f "$old_backup"
     fi
 done
+rmdir "$WORK_DIR/.codex-orchestrator-locks" 2>/dev/null || true
 
-# Phase 1: Startup crash recovery
-if [ -e "$BACKUP_PATH" ] || [ -L "$BACKUP_PATH" ]; then
-    echo -e "${YELLOW}Warning: Found backup from a previous crashed run.${NC}"
-    if [ -e "$AGENTS_TARGET" ] || [ -L "$AGENTS_TARGET" ]; then
-        if is_our_injection "$AGENTS_TARGET"; then
-            echo -e "${YELLOW}Current AGENTS.md is a stale injection. Restoring original from backup.${NC}"
-            rm -f "$AGENTS_TARGET"
-            mv "$BACKUP_PATH" "$AGENTS_TARGET"
-        else
-            echo -e "${YELLOW}Current AGENTS.md appears to be user content. Removing orphaned backup.${NC}"
-            rm -f "$BACKUP_PATH"
-        fi
-    else
-        echo -e "${YELLOW}Restoring AGENTS.md from backup after previous crash.${NC}"
-        mv "$BACKUP_PATH" "$AGENTS_TARGET"
-    fi
-fi
-
-# Phase 2: Concurrent-run guard
-if [ -e "$BACKUP_PATH" ] || [ -L "$BACKUP_PATH" ]; then
-    echo -e "${RED}Error: Backup file still exists after recovery. Another codex-orchestrator may be running in this directory.${NC}"
-    echo -e "${RED}If not, manually inspect and remove: $BACKUP_PATH${NC}"
-    exit 1
-fi
-
-# Phase 3: Verify working directory is writable
+# Verify working directory is writable
 if ! touch "$WORK_DIR/.codex-orchestrator-write-test" 2>/dev/null; then
     echo -e "${RED}Error: Working directory is not writable: $WORK_DIR${NC}"
     exit 1
 fi
 rm -f "$WORK_DIR/.codex-orchestrator-write-test"
 
-# Phase 4: Backup existing AGENTS.md (if any)
-if [ -e "$AGENTS_TARGET" ] || [ -L "$AGENTS_TARGET" ]; then
-    HAD_EXISTING_AGENTS="true"
-    cp -a "$AGENTS_TARGET" "$BACKUP_PATH"
+# Backup existing AGENTS.md if it's real user content (not our injection)
+if [ -e "$AGENTS_TARGET" ] && ! is_our_injection "$AGENTS_TARGET"; then
+    if cp -a "$AGENTS_TARGET" "$BACKUP_PATH"; then
+        HAD_EXISTING_AGENTS="true"
+    else
+        echo -e "${RED}Error: Failed to backup AGENTS.md. Aborting to prevent data loss.${NC}"
+        exit 1
+    fi
 fi
 
-# Phase 5: Create profile AGENTS.md
+# Inject profile AGENTS.md (sentinel for --web-search concatenated files)
 EXA_GUIDE="$HOME/.claude/skills/exa-search/codex-agent-guide.md"
 if [ -n "$WEB_SEARCH" ] && [ -f "$EXA_GUIDE" ]; then
-    cat "$AGENTS_FILE" "$EXA_GUIDE" > "$AGENTS_TARGET"
+    { echo "# CODEX-ORCHESTRATOR-INJECTED"; cat "$AGENTS_FILE" "$EXA_GUIDE"; } > "$AGENTS_TARGET"
 else
     ln -sf "$AGENTS_FILE" "$AGENTS_TARGET"
 fi
@@ -330,9 +298,6 @@ else
 fi
 if [ -n "$REASONING" ]; then
     echo -e "Reasoning: $REASONING"
-fi
-if [ -n "$FULL_AUTO" ]; then
-    echo -e "Auto mode: ${GREEN}--full-auto${NC}"
 fi
 echo -e "Sandbox: $SANDBOX"
 echo -e "Working directory: $WORK_DIR"
@@ -354,14 +319,39 @@ if [ -n "$RESUME_SESSION" ]; then
 fi
 echo ""
 
-# Cleanup function: restore original AGENTS.md
+# Cleanup: PID-scoped restore (no shared lock state)
+CLEANUP_DONE=""
 cleanup() {
-    rm -f "$AGENTS_TARGET"
-    if [ -n "$HAD_EXISTING_AGENTS" ] && [ -e "$BACKUP_PATH" ]; then
-        mv "$BACKUP_PATH" "$AGENTS_TARGET"
-    elif [ -e "$BACKUP_PATH" ]; then
+    [ -n "$CLEANUP_DONE" ] && return
+    CLEANUP_DONE=1
+
+    # Check if any sibling backups exist from still-running instances
+    local has_live_siblings=false
+    for sibling in "$WORK_DIR"/.AGENTS.md.codex-backup.*; do
+        [ -e "$sibling" ] || continue
+        [ "$sibling" = "$BACKUP_PATH" ] && continue
+        local sib_pid="${sibling##*.}"
+        if kill -0 "$sib_pid" 2>/dev/null; then
+            has_live_siblings=true
+            break
+        else
+            rm -f "$sibling"
+        fi
+    done
+
+    if [ "$has_live_siblings" = false ]; then
+        if [ -n "$HAD_EXISTING_AGENTS" ] && [ -e "$BACKUP_PATH" ]; then
+            mv "$BACKUP_PATH" "$AGENTS_TARGET"
+        else
+            rm -f "$BACKUP_PATH"
+            if is_our_injection "$AGENTS_TARGET"; then
+                rm -f "$AGENTS_TARGET"
+            fi
+        fi
+    else
         rm -f "$BACKUP_PATH"
     fi
+
     if [ -n "$OUTPUT_FILE" ]; then
         rm -f "$OUTPUT_FILE"
     fi
@@ -371,7 +361,7 @@ trap cleanup EXIT INT TERM HUP
 # Build codex command as array to preserve quoting
 # --skip-git-repo-check allows running in directories not in Codex's trusted list
 if [ -n "$RESUME_SESSION" ]; then
-    CODEX_ARGS=(exec resume --last --skip-git-repo-check --sandbox "$SANDBOX")
+    CODEX_ARGS=(exec --skip-git-repo-check --sandbox "$SANDBOX")
 else
     CODEX_ARGS=(exec --skip-git-repo-check --sandbox "$SANDBOX")
 fi
@@ -380,9 +370,6 @@ if [ -n "$MODEL" ]; then
 fi
 if [ -n "$REASONING" ]; then
     CODEX_ARGS+=(-c "model_reasoning_effort=\"$REASONING\"")
-fi
-if [ -n "$FULL_AUTO" ]; then
-    CODEX_ARGS+=(--full-auto)
 fi
 if [ -n "$EPHEMERAL" ]; then
     CODEX_ARGS+=(--ephemeral)
@@ -440,17 +427,40 @@ if [ -n "$API_MODE" ]; then
     exit $?
 fi
 
+# Verify codex is available before running
+if ! command -v codex >/dev/null 2>&1; then
+    echo -e "${RED}Error: 'codex' CLI not found in PATH. Install with: npm install -g @openai/codex${NC}"
+    exit 1
+fi
+
 # Run Codex with the agent profile
 # Codex reads AGENTS.md from the current directory
+set +e
 if [ -n "$RESUME_SESSION" ]; then
-    codex "${CODEX_ARGS[@]}"
+    codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null
 else
-    codex "${CODEX_ARGS[@]}" "$PROMPT"
+    codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null
+fi
+CODEX_EXIT=$?
+set -e
+
+# Handle signal exits cleanly
+if [ "$CODEX_EXIT" -eq 130 ] || [ "$CODEX_EXIT" -eq 143 ]; then
+    exit "$CODEX_EXIT"
 fi
 
 # Display captured response for researcher/chat profile
-if [ -n "$OUTPUT_FILE" ] && [ -f "$OUTPUT_FILE" ] && [ -s "$OUTPUT_FILE" ]; then
-    echo ""
-    echo -e "${GREEN}=== Response ===${NC}"
-    cat "$OUTPUT_FILE"
+if [ -n "$OUTPUT_FILE" ]; then
+    if [ -f "$OUTPUT_FILE" ] && [ -s "$OUTPUT_FILE" ]; then
+        echo ""
+        echo -e "${GREEN}=== Response ===${NC}"
+        cat "$OUTPUT_FILE"
+    else
+        echo ""
+        echo -e "${RED}Warning: Codex produced no output (exit code $CODEX_EXIT).${NC}"
+        echo -e "${YELLOW}Possible causes: AGENTS.md collision (parallel run), empty model response, or session too short.${NC}"
+        exit 1
+    fi
 fi
+
+exit $CODEX_EXIT

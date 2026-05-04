@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OG Image Comparison — Project Thorn</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111;
+    color: #ccc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 40px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 40px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .card__label {
+    padding: 12px 16px;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #888;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+  }
+  .card__label span:last-child { color: #555; }
+  .card img {
+    width: 100%;
+    display: block;
+  }
+  .meta {
+    padding: 12px 16px;
+    font-size: 11px;
+    color: #555;
+    border-top: 1px solid #222;
+    display: flex;
+    gap: 16px;
+  }
+</style>
+</head>
+<body>
+  <h1>OG Image Comparison — Project Thorn</h1>
+  <div class="grid">
+    <div class="card">
+      <div class="card__label">
+        <span>GPT gpt-image-1.5</span>
+        <span>AI-generated</span>
+      </div>
+      <img src="og-gpt.png_20260504_084052.png" alt="GPT generated OG image">
+      <div class="meta">
+        <span>Model: gpt-image-1.5</span>
+        <span>1536×1024 requested</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card__label">
+        <span>HTML Screenshot (Departure Mono)</span>
+        <span>agent-browser capture</span>
+      </div>
+      <img src="../og-image.png" alt="HTML screenshot OG image">
+      <div class="meta">
+        <span>Rendered: Departure Mono + CSS</span>
+        <span>1200×630 exact</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
