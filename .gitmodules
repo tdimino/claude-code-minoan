@@ -1,0 +1,3 @@
+[submodule "demos/crypt-librarian/repo"]
+	path = demos/crypt-librarian/repo
+	url = https://github.com/tdimino/crypt-librarian.git

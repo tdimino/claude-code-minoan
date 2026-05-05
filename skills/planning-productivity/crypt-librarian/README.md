@@ -119,6 +119,10 @@ Uses 5 subagents (taste learner, film discoverer, content validator, database ma
 
 ---
 
+## See Also
+
+- **`demos/crypt-librarian/`** --- Full web app demo (VELVET CATALOGUE) with architecture docs, design system, Three.js component documentation, and Claude integration guide. The demo is a git submodule pointing to the source repo.
+
 ## Part of Claude-Code-Minoan
 
 This skill is part of [claude-code-minoan](https://github.com/tdimino/claude-code-minoan)---curated Claude Code configuration including skills, MCP servers, slash commands, and CLI tools.

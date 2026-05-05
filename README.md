@@ -34,6 +34,7 @@ claude-code-minoan/
 ├── lib/                         # Shared libraries (tracker-utils.js, tracker-db.js)
 ├── ghostty/                     # Ghostty terminal config for Claude Code
 ├── sounds/                      # Notification audio
+├── demos/                       # Complete project demos (Project Thorn, Crypt Librarian)
 └── docs/global-setup/          # Full ~/.claude/ structure reference
 ```
 
