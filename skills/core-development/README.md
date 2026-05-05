@@ -9,6 +9,7 @@ SDK integration, code search, task tracking, project documentation, and developm
 | `autoresearch` | Scaffold and run Karpathy-style autoresearch loops (hypothesis, implement, eval, keep/discard) |
 | `claude-agent-sdk` | Build AI agents using the Claude Agent SDK |
 | `claude-md-manager` | Create and maintain CLAUDE.md files |
+| `dag-typesafe` | Deterministic type safety for LLM pipelines via typed DAGs and GraphSentry certificates |
 | `claude-usage` | Report token consumption and cost from JSONL session files |
 | `openrouter-usage` | Query OpenRouter API costs, credits, and usage by model/provider |
 | `react-best-practices` | React/Next.js performance optimization (40+ rules) |

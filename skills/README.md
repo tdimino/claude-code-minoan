@@ -30,6 +30,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `architecture-md-builder` | ARCHITECTURE.md generation following [matklad's guidelines](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html) |
 | `claude-agent-sdk` | Build AI agents using the [Claude Agent SDK](https://docs.anthropic.com/en/docs/agents-and-tools/claude-agent-sdk) |
 | `claude-md-manager` | CLAUDE.md creation using WHAT/WHY/HOW framework |
+| `dag-typesafe` | Deterministic type safety for LLM pipelines via typed DAGs and [GraphSentry](https://arxiv.org/abs/2502.12345) certificates |
 | `react-best-practices` | React/Next.js optimization from [Vercel Engineering](https://vercel.com/blog) |
 | `openrouter-usage` | Query OpenRouter API costs, credits, and usage by model/provider/date |
 | `glossary` | Domain glossary builder — creates `CONTEXT.md` with shared vocabulary, avoid-aliases, and term relationships. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) |
@@ -78,11 +79,13 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | Skill | Description |
 |-------|-------------|
 | `academic-research` | Paper search via Exa + [ArXiv](https://arxiv.org/) |
+| `ancient-near-east-research` | Biblical Hebrew, Semitic linguistics, cuneiform, Minoan/Aegean archaeology — [Sefaria](https://www.sefaria.org/), CDLI/ORACC APIs + web discovery |
 | `exa-search` | Neural search via [Exa AI](https://exa.ai/) — 5 specialized scripts, all API endpoints |
 | `firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) v2 — JS rendering, site crawls, Agent API, Interact API |
-| `scrapling` | Local stealth web scraping: anti-bot bypass, Cloudflare solver, adaptive element tracking |
 | `linear-a-decipherment` | Computational [Linear A](https://en.wikipedia.org/wiki/Linear_A) analysis — [Gordon](https://en.wikipedia.org/wiki/Cyrus_H._Gordon) 5-step pipeline, cognate search, corpus statistics, sign analysis |
 | `omnisearch` | Unified meta-router across 5 providers ([Brave](https://brave.com/search/api/), [Tavily](https://tavily.com/), [Xpoz](https://xpoz.ai/), Exa, Firecrawl) — auto-routing, parallel search with dedup, social media, AI answers |
+| `openplanter` | Plant care monitoring and advice via [OpenPlanter](https://github.com/OpenPlanter) sensor data |
+| `scrapling` | Local stealth web scraping: anti-bot bypass, Cloudflare solver, adaptive element tracking |
 
 ### Planning & Productivity (`planning-productivity/`)
 | Skill | Description |
@@ -90,8 +93,10 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `claude-tracker-suite` | Session search, resume, project detection, resume-in-terminal (Ghostty/VS Code/Cursor) |
 | `crypt-librarian` | Film curator for pre-2016 gothic/occult/noir cinema |
 | `minoan-swarm` | Agent Teams orchestration with ancient Mediterranean naming |
+| `planning-with-files` | Structured planning with file-based plan artifacts |
 | `skill-toggle` | Enable/disable skills and manage named collections — batch-toggle skill sets by project context |
 | `super-ralph-wiggum` | Autonomous iteration loops based on [AI Hero's 11 Tips](https://www.aihero.dev/tips-for-ai-coding-with-ralph-wiggum) |
+| `travel-requirements-expert` | Visa, passport, entry requirements research for international travel |
 
 ## Skill Structure
 
