@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-88-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-89-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-20-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-46-orange.svg" alt="Hooks"></a>
 </p>
@@ -20,7 +20,7 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 88 custom skills across 5 categories
+├── skills/                      # 89 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
@@ -74,7 +74,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 88 skills across 5 categories
+### [Skills](skills/README.md) — 89 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -85,7 +85,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Core Development | 14 | `skill-optimizer`, `claude-agent-sdk`, `claude-md-manager`, `dag-typesafe`, `glossary`, `autoresearch`, `claude-usage`, `architecture-md-builder`, `stop-slop`, `test-harness-auditor`, `user-model-builder` |
 | Integration & Automation | 30 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator`, `obscura` |
 | Design & Media | 29 | `minoan-frontend-design` (70% win rate), `vellum-editorial`, `gpt-atelier`, `nano-banana-pro`, `gemini-forge`, `sprite-forge`, `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy` |
-| Research | 8 | `omnisearch`, `academic-research`, `ancient-near-east-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling`, `openplanter` |
+| Research | 9 | `minoan` (reconstructed Minoan language faculty), `omnisearch`, `academic-research`, `ancient-near-east-research`, `linear-a-decipherment`, `exa-search`, `firecrawl`, `scrapling`, `openplanter` |
 | Planning & Productivity | 7 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (session checkpoints, workflow phases, tagged phrases, cost tracking via optional SQLite), `travel-requirements-expert` |
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
@@ -356,7 +356,7 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 
 ---
 
-**Skills**: 84 | **Commands**: 21 | **Hooks**: 49 | **CLI Tools**: 10
+**Skills**: 89 | **Commands**: 21 | **Hooks**: 49 | **CLI Tools**: 10
 
 ---
 
