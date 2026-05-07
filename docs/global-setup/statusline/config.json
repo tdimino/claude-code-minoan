@@ -23,6 +23,19 @@
           "commandPath": "~/.claude/hooks/soul-name.sh",
           "color": "hex:DAA520",
           "timeout": 1000
+        },
+        {
+          "id": "tags-sep",
+          "type": "custom-text",
+          "customText": "  ",
+          "color": "hex:a0a0a0"
+        },
+        {
+          "id": "session-tags-widget",
+          "type": "custom-command",
+          "commandPath": "~/.claude/hooks/session-tags-display.sh",
+          "preserveColors": true,
+          "timeout": 2000
         }
       ],
       [

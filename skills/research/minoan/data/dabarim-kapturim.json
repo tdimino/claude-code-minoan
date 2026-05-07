@@ -1,0 +1,145 @@
+{
+  "title": "Dabarīm Kapturīm",
+  "subtitle": "Cretan Commandments",
+  "source": "Shirat Ha Kotharot — Tom di Mino",
+  "language": "Reconstructed Minoan (Lisan al-Qads)",
+  "phonology": "Pre-begadkephat, Phoenician priority",
+  "precepts": [
+    {
+      "number": 1,
+      "minoan": "Bi-yad puluḥ ʿidān ḥaddu — ʿal qašqash, ʿal ʾaban, ʿal qanah.",
+      "linear_a": "PI-JA-DU PU-RU-KU I-DA-NU KA-DU — A-RA QA-SA-QA-SA — A-RA A-PA-NU — A-RA QA-NA",
+      "phoenician": "𐤁𐤉𐤃 𐤐𐤋𐤇 𐤏𐤃𐤍 𐤇𐤃 — 𐤏𐤋 𐤒𐤔𐤒𐤔 𐤏𐤋 𐤀𐤁𐤍 𐤏𐤋 𐤒𐤍",
+      "english": "By hand, revere the sharp moment — upon scale, upon stone, upon reed.",
+      "original": "Palpably, revere the moment's prickle, on scale, or stone, or stem.",
+      "words": [
+        { "minoan": "bi-yad", "root": "y-d", "source": "Ug. yd, Heb. yad", "gloss": "by hand" },
+        { "minoan": "puluḥ", "root": "p-l-ḥ", "source": "Ug. plḥ", "gloss": "revere (imperative)" },
+        { "minoan": "ʿidān", "root": "ʿ-d-n", "source": "Akk. adannu", "gloss": "moment, appointed time" },
+        { "minoan": "ḥaddu", "root": "ḥ-d-d", "source": "Heb. ḥad, Ug. ḥd", "gloss": "sharp, sharpness" },
+        { "minoan": "ʿal", "root": "ʿ-l", "source": "Ug. ʿl, Heb. ʿal", "gloss": "upon" },
+        { "minoan": "qašqash", "root": "q-sh-q-sh", "source": "Heb. qasqeset, Akk. qašqašu", "gloss": "scale (fish/serpent)" },
+        { "minoan": "ʾaban", "root": "ʾ-b-n", "source": "Ug. ʾabn, Heb. ʾeven", "gloss": "stone" },
+        { "minoan": "qanah", "root": "q-n-h", "source": "Heb. qaneh", "gloss": "reed, stem" }
+      ]
+    },
+    {
+      "number": 2,
+      "minoan": "Qarāʾtu ʿamm-ī: yilbashū ʿōr-ī, hin ʾaḥzē ʾaḥarīt u qadmōnīt — ʿidanāt ḥurāṣ lipnē kull u ʾaḥarē kull.",
+      "linear_a": "QA-RA-TU A-MI — JA-RI-PA-SU O-RI — A-KA-ZE A-KA-RI-TI U QA-DU-MO-NI-TI — I-DA-NA-TI KU-RA-ṢU RI-PU-NE-NA U A-KA-RE-NA KI-RO",
+      "phoenician": "𐤒𐤓𐤀𐤕 𐤏𐤌𐤉 𐤉𐤋𐤁𐤔 𐤏𐤓𐤉 𐤄𐤍 𐤀𐤇𐤆 𐤀𐤇𐤓𐤕 𐤅 𐤒𐤃𐤌𐤍𐤕 𐤏𐤃𐤍𐤕 𐤇𐤓𐤑 𐤋𐤐𐤍𐤍 𐤅 𐤀𐤇𐤓𐤍 𐤊𐤋",
+      "english": "I called out to my people: they may wear my hide, if I may divine the future and the ancient-past — ages of gold before all and after all.",
+      "original": "I have told my kin, they may wear my skin, if I may peer in the future and the past—the Golden Ages before and after us all.",
+      "words": [
+        { "minoan": "qarāʾtu", "root": "q-r-ʾ", "source": "Heb. qara', Ug. qrʾ", "gloss": "I called out (1cs perf.)" },
+        { "minoan": "ʿamm-ī", "root": "ʿ-m-m", "source": "Ug. ʿm, Heb. ʿam", "gloss": "my people/kinfolk" },
+        { "minoan": "yilbashū", "root": "l-b-sh", "source": "Heb. lavash, Ug. lbš", "gloss": "they may wear (3mp jussive)" },
+        { "minoan": "ʿōr-ī", "root": "ʿ-w-r", "source": "Heb. ʿor", "gloss": "my skin/hide" },
+        { "minoan": "hin", "root": null, "source": "Ug. hn", "gloss": "if, behold" },
+        { "minoan": "ʾaḥzē", "root": "ḥ-z-y", "source": "Ug. ḥzy", "gloss": "I may gaze/divine (1cs jussive)" },
+        { "minoan": "ʾaḥarīt", "root": "ʾ-ḥ-r", "source": "Heb. ʾaḥarit", "gloss": "future, end-time" },
+        { "minoan": "qadmōnīt", "root": "q-d-m", "source": "Heb. qadmoni", "gloss": "ancient-past, primordial time" },
+        { "minoan": "ʿidanāt", "root": "ʿ-d-n", "source": "Akk. adannu", "gloss": "ages, appointed times (fem. pl.)" },
+        { "minoan": "ḥurāṣ", "root": "ḥ-r-ṣ", "source": "Heb. ḥaruṣ", "gloss": "gold" },
+        { "minoan": "lipnē", "root": "p-n-y", "source": "Heb. lifnei", "gloss": "before" },
+        { "minoan": "kull", "root": "k-l-l", "source": "Ug. kl, Heb. kol, Lin.A KI-RO", "gloss": "all, totality (Tier 1)" },
+        { "minoan": "ʾaḥarē", "root": "ʾ-ḥ-r", "source": "Heb. aḥarei", "gloss": "after" }
+      ]
+    },
+    {
+      "number": 3,
+      "minoan": "Qayinat-nā ashar bi-Shamē u bi-ʾArṣ, tanashshipu dabarāt-hā bi-ʾuznāt ʾamunōt.",
+      "linear_a": "QA-JA-NI-TA-NA A-SA-RA PI-SA-ME U PI-A-RU-ṢU — TA-NA-SI-PU DA-PA-RA-TA PI-U-ZU-NA-TI A-MU-NO-TI",
+      "phoenician": "𐤒𐤉𐤍𐤕𐤍 𐤀𐤔𐤓 𐤁𐤔𐤌 𐤅 𐤁𐤀𐤓𐤑 𐤕𐤍𐤔𐤐 𐤃𐤁𐤓𐤕𐤄 𐤁𐤀𐤆𐤍𐤕 𐤀𐤌𐤍𐤕",
+      "english": "Our Creatrix, who is in the Heavens and the Earth, breathes forth her words through the ears of the faithful.",
+      "original": "Our creatrix, who art in the Heavens and the Earth, whispers her words through the ears of the faithful.",
+      "words": [
+        { "minoan": "Qayinat-nā", "root": "q-n-y", "source": "Ug. qnyt ʾilm (Athirat's epithet)", "gloss": "our Creatrix" },
+        { "minoan": "ashar", "root": "ʾ-sh-r", "source": "Heb. ʾasher", "gloss": "who, which" },
+        { "minoan": "bi-Shamē", "root": "sh-m-y", "source": "Ug. šmm, Heb. shamayim", "gloss": "in the heavens" },
+        { "minoan": "bi-ʾArṣ", "root": "ʾ-r-ṣ", "source": "Ug. arṣ, Heb. ʾereṣ", "gloss": "in the earth" },
+        { "minoan": "tanashshipu", "root": "n-sh-p", "source": "Heb. nashaf 'to blow softly'", "gloss": "she breathes forth (3fs imperf.)" },
+        { "minoan": "dabarāt-hā", "root": "d-b-r", "source": "Ug. dbr, Heb. davar", "gloss": "her words (fem. pl. + 3fs suffix)" },
+        { "minoan": "bi-ʾuznāt", "root": "ʾ-z-n", "source": "Ug. ʾudn, Heb. ʾozen", "gloss": "through the ears of" },
+        { "minoan": "ʾamunōt", "root": "ʾ-m-n", "source": "Heb. ʾemun", "gloss": "faithful ones (fem. pl.)" }
+      ]
+    },
+    {
+      "number": 4,
+      "minoan": "Ani malāḥ — u ẓillu naẓar min ʿammīm, maqōmāt, dōrōt.",
+      "linear_a": "A-NI MA-RA-KU — U ṢI-RU NA-ṢA-RU MI-NU A-MI-MU MA-QO-MA-TI DU-RO-TI",
+      "phoenician": "𐤀𐤍𐤉 𐤌𐤋𐤇 — 𐤅 𐤑𐤋 𐤍𐤑𐤓 𐤌𐤍 𐤏𐤌𐤌 𐤌𐤒𐤌𐤕 𐤃𐤓𐤕",
+      "english": "I am a sailor — a shadow glimpsed from peoples, places, eras.",
+      "original": "I am a sailor — the shadow glimpsed by other peoples, of other places, of other eras.",
+      "words": [
+        { "minoan": "ani", "root": "ʾ-n-y", "source": "Heb. ani (poetic variant of ank)", "gloss": "I (1cs pronoun)" },
+        { "minoan": "malāḥ", "root": "m-l-ḥ", "source": "Akk. malāḫu, Heb. mallāḥ", "gloss": "sailor" },
+        { "minoan": "u", "root": null, "source": "Ug. u, Heb. u/w", "gloss": "and" },
+        { "minoan": "ẓillu", "root": "ẓ-l-l", "source": "Ar. ẓill, Heb. ṣel (צ < PS *ẓ), Akk. ṣillu", "gloss": "shadow" },
+        { "minoan": "naẓar", "root": "n-ẓ-r", "source": "Ar. naẓara, Heb. naṣar (צ < PS *ẓ)", "gloss": "glimpsed, gazed upon" },
+        { "minoan": "min", "root": null, "source": "Ug. mn, Heb. min", "gloss": "from" },
+        { "minoan": "ʿammīm", "root": "ʿ-m-m", "source": "Ug. ʿmm, Heb. ʿammim", "gloss": "peoples" },
+        { "minoan": "maqōmāt", "root": "q-w-m", "source": "Heb. maqom, Ug. mqm", "gloss": "places (fem. pl.)" },
+        { "minoan": "dōrōt", "root": "d-w-r", "source": "Heb. dor, Ug. dr", "gloss": "eras, generations (fem. pl.)" }
+      ]
+    },
+    {
+      "number": 5,
+      "minoan": "Nōśiʾ ṣōripī lahabu ʾishtu kīma mayim, nāshipu ʿabur barqu — naʿlē maʿaṭ ʿillōy, u naḥpur ʿamīq, yōman kull u kull.",
+      "linear_a": "NO-SI ṢO-RI-PI RA-HA-PU I-SI-TU KI-MA MA-JI-MU — NA-SI-PU A-PU-RU PA-RU-QU — NA-A-RE MA-A-TU I-RO-JA U NA-KA-PU-RU A-MI-QU JO-MA-NU KI-RO U KI-RO",
+      "phoenician": "𐤍𐤔𐤀 𐤑𐤓𐤐𐤉 𐤋𐤄𐤁 𐤀𐤔𐤕 𐤊𐤌 𐤌𐤉𐤌 𐤍𐤔𐤐 𐤏𐤁𐤓 𐤁𐤓𐤒 𐤍𐤏𐤋 𐤌𐤏𐤈 𐤏𐤋𐤉 𐤅 𐤍𐤇𐤐𐤓 𐤏𐤌𐤒 𐤉𐤌𐤍 𐤊𐤋 𐤅 𐤊𐤋",
+      "english": "Wielding a refiner's blade of fire like water, breathing through lightning — may we rise a little higher, and dig deeper, daily, all and all.",
+      "original": "Wielding an alchemical foil, a fire that is like water, that breathes through skin like lightning, may we each rise a little higher, and dig a little deeper, each and every day.",
+      "words": [
+        { "minoan": "nōśiʾ", "root": "n-š-ʾ", "source": "Ug. nšʾ, Heb. nosei", "gloss": "wielding (active participle)" },
+        { "minoan": "ṣōripī", "root": "ṣ-r-p", "source": "Heb. ṣoref + adj. -ī", "gloss": "of the refiner, alchemical" },
+        { "minoan": "lahabu", "root": "l-h-b", "source": "Ug./Heb. lahav", "gloss": "blade-flame, foil" },
+        { "minoan": "ʾishtu", "root": "ʾ-sh", "source": "Ug. ʾišt, Heb. ʾesh", "gloss": "fire" },
+        { "minoan": "kīma", "root": null, "source": "Akk. kīma", "gloss": "like, as" },
+        { "minoan": "mayim", "root": "m-y", "source": "Heb. mayim, Ug. my", "gloss": "water" },
+        { "minoan": "nāshipu", "root": "n-sh-p", "source": "Heb. nashaf", "gloss": "breathing (G-stem participle)" },
+        { "minoan": "ʿabur", "root": "ʿ-b-r", "source": "Heb. ʿavar, Ug. ʿbr", "gloss": "through, across" },
+        { "minoan": "barqu", "root": "b-r-q", "source": "Ug. brq, Heb. baraq, Akk. birqu", "gloss": "lightning" },
+        { "minoan": "naʿlē", "root": "ʿ-l-y", "source": "Heb. naʿaleh, Ug. ʿly", "gloss": "may we rise (1cp jussive)" },
+        { "minoan": "maʿaṭ", "root": "m-ʿ-ṭ", "source": "Heb. meʿat", "gloss": "a little" },
+        { "minoan": "ʿillōy", "root": "ʿ-l-y", "source": "Aram. ʿillai, Heb. ʿelyōn", "gloss": "higher" },
+        { "minoan": "u", "root": null, "source": "Ug. u", "gloss": "and" },
+        { "minoan": "naḥpur", "root": "ḥ-p-r", "source": "Heb. ḥapar", "gloss": "may we dig (1cp jussive)" },
+        { "minoan": "ʿamīq", "root": "ʿ-m-q", "source": "Heb. ʿamoq, Ug. ʿmq", "gloss": "deep" },
+        { "minoan": "yōman", "root": "y-w-m", "source": "Heb. yōmam, Akk. ūmišam", "gloss": "daily (adverbial -an)" },
+        { "minoan": "kull", "root": "k-l-l", "source": "Ug. kl, Heb. kol, Lin.A KI-RO", "gloss": "all, totality (Tier 1)" }
+      ]
+    },
+    {
+      "number": 6,
+      "minoan": "Kull ʿōlām tashbītu, ka ḥarāshat u kiništu, lā-ʿōlām dōrī.",
+      "linear_a": "KI-RO A-RA-MU TA-SA-PI-TU — KA KA-RA-SA-TA U KI-NI-SI-TU — RA-A-RA-MU DU-RI",
+      "phoenician": "𐤊𐤋 𐤏𐤋𐤌 𐤕𐤔𐤁𐤕 𐤊 𐤇𐤓𐤔𐤕 𐤅 𐤊𐤍𐤔𐤕 𐤋𐤏𐤋𐤌 𐤃𐤓𐤉",
+      "english": "All eternity is a reverberation; like craft and civilization, forever cyclical.",
+      "original": "All time is but an echo; like art and civilization, it is always cyclical.",
+      "words": [
+        { "minoan": "kull", "root": "k-l-l", "source": "Ug. kl, Heb. kol, Lin.A KI-RO", "gloss": "all, totality (Tier 1)" },
+        { "minoan": "ʿōlām", "root": "ʿ-l-m", "source": "Ug. ʿlm, Heb. ʿolam", "gloss": "eternity, world, reality" },
+        { "minoan": "tashbītu", "root": "sh-b-t", "source": "Akk. tašbītu", "gloss": "reverberation, echo" },
+        { "minoan": "ka", "root": null, "source": "Ug. k, Heb. ke-", "gloss": "like, as" },
+        { "minoan": "ḥarāshat", "root": "ḥ-r-sh", "source": "Heb. ḥaroshet", "gloss": "art, craft-work" },
+        { "minoan": "u", "root": null, "source": "Ug. u", "gloss": "and" },
+        { "minoan": "kiništu", "root": "k-n-s", "source": "Akk. kiništu, cf. Knossos", "gloss": "civilization, assembly (the Gathering)" },
+        { "minoan": "lā-ʿōlām", "root": "ʿ-l-m", "source": "Heb. leʿolam", "gloss": "forever, to eternity" },
+        { "minoan": "dōrī", "root": "d-w-r", "source": "Heb. dor + adj. -ī", "gloss": "cyclical, of the circle" }
+      ]
+    },
+    {
+      "number": 7,
+      "minoan": "Watiqat Qadeshat ha tōr ba-qarnayim.",
+      "english": "The priestess takes the bull by the horns.",
+      "original": "Watiqah Qadeshet ha thor ba'qarnayim",
+      "words": [
+        { "minoan": "watiqat", "root": "w-t-q", "source": "Heb. wataq", "gloss": "she seizes (3fs perf. construct)" },
+        { "minoan": "Qadeshat", "root": "q-d-sh", "source": "Ug. qdšt", "gloss": "holy woman, priestess" },
+        { "minoan": "tōr", "root": "t-w-r", "source": "Ug. ṯr, Heb. shōr (via ṯ > sh)", "gloss": "bull" },
+        { "minoan": "ba-qarnayim", "root": "q-r-n", "source": "Ug. qrn, Heb. qeren", "gloss": "by the horns (dual)" }
+      ]
+    }
+  ]
+}
