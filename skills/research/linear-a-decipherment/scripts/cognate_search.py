@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from lib.normalization import lookup_in
 from lib.phonetics import weighted_levenshtein
-from lib.skeleton import extract_skeleton, extract_full
+from lib.skeleton import extract_skeleton, extract_full, extract_skeleton_polyphonic, load_registry
 from lib.types import CognateMatch
 
 LASHON_DIR = Path.home() / "Desktop/Programming/lashon-ha-kretan"
@@ -406,6 +406,8 @@ def main() -> None:
                         help="Reverse search: find corpus words matching a Semitic root (e.g., kns)")
     parser.add_argument("--max-dist", type=float, default=0.3,
                         help="Max normalized distance for reverse search (default: 0.3)")
+    parser.add_argument("--all-readings", action="store_true",
+                        help="Search cognates for all polyphonic skeleton variants")
 
     args = parser.parse_args()
 
@@ -434,10 +436,41 @@ def main() -> None:
 
     result = search_cognates(args.transliteration, top_n=args.top, use_cache=not args.no_cache)
 
+    if args.all_readings:
+        poly = extract_skeleton_polyphonic(args.transliteration)
+        alt_results = []
+        for alt_skel, notes in poly:
+            if notes and alt_skel != result["skeleton"]:
+                alt_search = _search_proto_semitic(alt_skel, args.top)
+                alt_results.append({
+                    "skeleton": alt_skel,
+                    "notes": notes,
+                    "matches": alt_search,
+                })
+            elif notes and alt_skel == result["skeleton"]:
+                alt_results.append({
+                    "skeleton": alt_skel,
+                    "notes": notes,
+                    "matches": [],
+                })
+        if alt_results:
+            result["alternative_readings"] = alt_results
+
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(format_table(result))
+        if args.all_readings and result.get("alternative_readings"):
+            print()
+            print("Alternative Readings:")
+            print("-" * 76)
+            for alt in result["alternative_readings"]:
+                print(f"\n  Skeleton: {alt['skeleton']}")
+                for n in alt["notes"]:
+                    print(f"    → {n}")
+                if alt["matches"]:
+                    for m in alt["matches"]:
+                        print(f"    {m['method']:<16} {m['root']:<20} {m['meaning']:<30} {m['distance']:>6.3f}")
 
 
 if __name__ == "__main__":

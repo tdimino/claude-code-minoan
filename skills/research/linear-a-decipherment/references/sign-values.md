@@ -76,6 +76,8 @@ Linear A sign values are projected from Linear B where sign forms are shared. Th
 | ZA | /za/ | AB16 | MEDIUM |
 | ZE | /ze/ | AB74 | MEDIUM |
 
+**Interdental note**: Proto-Semitic interdentals (ṯ /θ/, ḏ /ð/) have no dedicated Linear A signs. If Minoan preserved them (as a 24-phoneme inventory predating the Canaanite ṯ→sh and Aramaic ṯ→t mergers), they were written with SA-series or TA-series signs. The script cannot distinguish them—but cognate analysis should: *ʾAṯiratu* (Ug. ʾaṯrt) has ṯ, not t or sh. See `~/.claude/skills/minoan/references/phonology.md` for the full interdental analysis.
+
 ### Liquids (HIGH confidence)
 
 | Sign | Value | Linear B | Notes |

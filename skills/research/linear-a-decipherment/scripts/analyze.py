@@ -18,7 +18,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from lib.normalization import lookup_in, normalize, WORD_SEPARATORS
-from lib.skeleton import extract_skeleton, extract_full
+from lib.skeleton import extract_skeleton, extract_full, extract_skeleton_polyphonic, load_registry
 from lib.phonetics import weighted_levenshtein
 
 LASHON_DIR = Path.home() / "Desktop/Programming/lashon-ha-kretan"
@@ -98,6 +98,7 @@ def analyze_single(name: str, verbose: bool = False) -> dict[str, Any]:
     result["word_count"] = len(words)
 
     # Steps 3-4: Skeleton + Cognate Search per word
+    registry = load_registry()
     word_analyses = []
     for word in words:
         if word in WORD_SEPARATORS or not word:
@@ -107,6 +108,13 @@ def analyze_single(name: str, verbose: bool = False) -> dict[str, Any]:
         skeleton = extract_skeleton(norm)
         cv = extract_full(norm)
 
+        poly_results = extract_skeleton_polyphonic(norm, registry)
+        alt_readings = []
+        if poly_results:
+            for skel_str, notes in poly_results:
+                if notes:
+                    alt_readings.append({"skeleton": skel_str, "notes": notes})
+
         analysis: dict[str, Any] = {
             "word": word,
             "normalized": norm if norm != word else None,
@@ -114,6 +122,8 @@ def analyze_single(name: str, verbose: bool = False) -> dict[str, Any]:
             "cv": [(c or "", v) for c, v in cv],
             "matches": [],
         }
+        if alt_readings:
+            analysis["alternative_readings"] = alt_readings
 
         # Gordon direct
         g_match = lookup_in(gordon, word)
@@ -196,6 +206,16 @@ def format_report(result: dict[str, Any]) -> str:
 
         if not w["matches"]:
             lines.append("    [no matches]")
+
+        alt = w.get("alternative_readings", [])
+        if alt:
+            lines.append("    Alternative readings:")
+            for a in alt:
+                skel_note = f"skeleton: {a['skeleton']}" if a["skeleton"] != skel else "same skeleton"
+                lines.append(f"      ({skel_note})")
+                for n in a["notes"]:
+                    lines.append(f"        → {n}")
+
         lines.append("")
 
     s = result.get("summary", {})

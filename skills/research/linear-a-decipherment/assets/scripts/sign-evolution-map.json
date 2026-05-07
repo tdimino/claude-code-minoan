@@ -1,0 +1,825 @@
+{
+  "metadata": {
+    "title": "Cross-Script Sign Evolution Map",
+    "description": "20 key signs traced across Cretan Hieroglyphic → Linear A → Linear B, with Proto-Sinaitic and Cypro-Minoan cognates where attested. Designed for HTML visualization of orthogonic graphemic lineage.",
+    "sources": {
+      "ch_la_correspondences": "Ferrara, Montecchi & Valério 2022, 'Cretan Hieroglyphic and Linear A', Pasiphae XVI, Appendix 1",
+      "la_lb_values": "Steele & Meissner 2017, validated projection from Ventris 1952",
+      "la_cm_correspondences": "Valério 2018, PhD thesis, LA↔CM↔Cypro-Greek comparative tables",
+      "proto_sinaitic": "Albright 1969, Simons 2011; pictographic ancestry, not direct derivation",
+      "sigla_images": "SigLA (sigla.phis.me), open access tablet photograph crops",
+      "ch_font": "George Douros, Cretan Hieroglyphs (PUA 0xF2000+), Font Library freeware",
+      "la_font": "Noto Sans Linear A (OFL 1.1), Google Fonts, U+10600–U+1077F",
+      "lb_font": "Noto Sans Linear B (OFL 1.1), Google Fonts, U+10000–U+100FF",
+      "cm_font": "Noto Sans Cypro-Minoan (OFL 1.1), Google Fonts, U+12F90–U+12FFF"
+    },
+    "graphic_tendencies": {
+      "a": "simplification — reduction of internal detail",
+      "b": "linearization — curved lines become straight",
+      "c": "rotation — sign orientation shifts",
+      "d": "reduction — overall size decreases",
+      "e": "abstraction — pictographic form becomes schematic",
+      "f": "addition — new elements added to sign",
+      "g": "mirror — horizontal or vertical flip"
+    },
+    "rendering_tiers": {
+      "unicode_native": ["Linear A (Noto Sans)", "Linear B (Noto Sans)", "Cypro-Minoan (Noto Sans)"],
+      "pua_font": ["Cretan Hieroglyphic (Douros, PUA 0xF2000+)"],
+      "image_based": ["Proto-Sinaitic (Wikimedia SVGs)", "SigLA tablet crops (all LA signs)"]
+    },
+    "created": "2026-05-06",
+    "version": "1.0"
+  },
+  "signs": [
+    {
+      "id": "sign-01",
+      "phonetic_value": "a",
+      "category": "pure_vowel",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 042",
+        "pictographic_ancestor": "double-axe / labrys",
+        "font_codepoint_hex": "F2029",
+        "source": "Ferrara et al. 2022, Appendix 1"
+      },
+      "linear_a": {
+        "ab_number": "AB08",
+        "name": "a",
+        "unicode": "U+10607",
+        "sigla_image": "ZA 10b_18.png",
+        "sigla_url": "https://sigla.phis.me/document/ZA%2010b/ZA%2010b_18.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 08",
+        "value": "a",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "aleph",
+        "meaning": "ox head",
+        "svg_file": "proto-semitica-01.svg",
+        "connection_type": "shared_pictographic_ancestry",
+        "notes": "Both traditions derive open vowel/glottal from sacred animal/object signs; aleph = ox head, CH 042 = labrys"
+      },
+      "semantic_context": {
+        "pictograph": "double-axe (labrys)",
+        "cultic_significance": "The labrys is central to Minoan religious iconography; da-pu₂-ri-to-jo (labyrinth) on KN Gg 702",
+        "nws_connections": "Per Gordon: the primary open vowel in a Semitic reading of Linear A, cognate with the ʾaleph tradition. The sign value /a/ is not disputed; the Semitic substrate interpretation is."
+      },
+      "graphic_tendencies": ["e", "b"],
+      "cross_script_count": 4
+    },
+    {
+      "id": "sign-02",
+      "phonetic_value": "i",
+      "category": "pure_vowel",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 008",
+        "pictographic_ancestor": "eye motif",
+        "font_codepoint_hex": "F2007",
+        "source": "Ferrara et al. 2022, Appendix 1"
+      },
+      "linear_a": {
+        "ab_number": "AB28",
+        "name": "i",
+        "unicode": "U+10615",
+        "sigla_image": "KH 16_4.png",
+        "sigla_url": "https://sigla.phis.me/document/KH%2016/KH%2016_4.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 28",
+        "value": "i",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "ayin",
+        "meaning": "eye",
+        "svg_file": "proto-semitico-01.svg",
+        "connection_type": "shared_pictographic_ancestry",
+        "notes": "Proto-Sinaitic ʿayin (eye) → Greek omicron; CH 008 eye motif shares the ocular pictographic tradition"
+      },
+      "semantic_context": {
+        "pictograph": "eye",
+        "cultic_significance": "The all-seeing eye; divine vision in Minoan religion; ʿayin = 'eye/spring/source' in Semitic",
+        "nws_connections": "Hebrew ʿayin (עין) = eye/spring; per Gordon §150 a Minoan ʿayin-shift (ʿ+a → ō) is posited. The pictographic eye-motif parallel is typological."
+      },
+      "graphic_tendencies": ["a", "e"],
+      "cross_script_count": 4
+    },
+    {
+      "id": "sign-03",
+      "phonetic_value": "e",
+      "category": "pure_vowel",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 028",
+        "pictographic_ancestor": "fence/barrier",
+        "font_codepoint_hex": "F201B",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 028 → AB 09, AB 38)"
+      },
+      "linear_a": {
+        "ab_number": "AB38",
+        "name": "e",
+        "unicode": "U+1061B",
+        "sigla_image": "KH 10_12.png",
+        "sigla_url": "https://sigla.phis.me/document/KH%2010/KH%2010_12.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 38",
+        "value": "e",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "fence or barrier motif",
+        "cultic_significance": "Enclosure sign; relates to temenos (sacred precinct) concept",
+        "nws_connections": "Possible connection to Semitic ḥet (fence/courtyard)"
+      },
+      "graphic_tendencies": ["a", "b"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-04",
+      "phonetic_value": "o",
+      "category": "pure_vowel",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 009",
+        "pictographic_ancestor": "vessel/container",
+        "font_codepoint_hex": "F2008",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 009 → AB 61, A 123, A 188)"
+      },
+      "linear_a": {
+        "ab_number": "AB61",
+        "name": "o",
+        "unicode": "U+1062F",
+        "sigla_image": "PH 2_6.png",
+        "sigla_url": "https://sigla.phis.me/document/PH%202/PH%202_6.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 61",
+        "value": "o",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "vessel or container",
+        "cultic_significance": "O-vowel rarity in Linear A corpus supports non-Greek (Semitic) language substrate — Gordon's key distributional argument",
+        "nws_connections": "Semitic languages are O-poor; LA O-vowel frequency matches NWS pattern"
+      },
+      "graphic_tendencies": ["a", "d"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-05",
+      "phonetic_value": "da",
+      "category": "dental_voiced",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 043",
+        "pictographic_ancestor": "gate/door",
+        "font_codepoint_hex": "F202A",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 043 → AB 01, A 364/B 12, AB 11)"
+      },
+      "linear_a": {
+        "ab_number": "AB01",
+        "name": "da",
+        "unicode": "U+10600",
+        "sigla_image": "PH 31a_17.png",
+        "sigla_url": "https://sigla.phis.me/document/PH%2031a/PH%2031a_17.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 01",
+        "value": "da",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "dalet",
+        "meaning": "door",
+        "svg_file": null,
+        "connection_type": "shared_pictographic_ancestry",
+        "notes": "Proto-Sinaitic dalet (door) shares the door/gate pictograph with CH 043; both encode dental stop"
+      },
+      "semantic_context": {
+        "pictograph": "gate or door",
+        "cultic_significance": "DA- prefix in da-pu₂-ri-to (labyrinth); d-b-r root (word/bee/sanctuary); da-ku-se-ne (Dakushene, attested name)",
+        "nws_connections": "Semitic dalet = door; √d-b-r gives dəbōrāh (bee), dābār (word), dəbīr (Holy of Holies)"
+      },
+      "graphic_tendencies": ["e", "b", "c"],
+      "cross_script_count": 4
+    },
+    {
+      "id": "sign-06",
+      "phonetic_value": "mu",
+      "category": "nasal",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 012",
+        "pictographic_ancestor": "bull head (BOS/bucranium)",
+        "font_codepoint_hex": "F200B",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 012 → AB 23, A 418VAS)"
+      },
+      "linear_a": {
+        "ab_number": "AB23",
+        "name": "mu",
+        "unicode": "U+10611",
+        "sigla_image": "HT 3_10.png",
+        "sigla_url": "https://sigla.phis.me/document/HT%203/HT%203_10.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 23",
+        "value": "mu",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "bull head (bucranium)",
+        "cultic_significance": "Central Minoan religious symbol; bull-leaping, Minotaur, offering tables. CH 012 retains the full bull-head pictograph that linearizes into AB 23",
+        "nws_connections": "The bull sacrifice tradition shared across Canaanite and Minoan religion; mu- prefix in administrative texts"
+      },
+      "graphic_tendencies": ["a", "e", "d"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-07",
+      "phonetic_value": "sa",
+      "category": "sibilant",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 019",
+        "pictographic_ancestor": "plant/papyrus",
+        "font_codepoint_hex": "F2012",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 019 → AB 31)"
+      },
+      "linear_a": {
+        "ab_number": "AB31",
+        "name": "sa",
+        "unicode": "U+10618",
+        "sigla_image": "KH 5_11.png",
+        "sigla_url": "https://sigla.phis.me/document/KH%205/KH%205_11.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 31",
+        "value": "sa",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "plant or papyrus",
+        "cultic_significance": "Appears in yasharamu libation formula (JA-SA-SA-RA-ME); sa-sa reduplication for emphasis",
+        "nws_connections": "Per Gordon (1966): sa- in the libation formula = √y-sh-r 'righteous'; yasharamu = 'righteous offering'. NB: Gordon's Semitic decipherment of Linear A is a minority position not accepted by mainstream Aegean epigraphy."
+      },
+      "graphic_tendencies": ["a", "b"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-08",
+      "phonetic_value": "ta",
+      "category": "dental_voiceless",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 034",
+        "pictographic_ancestor": "cross/intersecting lines",
+        "font_codepoint_hex": "F2021",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 034 → AB 59, A 305, A 356)"
+      },
+      "linear_a": {
+        "ab_number": "AB59",
+        "name": "ta",
+        "unicode": "U+1062D",
+        "sigla_image": "PH 6_10.png",
+        "sigla_url": "https://sigla.phis.me/document/PH%206/PH%206_10.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 59",
+        "value": "ta",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "taw",
+        "meaning": "mark/cross",
+        "svg_file": "proto-semitict-01.svg",
+        "connection_type": "shared_pictographic_ancestry",
+        "notes": "Proto-Sinaitic taw (cross-mark) and CH 034 (intersecting lines) share the cross/mark pictograph for dental /t/"
+      },
+      "semantic_context": {
+        "pictograph": "cross or intersecting lines",
+        "cultic_significance": "The cross-mark as boundary/territorial sign; taw as signature/seal mark",
+        "nws_connections": "Semitic taw = mark, sign; the oldest alphabetic letter, from Egyptian hieratic"
+      },
+      "graphic_tendencies": ["b", "c"],
+      "cross_script_count": 4
+    },
+    {
+      "id": "sign-09",
+      "phonetic_value": "te",
+      "category": "dental_voiceless",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 025",
+        "pictographic_ancestor": "hand/palm",
+        "font_codepoint_hex": "F2018",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 025 → AB 04)"
+      },
+      "linear_a": {
+        "ab_number": "AB04",
+        "name": "te",
+        "unicode": "U+10603",
+        "sigla_image": "ZA 20_14.png",
+        "sigla_url": "https://sigla.phis.me/document/ZA%2020/ZA%2020_14.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 04",
+        "value": "te",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "hand or palm",
+        "cultic_significance": "Frequent in administrative and offering texts",
+        "nws_connections": "Possible connection to Semitic tet; te- prefix common in verbal forms"
+      },
+      "graphic_tendencies": ["a", "e"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-10",
+      "phonetic_value": "si",
+      "category": "sibilant",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 011",
+        "pictographic_ancestor": "vessel/jug with handle",
+        "font_codepoint_hex": "F200A",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 011 → AB 41, B 32)"
+      },
+      "linear_a": {
+        "ab_number": "AB41",
+        "name": "si",
+        "unicode": "U+1061E",
+        "sigla_image": "ZA 15a_7.png",
+        "sigla_url": "https://sigla.phis.me/document/ZA%2015a/ZA%2015a_7.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "MEDIUM"
+      },
+      "linear_b": {
+        "sign_number": "B 41",
+        "value": "si",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "vessel or jug with handle",
+        "cultic_significance": "SI-signs common in libation/offering contexts; ritual vessel imagery",
+        "nws_connections": "Gordon reads si- in compound terms; vessel pictograph connects to libation practice"
+      },
+      "graphic_tendencies": ["a", "d"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-11",
+      "phonetic_value": "se",
+      "category": "sibilant",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 007",
+        "pictographic_ancestor": "branch/tree",
+        "font_codepoint_hex": "F2006",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 007 → AB 09, AB 60, AB 73)"
+      },
+      "linear_a": {
+        "ab_number": "AB09",
+        "name": "se",
+        "unicode": "U+10608",
+        "sigla_image": "KH 7a_22.png",
+        "sigla_url": "https://sigla.phis.me/document/KH%207a/KH%207a_22.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 09",
+        "value": "se",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "branch or tree",
+        "cultic_significance": "Tree/branch cult central to Minoan religion; Evans's 'tree and pillar cult'; Athirat's sacred tree",
+        "nws_connections": "The Asherah pole (ʾashērah) as sacred tree; CH 007 tree pictograph → sibilant connects to NWS sacral tree tradition"
+      },
+      "graphic_tendencies": ["a", "e", "c"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-12",
+      "phonetic_value": "ja/ya",
+      "category": "semivowel",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 038",
+        "pictographic_ancestor": "arm/hand gesture",
+        "font_codepoint_hex": "F2025",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 038 → AB 56, AB 57)"
+      },
+      "linear_a": {
+        "ab_number": "AB57",
+        "name": "ja",
+        "unicode": "U+1062B",
+        "sigla_image": "MA 4b_3.png",
+        "sigla_url": "https://sigla.phis.me/document/MA%204b/MA%204b_3.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 57",
+        "value": "ja",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "arm or hand gesture",
+        "cultic_significance": "Opens the yasharamu libation formula: JA-SA-SA-RA-ME; the most important ritual sequence in Linear A",
+        "nws_connections": "Per Gordon (1966): JA = /ya/ prefix of 3ms imperfective verb form, √y-sh-r 'to be righteous'. The yasharamu formula (JA-SA-SA-RA-ME) recurs in Linear A libation texts; the Semitic interpretation is Gordon's minority reading."
+      },
+      "graphic_tendencies": ["a", "b"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-13",
+      "phonetic_value": "wa",
+      "category": "semivowel",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 037",
+        "pictographic_ancestor": "serpent/snake",
+        "font_codepoint_hex": "F2024",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 037 → AB 54, AB 123)"
+      },
+      "linear_a": {
+        "ab_number": "AB54",
+        "name": "wa",
+        "unicode": "U+10628",
+        "sigla_image": "ZA 6a_2.png",
+        "sigla_url": "https://sigla.phis.me/document/ZA%206a/ZA%206a_2.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 54",
+        "value": "wa",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "waw",
+        "meaning": "hook/peg",
+        "svg_file": "proto-semiticw-01.svg",
+        "connection_type": "shared_phonetic_space",
+        "notes": "Proto-Sinaitic waw (hook/peg) and CH 037 (serpent) share the /w/ semivowel but derive from different pictographic traditions. Phonetic parallel, not pictographic."
+      },
+      "semantic_context": {
+        "pictograph": "serpent or snake",
+        "cultic_significance": "Snake-goddess tradition of Minoan Crete; faience snake priestess figurines from Temple Repositories, Knossos",
+        "nws_connections": "Semitic √n-ḥ-sh (serpent), √s-r-p (seraph/burning serpent); the chthonic serpent-priestess tradition"
+      },
+      "graphic_tendencies": ["a", "e"],
+      "cross_script_count": 4
+    },
+    {
+      "id": "sign-14",
+      "phonetic_value": "re",
+      "category": "liquid",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 031",
+        "pictographic_ancestor": "flowing water / stream",
+        "font_codepoint_hex": "F201E",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 031 → AB 27, A 328)"
+      },
+      "linear_a": {
+        "ab_number": "AB27",
+        "name": "re",
+        "unicode": "U+10614",
+        "sigla_image": "HT 10a_8.png",
+        "sigla_url": "https://sigla.phis.me/document/HT%2010a/HT%2010a_8.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 27",
+        "value": "re",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "flowing water or stream",
+        "cultic_significance": "Liquid sign; re- appears in place names and offering terms",
+        "nws_connections": "Liquid /r/ shared across all NWS languages; the l/r distinction preserved in LA via AB 76 (ra₂ = la)"
+      },
+      "graphic_tendencies": ["b", "d"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-15",
+      "phonetic_value": "ni",
+      "category": "nasal",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 024",
+        "pictographic_ancestor": "fig leaf / plant",
+        "font_codepoint_hex": "F2017",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 024 → AB 30)"
+      },
+      "linear_a": {
+        "ab_number": "AB30",
+        "name": "ni",
+        "unicode": "U+10617",
+        "sigla_image": "ZA 8_6.png",
+        "sigla_url": "https://sigla.phis.me/document/ZA%208/ZA%208_6.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 30",
+        "value": "ni",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "nun",
+        "meaning": "snake/fish",
+        "svg_file": "proto-semiticn-01.svg",
+        "connection_type": "shared_phonetic_space",
+        "notes": "Proto-Sinaitic nun (snake/fish) → nasal /n/; CH 024 plant form takes different pictographic path to same phoneme. Phonetic parallel only, not pictographic."
+      },
+      "semantic_context": {
+        "pictograph": "fig leaf or plant",
+        "cultic_significance": "Plant-based offering sign; ni- common in administrative commodity lists",
+        "nws_connections": "Semitic nun; n-assimilation rule preserved in Minoan: /n/ before consonant assimilates (yintan → yittan)"
+      },
+      "graphic_tendencies": ["a", "e"],
+      "cross_script_count": 4
+    },
+    {
+      "id": "sign-16",
+      "phonetic_value": "ri",
+      "category": "liquid",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 010",
+        "pictographic_ancestor": "sprouting grain / barley",
+        "font_codepoint_hex": "F2009",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 010 → AB 53, AB 60, A 310)"
+      },
+      "linear_a": {
+        "ab_number": "AB53",
+        "name": "ri",
+        "unicode": "U+10627",
+        "sigla_image": "PH 31b_12.png",
+        "sigla_url": "https://sigla.phis.me/document/PH%2031b/PH%2031b_12.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 53",
+        "value": "ri",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "sprouting grain or barley",
+        "cultic_significance": "Agricultural sign; grain/barley central to Minoan palace economy and offering lists",
+        "nws_connections": "Gordon reads GRA/HORD (grain ideogram) alongside syllabic ri- in administrative texts"
+      },
+      "graphic_tendencies": ["a", "d", "e"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-17",
+      "phonetic_value": "su",
+      "category": "sibilant",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 035",
+        "pictographic_ancestor": "pig/boar",
+        "font_codepoint_hex": "F2022",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 035 → AB 58)"
+      },
+      "linear_a": {
+        "ab_number": "AB58",
+        "name": "su",
+        "unicode": "U+1062C",
+        "sigla_image": "KH 22_3.png",
+        "sigla_url": "https://sigla.phis.me/document/KH%2022/KH%2022_3.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 58",
+        "value": "su",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": null,
+      "semantic_context": {
+        "pictograph": "pig or boar",
+        "cultic_significance": "SUS (pig) ideogram attested; animal husbandry records",
+        "nws_connections": "Akkadian šaḫû 'pig'; the sign's pictographic ancestor survives in the ideographic tradition"
+      },
+      "graphic_tendencies": ["a", "e"],
+      "cross_script_count": 3
+    },
+    {
+      "id": "sign-18",
+      "phonetic_value": "ko",
+      "category": "velar",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 002",
+        "pictographic_ancestor": "ship/vessel",
+        "font_codepoint_hex": "F2001",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 002 → AB 70)"
+      },
+      "linear_a": {
+        "ab_number": "AB70",
+        "name": "ko",
+        "unicode": "U+10634",
+        "sigla_image": "TY 3a_27.png",
+        "sigla_url": "https://sigla.phis.me/document/TY%203a/TY%203a_27.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH"
+      },
+      "linear_b": {
+        "sign_number": "B 70",
+        "value": "ko",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "qoph",
+        "meaning": "needle eye / back of head",
+        "svg_file": "proto-semiticq-01.svg",
+        "connection_type": "shared_phonetic_space",
+        "notes": "Velar/uvular stop; k/g/q merger in Linear A script means CH 002 and qoph share the velar phonetic domain"
+      },
+      "semantic_context": {
+        "pictograph": "ship or vessel",
+        "cultic_significance": "Maritime sign; ko- in place names; the thalassocratic Minoan state as naval power",
+        "nws_connections": "K/G/Q merger in LA script parallels the Semitic emphatic distinction (k vs q vs g) that LA collapses. Per Gordon, this merger is evidence of a Semitic substrate; the scriptological observation (k/g/q written with same signs) is uncontroversial."
+      },
+      "graphic_tendencies": ["a", "b"],
+      "cross_script_count": 4
+    },
+    {
+      "id": "sign-19",
+      "phonetic_value": "ze",
+      "category": "sibilant",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 045",
+        "pictographic_ancestor": "double vessel / vase pair",
+        "font_codepoint_hex": "F202C",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 045 → AB 74)"
+      },
+      "linear_a": {
+        "ab_number": "AB74",
+        "name": "ze",
+        "unicode": "U+10636",
+        "sigla_image": "HT 16_15.png",
+        "sigla_url": "https://sigla.phis.me/document/HT%2016/HT%2016_15.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "MEDIUM"
+      },
+      "linear_b": {
+        "sign_number": "B 74",
+        "value": "ze",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf"
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "zayin",
+        "meaning": "weapon/sword",
+        "svg_file": "proto-semiticz-01.svg",
+        "connection_type": "shared_phonetic_space",
+        "notes": "Proto-Sinaitic zayin (weapon) → voiced sibilant /z/; different pictographic path to same phoneme as CH 045"
+      },
+      "semantic_context": {
+        "pictograph": "double vessel or vase pair",
+        "cultic_significance": "Paired-vessel motif in Minoan ritual contexts; double offering",
+        "nws_connections": "Semitic zayin = weapon; the z-series distinction (za/ze/zo vs sa/se/si) mirrors NWS sibilant system"
+      },
+      "graphic_tendencies": ["a"],
+      "cross_script_count": 4
+    },
+    {
+      "id": "sign-20",
+      "phonetic_value": "me",
+      "category": "nasal",
+      "cretan_hieroglyphic": {
+        "sign_number": "CH 020",
+        "pictographic_ancestor": "bee",
+        "font_codepoint_hex": "F2013",
+        "source": "Ferrara et al. 2022, Appendix 1 (CH 020 → B 43)"
+      },
+      "linear_a": {
+        "ab_number": "AB13",
+        "name": "me",
+        "unicode": "U+1060B",
+        "sigla_image": "ZA 14_1.png",
+        "sigla_url": "https://sigla.phis.me/document/ZA%2014/ZA%2014_1.png",
+        "font": "NotoSansLinearA-Regular.ttf",
+        "confidence": "HIGH",
+        "notes": "Evolutionary chain: CH 020 (bee) → LA AB 13 (me) → LB B 13 (me). Ferrara 2022 also lists CH 020 → LB B 43 as a secondary correspondence. The bee pictograph's linearization into the me syllabogram follows standard CH→LA graphic development."
+      },
+      "linear_b": {
+        "sign_number": "B 13",
+        "value": "me",
+        "unicode_block": "U+10000–U+100FF",
+        "font": "NotoSansLinearB-Regular.ttf",
+        "notes": "B 13 = syllabic me; me-ri (honey) on KN Gg 702 spelled syllabically. CH 020 bee pictograph also corresponds to LB B 43 per Ferrara 2022, but B 43 is a syllabic sign, not a bee ideogram. The bee/honey connection is lexical (the word me-ri), not ideographic."
+      },
+      "cypro_minoan": null,
+      "proto_sinaitic": {
+        "letter": "mem",
+        "meaning": "water",
+        "svg_file": null,
+        "connection_type": "shared_phonetic_space",
+        "notes": "Proto-Sinaitic mem (water) shares /m/ phoneme; the bee→me link is Aegean-internal, not Semitic"
+      },
+      "semantic_context": {
+        "pictograph": "bee",
+        "cultic_significance": "THE key sign for d-b-r etymology. CH 020 bee → LB me-ri (honey) offering to the Lady of the Labyrinth. d-b-r root: dəbōrāh (bee), dābār (word), dəbīr (Holy of Holies). The labyrinth is the sanctuary of bees and words.",
+        "nws_connections": "Ruth Hestrin (1987): Deborah of Judges 4-5 preserves memory of a Canaanite Goddess Deborah; bee/word/sanctuary triad via √d-b-r"
+      },
+      "graphic_tendencies": ["a", "e"],
+      "cross_script_count": 3
+    }
+  ],
+  "statistics": {
+    "total_signs": 20,
+    "signs_with_ch_ancestor": 20,
+    "signs_with_proto_sinaitic_cognate": 9,
+    "signs_with_4_script_coverage": 8,
+    "signs_with_3_script_coverage": 12,
+    "coverage_note": "Coverage counts CH+LA+LB as 3; Proto-Sinaitic cognate adds +1 where attested. Sign-20 (me/bee) has a PS entry recorded for completeness but counted as 3 (Aegean-internal link, not Semitic derivation).",
+    "phonetic_categories": {
+      "pure_vowel": 4,
+      "dental_voiced": 1,
+      "dental_voiceless": 2,
+      "nasal": 3,
+      "sibilant": 5,
+      "semivowel": 2,
+      "liquid": 2,
+      "velar": 1
+    },
+    "confidence_distribution": {
+      "HIGH": 18,
+      "MEDIUM": 2,
+      "LOW": 0
+    }
+  },
+  "visualization_notes": {
+    "layout": "Each sign displayed as a horizontal evolution strip: CH pictograph → LA syllabogram → LB syllabogram, with PS cognate (if any) as parallel branch",
+    "fonts_required": [
+      "fonts/NotoSansLinearA-Regular.ttf",
+      "fonts/NotoSansLinearB-Regular.ttf",
+      "fonts/NotoSansCyproMinoan-Regular.ttf",
+      "fonts/CretanHieroglyphs.ttf"
+    ],
+    "image_fallbacks": "SigLA tablet crops for LA signs; Wikimedia SVGs for Proto-Sinaitic; Douros PUA font for CH signs with image fallback from Ferrara 2024 guide",
+    "research_gap_filled": "No existing tool shows a three-way CH↔LA↔LB sign evolution chart — this is the first cross-script graphemic lineage visualization"
+  }
+}

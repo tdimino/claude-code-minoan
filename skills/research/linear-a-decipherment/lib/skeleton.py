@@ -6,6 +6,8 @@ strip the vowels to produce a "skeleton": KI-RE-TA -> k-r-t.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 # (consonant | None, vowel) — None consonant means pure vowel sign
 SignDecomposition = tuple[str | None, str]
 
@@ -96,3 +98,75 @@ def extract_full(transliteration: str) -> list[SignDecomposition]:
 def validate_decomposition_coverage(corpus_signs: set[str]) -> list[str]:
     """Return signs present in corpus but missing from SIGN_DECOMPOSITION."""
     return sorted(corpus_signs - set(SIGN_DECOMPOSITION.keys()))
+
+
+def load_registry() -> dict:
+    """Load sign registry from data/sign-registry.json."""
+    import json
+    registry_path = Path(__file__).resolve().parent.parent / "data" / "sign-registry.json"
+    if not registry_path.exists():
+        return {}
+    data = json.loads(registry_path.read_text(encoding="utf-8"))
+    by_name: dict[str, dict] = {}
+    for sign in data.get("signs", []):
+        name = sign.get("name", "").upper()
+        if name:
+            by_name[name] = sign
+    return by_name
+
+
+def extract_skeleton_polyphonic(
+    transliteration: str,
+    registry: dict | None = None,
+) -> list[tuple[str, list[str]]]:
+    """Return all possible skeletons considering polyphonic signs.
+
+    Primary skeleton first, then alternatives (max 8).
+    Each entry: (skeleton_string, [notes about which signs were read differently])
+    """
+    if registry is None:
+        registry = load_registry()
+
+    syllables = transliteration.split("-")
+    primary_consonants: list[str] = []
+    alt_positions: list[tuple[int, str, str, list[str]]] = []
+
+    for i, syl in enumerate(syllables):
+        decomp = _lookup_sign(syl)
+        if decomp and decomp[0]:
+            primary_consonants.append(decomp[0])
+
+            upper = syl.upper().translate(_SUBSCRIPT_MAP)
+            import re
+            base = re.sub(r"\d+$", "", upper)
+            sign_data = registry.get(upper) or registry.get(base)
+            if sign_data:
+                readings = sign_data.get("readings", [])
+                for r in readings:
+                    if not r.get("is_primary") and r.get("consonant"):
+                        alt_c = r["consonant"]
+                        alt_positions.append((
+                            len(primary_consonants) - 1,
+                            alt_c,
+                            f"{syl} read as /{r['value']}/ instead of primary",
+                            r.get("implications", []),
+                        ))
+
+    primary = "".join(primary_consonants)
+    results: list[tuple[str, list[str]]] = [(primary, [])]
+    seen_skeletons: set[str] = {primary}
+
+    for pos, alt_c, note, implications in alt_positions:
+        if len(results) >= 8:
+            break
+        variant = list(primary_consonants)
+        variant[pos] = alt_c
+        variant_str = "".join(variant)
+        notes = [note] + implications
+        if variant_str not in seen_skeletons:
+            results.append((variant_str, notes))
+            seen_skeletons.add(variant_str)
+        elif variant_str == primary and notes:
+            results[0] = (primary, results[0][1] + notes)
+
+    return results

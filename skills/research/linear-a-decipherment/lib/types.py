@@ -8,6 +8,27 @@ CognateMethod = Literal["gordon_direct", "yashar_mana", "proto_semitic"]
 
 
 @dataclass(frozen=True)
+class SignReading:
+    value: str
+    consonant: str | None
+    vowel: str
+    source: str
+    confidence: str
+    is_primary: bool
+    implications: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SignEntry:
+    ab_number: str
+    name: str
+    readings: tuple[SignReading, ...]
+    unicode: str | None = None
+    rendering_tier: str = "unicode_native"
+    evolution_id: str | None = None
+
+
+@dataclass(frozen=True)
 class Inscription:
     name: str
     site: str
