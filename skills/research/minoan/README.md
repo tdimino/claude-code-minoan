@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/minoan-logo.png" alt="Minoan skill logo — labrys with three script lines" width="120">
+</p>
+
 # `/minoan` — Lisan al-Qads
 
 Speak, compose, read, and write in reconstructed Minoan—a Northwest Semitic language of Bronze Age Crete (ca. 2000–1450 BCE).
@@ -28,7 +32,7 @@ Pronunciation follows Phoenician priority: pre-begadkephat, stops are always sto
 /minoan
 > "Write a libation table dedication to Athirat"
 
-la-Atiratu Rabbati Yammi — yasharamu-na — ki-tattibu Kiriyatu
+la-Athiratu Rabbati Yammi — yasharamu-na — ki-tattibu Kiriyatu
 "To Athirat, Great Lady of the Sea — this righteous offering — that the City may thrive"
 ```
 
@@ -92,29 +96,14 @@ Epithets of Yamm, Athirat, and the Kotharat from the Baal Cycle (KTU 1.1–1.6) 
 | Deity | Titles |
 |-------|--------|
 | **Yamm** | Zabūlu Yammu (Prince Sea), Shapāṭu Naharu (Judge River), Tannīnu (the Dragon), Lītānu (Leviathan) |
-| **Athirat** | Rabbatu Atiratu Yammi (Great Lady of the Sea), Qaniyatu ʾIlīma (Creatrix of the Gods), ʾIlatu (the Goddess) |
+| **Athirat** | Rabbatu Athiratu Yammi (Great Lady of the Sea), Qaniyatu ʾIlīma (Creatrix of the Gods), ʾIlatu (the Goddess) |
 | **Kotharat** | Kōtarātu (the Skillful Ones), Banātu Hilāli (Daughters of the Crescent Moon), Sunūnātu (the Swallows) |
-
-## Script Iconography & Sign Lookup
-
-Query sign data from the unified sign registry (334 signs, polyphonic readings, CH→LA→LB evolution) via the sister skill:
-
-```bash
-uv run ../linear-a-decipherment/scripts/sign_lookup.py AB67          # by AB number
-uv run ../linear-a-decipherment/scripts/sign_lookup.py --phonetic ki  # by sound value
-uv run ../linear-a-decipherment/scripts/sign_lookup.py --polyphonic   # list all polyphonic signs
-uv run ../linear-a-decipherment/scripts/sign_lookup.py AB08 --evolution  # CH→LA→LB chain
-```
-
-**Polyphonic signs** have multiple possible readings (e.g., AB67 = KI or KU). When composing in Read/Write/Record modes, use `--all-readings` with `cognate_search.py` to explore how alternative readings affect semantic interpretation.
-
-**Bundled assets**: Fonts (Noto Sans Linear A/B, Cretan Hieroglyphs, Cypro-Minoan, Vinča), sign images, and Proto-Sinaitic SVGs are bundled at `../linear-a-decipherment/assets/scripts/` — no external dependencies needed.
 
 ## Relationship to Other Skills
 
 | Skill | Relationship |
 |-------|-------------|
-| [`linear-a-decipherment`](../linear-a-decipherment/) | Sister skill: analytical toolkit. `/minoan` calls its `cognate_search.py`, `analyze.py`, and `sign_lookup.py` for verification |
+| [`linear-a-decipherment`](../linear-a-decipherment/) | Sister skill: analytical toolkit. `/minoan` calls its `cognate_search.py` and `analyze.py` for verification |
 | [`ancient-near-east-research`](../ancient-near-east-research/) | Sefaria for Hebrew cognate verification, CDLI for Akkadian parallels |
 | [`exa-search`](../exa-search/) | Search recent computational decipherment papers |
 
