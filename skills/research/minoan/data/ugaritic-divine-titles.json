@@ -1,0 +1,127 @@
+{
+  "title": "Ugaritic Divine Titles",
+  "subtitle": "Epithets of Yamm, Athirat, and the Kotharat",
+  "source": "Baal Cycle (KTU 1.1–1.6), Marriage of Nikkal (KTU 1.24)",
+  "language": "Reconstructed Minoan (Lisan al-Qads)",
+  "phonology": "Pre-begadkephat, Phoenician priority; Ug. ṯ → Minoan t/sh (Canaanite shift)",
+  "deities": {
+    "yamm": {
+      "name": "Yammu",
+      "domain": "Sea, chaos, primordial waters",
+      "titles": [
+        {
+          "minoan": "Zabūlu Yammu",
+          "ugaritic": "zbl ym",
+          "linear_a": "ZA-PU-RU JA-MU",
+          "phoenician": "𐤆𐤁𐤋 𐤉𐤌",
+          "english": "Prince Sea",
+          "source": "KTU 1.2 I, III",
+          "type": "throne-name",
+          "notes": "Primary epithet. Always paired with Judge River in formulaic parallelism."
+        },
+        {
+          "minoan": "Shapāṭu Naharu",
+          "ugaritic": "ṯpṭ nhr",
+          "linear_a": "SA-PA-ṬU NA-HA-RU",
+          "phoenician": "𐤔𐤐𐤈 𐤍𐤄𐤓",
+          "english": "Judge River",
+          "source": "KTU 1.2 I, III",
+          "type": "throne-name",
+          "notes": "Parallel epithet to Prince Sea. Ug. ṯpṭ → Minoan shapāṭ (Canaanite ṯ > sh, cf. Heb. shofet)."
+        },
+        {
+          "minoan": "Tannīnu",
+          "ugaritic": "tnn",
+          "linear_a": "TA-NI-NU",
+          "phoenician": "𐤕𐤍𐤍",
+          "english": "The Dragon, the Sea-Serpent",
+          "source": "KTU 1.3 III 40–42",
+          "type": "sea-chaos beast",
+          "notes": "Not a title of Yamm but his creature. Heb. tannin (תַּנִּין). Vocalized NWS-style, not Akkadian tunnanu."
+        },
+        {
+          "minoan": "Lītānu",
+          "ugaritic": "ltn",
+          "linear_a": "RI-TA-NU",
+          "phoenician": "𐤋𐤕𐤍",
+          "english": "Leviathan, the Coiling Serpent",
+          "source": "KTU 1.5 I 1–3",
+          "type": "sea-chaos beast",
+          "notes": "The fleeing/twisting serpent. Heb. Livyatan (לִוְיָתָן). Also slain by Anath (KTU 1.3 III 41)."
+        }
+      ]
+    },
+    "athirat": {
+      "name": "Atiratu",
+      "domain": "Sea, creation, mother of the gods",
+      "titles": [
+        {
+          "minoan": "Rabbatu Atiratu Yammi",
+          "ugaritic": "rbt ʾaṯrt ym",
+          "linear_a": "RA-PA-TU A-TI-RA-TU JA-MI",
+          "phoenician": "𐤓𐤁𐤕 𐤀𐤕𐤓𐤕 𐤉𐤌",
+          "english": "Great Lady Athirat of the Sea",
+          "source": "KTU 1.4 II, IV",
+          "type": "full formal name",
+          "notes": "Her complete title in the Baal Cycle. Rides a donkey to petition El. Mother of the seventy gods."
+        },
+        {
+          "minoan": "Qaniyatu ʾIlīma",
+          "ugaritic": "qnyt ʾilm",
+          "linear_a": "QA-NI-JA-TU I-RI-MA",
+          "phoenician": "𐤒𐤍𐤉𐤕 𐤀𐤋𐤌",
+          "english": "Creatrix of the Gods",
+          "source": "KTU 1.4 I 23, III 26, 35",
+          "type": "epithet",
+          "notes": "√q-n-y 'to create/acquire'. Same root as Qayinat-nā in Commandment III. Her defining creative function."
+        },
+        {
+          "minoan": "ʾIlatu",
+          "ugaritic": "ʾilt",
+          "linear_a": "I-RA-TU",
+          "phoenician": "𐤀𐤋𐤕",
+          "english": "The Goddess",
+          "source": "KTU 1.4, 1.6",
+          "type": "divine title",
+          "notes": "Feminine of ʾIlu (El). The Goddess, unqualified — as God is God."
+        }
+      ]
+    },
+    "kotharat": {
+      "name": "Kōtarātu",
+      "domain": "Skill, midwifery, music, destiny",
+      "titles": [
+        {
+          "minoan": "Kōtarātu",
+          "ugaritic": "kṯrt",
+          "linear_a": "KO-TA-RA-TU",
+          "phoenician": "𐤊𐤕𐤓𐤕",
+          "english": "The Skillful Ones",
+          "source": "KTU 1.24:40–50",
+          "type": "group name",
+          "notes": "√k-ṯ-r 'to be skilled'. Divine craftswomen-midwives who attend births and bless marriages. Fem. pl. of Kothar (Kothar-wa-Khasis). The Muses."
+        },
+        {
+          "minoan": "Banātu Hilāli",
+          "ugaritic": "bnt hll",
+          "linear_a": "PA-NA-TU I-RA-RI",
+          "phoenician": "𐤁𐤍𐤕 𐤄𐤋𐤋",
+          "english": "Daughters of the Crescent Moon",
+          "source": "KTU 1.24:40–41",
+          "type": "patronymic",
+          "notes": "√h-l-l 'to shine, crescent'. Their celestial parentage — born of the new moon. Ties midwifery to lunar cycles."
+        },
+        {
+          "minoan": "Sunūnātu",
+          "ugaritic": "šnnt",
+          "linear_a": "SU-NU-NA-TU",
+          "phoenician": "𐤔𐤍𐤍𐤕",
+          "english": "The Swallows",
+          "source": "KTU 1.24:40",
+          "type": "epithet",
+          "notes": "Possibly their bird-form or a parallel group. Swallows as harbingers of birth/spring. Some scholars read šnnt as a separate entity."
+        }
+      ]
+    }
+  }
+}
