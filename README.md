@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/images/tanit.svg" alt="Symbol of Tanit" width="80"/>
+  <img src="public/images/tanit.svg" alt="Symbol of Tanit" width="160"/>
 </p>
 
 <p align="center">
