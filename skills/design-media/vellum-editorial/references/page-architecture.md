@@ -283,6 +283,34 @@ Entity/company profiles with narrative hierarchy. Primary dossier gets full visu
 
 Key structural rule: the editorial-note leads the section (key finding above individual profiles). Primary dossier first, secondary dossiers stacked below at reduced visual weight.
 
+### Subject-Intro Variant
+
+For person/handle profiles (as opposed to company entities), replace the `editorial-note` with a `subject-intro` component at the top of the main section. The subject-intro gives the handle its own visual lane:
+
+```html
+<main id="main">
+  <section id="profile">
+    <span class="section-num" aria-hidden="true">01</span>
+    <h2><i class="ph ph-user" aria-hidden="true"></i> Profile</h2>
+
+    <div class="subject-intro">
+      <div class="subject-intro__handle">HandleName</div>
+      <div class="subject-intro__text">
+        <strong>Real Name</strong> is the person behind this handle&mdash;
+        biographical context that flows freely.
+      </div>
+    </div>
+
+    <!-- Hero image with lightbox follows -->
+    <img src="archive/photo.jpg" alt="Description" class="hero-image"
+         onclick="document.getElementById('lb-photo').classList.add('open')">
+    <!-- Rest of profile content -->
+  </section>
+</main>
+```
+
+Use `editorial-note` for cross-entity analytical findings. Use `subject-intro` for biographical introductions where the handle/name is the primary identity anchor.
+
 ## Feature Comparison Pattern
 
 Side-by-side feature/capability comparison with dimension grids and matrices.
@@ -393,6 +421,43 @@ Pages with entity-specific content (watermark text, custom grid ratios) embed a 
 ```
 
 Use sparingly — only for overrides that don't generalize across pages.
+
+## Hero Image + Lightbox Integration
+
+Hero images go inside sections, typically below the h2 heading. Each hero image pairs with a lightbox overlay.
+
+```html
+<section id="archive">
+  <span class="section-num" aria-hidden="true">01</span>
+  <h2><i class="ph ph-image" aria-hidden="true"></i> The Archive</h2>
+
+  <img src="archive/hero.jpg" alt="Description" class="hero-image"
+       onclick="document.getElementById('lb-hero').classList.add('open')">
+
+  <div class="hero-lightbox" id="lb-hero" onclick="this.classList.remove('open')">
+    <button class="hero-lightbox__close" aria-label="Close">&times;</button>
+    <img src="archive/hero.jpg" alt="Full size">
+  </div>
+
+  <p class="lead">Content continues below the hero image.</p>
+</section>
+```
+
+The `section h2 + .hero-image` rule adds `margin-top: 1rem` for tight spacing when the image directly follows a heading. When images appear deeper in a section, they get the default `margin-top: 1.75rem`.
+
+## Audio Player Placement
+
+The audio player is injected by `_audio-player.js` as a fixed-position element. Load the script at the end of `<body>`:
+
+```html
+  <!-- Before closing body tag -->
+  <script src="_audio-player.js"></script>
+</body>
+```
+
+Position: fixed top-right on desktop, bottom-right on mobile (640px breakpoint). The player auto-plays after auth gate clears via the `vellum:authenticated` event, and persists playback state across page navigations via `sessionStorage`.
+
+For dark themes, the player background uses `oklch(0.14 0.02 265 / 0.85)` with `backdrop-filter: blur(12px)`. For warm themes, use `oklch(0.96 0.008 80 / 0.85)`.
 
 ## Accessibility
 

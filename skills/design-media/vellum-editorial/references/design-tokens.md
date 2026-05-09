@@ -17,7 +17,38 @@ Complete reference of CSS custom properties, typography, spacing, and infrastruc
   --text-body: oklch(0.32 0.015 55);   /* Body text */
   --text-dim: oklch(0.45 0.01 55);     /* De-emphasized text */
   --text-muted: oklch(0.42 0.01 55);   /* Labels, section headings */
+  --text-label: oklch(0.52 0.01 55);   /* Structural labels — h2 headings, breadcrumbs, stat labels */
   --ghost: oklch(0.82 0.015 75);       /* Ghost numbers, decorative text */
+  /* Navigation active state */
+  --nav-active: oklch(0.38 0.12 160);
+  --nav-active-bg: oklch(0.38 0.12 160 / 0.06);
+  --nav-active-border: oklch(0.38 0.12 160 / 0.22);
+}
+```
+
+### Text Hierarchy
+
+| Token | L | Role | Min size |
+|-------|---|------|----------|
+| `--ink` | 0.22 | h1, strong emphasis | any |
+| `--text` | 0.22 | Primary text (rarely used directly) | any |
+| `--text-body` | 0.32 | Body paragraphs | 14px+ |
+| `--text-dim` | 0.45 | De-emphasized text | 16px+ |
+| `--text-label` | 0.52 | Section h2, breadcrumbs, stat labels | 11px+ |
+| `--text-muted` | 0.42 | Captions, timestamps | 14px+ |
+| `--ghost` | 0.82 | Ghost numbers, decorative | any (decorative) |
+
+`--text-label` sits between `--text-body` and `--text-muted` — bright enough to read at small monospace sizes (0.75rem) but clearly subordinate to body text. Use for structural labels that need to be legible, not just decorative.
+
+### Navigation Active State
+
+`--nav-active` replaces platform-specific colors (like `--subq`) for the page-nav active indicator. On the default warm palette, it matches `--subq`. On dark palettes, bump lightness to L=0.72 for WCAG contrast against dark backgrounds.
+
+```css
+.page-nav a[aria-current="page"] {
+  color: var(--nav-active);
+  border-color: var(--nav-active-border);
+  background: var(--nav-active-bg);
 }
 ```
 
@@ -186,3 +217,92 @@ The `vellum` theme in `beautiful-mermaid` maps CSS variables to hex colors for S
 | `muted` | `--text-dim` | `oklch(0.45 0.01 55)` | `#666059` | Edge labels, secondary text |
 
 Use `--transparent` when inlining SVGs so the panel's `--bg-card` background shows through instead of a hard-coded SVG background.
+
+---
+
+## Dark Space Palette Variant
+
+For dark-themed projects, transform the core palette while keeping severity, platform, and status tokens unchanged.
+
+### Transformation Rules
+
+| Token | Warm (default) | Dark space | Strategy |
+|-------|---------------|------------|----------|
+| `--copper` | `oklch(0.45 0.12 55)` | `oklch(0.72 0.14 85)` | Brighten L from 0.45→0.72, shift hue toward gold |
+| `--ink` | `oklch(0.22 0.04 270)` | `oklch(0.92 0.01 80)` | Invert to near-white |
+| `--bg` | `oklch(0.96 0.008 80)` | `oklch(0.10 0.03 265)` | Deep space blue-black |
+| `--bg-warm` | `oklch(0.94 0.012 80)` | `oklch(0.12 0.025 265)` | Slightly lighter space |
+| `--bg-card` | `oklch(0.98 0.005 80)` | `oklch(0.15 0.02 265 / 0.85)` | Semi-transparent card |
+| `--border` | `oklch(0.82 0.015 75)` | `oklch(0.30 0.03 270 / 0.5)` | Dim borders |
+| `--border-strong` | `oklch(0.68 0.02 70)` | `oklch(0.40 0.04 270 / 0.6)` | Slightly visible |
+| `--text` | `oklch(0.22 0.02 55)` | `oklch(0.90 0.01 80)` | Near-white |
+| `--text-body` | `oklch(0.32 0.015 55)` | `oklch(0.82 0.01 80)` | Readable on dark |
+| `--text-dim` | `oklch(0.45 0.01 55)` | `oklch(0.60 0.015 260)` | Shifted to blue-gray |
+| `--text-muted` | `oklch(0.42 0.01 55)` | `oklch(0.58 0.02 260)` | Blue-gray muted |
+| `--text-label` | `oklch(0.52 0.01 55)` | `oklch(0.63 0.015 260)` | Blue-gray structural |
+| `--ghost` | `oklch(0.82 0.015 75)` | `oklch(0.30 0.02 270 / 0.4)` | Semi-transparent |
+| `--nav-active` | `oklch(0.38 0.12 160)` | `oklch(0.72 0.12 160)` | Bright for contrast |
+| `--nav-active-bg` | `oklch(0.38 0.12 160 / 0.06)` | `oklch(0.72 0.12 160 / 0.06)` | Tinted bg |
+| `--nav-active-border` | `oklch(0.38 0.12 160 / 0.22)` | `oklch(0.72 0.12 160 / 0.25)` | Tinted border |
+| `--dossier-bg` | `oklch(0.98 0.008 82)` | `oklch(0.16 0.02 260 / 0.9)` | Semi-transparent dark |
+| `--dossier-bg-secondary` | `oklch(0.965 0.006 82)` | `oklch(0.14 0.025 260 / 0.85)` | Slightly dimmer |
+
+### Key Principles
+
+1. **Invert lightness, not hue.** Dark themes flip L values (0.22→0.92, 0.96→0.10) but keep hue relationships intact.
+2. **Shift neutral hues to blue-gray.** Warm browns (hue 55-80) become cool blue-grays (hue 260-270) on dark backgrounds.
+3. **Bump chroma on accents.** `--copper` gains chroma (0.12→0.14) and lightness (0.45→0.72) to pop against dark surfaces.
+4. **Add transparency to structural surfaces.** Cards and borders use alpha channels so background effects (starfields, nebulae) show through.
+5. **WCAG contrast drives `--text-label`.** At L=0.63 on dark bg (L=0.10), contrast ratio exceeds 6:1 even at 0.62rem monospace.
+
+### Background Effects
+
+The default warm theme uses a crosshatch SVG texture. Dark themes can replace this with a CSS starfield using `box-shadow` on `body::before` and `body::after`. See `advanced-patterns.md` for the starfield technique.
+
+---
+
+## Era / Category Color Taxonomy
+
+For content organized by era, category, or entity type, define colors as `base / bg / border` triples following the same pattern as severity and platform tokens.
+
+### Pattern
+
+```css
+:root {
+  --era-name: oklch(L C H);           /* Base — text, icons, accents */
+  --era-name-bg: oklch(L C H / 0.15); /* Background tint */
+  --era-name-border: oklch(L C H / 0.25); /* Border with transparency */
+}
+```
+
+### Example: GL Ajax Archive Eras
+
+```css
+:root {
+  --era-jk2: oklch(0.65 0.14 195);        /* Jedi Knight 2 — cyan */
+  --era-jk2-bg: oklch(0.65 0.14 195 / 0.15);
+  --era-jk2-border: oklch(0.65 0.14 195 / 0.25);
+
+  --era-jka: oklch(0.68 0.16 85);         /* Jedi Academy — gold */
+  --era-jka-bg: oklch(0.68 0.16 85 / 0.15);
+  --era-jka-border: oklch(0.68 0.16 85 / 0.25);
+
+  --era-aim: oklch(0.63 0.12 210);        /* AIM Messenger — blue */
+  --era-aim-bg: oklch(0.63 0.12 210 / 0.15);
+  --era-aim-border: oklch(0.63 0.12 210 / 0.25);
+
+  --era-swg: oklch(0.62 0.14 290);        /* Star Wars Galaxies — purple */
+  --era-swg-bg: oklch(0.62 0.14 290 / 0.15);
+  --era-swg-border: oklch(0.62 0.14 290 / 0.25);
+
+  --era-joc: oklch(0.60 0.16 15);         /* JOC Clan — red */
+  --era-joc-bg: oklch(0.60 0.16 15 / 0.15);
+  --era-joc-border: oklch(0.60 0.16 15 / 0.25);
+}
+```
+
+### Lightness Guidelines
+
+On dark backgrounds (L ≤ 0.15), era base colors need L ≥ 0.60 for WCAG AA at body text sizes. On warm backgrounds (L ≥ 0.94), era base colors should stay at L ≤ 0.50 for sufficient contrast.
+
+Background alpha (0.15) and border alpha (0.25) produce visible tinting without overwhelming the base palette. Keep all three values derived from the same L/C/H to maintain color harmony.

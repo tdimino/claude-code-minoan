@@ -1,6 +1,6 @@
 # Vellum Component Catalog
 
-Copy-paste HTML snippets for all 29 components. Organized by functional role.
+Copy-paste HTML snippets for all 35 components. Organized by functional role.
 
 ---
 
@@ -729,6 +729,222 @@ Footnote superscripts with copper hover, endnote list with backlinks and source-
 ```
 
 Tag variants: `--stat` (subq green), `--quote` (cursor purple), `--finding` (amber), `--press` (neutral muted).
+
+---
+
+## Media Components
+
+### Subject Intro
+
+Two-column callout with a prominent handle/name in the left cell and descriptive text in the right. Uses CSS grid with `auto | 1fr` columns. The handle gets its own visual lane, preventing text orphaning.
+
+```html
+<div class="subject-intro">
+  <div class="subject-intro__handle">Handle Name</div>
+  <div class="subject-intro__text">
+    <strong>Real Name</strong> is the person behind this handle&mdash;description text
+    that can flow freely without orphaning the handle.
+  </div>
+</div>
+```
+
+```css
+.subject-intro {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 1.5rem;
+  background: var(--era-name-bg);
+  border: 1px solid var(--era-name-border);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin: 0 0 1.25rem;
+  align-items: center;
+}
+.subject-intro__handle {
+  font-family: var(--display);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--era-name);
+  line-height: 1.1;
+  white-space: nowrap;
+  padding-right: 1.5rem;
+  border-right: 1px solid var(--era-name-border);
+}
+.subject-intro__text {
+  font-family: var(--body);
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.subject-intro__text strong {
+  font-style: normal;
+  color: var(--era-name);
+}
+@media (max-width: 480px) {
+  .subject-intro { grid-template-columns: 1fr; gap: 0.75rem 0; }
+  .subject-intro__handle {
+    border-right: none;
+    border-bottom: 1px solid var(--era-name-border);
+    padding-right: 0;
+    padding-bottom: 0.75rem;
+  }
+}
+```
+
+Use as a replacement for `editorial-note` when the primary subject is a person or handle rather than a finding. Swap `--era-name` for the appropriate era/entity color.
+
+### Stat Bar
+
+Compact horizontal row of key/value stat cells. Cells flex-wrap at narrow widths, stacking vertically on mobile.
+
+```html
+<div class="stat-bar">
+  <div class="stat-bar__item">
+    <div class="stat-bar__val">827</div>
+    <div class="stat-bar__label">SALVAGED FILES</div>
+  </div>
+  <div class="stat-bar__item">
+    <div class="stat-bar__val">42</div>
+    <div class="stat-bar__label">AIM TRANSCRIPTS</div>
+  </div>
+  <div class="stat-bar__item">
+    <div class="stat-bar__val">2003–07</div>
+    <div class="stat-bar__label">ACTIVE YEARS</div>
+  </div>
+</div>
+```
+
+CSS: flex row with `flex: 1; min-width: 100px` per item. Values use `var(--display)` at 1.4rem with `tabular-nums`. Labels use `var(--mono)` at 0.62rem uppercase with `var(--text-label)`. Items separated by `border-right: 1px solid var(--border)`. Collapses to vertical stack at 640px.
+
+### Hero Image
+
+Full-width image with click-to-lightbox. Fits inside sections below h2 headings.
+
+```html
+<img src="archive/screenshot.jpg" alt="Description" class="hero-image"
+     onclick="document.getElementById('lb-screenshot').classList.add('open')">
+
+<div class="hero-lightbox" id="lb-screenshot"
+     onclick="this.classList.remove('open')">
+  <button class="hero-lightbox__close" aria-label="Close">&times;</button>
+  <img src="archive/screenshot.jpg" alt="Description (full size)">
+</div>
+```
+
+```css
+section h2 + .hero-image { margin-top: 1rem; }
+.hero-image {
+  width: 100%; border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-top: 1.75rem; margin-bottom: 2rem;
+  object-fit: cover; max-height: 320px;
+  cursor: pointer;
+}
+.hero-lightbox {
+  display: flex; position: fixed; inset: 0; z-index: 200;
+  background: oklch(0.15 0.02 270 / 0.92);
+  align-items: center; justify-content: center; padding: 2rem;
+  opacity: 0; pointer-events: none;
+  transition: opacity 300ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.hero-lightbox.open { opacity: 1; pointer-events: auto; }
+.hero-lightbox img {
+  max-width: 92vw; max-height: 90vh;
+  object-fit: contain; border-radius: 6px;
+  box-shadow: 0 8px 40px oklch(0 0 0 / 0.4);
+  transform: scale(0.95);
+  transition: transform 300ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.hero-lightbox.open img { transform: scale(1); }
+.hero-lightbox__close {
+  position: absolute; top: 1.5rem; right: 1.5rem;
+  font-size: 2rem; color: oklch(0.9 0 0);
+  background: none; border: none; cursor: pointer; line-height: 1;
+}
+```
+
+On dark themes, the lightbox overlay uses `oklch(0.15 0.02 270 / 0.92)`. On warm themes, use `oklch(0.22 0.04 270 / 0.85)` for a softer overlay. Mobile caps `max-height: 200px`.
+
+### Gallery (Masonry Grid)
+
+Multi-column image grid with CSS columns and click-to-lightbox. Each item scales on hover.
+
+```html
+<div class="masonry-grid">
+  <div class="masonry-grid__item"
+       onclick="document.getElementById('lb-1').classList.add('open')">
+    <img src="archive/img-1.jpg" alt="Description">
+  </div>
+  <div class="masonry-grid__item"
+       onclick="document.getElementById('lb-2').classList.add('open')">
+    <img src="archive/img-2.jpg" alt="Description">
+  </div>
+  <!-- more items -->
+</div>
+
+<!-- Lightboxes for each image -->
+<div class="hero-lightbox" id="lb-1" onclick="this.classList.remove('open')">
+  <button class="hero-lightbox__close" aria-label="Close">&times;</button>
+  <img src="archive/img-1.jpg" alt="Full size">
+</div>
+```
+
+```css
+.masonry-grid {
+  columns: 3 220px; column-gap: 1rem;
+}
+.masonry-grid__item {
+  break-inside: avoid; margin-bottom: 1rem;
+  border-radius: 4px; overflow: hidden;
+  cursor: pointer; position: relative;
+}
+.masonry-grid__item img {
+  width: 100%; display: block;
+  transition: transform 300ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.masonry-grid__item:hover img { transform: scale(1.03); }
+```
+
+Gallery shares the `hero-lightbox` component for full-size viewing. Responsive: 3 columns at desktop, 2 at 640px. Pair with `stagger-in` class for load animation (see `advanced-patterns.md`).
+
+### Audio Player
+
+Fixed ambient audio control with Web Audio API frequency-reactive visualization bars. Position fixed in top-right corner.
+
+```html
+<!-- In _audio-player.js (loaded at end of body) -->
+<!-- Generates this markup dynamically: -->
+<div class="audio-player">
+  <audio id="site-audio" src="archive/track.mp3" preload="metadata" loop></audio>
+  <button class="audio-player__btn" id="audio-toggle" title="Play — Track Name">
+    <span class="audio-player__pulse"></span>
+    <i class="ph ph-speaker-high" id="audio-icon"></i>
+  </button>
+  <div class="audio-player__bars">
+    <span class="audio-player__bar"></span>
+    <span class="audio-player__bar"></span>
+    <span class="audio-player__bar"></span>
+    <span class="audio-player__bar"></span>
+    <span class="audio-player__bar"></span>
+  </div>
+  <input type="range" class="audio-player__volume" id="audio-volume"
+         min="0" max="100" value="40" title="Volume">
+  <span class="audio-player__label">Track Name</span>
+</div>
+```
+
+**Key architecture:**
+- `_audio-player.js` creates the player element on `DOMContentLoaded`
+- Web Audio API `AnalyserNode` (fftSize: 64, smoothing: 0.8) drives 5 frequency bars via `requestAnimationFrame`
+- Bars transition height with `60ms linear` — JS sets `style.height` per frame
+- Falls back gracefully: if `AudioContext` unavailable, audio plays without visualization
+- `sessionStorage` saves/restores playback state (time, volume, playing) for cross-page continuity
+- Listens for `vellum:authenticated` custom event to auto-play after auth gate clears
+- Use `preload="metadata"` (not `"auto"`) to avoid downloading the full file per page load
+
+**CSS:** Fixed position, `backdrop-filter: blur(12px)`, pill-shaped border-radius (20px). Label expands on hover/playing via `max-width` transition. Pulse animation on the play button when active. See `_shared.css` audio section.
 
 ---
 

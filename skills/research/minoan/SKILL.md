@@ -46,7 +46,7 @@ uv run ~/.claude/skills/linear-a-decipherment/scripts/analyze.py single INSCRIPT
 
 ### 1. Speak
 Compose phrases, sentences, greetings, prayers, curses in Minoan. Output in three registers:
-- **Latin transliteration** (primary): `yatanu Kupānu yēna la-Atiratu`
+- **Latin transliteration** (primary): `yatanu Kupānu yēna la-Athiratu`
 - **Linear A syllabograms**: `JA-TA-NU KU-PA-NU JA-NE A-TI-RA-TU`
 - **Consonantal skeleton**: `y-t-n g-p-n y-n l-ʾ-t-r-t`
 
@@ -74,7 +74,7 @@ Phoenician-priority. Pre-begadkephat. Stops are always stops.
 
 ### Key Rules
 - **No spirantization**: p/t/k are ALWAYS [p t k], never [f θ x]
-- **Interdentals preserved**: ṯ /θ/ and ḏ /ð/ are distinct phonemes, not yet merged. Minoan predates the Canaanite (ṯ→sh) and Aramaic (ṯ→t) mergers. *ʾAṯiratu* not *Ashērah* or *Atiratu*; *ḥadaṯu* not *ḥadash* or *ḥadat*
+- **Interdentals preserved**: ṯ /θ/ and ḏ /ð/ are distinct phonemes, not yet merged. Minoan predates the Canaanite (ṯ→sh) and Aramaic (ṯ→t) mergers. *Athiratu* not *Ashērah* or *Atiratu*; *ḥadaṯu* not *ḥadash* or *ḥadat*
 - **ʿAyin shift**: ʿ + /a/ → /ō/ in some environments (*baʿl-* → *bōl-*, Gordon §150)
 - **N-assimilation**: /n/ before a consonant assimilates (*yintan* → *yittan*)
 - **K/G/Q merger** in script: all written with K-signs; pronunciation restored from etymology
@@ -204,7 +204,7 @@ uv run ~/.claude/skills/minoan/scripts/record_hypothesis.py \
 **Request**: "Write a libation table dedication to Athirat"
 
 **Output**:
-> **Latin**: la-Atiratu Rabbati Yammi — yasharamu-na — ki-tattibu Kiriyatu
+> **Latin**: la-Athiratu Rabbati Yammi — yasharamu-na — ki-tattibu Kiriyatu
 > **Linear A**: RE A-TI-RA-TU RA-PA-TI JA-MI — JA-SA-SA-RA-MA-NA — KI TE-TE-PI KI-RE-JA-TU
 > **Skeleton**: l-ʾ-t-r-t r-b-t y-m — y-sh-r-m-n — k-t-ṭ-b q-r-y-t
 > **Translation**: "To Athirat, Great Lady of the Sea — this righteous offering — that the City may thrive"
