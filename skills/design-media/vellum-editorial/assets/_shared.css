@@ -25,6 +25,9 @@
   --codex: oklch(0.42 0.14 145);
   --codex-bg: oklch(0.42 0.14 145 / 0.06);
   --codex-border: oklch(0.42 0.14 145 / 0.22);
+  /* Entity dossier backgrounds */
+  --dossier-bg: oklch(0.98 0.008 82);
+  --dossier-bg-secondary: oklch(0.965 0.006 82);
   /* Core palette (from template) */
   --copper: oklch(0.45 0.12 55);
   --ink: oklch(0.22 0.04 270);
@@ -37,7 +40,12 @@
   --text-body: oklch(0.32 0.015 55);
   --text-dim: oklch(0.45 0.01 55);
   --text-muted: oklch(0.42 0.01 55);
+  --text-label: oklch(0.52 0.01 55);
   --ghost: oklch(0.82 0.015 75);
+  /* Navigation active state */
+  --nav-active: oklch(0.38 0.12 160);
+  --nav-active-bg: oklch(0.38 0.12 160 / 0.06);
+  --nav-active-border: oklch(0.38 0.12 160 / 0.22);
   /* Typography */
   --display: 'Bodoni Moda', serif;
   --mono: 'Inconsolata', monospace;
@@ -59,6 +67,19 @@ html { font-size: 16px; scroll-behavior: smooth; -webkit-font-smoothing: antiali
   position: fixed; left: 0; top: 0;
   width: auto; height: auto;
 }
+
+/* ─── THEME TOGGLE ─── */
+.theme-toggle {
+  position: fixed; top: 1.25rem; right: 4.5rem;
+  z-index: 10; background: none; border: none; cursor: pointer;
+  width: 32px; height: 32px; padding: 0;
+  color: var(--text-muted); opacity: 0.7;
+  transition: opacity 0.2s, color 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.theme-toggle:hover { opacity: 1; color: var(--copper); }
+.theme-toggle:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; border-radius: 4px; }
+.theme-toggle i { font-size: 1.25rem; }
 
 /* ─── INLINE CODE ─── */
 code {

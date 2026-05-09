@@ -186,3 +186,178 @@ Small inline pills for key data points:
 ```
 
 Use sparingly — max 3-4 chips per group. Each chip should communicate one discrete fact. Color variants from the platform palette signal category, not severity.
+
+---
+
+## CSS Starfield
+
+Dense star effect using `box-shadow` on `body::before` (small dots) and `body::after` (bright feature stars with glow). Replaces the crosshatch texture for dark-themed sites.
+
+```css
+body {
+  background:
+    radial-gradient(ellipse 900px 450px at 15% 25%, oklch(0.30 0.10 290 / 0.28) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 350px at 80% 55%, oklch(0.25 0.08 260 / 0.35) 0%, transparent 65%),
+    radial-gradient(ellipse 500px 600px at 45% 85%, oklch(0.28 0.06 210 / 0.18) 0%, transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+body::before {
+  content: ''; position: fixed; top: 0; left: 0;
+  width: 1px; height: 1px;
+  pointer-events: none; z-index: 0;
+  box-shadow:
+    72px 44px 0 0 rgba(255,255,255,0.7),
+    183px 112px 0 0 rgba(255,255,255,0.5),
+    /* ... 50-60 entries for dense star field */
+    1330px 1250px 0 0 rgba(255,255,255,0.7);
+}
+
+body::after {
+  content: ''; position: fixed; top: 0; left: 0;
+  width: 2px; height: 2px; border-radius: 50%;
+  pointer-events: none; z-index: 0;
+  box-shadow:
+    240px 160px 1px 1px rgba(255,255,255,0.9),
+    670px 236px 1px 1px rgba(200,220,255,0.85),
+    /* ... 20-30 brighter entries with colored tints */
+    950px 1450px 2px 1px rgba(255,255,255,0.95);
+  animation: twinkle 8s ease-in-out infinite;
+}
+
+body > * { position: relative; z-index: 1; }
+```
+
+### Construction Rules
+
+1. **Two layers**: `::before` for dense small dots (0px spread, rgba white 0.45-0.7), `::after` for bright feature stars (1-2px spread, tinted rgba).
+2. **Twinkle**: Only `::after` animates. 8s cycle, subtle opacity 1→0.4. Respects `prefers-reduced-motion`.
+3. **Coverage**: Distribute stars across viewport width (0-1440px) and height (0-1800px). ~50 entries in `::before`, ~25 in `::after`.
+4. **Color tints**: Feature stars use slight blue (`200,220,255`) or purple (`220,200,255`) tints for depth.
+5. **Nebula gradients**: 2-3 `radial-gradient` ellipses behind the star layers create atmospheric depth. Use oklch with alpha for color.
+6. **`background-attachment: fixed`**: Nebulae stay fixed while content scrolls. Stars stay fixed via `position: fixed`.
+
+## Stagger-In Load Animations
+
+Page-load reveal animation using CSS `animation-delay` calculated from a `--stagger-index` custom property.
+
+```css
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stagger-in {
+  animation: stagger-in 300ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  animation-delay: calc(var(--stagger-index, 0) * 80ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .stagger-in { animation: none; opacity: 1; }
+}
+```
+
+```html
+<div class="states-grid">
+  <div class="state-card stagger-in" style="--stagger-index: 0">...</div>
+  <div class="state-card stagger-in" style="--stagger-index: 1">...</div>
+  <div class="state-card stagger-in" style="--stagger-index: 2">...</div>
+</div>
+```
+
+### Rules
+
+- **80ms per element** produces a natural cascade. Increase to 120ms for fewer items, decrease to 50ms for dense grids.
+- **12px translateY** is subtle enough for content-heavy pages. Use 20px for hero sections.
+- **`animation-fill-mode: both`** prevents flash-of-visible-content before animation starts.
+- **Max stagger depth**: Cap at ~12-15 items (960ms-1200ms total) to avoid content feeling stuck.
+- Apply to cards, grid items, list entries. Don't apply to body text or navigation.
+
+## Auth Gate Theming
+
+The auth gate overlay should match the active palette. The overlay uses inline styles set in `_auth.js`.
+
+### Dark Theme Auth Gate
+
+```javascript
+overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;' +
+  'background:radial-gradient(ellipse 800px 400px at 40% 45%,' +
+  'oklch(0.25 0.08 260/0.35) 0%,transparent 65%),' +
+  'oklch(0.10 0.03 265);' +
+  'display:flex;align-items:center;justify-content:center;' +
+  'font-family:Inconsolata,monospace';
+```
+
+### Warm Theme Auth Gate
+
+```javascript
+overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;' +
+  'background:oklch(0.96 0.008 80);' +
+  'display:flex;align-items:center;justify-content:center;' +
+  'font-family:Inconsolata,monospace';
+```
+
+### Key Details
+
+- Auth uses FNV-1a hash comparison. Change the `HASH` constant to change the password.
+- On success, dispatches `window.dispatchEvent(new CustomEvent('vellum:authenticated'))` so other components (audio player, animations) can respond.
+- All `sessionStorage` calls wrapped in try-catch for private browsing compatibility.
+- The `vellum:authenticated` event solves the race condition where `DOMContentLoaded` fires before auth completes.
+
+## Era Color Taxonomy Mapping
+
+When content is organized by era, period, or category, map each era to a semantic color using the `base / bg / border` triple pattern documented in `design-tokens.md`.
+
+### Application Patterns
+
+**Era top-bar on cards:**
+
+```css
+.era-bar { position: relative; overflow: hidden; }
+.era-bar::before {
+  content: ''; display: block;
+  height: 3px; width: 100%;
+  background: var(--era-accent, var(--copper));
+}
+```
+
+Apply via inline style: `<div class="era-bar" style="--era-accent: var(--era-jk2)">`.
+
+**Era-tinted sections:**
+
+```css
+.section--era-jk2 {
+  background: var(--era-jk2-bg);
+  border: 1px solid var(--era-jk2-border);
+  border-radius: 6px;
+  padding: 1.25rem;
+}
+```
+
+**Density indicators:**
+
+```css
+.density-bar {
+  height: 3px; border-radius: 2px; margin-top: 0.5rem;
+  background: var(--era-accent, var(--copper));
+  opacity: 0.6;
+}
+```
+
+Width set inline as percentage: `<div class="density-bar" style="width: 75%; --era-accent: var(--era-aim)">`.
+
+### Hue Distribution
+
+Spread era hues around the OKLCH wheel for maximum visual distinction:
+
+| Hue range | Character | Example |
+|-----------|-----------|---------|
+| 10-30 | Red/warm | Clans, conflict, urgency |
+| 55-85 | Gold/amber | Games, achievement |
+| 145-195 | Cyan/teal | Technology, communication |
+| 210-260 | Blue | Messaging, archival |
+| 280-310 | Purple | Virtual worlds, imagination |
