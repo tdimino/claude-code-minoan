@@ -194,20 +194,33 @@ Given a Semitic consonantal root, find all Linear A words in the corpus whose sk
 # Find corpus words matching root KNS (e.g., kiništu "gathering place")
 uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --reverse kns
 
-# Broader search with higher distance tolerance
+# Hyphens, apostrophes, and ʾ/ʿ markers are stripped automatically
+uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --reverse y-r-h
+
+# Default distance: 0.5 for roots ≤3 consonants, 0.3 for longer roots
 uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --reverse kns --max-dist 0.5 -n 30
 
 # JSON output for programmatic use
 uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --reverse thm --format json
-
-# Search for Baal-related words (b-'-l root)
-uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --reverse bl
-
-# Search for "give" root (y-t-n)
-uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --reverse ytn
 ```
 
 Pipeline: root consonants → weighted Levenshtein against all corpus word skeletons → ranked by distance, annotated with Gordon/YasharMana readings, occurrence counts, sites, and inscriptions.
+
+### 8b. Syllabic Grep (Raw Syllable Pattern Search)
+
+Search the corpus for literal syllable sequences without skeleton reduction. Unlike `--reverse`, this preserves prefixes like JA- (= ya-, imperfective) and I- (= ʾi-, causative/noun) that skeleton extraction strips.
+
+```bash
+# Search for imperfective ya-ra / ya-re patterns (√y-r-h "to instruct")
+uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --syllabic-grep "JA-RA,JA-RE,JA-RI"
+
+# JSON output
+uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --syllabic-grep "KU-PA" --format json
+```
+
+**When to use each mode:**
+- `--reverse ROOT` — consonantal root identification via phonologically-aware skeleton matching
+- `--syllabic-grep PATTERNS` — prefix/suffix analysis where the syllabic form matters (verbal morphology, compound names)
 
 ### 10. Sign Lookup
 
@@ -268,7 +281,7 @@ uv run ~/.claude/skills/linear-a-decipherment/scripts/cognate_search.py --build-
 │   └── phonetics.py            # SEMITIC_DISTANCES, weighted_levenshtein()
 ├── scripts/
 │   ├── corpus_extract.py       # JS → JSON extraction
-│   ├── cognate_search.py       # Forward + reverse cognate search + cache builder + --all-readings
+│   ├── cognate_search.py       # Forward + reverse + syllabic-grep cognate search + cache builder
 │   ├── sign_analysis.py        # Corpus-wide sign statistics
 │   ├── analyze.py              # Gordon 5-step pipeline (single + batch) + polyphonic output
 │   ├── build_registry.py       # Merge 4 sources → sign-registry.json (334 signs)

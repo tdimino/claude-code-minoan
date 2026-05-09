@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/minoan-logo.png" alt="Minoan skill logo — labrys with three script lines" width="120">
+  <img src="assets/minoan-logo.png" alt="Minoan skill logo — labrys with three script lines" width="240">
 </p>
 
 # `/minoan` — Lisan al-Qads

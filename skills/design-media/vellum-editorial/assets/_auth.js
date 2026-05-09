@@ -6,7 +6,9 @@
       v = (v ^ s.charCodeAt(i)) * 0x01000193 >>> 0;
     return (v >>> 0).toString(16).slice(0, 8);
   }
-  if (sessionStorage.getItem(KEY) === HASH) return;
+  try {
+    if (sessionStorage.getItem(KEY) === HASH) return;
+  } catch (e) {}
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:oklch(0.96 0.008 80);display:flex;align-items:center;justify-content:center;font-family:Inconsolata,monospace';
   overlay.setAttribute('role', 'dialog');
@@ -15,8 +17,11 @@
   document.body.appendChild(overlay);
   function check() {
     if (h(document.getElementById('pw').value) === HASH) {
-      sessionStorage.setItem(KEY, HASH);
+      try {
+        sessionStorage.setItem(KEY, HASH);
+      } catch (e) {}
       overlay.remove();
+      window.dispatchEvent(new CustomEvent('vellum:authenticated'));
     } else {
       document.getElementById('err').style.display = 'block';
     }

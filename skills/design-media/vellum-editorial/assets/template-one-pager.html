@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{PROJECT_TITLE}}">
+  <meta property="og:description" content="{{OG_DESCRIPTION}}">
+  <meta property="og:image" content="{{OG_IMAGE_URL}}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{PROJECT_TITLE}}">
+  <meta name="twitter:description" content="{{OG_DESCRIPTION}}">
+  <meta name="twitter:image" content="{{OG_IMAGE_URL}}">
+  <title>{{PROJECT_TITLE}}</title>
+  {{FOUC_SCRIPT}}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  {{FONT_IMPORT}}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2/src/regular/style.css">
+  <link rel="stylesheet" href="_shared.css">
+  <link rel="stylesheet" href="_components.css">
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+{{AUTH_SCRIPT}}
+{{THEME_TOGGLE}}
+
+<nav class="breadcrumb" aria-label="Breadcrumb"><span>{{PROJECT_TITLE}}</span></nav>
+
+<header>
+  <p class="header__tag" aria-hidden="true">{{PROJECT_TITLE}}</p>
+  <h1>{{HEADLINE}}</h1>
+  <p>{{SUBTITLE}}</p>
+</header>
+
+<main id="main">
+
+  <nav class="toc" aria-label="On this page">
+    <ol class="toc-list">
+      <li><a href="#architecture" class="toc-item">
+        <span class="toc-item__num">01</span>
+        <span class="toc-item__body">
+          <span class="toc-item__title">Architecture</span>
+          <span class="toc-item__desc">System design and technology stack.</span>
+        </span>
+        <span class="toc-item__arrow" aria-hidden="true">&rarr;</span>
+      </a></li>
+      <li><a href="#capabilities" class="toc-item">
+        <span class="toc-item__num">02</span>
+        <span class="toc-item__body">
+          <span class="toc-item__title">Core Capabilities</span>
+          <span class="toc-item__desc">Primary features and behaviors.</span>
+        </span>
+        <span class="toc-item__arrow" aria-hidden="true">&rarr;</span>
+      </a></li>
+      <li><a href="#modules" class="toc-item">
+        <span class="toc-item__num">03</span>
+        <span class="toc-item__body">
+          <span class="toc-item__title">Modules</span>
+          <span class="toc-item__desc">Subsystems and components.</span>
+        </span>
+        <span class="toc-item__arrow" aria-hidden="true">&rarr;</span>
+      </a></li>
+      <li><a href="#configuration" class="toc-item">
+        <span class="toc-item__num">04</span>
+        <span class="toc-item__body">
+          <span class="toc-item__title">Configuration</span>
+          <span class="toc-item__desc">Settings, parameters, and tuning.</span>
+        </span>
+        <span class="toc-item__arrow" aria-hidden="true">&rarr;</span>
+      </a></li>
+      <li><a href="#data" class="toc-item">
+        <span class="toc-item__num">05</span>
+        <span class="toc-item__body">
+          <span class="toc-item__title">Data &amp; Recording</span>
+          <span class="toc-item__desc">Logging, storage, and data flows.</span>
+        </span>
+        <span class="toc-item__arrow" aria-hidden="true">&rarr;</span>
+      </a></li>
+      <li><a href="#integration" class="toc-item">
+        <span class="toc-item__num">06</span>
+        <span class="toc-item__body">
+          <span class="toc-item__title">Platform Integration</span>
+          <span class="toc-item__desc">External services and connections.</span>
+        </span>
+        <span class="toc-item__arrow" aria-hidden="true">&rarr;</span>
+      </a></li>
+      <li><a href="#status" class="toc-item">
+        <span class="toc-item__num">07</span>
+        <span class="toc-item__body">
+          <span class="toc-item__title">Build Status</span>
+          <span class="toc-item__desc">Implementation progress and phases.</span>
+        </span>
+        <span class="toc-item__arrow" aria-hidden="true">&rarr;</span>
+      </a></li>
+      <li><a href="#deployment" class="toc-item">
+        <span class="toc-item__num">08</span>
+        <span class="toc-item__body">
+          <span class="toc-item__title">Deployment</span>
+          <span class="toc-item__desc">Hosting, CI/CD, and environments.</span>
+        </span>
+        <span class="toc-item__arrow" aria-hidden="true">&rarr;</span>
+      </a></li>
+    </ol>
+  </nav>
+
+  <!-- Section 1: Architecture -->
+  <section id="architecture">
+    <span class="section-num" aria-hidden="true">01</span>
+    <h2><i class="ph ph-blueprint" aria-hidden="true"></i> Architecture</h2>
+    <p class="lead">Replace with your system architecture description.</p>
+    <p class="lead spaced-sm">Add architecture diagrams, component descriptions, and technology choices.</p>
+  </section>
+
+  <!-- Section 2: Core Capabilities -->
+  <section id="capabilities">
+    <span class="section-num" aria-hidden="true">02</span>
+    <h2><i class="ph ph-lightning" aria-hidden="true"></i> Core Capabilities</h2>
+    <p class="lead gap-below">Replace these cards with your system's primary capabilities.</p>
+
+    <div class="states-grid">
+      <div class="state-card state-card--subq">
+        <h4>CATEGORY</h4>
+        <h5><i class="ph ph-check-circle" aria-hidden="true"></i> Capability One</h5>
+        <p>Description of the first core capability or feature.</p>
+      </div>
+      <div class="state-card state-card--claude">
+        <h4>CATEGORY</h4>
+        <h5><i class="ph ph-gear-six" aria-hidden="true"></i> Capability Two</h5>
+        <p>Description of the second core capability or feature.</p>
+      </div>
+      <div class="state-card state-card--cursor">
+        <h4>CATEGORY</h4>
+        <h5><i class="ph ph-chart-line-up" aria-hidden="true"></i> Capability Three</h5>
+        <p>Description of the third core capability or feature.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Modules -->
+  <section id="modules">
+    <span class="section-num" aria-hidden="true">03</span>
+    <h2><i class="ph ph-cube" aria-hidden="true"></i> Modules</h2>
+    <p class="lead gap-below">Subsystems, plugins, or component modules.</p>
+
+    <div class="states-grid">
+      <div class="state-card state-card--codex">
+        <h4>MODULE</h4>
+        <h5><i class="ph ph-plugs-connected" aria-hidden="true"></i> Module A</h5>
+        <p>Description of this module's purpose and responsibilities.</p>
+      </div>
+      <div class="state-card state-card--subq">
+        <h4>MODULE</h4>
+        <h5><i class="ph ph-database" aria-hidden="true"></i> Module B</h5>
+        <p>Description of this module's purpose and responsibilities.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: Configuration -->
+  <section id="configuration">
+    <span class="section-num" aria-hidden="true">04</span>
+    <h2><i class="ph ph-sliders-horizontal" aria-hidden="true"></i> Configuration</h2>
+    <p class="lead gap-below">Settings and parameters that can be tuned.</p>
+
+    <div class="matrix matrix--3col">
+      <div class="matrix__row matrix__row--head">
+        <div class="matrix__cell"><span class="matrix__th"><i class="ph ph-wrench" aria-hidden="true"></i> Parameter</span></div>
+        <div class="matrix__cell matrix__cell--center"><span class="matrix__th matrix__th--center">Default</span></div>
+        <div class="matrix__cell matrix__cell--center"><span class="matrix__th matrix__th--center">Description</span></div>
+      </div>
+      <div class="matrix__row">
+        <div class="matrix__cell"><span class="matrix__tool">PARAM_ONE</span></div>
+        <div class="matrix__cell matrix__cell--center"><code class="code--copper">true</code></div>
+        <div class="matrix__cell">What this parameter controls.</div>
+      </div>
+      <div class="matrix__row">
+        <div class="matrix__cell"><span class="matrix__tool">PARAM_TWO</span></div>
+        <div class="matrix__cell matrix__cell--center"><code class="code--copper">300</code></div>
+        <div class="matrix__cell">What this parameter controls.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 5: Data & Recording -->
+  <section id="data">
+    <span class="section-num" aria-hidden="true">05</span>
+    <h2><i class="ph ph-database" aria-hidden="true"></i> Data &amp; Recording</h2>
+    <p class="lead">Describe your logging, storage, and data flow patterns.</p>
+    <p class="lead spaced-sm">Include data schemas, retention policies, and pipeline descriptions.</p>
+  </section>
+
+  <!-- Section 6: Platform Integration -->
+  <section id="integration">
+    <span class="section-num" aria-hidden="true">06</span>
+    <h2><i class="ph ph-plugs-connected" aria-hidden="true"></i> Platform Integration</h2>
+    <p class="lead gap-below">External services, APIs, and platform connections.</p>
+
+    <div class="states-grid">
+      <div class="state-card state-card--claude">
+        <h4>INTEGRATION</h4>
+        <h5><i class="ph ph-cloud" aria-hidden="true"></i> Service A</h5>
+        <p>How this integration works and what it provides.</p>
+      </div>
+      <div class="state-card state-card--codex">
+        <h4>INTEGRATION</h4>
+        <h5><i class="ph ph-webhook" aria-hidden="true"></i> Service B</h5>
+        <p>How this integration works and what it provides.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 7: Build Status -->
+  <section id="status">
+    <span class="section-num" aria-hidden="true">07</span>
+    <h2><i class="ph ph-kanban" aria-hidden="true"></i> Build Status</h2>
+    <p class="lead gap-below">Implementation phases and progress.</p>
+
+    <div class="phase-block phase-block--shipped">
+      <p class="phase-block__label"><span class="status-dot status-dot--shipped"></span> Phase 1 — Foundation</p>
+      <ul>
+        <li>Core infrastructure</li>
+        <li>Initial deployment</li>
+      </ul>
+    </div>
+
+    <div class="phase-block phase-block--building">
+      <p class="phase-block__label"><span class="status-dot status-dot--building"></span> Phase 2 — Core Features</p>
+      <ul>
+        <li>Primary functionality</li>
+        <li>Integration layer</li>
+      </ul>
+    </div>
+
+    <div class="phase-block phase-block--planned">
+      <p class="phase-block__label"><span class="status-dot status-dot--planned"></span> Phase 3 — Polish</p>
+      <ul>
+        <li>Performance optimization</li>
+        <li>Documentation</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Section 8: Deployment -->
+  <section id="deployment">
+    <span class="section-num" aria-hidden="true">08</span>
+    <h2><i class="ph ph-rocket-launch" aria-hidden="true"></i> Deployment</h2>
+    <p class="lead">Describe your deployment infrastructure, environments, and CI/CD pipeline.</p>
+    <p class="lead spaced-sm">Include hosting provider, environment variables, and deploy commands.</p>
+  </section>
+
+</main>
+
+<footer>
+  <p><em>{{PROJECT_TITLE}}</em> &mdash; {{YEAR}}</p>
+</footer>
+{{TOGGLE_SCRIPT}}
+{{AUDIO_SCRIPT}}
+</body>
+</html>

@@ -84,3 +84,4 @@ skills/research/linear-a-decipherment/data/
 # Minoan glyph reference images (source frescos + processing intermediates)
 scripts/minoan-glyphs/reference/*
 !scripts/minoan-glyphs/reference/SOURCES.md
+.wrangler/
