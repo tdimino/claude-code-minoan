@@ -70,7 +70,7 @@ This documents the full structure of a production `~/.claude/` directory — the
 │   ├── update-agent-docs.sh         # Auto-update agent docs
 │   └── debug-hook-input.sh          # Debug hook input (development)
 ├── commands/                        # 47 slash commands (markdown templates)
-├── skills/                          # 71 custom skills (SKILL.md + scripts/)
+├── skills/                          # 90 custom skills (SKILL.md + scripts/)
 ├── scripts/                         # Utility scripts
 │   ├── batch-rename-plans.py        # Bulk plan file renaming
 │   ├── update-active-projects.py    # Refresh active-projects.md
@@ -526,7 +526,7 @@ skills/
 └── workflow/               # Planning patterns
 ```
 
-Currently 82 skills in the distribution repo. Toggle with `skill-toggle.py`. Disabled skills tracked in `~/.claude/disabled-skills.md`.
+Currently 90 skills in the distribution repo. Toggle with `skill-toggle.py`. Disabled skills tracked in `~/.claude/disabled-skills.md`.
 
 ---
 
