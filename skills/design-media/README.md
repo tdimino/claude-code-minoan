@@ -46,6 +46,7 @@ The satellite skills adapt patterns from [Impeccable](https://github.com/pbakaus
 | Skill | Description |
 |-------|-------------|
 | `rocaille-shader` | Rocaille-style domain warping shaders, depth-parallax displacement heroes (Astryx), stable fluid simulations over live DOM (fluid-dom), and mouse-reactive liquid logo effects. 4 modes: `rocaille`, `liquid-logo`, `astryx-statue`, `fluid-dom` |
+| `particle-swarm-sim` | 20K+ particle swarm simulator: sandbox runtime (Three.js host, gesture OS, code injection, security validation) + behavior function bodies. AI writes only the math; runtime handles rendering. Distilled from [particles.casberry.in](https://particles.casberry.in/) |
 | `threejs-particle-canvas` | Interactive Three.js canvases in four modes: narrative particle phase cycles (Mode 1), WebGPU + TSL spinner/loaders (Mode 2, 9 curve types), infinite scrollable image tunnels (Mode 3), and behavior-driven glTF specimen scenes (Mode 4). Ships a shared Phosphor Vigil FX module |
 | `pretext` | Text effects impossible with CSS alone — kinetic typography, calligrams, shrinkwrap bubbles, typographic ASCII art, glyph morphing, illuminated manuscripts. Uses `@chenglou/pretext` |
 | `sprite-forge` | Game sprites, SVG characters, ASCII art (static + animated), animated mascots, isometric turnarounds — 5 output modes with chongdashu pipeline, video-to-spritesheet, Gemini SVG-as-code, GSAP animation |

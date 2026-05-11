@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Particle Swarm</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #050508;
+    color: #e0e0e0;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    overflow: hidden;
+  }
+  #canvas-container { position: fixed; inset: 0; }
+  canvas { display: block; }
+  #hud {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  #hud-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a8d8ff;
+    margin-bottom: 4px;
+  }
+  #hud-description {
+    font-size: 11px;
+    color: #888;
+    max-width: 300px;
+    line-height: 1.4;
+  }
+  #controls-panel {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 220px;
+  }
+  .control-row { display: flex; align-items: center; gap: 8px; }
+  .control-label {
+    font-size: 10px;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 80px;
+  }
+  .control-value {
+    font-size: 10px;
+    color: #a8d8ff;
+    min-width: 36px;
+    text-align: right;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 2px;
+    background: #333;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #a8d8ff;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="hud">
+  <div id="hud-title">PARTICLE SWARM</div>
+  <div id="hud-description">Initializing...</div>
+</div>
+<div id="controls-panel"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// Security: FORBIDDEN_PATTERNS for code that extends this template with user injection
+const FORBIDDEN_PATTERNS = [
+  /\bdocument\b/, /\bwindow\b/, /\bfetch\b/, /\beval\b/, /\.constructor\b/,
+  /\bFunction\s*\(/, /\bimport\s*\(/, /\b__proto__\b/, /\.prototype\b/,
+];
+
+const SAFE_THREE = Object.freeze({
+  Vector3: THREE.Vector3,
+  Color: THREE.Color,
+  MathUtils: Object.freeze({ ...THREE.MathUtils }),
+});
+
+const CONFIG = {
+  particleCount: 20000,
+  particleSize: 0.06,
+  backgroundColor: 0x050508,
+  autoOrbitSpeed: 0.1,
+  cameraRadius: 30,
+  cameraFov: 60,
+  fogDensity: 0.008,
+  dprCap: 2,
+};
+
+// ═══════════════════════════════════════════════════════════
+// SIM_INJECTION_POINT
+// Replace the DEFAULT_SIM string below with your behavior function body.
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_SIM = `const speed = addControl('speed', 'Speed', 0.1, 5.0, 1.0);
+const scale = addControl('scale', 'Scale', 5, 40, 15);
+if (i === 0) setInfo('Expanding Sphere', 'Uniform distribution pulsing on sphere surface');
+const phi = (i / count) * Math.PI * 2 * 10;
+const theta = Math.acos(1 - 2 * (i / count));
+const r = scale + Math.sin(time * speed + i * 0.01) * 3;
+target.set(
+  r * Math.sin(theta) * Math.cos(phi),
+  r * Math.sin(theta) * Math.sin(phi),
+  r * Math.cos(theta)
+);
+color.setHSL(i / count, 0.8, 0.5 + 0.2 * Math.sin(time + i * 0.1));`;
+
+let scene, camera, renderer, clock;
+let particles, positions, colors;
+let simFunction = null;
+let isPaused = false;
+const controlValues = {};
+const controlElements = {};
+
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(CONFIG.backgroundColor);
+  scene.fog = new THREE.FogExp2(CONFIG.backgroundColor, CONFIG.fogDensity);
+
+  camera = new THREE.PerspectiveCamera(CONFIG.cameraFov, window.innerWidth / window.innerHeight, 0.1, 500);
+  camera.position.set(0, 0, CONFIG.cameraRadius);
+
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+  } catch (e) {
+    document.body.innerHTML = '<p style="color:#888;padding:48px;font-family:monospace">WebGL not available</p>';
+    return;
+  }
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.dprCap));
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  clock = new THREE.Clock();
+  createParticles();
+  setupInput();
+
+  simFunction = new Function(
+    'i', 'count', 'time', 'THREE', 'target', 'color',
+    'addControl', 'setInfo', 'annotate',
+    DEFAULT_SIM
+  );
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+function createParticles() {
+  const geometry = new THREE.BufferGeometry();
+  positions = new Float32Array(CONFIG.particleCount * 3);
+  colors = new Float32Array(CONFIG.particleCount * 3);
+
+  for (let i = 0; i < CONFIG.particleCount; i++) {
+    const phi = Math.acos(1 - 2 * Math.random());
+    const theta = Math.PI * 2 * Math.random();
+    const r = 5 + Math.random() * 10;
+    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+    colors[i * 3] = 0.4;
+    colors[i * 3 + 1] = 0.4;
+    colors[i * 3 + 2] = 0.5;
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  particles = new THREE.Points(geometry, new THREE.PointsMaterial({
+    size: CONFIG.particleSize,
+    vertexColors: true,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false,
+    sizeAttenuation: true,
+  }));
+  scene.add(particles);
+}
+
+let cameraTheta = 0;
+let cameraPhi = Math.PI / 2;
+let cameraTargetRadius = CONFIG.cameraRadius;
+let cameraCurrentRadius = CONFIG.cameraRadius;
+let lastInteraction = 0;
+let pointerDown = false;
+let pointerX = 0;
+let pointerY = 0;
+
+function setupInput() {
+  const el = renderer.domElement;
+
+  el.addEventListener('pointerdown', (e) => {
+    pointerDown = true;
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+    lastInteraction = performance.now();
+  });
+
+  el.addEventListener('pointermove', (e) => {
+    if (!pointerDown) return;
+    cameraTheta -= (e.clientX - pointerX) * 0.005;
+    cameraPhi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraPhi - (e.clientY - pointerY) * 0.005));
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+    lastInteraction = performance.now();
+  });
+
+  el.addEventListener('pointerup', () => { pointerDown = false; });
+
+  el.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    cameraTargetRadius = Math.max(5, Math.min(100, cameraTargetRadius + e.deltaY * 0.02));
+    lastInteraction = performance.now();
+  }, { passive: false });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      isPaused = !isPaused;
+    }
+  });
+}
+
+function addControl(id, label, min, max, initial) {
+  if (controlElements[id]) return controlValues[id];
+  controlValues[id] = initial;
+
+  const row = document.createElement('div');
+  row.className = 'control-row';
+  row.innerHTML = `<span class="control-label">${label}</span>`;
+
+  const input = document.createElement('input');
+  input.type = 'range';
+  input.min = min; input.max = max;
+  input.step = (max - min) / 200;
+  input.value = initial;
+
+  const val = document.createElement('span');
+  val.className = 'control-value';
+  val.textContent = initial.toFixed(1);
+
+  input.addEventListener('input', () => {
+    controlValues[id] = parseFloat(input.value);
+    val.textContent = controlValues[id].toFixed(1);
+  });
+
+  row.appendChild(input);
+  row.appendChild(val);
+  document.getElementById('controls-panel').appendChild(row);
+  controlElements[id] = row;
+  return controlValues[id];
+}
+
+function setInfo(title, description) {
+  document.getElementById('hud-title').textContent = title;
+  document.getElementById('hud-description').textContent = description;
+}
+
+function annotate() {}
+
+const reusableTarget = new THREE.Vector3();
+const reusableColor = new THREE.Color();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  if (!isPaused && simFunction) {
+    try {
+      for (let idx = 0; idx < CONFIG.particleCount; idx++) {
+        reusableTarget.set(positions[idx * 3], positions[idx * 3 + 1], positions[idx * 3 + 2]);
+        reusableColor.setRGB(colors[idx * 3], colors[idx * 3 + 1], colors[idx * 3 + 2]);
+
+        simFunction(idx, CONFIG.particleCount, elapsed, SAFE_THREE, reusableTarget, reusableColor, addControl, setInfo, annotate);
+
+        if (isFinite(reusableTarget.x) && isFinite(reusableTarget.y) && isFinite(reusableTarget.z)) {
+          positions[idx * 3] = reusableTarget.x;
+          positions[idx * 3 + 1] = reusableTarget.y;
+          positions[idx * 3 + 2] = reusableTarget.z;
+        }
+        const r = reusableColor.r, g = reusableColor.g, b = reusableColor.b;
+        if (isFinite(r) && isFinite(g) && isFinite(b)) {
+          colors[idx * 3] = r;
+          colors[idx * 3 + 1] = g;
+          colors[idx * 3 + 2] = b;
+        }
+      }
+    } catch (e) {
+      simFunction = null;
+    }
+    particles.geometry.attributes.position.needsUpdate = true;
+    particles.geometry.attributes.color.needsUpdate = true;
+  }
+
+  if (performance.now() - lastInteraction > 4000) cameraTheta += CONFIG.autoOrbitSpeed * delta;
+  cameraCurrentRadius += (cameraTargetRadius - cameraCurrentRadius) * 0.05;
+  camera.position.x = cameraCurrentRadius * Math.sin(cameraPhi) * Math.cos(cameraTheta);
+  camera.position.y = cameraCurrentRadius * Math.cos(cameraPhi);
+  camera.position.z = cameraCurrentRadius * Math.sin(cameraPhi) * Math.sin(cameraTheta);
+  camera.lookAt(0, 0, 0);
+
+  renderer.render(scene, camera);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+init();
+</script>
+</body>
+</html>
