@@ -16,6 +16,25 @@ const utils = require(os.homedir() + '/.claude/lib/tracker-utils.js');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const { execSync } = require('child_process');
+
+let firstResumeCmd = null;
+
+function trackResume(projectPath, sessionId) {
+  if (!firstResumeCmd) {
+    firstResumeCmd = 'cd ' + projectPath + ' && claude --resume ' + sessionId;
+  }
+}
+
+function copyToClipboard() {
+  if (!firstResumeCmd) return;
+  try {
+    execSync('pbcopy', { input: firstResumeCmd });
+    console.log('\x1b[32m✓ Copied to clipboard:\x1b[0m ' + firstResumeCmd + '\n');
+  } catch (e) {
+    // pbcopy unavailable (non-macOS) — silently skip
+  }
+}
 
 // Parse arguments
 const args = process.argv.slice(2);
@@ -301,6 +320,7 @@ function printNameResults(results, escapedTerm) {
     }
     console.log('    \x1b[90mDir:\x1b[0m ' + result.projectPath);
     console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
+    trackResume(result.projectPath, result.sessionId);
     console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
     console.log('');
   }
@@ -355,6 +375,7 @@ function printDbResults(results, escapedTerm) {
     if (r.num_turns) console.log('    \x1b[90mTurns:\x1b[0m ' + r.num_turns + (r.total_cost_usd ? ' · $' + r.total_cost_usd.toFixed(2) : ''));
     console.log('    \x1b[90mDir:\x1b[0m ' + r.project_path);
     console.log('    \x1b[90mID:\x1b[0m ' + r.session_id);
+    trackResume(r.project_path, r.session_id);
     console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + r.project_path + ' && claude --resume ' + r.session_id + '\x1b[0m');
     console.log('');
   }
@@ -376,6 +397,7 @@ async function main() {
           return;
         }
         printDbResults([result], utils.escapeRegex(idPrefix));
+        copyToClipboard();
         return;
       }
 
@@ -390,6 +412,7 @@ async function main() {
         const count = printDbResults(results, escapedTerm);
         console.log('\x1b[90mFound ' + count + ' session(s) via FTS5.\x1b[0m');
         console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
+        copyToClipboard();
         return;
       }
     } catch (e) {
@@ -421,6 +444,7 @@ async function main() {
       if (slug) console.log('    \x1b[90mSlug:\x1b[0m ' + slug);
       console.log('    \x1b[90mDir:\x1b[0m ' + projectPath);
       console.log('    \x1b[90mID:\x1b[0m ' + sessionId);
+      trackResume(projectPath, sessionId);
       console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + projectPath + ' && claude --resume ' + sessionId + '\x1b[0m');
       console.log('');
     }
@@ -428,6 +452,7 @@ async function main() {
     if (matches.length > 5) {
       console.log('\x1b[90m... and ' + (matches.length - 5) + ' more\x1b[0m\n');
     }
+    copyToClipboard();
     return;
   }
 
@@ -443,6 +468,7 @@ async function main() {
     printNameResults(results, escapedTerm);
     console.log('\x1b[90mFound ' + results.length + ' session(s) by name.\x1b[0m');
     console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
+    copyToClipboard();
     return;
   }
 
@@ -538,6 +564,7 @@ async function main() {
       }
       console.log('    \x1b[90mDir:\x1b[0m ' + result.projectPath);
       console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
+      trackResume(result.projectPath, result.sessionId);
       console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
 
       // Show metadata match indicators (tag/title/summary from registry)
@@ -567,6 +594,7 @@ async function main() {
 
       if (resultCount >= maxResults) {
         console.log('\x1b[90m... (showing first ' + maxResults + ' results)\x1b[0m\n');
+        copyToClipboard();
         return;
       }
     }
@@ -592,6 +620,7 @@ async function main() {
     if (meta.slug) console.log('    \x1b[90mSession:\x1b[0m ' + meta.slug);
     console.log('    \x1b[90mDir:\x1b[0m ' + meta.projectPath);
     console.log('    \x1b[90mID:\x1b[0m ' + meta.sessionId);
+    trackResume(meta.projectPath, meta.sessionId);
     console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + meta.projectPath + ' && claude --resume ' + meta.sessionId + '\x1b[0m');
     console.log('');
   }
@@ -602,6 +631,7 @@ async function main() {
     console.log('\x1b[90mFound ' + resultCount + ' session(s) with matches.\x1b[0m');
     console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
   }
+  copyToClipboard();
 }
 
 main().catch(console.error);

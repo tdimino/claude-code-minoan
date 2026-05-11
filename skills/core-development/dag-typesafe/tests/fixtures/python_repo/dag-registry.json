@@ -1,0 +1,353 @@
+{
+  "version": "1.0.0",
+  "metadata": {
+    "extracted_at": "2026-05-04T19:49:47.254105+00:00",
+    "source_root": "/Users/tomdimino/.claude/skills/dag-typesafe/tests/fixtures/python_repo",
+    "languages": [
+      "python"
+    ],
+    "extractor_versions": {
+      "python": "1.0.0"
+    },
+    "node_count": 8,
+    "source_hash": "2509cd80cdf59c5532ed061aaaa2ca6edbb49a1e9e45079b48ea40e0b349eb08"
+  },
+  "nodes": [
+    {
+      "name": "models.UserInput",
+      "kind": "class",
+      "language": "python",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ]
+      },
+      "source_ref": {
+        "file": "models.py",
+        "line": 11,
+        "module": "models",
+        "end_line": 14
+      },
+      "tags": [
+        "pydantic"
+      ]
+    },
+    {
+      "name": "models.UserOutput",
+      "kind": "class",
+      "language": "python",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "created_at"
+        ]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "created_at"
+        ]
+      },
+      "source_ref": {
+        "file": "models.py",
+        "line": 17,
+        "module": "models",
+        "end_line": 21
+      },
+      "tags": [
+        "pydantic"
+      ]
+    },
+    {
+      "name": "models.TransformConfig",
+      "kind": "class",
+      "language": "python",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "uppercase": {
+            "type": "boolean"
+          },
+          "strip_whitespace": {
+            "type": "boolean"
+          },
+          "max_length": {
+            "type": "integer"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "uppercase": {
+            "type": "boolean"
+          },
+          "strip_whitespace": {
+            "type": "boolean"
+          },
+          "max_length": {
+            "type": "integer"
+          }
+        }
+      },
+      "source_ref": {
+        "file": "models.py",
+        "line": 25,
+        "module": "models",
+        "end_line": 28
+      },
+      "tags": [
+        "dataclass"
+      ]
+    },
+    {
+      "name": "models.AnalyticsEvent",
+      "kind": "class",
+      "language": "python",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "event_type",
+          "timestamp",
+          "payload"
+        ]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "event_type",
+          "timestamp",
+          "payload"
+        ]
+      },
+      "source_ref": {
+        "file": "models.py",
+        "line": 31,
+        "module": "models",
+        "end_line": 34
+      },
+      "tags": [
+        "typeddict"
+      ]
+    },
+    {
+      "name": "models.validate_email",
+      "kind": "function",
+      "language": "python",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "output_schema": {
+        "type": "boolean"
+      },
+      "source_ref": {
+        "file": "models.py",
+        "line": 37,
+        "module": "models",
+        "end_line": 39
+      },
+      "description": "Check if an email address is valid.",
+      "tags": [
+        "validate"
+      ]
+    },
+    {
+      "name": "models.create_user",
+      "kind": "function",
+      "language": "python",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "input_data": {
+            "$ref": "#/$defs/UserInput"
+          }
+        },
+        "required": [
+          "input_data"
+        ]
+      },
+      "output_schema": {
+        "$ref": "#/$defs/UserOutput"
+      },
+      "source_ref": {
+        "file": "models.py",
+        "line": 42,
+        "module": "models",
+        "end_line": 49
+      },
+      "description": "Create a new user from validated input.",
+      "tags": [
+        "validate",
+        "crud"
+      ]
+    },
+    {
+      "name": "models.transform_name",
+      "kind": "function",
+      "language": "python",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "config": {
+            "$ref": "#/$defs/TransformConfig"
+          }
+        },
+        "required": [
+          "name",
+          "config"
+        ]
+      },
+      "output_schema": {
+        "type": "string"
+      },
+      "source_ref": {
+        "file": "models.py",
+        "line": 52,
+        "module": "models",
+        "end_line": 59
+      },
+      "description": "Apply transformations to a user name.",
+      "tags": [
+        "transform"
+      ]
+    },
+    {
+      "name": "models.fetch_users",
+      "kind": "function",
+      "language": "python",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/UserOutput"
+        }
+      },
+      "source_ref": {
+        "file": "models.py",
+        "line": 62,
+        "module": "models",
+        "end_line": 64
+      },
+      "description": "Fetch users from the database.",
+      "tags": [
+        "io"
+      ]
+    }
+  ]
+}

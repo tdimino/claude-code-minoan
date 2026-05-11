@@ -1,0 +1,61 @@
+{
+  "version": "1.0.0",
+  "metadata": {
+    "created_at": "2026-05-04T00:00:00Z",
+    "task_description": "Validate email, create user, then transform the user's name",
+    "registry_ref": "dag-registry.json"
+  },
+  "nodes": [
+    {
+      "id": "validate",
+      "registry_ref": "models.validate_email",
+      "params": {},
+      "input_mappings": [],
+      "certificate": {
+        "predicate_name": "email_is_valid",
+        "evidence_keys": ["email", "result"],
+        "predicate_expression": "artifact == True",
+        "on_failure": "halt"
+      }
+    },
+    {
+      "id": "create",
+      "registry_ref": "models.create_user",
+      "params": {},
+      "input_mappings": [],
+      "certificate": {
+        "predicate_name": "user_created",
+        "evidence_keys": ["id", "email"],
+        "predicate_expression": "artifact.get('id') is not None",
+        "required_upstream_certs": ["validate"],
+        "on_failure": "halt"
+      }
+    },
+    {
+      "id": "transform",
+      "registry_ref": "models.transform_name",
+      "params": {"uppercase": true},
+      "input_mappings": [
+        {
+          "source_node": "create",
+          "source_field": "name",
+          "target_field": "name"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from_node": "validate",
+      "from_port": "result",
+      "to_node": "create",
+      "to_port": "email"
+    },
+    {
+      "from_node": "create",
+      "from_port": "name",
+      "to_node": "transform",
+      "to_port": "name"
+    }
+  ]
+}

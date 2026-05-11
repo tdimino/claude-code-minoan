@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dag-typesafe.local/schemas/dag-plan.schema.json",
+  "title": "DAG Plan",
+  "description": "A language-neutral typed execution graph. Nodes reference entries in a typed registry; edges carry schema-validated data. Each node emits an (artifact, certificate) pair.",
+  "type": "object",
+  "required": ["version", "metadata", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "1.0.0",
+      "description": "Schema version"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["created_at", "registry_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "task_description": {
+          "type": "string",
+          "description": "The natural language task this DAG was composed for"
+        },
+        "registry_ref": {
+          "type": "string",
+          "description": "Path or URI to the registry used during composition"
+        },
+        "registry_hash": {
+          "type": "string",
+          "description": "SHA-256 of the registry file at composition time"
+        },
+        "provider": {
+          "type": "string",
+          "description": "LLM provider used for composition (e.g. openrouter, groq, session)"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model identifier used for composition"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["id", "registry_ref", "params"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Unique node identifier within this DAG"
+        },
+        "registry_ref": {
+          "type": "string",
+          "description": "Name of the node in the typed registry"
+        },
+        "params": {
+          "type": "object",
+          "description": "Static parameters for this node invocation. Must conform to the registry node's param_schema if defined."
+        },
+        "input_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/input_mapping"
+          },
+          "description": "Maps upstream node outputs to this node's inputs"
+        },
+        "certificate": {
+          "$ref": "#/$defs/certificate_spec",
+          "description": "Certificate specification for this node. When present, the node must emit an (artifact, certificate) pair."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this node does in this DAG"
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["from_node", "from_port", "to_node", "to_port"],
+      "additionalProperties": false,
+      "properties": {
+        "from_node": {
+          "type": "string",
+          "description": "Source node ID"
+        },
+        "from_port": {
+          "type": "string",
+          "description": "Output field name on the source node"
+        },
+        "to_node": {
+          "type": "string",
+          "description": "Target node ID"
+        },
+        "to_port": {
+          "type": "string",
+          "description": "Input field name on the target node"
+        },
+        "schema_ref": {
+          "description": "JSON Schema describing the data flowing through this edge. Derived from source output schema at validation time.",
+          "type": "object"
+        }
+      }
+    },
+    "input_mapping": {
+      "type": "object",
+      "required": ["source_node", "source_field", "target_field"],
+      "additionalProperties": false,
+      "properties": {
+        "source_node": {
+          "type": "string",
+          "description": "Node ID to pull data from"
+        },
+        "source_field": {
+          "type": "string",
+          "description": "Output field on the source node"
+        },
+        "target_field": {
+          "type": "string",
+          "description": "Input field on this node"
+        },
+        "transform": {
+          "type": "string",
+          "enum": ["identity", "unwrap", "collect", "first", "last"],
+          "default": "identity",
+          "description": "Simple transform applied to the data before passing"
+        }
+      }
+    },
+    "certificate_spec": {
+      "type": "object",
+      "required": ["predicate_name", "evidence_keys"],
+      "additionalProperties": false,
+      "properties": {
+        "predicate_name": {
+          "type": "string",
+          "description": "Name of the deterministic predicate function"
+        },
+        "predicate_expression": {
+          "type": "string",
+          "description": "Python/JS expression evaluating to bool. Receives `artifact` and `evidence` as variables."
+        },
+        "evidence_keys": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keys that must be present in the evidence dict for this predicate"
+        },
+        "required_upstream_certs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Node IDs whose certificates must pass before this node executes"
+        },
+        "on_failure": {
+          "type": "string",
+          "enum": ["halt", "skip", "retry"],
+          "default": "halt",
+          "description": "Behavior when the certificate predicate returns false"
+        },
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 0,
+          "description": "Maximum retry count when on_failure is 'retry'"
+        }
+      }
+    }
+  }
+}

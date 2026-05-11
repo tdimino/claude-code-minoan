@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dag-typesafe.local/schemas/registry.schema.json",
+  "title": "Typed Node Registry",
+  "description": "A registry of typed operations extracted from a repository's public API surface. Each node has input/output schemas in JSON Schema format. The LLM selects and parameterizes nodes from this registry; it never generates arbitrary code.",
+  "type": "object",
+  "required": ["version", "metadata", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "1.0.0"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["extracted_at", "source_root", "languages"],
+      "additionalProperties": false,
+      "properties": {
+        "extracted_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_root": {
+          "type": "string",
+          "description": "Absolute path to the repo root at extraction time"
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["python", "typescript", "rust", "go", "ruby"]
+          },
+          "description": "Languages detected and extracted"
+        },
+        "extractor_versions": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Map of extractor name to version string"
+        },
+        "node_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_hash": {
+          "type": "string",
+          "description": "SHA-256 of the source files included in extraction"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/registry_node"
+      }
+    }
+  },
+  "$defs": {
+    "registry_node": {
+      "type": "object",
+      "required": ["name", "kind", "language", "input_schema", "output_schema", "source_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$",
+          "description": "Fully qualified name (e.g. 'module.ClassName.method' or 'package.functionName')"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["function", "method", "class", "type_definition", "endpoint", "task_worker"],
+          "description": "What kind of callable this node represents"
+        },
+        "language": {
+          "type": "string",
+          "enum": ["python", "typescript", "rust", "go", "ruby"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description extracted from docstring or JSDoc"
+        },
+        "input_schema": {
+          "type": "object",
+          "description": "JSON Schema describing the node's input. Derived from function parameters, Pydantic model, Zod schema, etc."
+        },
+        "output_schema": {
+          "type": "object",
+          "description": "JSON Schema describing the node's output. Derived from return type annotation."
+        },
+        "param_schema": {
+          "type": "object",
+          "description": "JSON Schema for static configuration parameters (distinct from runtime inputs). Optional."
+        },
+        "source_ref": {
+          "$ref": "#/$defs/source_ref"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Other registry node names this node depends on (for import resolution)"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Semantic tags for filtering (e.g. 'io', 'transform', 'validate', 'auth')"
+        },
+        "side_effects": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this node has observable side effects (writes to disk, network calls, etc.)"
+        },
+        "idempotent": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether calling this node multiple times with the same input produces the same output"
+        },
+        "certificate_template": {
+          "type": "object",
+          "description": "Default certificate spec for this node. Can be overridden in the DAG plan.",
+          "properties": {
+            "predicate_name": { "type": "string" },
+            "evidence_keys": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "source_ref": {
+      "type": "object",
+      "required": ["file", "line"],
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Relative path from repo root"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Line number of the definition"
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "module": {
+          "type": "string",
+          "description": "Module/package name"
+        }
+      }
+    }
+  }
+}
