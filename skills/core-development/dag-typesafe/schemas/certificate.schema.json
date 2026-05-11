@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dag-typesafe.local/schemas/certificate.schema.json",
+  "title": "GraphSentry Certificate",
+  "description": "A certificate is a deterministic predicate evaluated from logged evidence, emitted alongside an artifact by each DAG node. Certificates make implicit interface assumptions explicit and auditable. Based on GraphSentry (Li et al., 2026).",
+  "type": "object",
+  "required": ["node_id", "predicate_name", "result", "evidence", "timestamp"],
+  "additionalProperties": false,
+  "properties": {
+    "node_id": {
+      "type": "string",
+      "description": "The DAG node that emitted this certificate"
+    },
+    "predicate_name": {
+      "type": "string",
+      "description": "Name of the deterministic predicate that was evaluated"
+    },
+    "result": {
+      "type": "boolean",
+      "description": "Whether the predicate passed. Same evidence always produces the same result."
+    },
+    "evidence": {
+      "type": "object",
+      "description": "The logged evidence used to evaluate the predicate. All evidence_keys from the certificate spec must be present.",
+      "additionalProperties": true
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "artifact_hash": {
+      "type": "string",
+      "description": "SHA-256 of the artifact this certificate accompanies. Binds the certificate to a specific output."
+    },
+    "upstream_certificates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["node_id", "predicate_name", "result"],
+        "additionalProperties": false,
+        "properties": {
+          "node_id": { "type": "string" },
+          "predicate_name": { "type": "string" },
+          "result": { "type": "boolean" }
+        }
+      },
+      "description": "Summary of upstream certificates this node depended on"
+    },
+    "execution_context": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "duration_ms": {
+          "type": "number",
+          "description": "Time taken to produce the artifact"
+        },
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error": {
+          "type": "string",
+          "description": "Error message if the node failed before predicate evaluation"
+        }
+      },
+      "description": "Runtime context logged during node execution"
+    },
+    "dag_plan_ref": {
+      "type": "string",
+      "description": "Path or URI to the DAG plan this certificate was produced under"
+    }
+  }
+}
