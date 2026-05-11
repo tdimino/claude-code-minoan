@@ -1,6 +1,6 @@
 # Claude-Code-Minoan
 
-Curated `~/.claude/` configuration for Claude Code: 82 skills, 44 hooks, 47 commands, CLI tools, and a VS Code extension.
+Curated `~/.claude/` configuration for Claude Code: 90 skills, 46 hooks, 20 commands, CLI tools, and a VS Code extension.
 
 ## Architecture
 @ARCHITECTURE.md
