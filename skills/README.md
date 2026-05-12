@@ -84,8 +84,8 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `ancient-near-east-research` | Biblical Hebrew, Semitic linguistics, cuneiform, Minoan/Aegean archaeology — [Sefaria](https://www.sefaria.org/), CDLI/ORACC APIs + web discovery |
 | `exa-search` | Neural search via [Exa AI](https://exa.ai/) — 5 specialized scripts, all API endpoints |
 | `firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) v2 — JS rendering, site crawls, Agent API, Interact API |
-| `linear-a-decipherment` | Computational [Linear A](https://en.wikipedia.org/wiki/Linear_A) analysis — [Gordon](https://en.wikipedia.org/wiki/Cyrus_H._Gordon) 5-step pipeline, cognate search, corpus statistics, sign analysis |
 | `minoan` | Speak, compose, and inhabit reconstructed Minoan ([Lisan al-Qads](https://en.wikipedia.org/wiki/Minoan_language)) — 5 modes, 168-word lexicon, Ugaritic-model grammar, 8 composition genres |
+| `geo-seo` | AI search visibility audit + artifact generator — 7-dimension scorecard (crawler access, discovery, schema, citability, SEO, entity signals, multi-engine), deployable llms.txt/schema/robots.txt, tailored by site type and scale. Grounded in [Princeton KDD 2024](https://arxiv.org/abs/2311.09735), [CMU ICLR 2026](https://arxiv.org/abs/2510.11438), and 6 more papers |
 | `omnisearch` | Unified meta-router across 5 providers ([Brave](https://brave.com/search/api/), [Tavily](https://tavily.com/), [Xpoz](https://xpoz.ai/), Exa, Firecrawl) — auto-routing, parallel search with dedup, social media, AI answers |
 | `openplanter` | Plant care monitoring and advice via [OpenPlanter](https://github.com/OpenPlanter) sensor data |
 | `scrapling` | Local stealth web scraping: anti-bot bypass, Cloudflare solver, adaptive element tracking |
