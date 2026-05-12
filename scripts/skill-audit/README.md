@@ -25,7 +25,7 @@ Scans `~/Desktop/claude-code-minoan/skills/` for directories containing `SKILL.m
 | `readme_stale` | Git date is >7 days newer than README date |
 
 ```bash
-skill-audit.py                          # ANSI table of all 80 skills
+skill-audit.py                          # ANSI table of all 92 skills
 skill-audit.py --flagged-only           # Only skills with issues
 skill-audit.py --category integration-automation
 skill-audit.py --json                   # JSON to stdout
