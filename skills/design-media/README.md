@@ -53,6 +53,7 @@ The satellite skills adapt patterns from [Impeccable](https://github.com/pbakaus
 | `conductor-motion` | Behavioral animation patterns that simulate live software: typewriter/rotator, progress bars, file review state machines, stagger reveals, terminal displays, Lottie orchestration, workflow graphs, multi-agent review compositions. 8 generator modes, 10 reference files, validator script. Distilled from [ConductorAI.com](https://www.conductorai.com/) |
 | `grainient` | 16 composable dark-mode effects: WebGL2 aurora shader, vignette overlays, 9-layer box shadows, Lenis-style smooth scroll, spring animations, hover zoom, ticker marquee, glassmorphism, 3D card flip, bento grid, gradient CTAs. 5 modes, generator script, validator |
 | `webgpu-threejs-tsl` | WebGPU reference skill for Three.js + TSL: renderer setup, node materials, compute shaders, post-processing, WGSL integration. Reference/learning — for generating scenes, use `threejs-particle-canvas`. Adopted from [dgreenheck/webgpu-claude-skill](https://github.com/dgreenheck/webgpu-claude-skill) |
+| `atmosphere-shader` | Physically-based atmospheric scattering shaders — sky domes, planetary atmospheres, LUT-optimized pipelines, depth-aware post-processing. 4 modes (`sky-dome`, `atmosphere-post`, `planet`, `lut`), 6 gotchas with wrong/right code, Rayleigh + Mie + Ozone. Distilled from [Maxime Heckel](https://blog.maximeheckel.com/posts/on-rendering-the-sky-sunsets-and-planets/) |
 
 ## Component Libraries
 

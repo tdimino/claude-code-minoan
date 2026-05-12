@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-91-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-92-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-20-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-46-orange.svg" alt="Hooks"></a>
 </p>
@@ -20,7 +20,7 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 91 custom skills across 5 categories
+├── skills/                      # 92 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
@@ -74,7 +74,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 91 skills across 5 categories
+### [Skills](skills/README.md) — 92 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 

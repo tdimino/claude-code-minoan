@@ -76,6 +76,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `threejs-particle-canvas` | Interactive Three.js particle canvases: narrative phase cycles, WebGPU spinners, infinite gallery tunnels, behavior-driven glTF specimens |
 | `sprite-forge` | Game sprites, SVG characters, ASCII art, animated mascots, isometric turnarounds — 5 output modes |
 | `webgpu-threejs-tsl` | WebGPU reference skill for [Three.js](https://threejs.org/) + [TSL](https://github.com/mrdoob/three.js/wiki/Three.js-Shading-Language): renderer setup, node materials, compute shaders, WGSL integration. Adopted from [dgreenheck/webgpu-claude-skill](https://github.com/dgreenheck/webgpu-claude-skill) |
+| `atmosphere-shader` | Physically-based atmospheric scattering — sky domes, planetary atmospheres, LUT pipelines. 4 modes, 6 gotchas. Distilled from [Maxime Heckel](https://blog.maximeheckel.com/posts/on-rendering-the-sky-sunsets-and-planets/) |
 
 ### Research (`research/`)
 | Skill | Description |
