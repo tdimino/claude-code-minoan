@@ -1,11 +1,6 @@
 ---
 name: open-interpreter
-description: Desktop GUI automation via OpenInterpreter — mouse, keyboard, screenshot,
-  and OCR control for native macOS/Linux applications. Three modes: Library (Claude
-  reasons, OI executes), OS subprocess (full autonomous computer use), and Local agent
-  (Ollama, offline). This skill should be used when interacting with desktop apps that
-  have no CLI or API, automating GUI workflows, reading screen content via OCR, or
-  controlling mouse/keyboard.
+description: "Desktop GUI automation via OpenInterpreter — mouse, keyboard, screenshot, and OCR control for native macOS/Linux applications. Three modes: Library (Claude reasons, OI executes), OS subprocess (full autonomous computer use), and Local agent (Ollama, offline). This skill should be used when interacting with desktop apps that have no CLI or API, automating GUI workflows, reading screen content via OCR, or controlling mouse/keyboard."
 ---
 
 # OpenInterpreter — Desktop GUI Automation

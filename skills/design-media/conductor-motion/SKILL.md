@@ -1,7 +1,7 @@
 ---
 name: conductor-motion
 description: "Generate hand-crafted web animation patterns as self-contained HTML: typewriter/rotator effects, progress bar simulations, file review state machines, staggered reveals, terminal status displays, Lottie orchestration, scroll-driven sequences. Behavioral animations that simulate live software. Triggers on typewriter effect, progress animation, stagger reveal, terminal animation, data simulation, product demo animation, loading sequence, conductor motion."
-argument-hint: [--mode typewriter|progress|file-review|stagger-reveal|terminal|lottie-compose|full-page|catalog] [--pacing slow|medium|fast] [content args]
+argument-hint: "[--mode typewriter|progress|file-review|stagger-reveal|terminal|lottie-compose|full-page|catalog] [--pacing slow|medium|fast] [content args]"
 ---
 
 # Conductor Motion

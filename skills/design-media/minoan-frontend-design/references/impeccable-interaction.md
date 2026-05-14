@@ -84,6 +84,54 @@ For tooltips, dropdowns, and non-modal overlays, use native popovers:
 
 **Benefits**: Light-dismiss (click outside closes), proper stacking, no z-index wars, accessible by default.
 
+## Dropdown & Overlay Positioning
+
+Dropdowns rendered with `position: absolute` inside a container that has `overflow: hidden` or `overflow: auto` will be clipped. This is the single most common dropdown bug in generated code.
+
+### CSS Anchor Positioning
+
+The modern solution tethers an overlay to its trigger without JavaScript:
+
+```css
+.trigger {
+  anchor-name: --menu-trigger;
+}
+
+.dropdown {
+  position: fixed;
+  position-anchor: --menu-trigger;
+  position-area: block-end span-inline-end;
+  margin-top: 4px;
+}
+
+/* Flip above if no room below */
+@position-try --flip-above {
+  position-area: block-start span-inline-end;
+  margin-bottom: 4px;
+}
+```
+
+Because the dropdown uses `position: fixed`, it escapes any `overflow` clipping. `@position-try` handles viewport edges automatically. **Browser support**: Chrome/Edge 125+. Not yet in Firefox or Safari—use a fallback.
+
+### Popover + Anchor Combo
+
+Combining Popover API with anchor positioning gives stacking, light-dismiss, accessibility, and correct positioning in one pattern. The `popover` attribute places the element in the **top layer**, above all content regardless of z-index or overflow.
+
+### Portal / Teleport Pattern
+
+In component frameworks, render the dropdown at the document root:
+- **React**: `createPortal(dropdown, document.body)`
+- **Vue**: `<Teleport to="body">`
+- **Svelte**: portal library or mount to `document.body`
+
+Calculate position from the trigger's `getBoundingClientRect()`, apply `position: fixed`.
+
+### Anti-Patterns
+
+- **`position: absolute` inside `overflow: hidden`**—dropdown will be clipped. Use `position: fixed` or top layer.
+- **Arbitrary z-index values** like `z-index: 9999`—use a semantic scale: dropdown (100) → sticky (200) → modal-backdrop (300) → modal (400) → toast (500) → tooltip (600).
+- **Rendering dropdown inline** without an escape hatch from the parent's stacking context. Use `popover`, a portal, or `position: fixed`.
+
 ## Destructive Actions: Undo > Confirm
 
 **Undo is better than confirmation dialogs**—users click through confirmations mindlessly. Remove from UI immediately, show undo toast, actually delete after toast expires. Use confirmation only for truly irreversible actions (account deletion), high-cost actions, or batch operations.

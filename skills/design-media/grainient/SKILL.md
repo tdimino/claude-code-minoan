@@ -1,7 +1,7 @@
 ---
 name: grainient
 description: "Recreate grainient.supply's 16 dark-mode visual effects as single-file HTML pages: WebGL shader gradients, vignette overlays, 9-layer box shadows, smooth scroll, spring animations, hover-zoom, ticker marquees, glassmorphism, 3D card flips, bento grids, gradient CTAs. Dark-mode-first with lime green (#C2F13C) accent. Triggers on grainient effects, dark-mode landing page, cinematic depth, glow effects, SaaS showcase, visual effects page."
-argument-hint: [--mode hero|bento|ticker|page|catalog] [description or effect name]
+argument-hint: "[--mode hero|bento|ticker|page|catalog] [description or effect name]"
 ---
 
 # Grainient Effects Skill

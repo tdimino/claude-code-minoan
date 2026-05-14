@@ -1,6 +1,6 @@
 # Anti-Patterns & Technical Standards
 
-Condensed from Impeccable (pbakaus/impeccable v1.6.0) domain references. Use this as a checklist to catch common mistakes after building.
+Condensed from Impeccable (pbakaus/impeccable v3.1.0). Updated 2026-05-14. Use this as a checklist to catch common mistakes after building.
 
 ## AI Slop Tells
 
@@ -21,6 +21,7 @@ These patterns signal AI-generated design. Avoid all of them:
 
 ## Typography
 
+- **Body text viewport edge**: Body text must never run to the absolute viewport edge without padding. At minimum, apply `1rem` inline padding on mobile. Flush text against the viewport edge reads as broken, not intentional.
 - **Vertical rhythm**: Line-height is the base unit for ALL vertical spacing. If body is `line-height: 1.5` on 16px (=24px), spacing should be multiples of 24px
 - **Modular scale**: Use 5 sizes with clear contrast, not 14/15/16/18 muddy steps. Ratios: 1.25 (major third), 1.333 (perfect fourth), 1.5 (perfect fifth)
 - **Measure**: `max-width: 65ch` for body text. Increase line-height (+0.05-0.1) for light-on-dark
@@ -30,7 +31,7 @@ These patterns signal AI-generated design. Avoid all of them:
 
 ## Color & Contrast
 
-- **Use OKLCH, not HSL**. OKLCH is perceptually uniform—equal lightness steps look equal. Reduce chroma as you approach white/black (high chroma at extreme lightness looks garish)
+- **Use OKLCH, not HSL**. OKLCH is perceptually uniform—equal lightness steps look equal. Reduce chroma as you approach white/black (high chroma at extreme lightness looks garish). Note: when auditing existing codebases, OKLCH values resolved through CSS custom properties or Tailwind theme tokens may appear as raw numbers without the `oklch()` wrapper—verify the full resolution chain before flagging.
 - **Tinted neutrals**: Pure gray is dead. Add chroma 0.01 of your brand hue to all neutrals: `oklch(95% 0.01 250)` for cool, `oklch(95% 0.01 60)` for warm
 - **Pure black (#000)**: Never for backgrounds or text. Use rich off-blacks with subtle hue tint
 - **Gray text on color**: Always fails readability. Use a darker shade of the background color instead
@@ -62,6 +63,7 @@ These patterns signal AI-generated design. Avoid all of them:
 
 ## Interaction
 
+- **Anchor inheritance**: Link text must not inherit its color from a styled parent and blend invisibly into body text. Links need their own distinct color or underline treatment—an anchor that looks identical to surrounding text is a discoverability failure.
 - **Eight states**: Default, hover, focus, active, disabled, loading, error, success. Every interactive element needs all eight designed
 - **Focus rings**: Never `outline: none` without replacement. Use `:focus-visible` for keyboard-only rings. 2-3px, offset, 3:1 contrast minimum
 - **Placeholders are not labels**: They disappear on input. Always use visible `<label>` elements
@@ -91,3 +93,23 @@ These patterns signal AI-generated design. Avoid all of them:
 - **Terminology consistency**: Pick one and enforce it. Delete/Remove/Trash = just Delete. Settings/Preferences/Options = just Settings
 - **Translation**: German +30%, French +20%, Finnish +30-40%. Keep numbers separate, use full sentences, avoid abbreviations
 - **Link text**: Standalone meaning—"View pricing plans" not "Click here." Alt text describes information, not the image
+
+## Brand Register Guards
+
+### The Inverse Test
+
+Describe your page the way a competitor would describe theirs. If that sentence fits the modal landing page in the category, restart. The interface should be so fitted to its context that the aesthetic can't be transplanted.
+
+### Reflex-Reject Aesthetic Lanes
+
+The editorial-typographic lane is now saturated: Klim-influenced, magazine-cover affectation, three rule-separated columns, italic Fraunces/Recoleta/Newsreader headline. If you find yourself reaching for this shape, you've fallen into the second-order reflex—avoiding the obvious defaults but landing on the same non-obvious default everyone else did.
+
+### Cultural-Symbol Palette Guardrail
+
+Reach past the obvious cultural color association. Green for sustainability, blue for finance, red for food—these are first-order reflexes. Let cultural reading come from typography and imagery, not color alone. The hue should be a brand decision, not a category reflex.
+
+### Category-Reflex Check
+
+Apply at two altitudes:
+1. **First-order**: Given the category (fintech, health, e-commerce), guess the theme and palette. If your design matches that guess, restart.
+2. **Second-order**: Given the category PLUS anti-references (avoid the obvious), guess the aesthetic family. If your design matches that refined guess, push further.
