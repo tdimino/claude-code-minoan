@@ -26,9 +26,20 @@ Popular ratios: 1.25 (major third), 1.333 (perfect fourth), 1.5 (perfect fifth).
 
 Use `ch` units for character-based measure (`max-width: 65ch`). Line-height scales inversely with line length—narrow columns need tighter leading, wide columns need more.
 
-**Non-obvious**: Increase line-height for light text on dark backgrounds. The perceived weight is lighter, so text needs more breathing room. Add 0.05-0.1 to your normal line-height.
+**Non-obvious**: Light text on dark backgrounds needs compensation on three axes, not just one. Bump line-height by 0.05–0.1, add a touch of letter-spacing (0.01–0.02em), and optionally step the body weight up one notch (regular → medium). The perceived weight drops across all three; fix all three.
+
+**Paragraph rhythm**: Pick either space between paragraphs OR first-line indentation. Never both. Digital usually wants space; editorial/long-form can justify indent-only.
 
 ## Font Selection & Pairing
+
+The tactical selection procedure and the reflex-reject list live in the brand register (see `anti-patterns.md` under **Brand Register Guards**). The rest of this section covers adjacent knowledge: anti-reflex corrections, system font use, and pairing rules.
+
+### Anti-reflexes worth defending against
+
+- A technical/utilitarian brief does NOT need a serif "for warmth." Most tech tools should look like tech tools.
+- An editorial/premium brief does NOT need the same expressive serif everyone is using right now. Premium can be Swiss-modern, can be neo-grotesque, can be a literal monospace, can be a quiet humanist sans.
+- A children's product does NOT need a rounded display font. Kids' books use real type.
+- A "modern" brief does NOT need a geometric sans. The most modern thing you can do is not use the font everyone else is using.
 
 ### Choosing Distinctive Fonts
 
@@ -78,13 +89,25 @@ body {
 
 Tools like [Fontaine](https://github.com/unjs/fontaine) calculate these overrides automatically.
 
+**`swap` vs `optional`**: `swap` shows fallback text immediately and FOUT-swaps when the web font arrives. `optional` uses the fallback if the web font misses a small load budget (~100ms) and avoids the shift entirely. Pick `optional` when zero layout shift matters more than seeing the branded font on slow networks.
+
+**Preload the critical weight only**: typically the regular-weight body font used above the fold. Preloading every weight costs more bandwidth than it saves.
+
+**Variable fonts for 3+ weights or styles**: a single variable font file is usually smaller than three static weight files, gives fractional weight control, and pairs well with `font-optical-sizing: auto`. For 1–2 weights, static is fine.
+
 ## Modern Web Typography
 
 ### Fluid Type
 
-Use `clamp(min, preferred, max)` for fluid typography. The middle value (e.g., `5vw + 1rem`) controls scaling rate—higher vw = faster scaling. Add a rem offset so it doesn't collapse to 0 on small screens.
+Fluid typography via `clamp(min, preferred, max)` scales text smoothly with the viewport. The middle value (e.g., `5vw + 1rem`) controls scaling rate (higher vw = faster scaling). Add a rem offset so it doesn't collapse to 0 on small screens.
 
-**When NOT to use fluid type**: Button text, labels, UI elements (should be consistent), very short text, or when you need precise breakpoint control.
+**Use fluid type for**: Headings and display text on marketing/content pages where text dominates the layout and needs to breathe across viewport sizes.
+
+**Use fixed `rem` scales for**: App UIs, dashboards, and data-dense interfaces. No major app design system (Material, Polaris, Primer, Carbon) uses fluid type in product UI; fixed scales with optional breakpoint adjustments give the spatial predictability that container-based layouts need. Body text should also be fixed even on marketing pages.
+
+**Bound your clamp()**: keep `max-size ≤ ~2.5 × min-size`. Wider ratios break the browser's zoom and reflow behaviour and make large viewports feel like the page is shouting.
+
+**Scale container width and font-size together** so effective character measure stays in the 45–75ch band at every viewport.
 
 ### OpenType Features
 
@@ -108,6 +131,21 @@ body { font-kerning: normal; }
 ```
 
 Check what features your font supports at [Wakamai Fondue](https://wakamaifondue.com/).
+
+### Rendering Polish
+
+```css
+/* Even out heading line lengths (browser picks better break points) */
+h1, h2, h3 { text-wrap: balance; }
+
+/* Reduce orphans and ragged endings in long prose */
+article p { text-wrap: pretty; }
+
+/* Variable fonts: pick the right optical-size master automatically */
+body { font-optical-sizing: auto; }
+```
+
+**ALL-CAPS tracking**: capitals sit too close at default spacing. Add 5–12% letter-spacing (`letter-spacing: 0.05em` to `0.12em`) to short all-caps labels, eyebrows, and small headings. Real small caps (via `font-variant-caps`) need the same treatment, slightly gentler.
 
 ## Typography System Architecture
 

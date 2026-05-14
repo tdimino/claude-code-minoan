@@ -1,7 +1,7 @@
 ---
 name: atmosphere-shader
 description: Generate physically-based atmospheric scattering shaders — sky domes, planetary atmospheres, LUT-optimized pipelines, depth-aware post-processing. Four modes — sky-dome, atmosphere-post, planet, lut. Triggers on atmospheric scattering, sky shader, sunset rendering, planet atmosphere, Rayleigh scattering, Mie scattering, volumetric sky, sky dome, atmosphere post-processing, aerial perspective, transmittance LUT, sky rendering, realistic sky, planetary rendering.
-argument-hint: [--mode sky-dome|atmosphere-post|planet|lut] [--planet earth|mars] [--format shadertoy|threejs|r3f]
+argument-hint: "[--mode sky-dome|atmosphere-post|planet|lut] [--planet earth|mars] [--format shadertoy|threejs|r3f]"
 ---
 
 # Atmosphere Shader Skill

@@ -1,7 +1,7 @@
 ---
 name: rocaille-shader
 description: Generate Rocaille-style domain warping shaders, mouse-reactive liquid logo effects, depth-map parallax heroes (Astryx-style hover-reactive statues), and stable fluid simulations over live DOM. Four modes — rocaille, liquid-logo, astryx-statue, fluid-dom. Triggers on shader art, depth parallax, hover-reactive depth map, statue hero, fluid sim, liquid logo, WebGL visualization, procedural background, pointer-reactive fluid.
-argument-hint: [--mode rocaille|liquid-logo|astryx-statue|fluid-dom] [warp-count] [color-mode] [format]
+argument-hint: "[--mode rocaille|liquid-logo|astryx-statue|fluid-dom] [warp-count] [color-mode] [format]"
 ---
 
 # Rocaille Shader Skill

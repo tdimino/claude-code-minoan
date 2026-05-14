@@ -6,12 +6,14 @@
 
 ```css
 /* OKLCH: lightness (0-100%), chroma (0-0.4+), hue (0-360) */
---color-primary: oklch(60% 0.15 250);      /* Blue */
---color-primary-light: oklch(85% 0.08 250); /* Same hue, lighter */
---color-primary-dark: oklch(35% 0.12 250);  /* Same hue, darker */
+--color-primary: oklch(60% 0.15 var(--brand-hue));      /* your brand hue */
+--color-primary-light: oklch(85% 0.08 var(--brand-hue)); /* same hue, lighter */
+--color-primary-dark: oklch(35% 0.12 var(--brand-hue));  /* same hue, darker */
 ```
 
-**Key insight**: As you move toward white or black, reduce chroma (saturation). High chroma at extreme lightness looks garish. A light blue at 85% lightness needs ~0.08 chroma, not the 0.15 of your base color.
+**The hue you pick is a brand decision** and should not come from a default. Do not reach for blue (hue 250) or warm orange (hue 60) by reflex—those are the model's go-to hues, not yours.
+
+**Key insight**: As you move toward white or black, reduce chroma (saturation). High chroma at extreme lightness looks garish. A light tint at 85% lightness needs ~0.08 chroma, not the 0.15 of your base color.
 
 ## Building Functional Palettes
 
@@ -24,16 +26,12 @@
 --gray-100: oklch(95% 0 0);     /* No personality */
 --gray-900: oklch(15% 0 0);
 
-/* Warm-tinted grays (add brand warmth) */
---gray-100: oklch(95% 0.01 60);  /* Hint of warmth */
---gray-900: oklch(15% 0.01 60);
-
-/* Cool-tinted grays (tech, professional) */
---gray-100: oklch(95% 0.01 250); /* Hint of blue */
---gray-900: oklch(15% 0.01 250);
+/* Tinted grays — use YOUR brand hue */
+--gray-100: oklch(95% 0.01 var(--brand-hue));  /* Hint of brand */
+--gray-900: oklch(15% 0.01 var(--brand-hue));
 ```
 
-The chroma is tiny (0.01) but perceptible. It creates subconscious cohesion between your brand color and your UI.
+The chroma is tiny (0.01) but perceptible. It creates subconscious cohesion between your brand color and your UI. The hue you tint toward should come from THIS project's brand — avoid the trap of always tinting toward warm orange or always tinting toward cool blue.
 
 ### Palette Structure
 
@@ -110,14 +108,16 @@ You can't just swap colors. Dark mode requires different design decisions:
 ```css
 /* Dark mode depth via surface color, not shadow */
 :root[data-theme="dark"] {
-  --surface-1: oklch(15% 0.01 250);
-  --surface-2: oklch(20% 0.01 250);  /* "Higher" = lighter */
-  --surface-3: oklch(25% 0.01 250);
+  --surface-1: oklch(15% 0.01 var(--brand-hue));
+  --surface-2: oklch(20% 0.01 var(--brand-hue));  /* "Higher" = lighter */
+  --surface-3: oklch(25% 0.01 var(--brand-hue));
 
   /* Reduce text weight slightly */
   --body-weight: 350;  /* Instead of 400 */
 }
 ```
+
+Dark mode surfaces use a 3-step scale from base (15%) through elevated (25%). The brand hue tints each level so the surface feels like part of the product, not a generic dark UI. Reduce body font weight by one step (400→350) because light-on-dark text appears bolder than it is.
 
 ### Token Hierarchy
 
