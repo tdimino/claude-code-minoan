@@ -12,6 +12,7 @@ Web search, academic research, scraping, and computational analysis.
 | `linear-a-decipherment` | Computational Linear A analysis using Gordon's Semitic hypothesis |
 | `minoan` | Speak, compose, and inhabit reconstructed Minoan (Lisan al-Qads) — language faculty built on Gordon's readings |
 | `openplanter` | Dataset investigation, entity resolution, evidence chains with confidence tiers (Admiralty/ACH) |
+| `reverse-trace` | Reverse image/video source identification — chains Vision, Picarta, Gemini to trace TV shows, movies, locations |
 | `scrapling` | Local stealth web scraping — anti-bot bypass, Cloudflare solver, adaptive element tracking |
 
 ## Scraping Decision Table
@@ -30,5 +31,7 @@ Web search, academic research, scraping, and computational analysis.
 | Multi-provider parallel search | `omnisearch --parallel` |
 | Twitter / Reddit / Instagram | `omnisearch --social` or `xpoz_search.py` |
 | AI-synthesized answer | `omnisearch --answer` |
+| Identify image/video source | `reverse-trace` (rt_trace.py) |
+| Geolocate a photo | `reverse-trace` (rt_geospy.py) |
 
 Both `firecrawl` and `scrapling` output can be piped through `firecrawl/scripts/filter_web_results.py` for token-efficient extraction.
