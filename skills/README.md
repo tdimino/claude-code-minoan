@@ -90,6 +90,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `omnisearch` | Unified meta-router across 5 providers ([Brave](https://brave.com/search/api/), [Tavily](https://tavily.com/), [Xpoz](https://xpoz.ai/), Exa, Firecrawl) — auto-routing, parallel search with dedup, social media, AI answers |
 | `openplanter` | Plant care monitoring and advice via [OpenPlanter](https://github.com/OpenPlanter) sensor data |
 | `scrapling` | Local stealth web scraping: anti-bot bypass, Cloudflare solver, adaptive element tracking |
+| `reverse-trace` | Reverse image/video source identification — chains [Google Vision](https://cloud.google.com/vision), [Picarta](https://picarta.ai/) geolocation, and [Gemini](https://ai.google.dev/) in parallel to trace TV shows, movies, locations |
 
 ### Planning & Productivity (`planning-productivity/`)
 | Skill | Description |
