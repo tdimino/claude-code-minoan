@@ -19,6 +19,8 @@ const readline = require('readline');
 const { execSync } = require('child_process');
 
 let firstResumeCmd = null;
+const ghosttyScript = path.join(os.homedir(), '.claude', 'scripts', 'ghostty-resume.sh');
+const hasGhostty = fs.existsSync(ghosttyScript);
 
 function trackResume(projectPath, sessionId) {
   if (!firstResumeCmd) {
@@ -322,6 +324,9 @@ function printNameResults(results, escapedTerm) {
     console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
     trackResume(result.projectPath, result.sessionId);
     console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
+    if (hasGhostty) {
+      console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + result.sessionId + '\x1b[0m');
+    }
     console.log('');
   }
 }
@@ -377,6 +382,9 @@ function printDbResults(results, escapedTerm) {
     console.log('    \x1b[90mID:\x1b[0m ' + r.session_id);
     trackResume(r.project_path, r.session_id);
     console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + r.project_path + ' && claude --resume ' + r.session_id + '\x1b[0m');
+    if (hasGhostty) {
+      console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + r.session_id + '\x1b[0m');
+    }
     console.log('');
   }
   return count;
@@ -446,6 +454,10 @@ async function main() {
       console.log('    \x1b[90mID:\x1b[0m ' + sessionId);
       trackResume(projectPath, sessionId);
       console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + projectPath + ' && claude --resume ' + sessionId + '\x1b[0m');
+      const ghosttyScript = path.join(os.homedir(), '.claude', 'scripts', 'ghostty-resume.sh');
+      if (fs.existsSync(ghosttyScript)) {
+        console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + sessionId + '\x1b[0m');
+      }
       console.log('');
     }
 
@@ -566,6 +578,9 @@ async function main() {
       console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
       trackResume(result.projectPath, result.sessionId);
       console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
+      if (hasGhostty) {
+        console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + result.sessionId + '\x1b[0m');
+      }
 
       // Show metadata match indicators (tag/title/summary from registry)
       if (result.metadataHits && result.metadataHits.length > 0) {
@@ -622,6 +637,9 @@ async function main() {
     console.log('    \x1b[90mID:\x1b[0m ' + meta.sessionId);
     trackResume(meta.projectPath, meta.sessionId);
     console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + meta.projectPath + ' && claude --resume ' + meta.sessionId + '\x1b[0m');
+    if (hasGhostty) {
+      console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + meta.sessionId + '\x1b[0m');
+    }
     console.log('');
   }
 
