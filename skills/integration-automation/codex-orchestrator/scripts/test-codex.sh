@@ -44,7 +44,7 @@ fi
 
 # Test 2: Check all agent profiles exist
 echo -e "\n${YELLOW}Test 2: Agent Profiles${NC}"
-for profile in reviewer debugger architect security refactor docs planner syseng builder researcher; do
+for profile in reviewer debugger architect security refactor docs planner syseng builder researcher chat goal; do
     if [ -f "$SKILL_DIR/agents/$profile.md" ]; then
         test_pass "Profile '$profile' exists"
     else
@@ -54,7 +54,7 @@ done
 
 # Test 3: Check scripts are executable
 echo -e "\n${YELLOW}Test 3: Script Permissions${NC}"
-for script in codex-exec.sh codex-status.sh test-codex.sh; do
+for script in codex-exec.sh codex-status.sh test-codex.sh codex-goal.sh; do
     if [ -x "$SKILL_DIR/scripts/$script" ]; then
         test_pass "Script '$script' is executable"
     else
@@ -84,7 +84,7 @@ fi
 
 # Test 6: Check references exist
 echo -e "\n${YELLOW}Test 6: Reference Documentation${NC}"
-for ref in codex-cli.md agents-md-format.md subagent-patterns.md; do
+for ref in codex-cli.md agents-md-format.md subagent-patterns.md goal-command.md; do
     if [ -f "$SKILL_DIR/references/$ref" ]; then
         test_pass "Reference '$ref' exists"
     else

@@ -3,7 +3,7 @@
 # Usage: codex-exec.sh <profile> "<prompt>" [options]
 # Example: codex-exec.sh reviewer "Review auth.ts for security issues"
 #
-# Profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher
+# Profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher, goal
 
 set -e
 
@@ -39,6 +39,7 @@ show_usage() {
     echo "  builder    - Greenfield implementation specialist"
     echo "  researcher - Read-only Q&A and analysis (no file changes)"
     echo "  chat       - Open-ended conversation (read-only, ephemeral)"
+    echo "  goal       - Goal specification writer for /goal autonomous runs"
     echo ""
     echo "Options:"
     echo "  --model <model>       Override model (default: per-profile, see below)"
@@ -58,7 +59,7 @@ show_usage() {
     echo ""
     echo "Profile defaults:"
     echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.5 + high"
-    echo "  Planning (planner,architect):                                       gpt-5.5 + high"
+    echo "  Planning (planner,architect,goal):                                   gpt-5.5 + high"
     echo "  Research (researcher):                                              gpt-5.5 + medium"
     echo "  Chat     (chat):                                                    gpt-5.4 + medium"
     echo ""
@@ -77,7 +78,7 @@ get_profile_defaults() {
     local profile="$1"
     case "$profile" in
         # Planning profiles: gpt-5.5 with high reasoning (gpt-5.5-pro requires API key auth)
-        planner|architect)
+        planner|architect|goal)
             DEFAULT_MODEL="gpt-5.5"
             DEFAULT_REASONING="high"
             ;;
@@ -130,7 +131,7 @@ shift 2
 AGENTS_FILE="$AGENTS_DIR/$PROFILE.md"
 if [ ! -f "$AGENTS_FILE" ]; then
     echo -e "${RED}Error: Profile '$PROFILE' not found${NC}"
-    echo "Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher, chat"
+    echo "Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher, chat, goal"
     exit 1
 fi
 
@@ -232,10 +233,17 @@ fi
 # Auto-configure read-only profiles
 EPHEMERAL=""
 OUTPUT_FILE=""
+EXTRACT_RESPONSE=""
 if [ "$PROFILE" = "researcher" ] || [ "$PROFILE" = "chat" ]; then
     SANDBOX="read-only"
     EPHEMERAL="--ephemeral"
     OUTPUT_FILE=$(mktemp /tmp/codex-researcher-XXXXXXXX)
+    # Use --json + jq to extract only agent_message text, avoiding the noise
+    # from intermediate file reads that -o captures.
+    # Skip if user explicitly requested --json (they want raw JSONL).
+    if command -v jq >/dev/null 2>&1 && [ -z "$JSON_OUTPUT" ]; then
+        EXTRACT_RESPONSE="true"
+    fi
 fi
 
 # Save current directory
@@ -374,7 +382,11 @@ fi
 if [ -n "$EPHEMERAL" ]; then
     CODEX_ARGS+=(--ephemeral)
 fi
-if [ -n "$OUTPUT_FILE" ]; then
+if [ -n "$EXTRACT_RESPONSE" ]; then
+    # --json gives us structured JSONL events; we extract agent_message text via jq
+    CODEX_ARGS+=(--json)
+elif [ -n "$OUTPUT_FILE" ]; then
+    # Fallback: -o captures last message (may include intermediate content)
     CODEX_ARGS+=(-o "$OUTPUT_FILE")
 fi
 # Exa search is injected via AGENTS.md; built-in web search is fallback
@@ -385,8 +397,8 @@ fi
 if [ -n "$NATIVE_SEARCH" ]; then
     CODEX_ARGS+=(-c 'web_search="live"')
 fi
-# JSONL event stream output
-if [ -n "$JSON_OUTPUT" ]; then
+# JSONL event stream output (skip if EXTRACT_RESPONSE already added --json)
+if [ -n "$JSON_OUTPUT" ] && [ -z "$EXTRACT_RESPONSE" ]; then
     CODEX_ARGS+=(--json)
 fi
 # Vision input (image attachment)
@@ -436,12 +448,27 @@ fi
 # Run Codex with the agent profile
 # Codex reads AGENTS.md from the current directory
 set +e
-if [ -n "$RESUME_SESSION" ]; then
+if [ -n "$EXTRACT_RESPONSE" ]; then
+    # JSONL mode: pipe through jq to extract only agent_message text.
+    # This filters out intermediate tool calls (file reads, command executions)
+    # that would otherwise bury the actual response in thousands of lines.
+    if [ -n "$RESUME_SESSION" ]; then
+        codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null 2>/dev/null \
+            | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
+            > "$OUTPUT_FILE"
+    else
+        codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null 2>/dev/null \
+            | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
+            > "$OUTPUT_FILE"
+    fi
+    CODEX_EXIT=${PIPESTATUS[0]}
+elif [ -n "$RESUME_SESSION" ]; then
     codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null
+    CODEX_EXIT=$?
 else
     codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null
+    CODEX_EXIT=$?
 fi
-CODEX_EXIT=$?
 set -e
 
 # Handle signal exits cleanly

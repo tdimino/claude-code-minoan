@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-05-03 | Codex CLI v0.122.0 | Models: GPT-5.5 family
+> Last updated: 2026-05-18 | Codex CLI v0.130.0 | Models: GPT-5.5 family
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -63,6 +63,7 @@ Billed at standard API rates.
 | `builder` | Greenfield implementation | New features from specs |
 | `researcher` | Read-only Q&A and analysis | Questions, comparisons (no file changes) |
 | `chat` | Open-ended conversation | General questions, brainstorming (read-only, ephemeral) |
+| `goal` | Goal specification for /goal runs | Drafting objectives for autonomous multi-hour Codex sessions |
 
 ## Quick Start
 
@@ -121,7 +122,7 @@ Each profile has a default model and reasoning effort. User flags override these
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
 | **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.5` | `high` |
-| **Planning** | planner, architect | `gpt-5.5` | `high` |
+| **Planning** | planner, architect, goal | `gpt-5.5` | `high` |
 | **Research** | researcher | `gpt-5.5` | `medium` |
 | **Chat** | chat | `gpt-5.4` | `medium` |
 
@@ -193,6 +194,60 @@ See `references/codex-models.md` for full model history, capabilities, and reaso
 ./scripts/codex-exec.sh refactor "Extract repository pattern from services"
 ```
 
+### Planner → Goal → Run → Reviewer
+
+```bash
+# 1. Plan the feature
+./scripts/codex-exec.sh planner "Create ExecPlan for caching layer"
+
+# 2. Draft a goal specification
+./scripts/codex-goal.sh draft "Implement caching layer per ExecPlan"
+
+# 3. Launch autonomous goal run (interactive TUI)
+./scripts/codex-goal.sh run goals/goal-20260518-143000.md
+
+# 4. Review what Codex built
+./scripts/codex-exec.sh reviewer "Review the caching implementation"
+```
+
+## Goal Runs
+
+The `/goal` command sets a persistent objective that Codex works toward autonomously for hours. Goals are TUI-only (not available in `codex exec` mode), so goal runs use a two-phase workflow.
+
+### Two-Phase Workflow
+
+1. **Draft** — Generate a structured goal specification file using `codex exec` with the `goal` profile
+2. **Run** — Launch the interactive Codex TUI with `/goal` set from the spec file
+
+### Usage
+
+```bash
+# Draft a goal specification
+./scripts/codex-goal.sh draft "Add authentication with JWT to the API"
+
+# Draft with custom output path
+./scripts/codex-goal.sh draft "Migrate to PostgreSQL" --output goals/pg-migration.md
+
+# List existing goals
+./scripts/codex-goal.sh list
+
+# Launch Codex TUI with a goal
+./scripts/codex-goal.sh run goals/goal-20260518-143000.md
+```
+
+### Goal File Format
+
+Goal specifications use YAML frontmatter + structured sections: Objective, Stopping Condition, Context, Constraints, Validation, Checkpoints, Progress Log. Goals under 3,500 characters are inlined directly into the `/goal` command; longer goals are referenced by file path.
+
+### Caveats
+
+- `/goal` is TUI-only — the `run` subcommand launches an interactive Codex session
+- Requires `features.goals = true` in `~/.codex/config.toml` (or `--enable goals` flag, passed automatically)
+- One goal per thread — setting a new goal replaces the active one
+- 4,000 character limit on `/goal` content
+
+See `references/goal-command.md` for the full `/goal` command reference.
+
 ## The Planner Profile
 
 The `planner` profile creates **ExecPlans** - self-contained, living design documents for multi-hour implementation tasks. Based on [OpenAI's ExecPlan methodology](https://developers.openai.com/cookbook/articles/codex_exec_plans/).
@@ -221,16 +276,6 @@ Every ExecPlan includes:
 - **Idempotence and Recovery** - Safe retry and rollback paths
 - **Interfaces and Dependencies** - Required types, signatures, libraries
 
-## Parallel Execution
-
-Multiple codex-orchestrator instances can run concurrently in the same directory. Each instance manages its own PID-scoped AGENTS.md backup (``.AGENTS.md.codex-backup.<PID>``), so sibling processes never interfere with each other.
-
-- **Startup:** Orphan backups from dead processes are detected and restored automatically.
-- **Cleanup:** The last instance to exit restores the original AGENTS.md. Live siblings are detected via `kill -0`.
-- **Sentinel detection:** Injected AGENTS.md files (both symlinks and `--web-search` concatenated files) are identified by path or `# CODEX-ORCHESTRATOR-INJECTED` marker.
-
-If a previous run crashed and left a stale backup, the next invocation recovers automatically.
-
 ## Script Options
 
 ### codex-exec.sh
@@ -244,14 +289,14 @@ If a previous run crashed and left a stale backup, the next invocation recovers 
 | `--no-auto` | Disable auto `--full-auto` (require manual approval) |
 | `--web-search` | Enable Exa web search (injects guide into AGENTS.md) |
 | `--search` | Enable native Codex web search (works in all sandboxes) |
-| `--json` | Output JSONL event stream (pipe to jq, logs, etc.) |
+| `--json` | Output raw JSONL event stream (pipe to jq, logs, etc.) |
 | `--image <file>` | Attach image to prompt (vision input) |
 | `--resume` | Resume previous exec session (builder "continue" workflow) |
 | `--with-mcp` | Keep global MCP servers enabled (no-op, kept for compatibility) |
-| `--api` | Use OpenAI API directly (API billing, not Codex subscription) |
-| `--session <file>` | Session file for multi-turn API chat (requires `--api`) |
-| `--system <prompt>` | System prompt for API chat (requires `--api`) |
-| `--stream` | Stream API response tokens (requires `--api`) |
+
+### Output Extraction (researcher/chat)
+
+Read-only profiles (`researcher`, `chat`) use JSONL extraction to return clean responses. Codex runs with `--json`, and the script pipes the event stream through `jq` to extract only `agent_message` text—filtering out intermediate file reads and command executions that would otherwise bury the response in thousands of lines. Requires `jq`; falls back to `-o` (raw last-message capture) if jq is unavailable.
 
 ## Notable Recent CLI Features (v0.110–v0.122)
 
@@ -276,22 +321,25 @@ codex-orchestrator/
 ├── agents/                # AGENTS.md persona profiles
 │   ├── architect.md
 │   ├── builder.md
+│   ├── chat.md
 │   ├── debugger.md
 │   ├── docs.md
+│   ├── goal.md            # /goal specification writer
 │   ├── planner.md         # ExecPlan methodology
 │   ├── refactor.md
 │   ├── researcher.md
 │   ├── reviewer.md
 │   ├── security.md
-│   ├── syseng.md
-│   └── chat.md
+│   └── syseng.md
 ├── references/            # Documentation
 │   ├── agents-md-format.md
 │   ├── codex-cli.md
 │   ├── codex-models.md
+│   ├── goal-command.md    # /goal command reference
 │   └── subagent-patterns.md
 └── scripts/               # Execution scripts
     ├── codex-exec.sh      # One-shot execution
+    ├── codex-goal.sh      # Goal draft/run/list workflow
     ├── codex-session.py   # Session management
     ├── codex-status.sh    # Installation check
     ├── codex-version-check.sh  # Version check + auto-update
@@ -330,7 +378,7 @@ export OPENAI_API_KEY=sk-...
 
 ### "Profile not found"
 
-Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`, `chat`
+Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`, `chat`, `goal`
 
 Check profiles exist:
 
@@ -340,11 +388,7 @@ ls ./agents/
 
 ### "Codex produced no output"
 
-The researcher/chat profiles capture output to a temp file. If Codex exits without writing to it, the script warns and exits 1. Common causes:
-
-- Codex session too short to produce a response
-- Model returned empty response (retry)
-- AGENTS.md was missing (check for stale `.AGENTS.md.codex-backup.*` files in working directory)
+The researcher/chat profiles capture output to a temp file. If empty, common causes: Codex session too short, empty model response, or missing `jq` (install via `brew install jq`). Check for stale `.AGENTS.md.codex-backup.*` files in the working directory.
 
 ### Poor Results
 

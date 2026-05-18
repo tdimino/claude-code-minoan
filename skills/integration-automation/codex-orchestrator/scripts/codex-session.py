@@ -56,6 +56,8 @@ PROFILES = {
     "syseng": "Infrastructure/DevOps/CI-CD specialist",
     "builder": "Greenfield implementation specialist",
     "researcher": "Read-only Q&A and analysis (no file changes)",
+    "chat": "Open-ended conversation (read-only, ephemeral)",
+    "goal": "Goal specification writer for autonomous /goal runs",
 }
 
 
