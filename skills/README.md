@@ -76,7 +76,9 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `threejs-particle-canvas` | Interactive Three.js particle canvases: narrative phase cycles, WebGPU spinners, infinite gallery tunnels, behavior-driven glTF specimens |
 | `sprite-forge` | Game sprites, SVG characters, ASCII art, animated mascots, isometric turnarounds — 5 output modes |
 | `webgpu-threejs-tsl` | WebGPU reference skill for [Three.js](https://threejs.org/) + [TSL](https://github.com/mrdoob/three.js/wiki/Three.js-Shading-Language): renderer setup, node materials, compute shaders, WGSL integration. Adopted from [dgreenheck/webgpu-claude-skill](https://github.com/dgreenheck/webgpu-claude-skill) |
+| `scroll-cinema` | Cinematic scrolltelling: Lenis smooth scroll + GSAP ScrollTrigger + Three.js painted-texture shader backgrounds. 4 modes, 4 entrance patterns, 3 shader presets, OKLCH color transitions, 27-check validator |
 | `atmosphere-shader` | Physically-based atmospheric scattering — sky domes, planetary atmospheres, LUT pipelines. 4 modes, 6 gotchas. Distilled from [Maxime Heckel](https://blog.maximeheckel.com/posts/on-rendering-the-sky-sunsets-and-planets/) |
+| `tamarru` | Daimonic voice channeling — inhabit Tom di Mino's writing voice across prose, tweets, poetry, and technical docs. 8 registers, 14 sentence mechanics, 18 anti-patterns, 40 calibration quotes. Named for poem #86 in [Shirat Ha Kotharot](https://tomdimino.substack.com/) |
 
 ### Research (`research/`)
 | Skill | Description |
