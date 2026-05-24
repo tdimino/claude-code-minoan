@@ -56,6 +56,8 @@ Reasoning effort controls how much "thinking" the model does before responding. 
 | High | `high` | Default for most coding and planning tasks |
 | Extra High | `xhigh` | Legacy level from GPT-5.3-Codex era. Still works but `high` on GPT-5.4 achieves equivalent depth. |
 
+**Model compatibility:** Reasoning effort is supported on GPT-5.x and o-series models only. GPT-4.x models (gpt-4.1, gpt-4o, etc.) reject the parameter.
+
 Source: [Codex Config Reference](https://developers.openai.com/codex/config-reference) — `model_reasoning_effort` key.
 
 **Note:** GPT-5.5's base reasoning is deeper than GPT-5.4's. `high` remains the recommended default for most tasks.

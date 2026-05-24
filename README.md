@@ -4,8 +4,8 @@
 
 <p align="center">
   <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-96-green.svg" alt="Skills"></a>
-  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-20-purple.svg" alt="Commands"></a>
-  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-46-orange.svg" alt="Hooks"></a>
+  <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-21-purple.svg" alt="Commands"></a>
+  <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-50-orange.svg" alt="Hooks"></a>
 </p>
 
 # Minoan Claude Code Configuration
@@ -26,8 +26,8 @@ claude-code-minoan/
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
 │   ├── research/                #   Academic, web search, scraping
 │   └── planning-productivity/   #   Session tracking, swarms, iteration loops
-├── hooks/                       # 46 lifecycle hooks (handoffs, terminal UX, lint-on-write, phase-detect, mycelium)
-├── commands/                    # 20 slash commands (session tracking, checkpoints, quotes, design, soul, workflows)
+├── hooks/                       # 50 lifecycle hooks (handoffs, terminal UX, lint-on-write, phase-detect, mycelium)
+├── commands/                    # 21 slash commands (session tracking, checkpoints, quotes, design, soul, workflows)
 ├── agents/                      # Custom subagents (librarian, etc.)
 ├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
@@ -35,6 +35,7 @@ claude-code-minoan/
 ├── ghostty/                     # Ghostty terminal config for Claude Code
 ├── sounds/                      # Notification audio
 ├── demos/                       # Complete project demos (Project Thorn, Crypt Librarian)
+├── docs/windows-setup/          # Windows setup guide, PowerShell installer, Codex CLI
 └── docs/global-setup/          # Full ~/.claude/ structure reference
 ```
 
@@ -70,6 +71,8 @@ mkdir -p ~/.claude/lib && cp lib/* ~/.claude/lib/
 
 Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/README.md) for the full settings block.
 
+**On Windows?** See the [Windows setup guide](docs/windows-setup/README.md) — includes a PowerShell installer, compatibility matrix, and [Codex CLI](docs/windows-setup/CODEX-CLI.md) setup.
+
 ---
 
 ## Deep Dives
@@ -90,7 +93,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
 
-> **Claude 4.6 Prompting Alignment (Feb 2026)**: All agentic skills (`minoan-swarm`, `super-ralph-wiggum`, `firecrawl`, `osgrep-reference`, `claude-agent-sdk`, `skill-optimizer`) updated to follow [Anthropic's Claude 4.6 prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)—softer tool-use language, factual quality criteria over motivational framing, effort parameter guidance, structured state management.
+> **Claude 4.6 Prompting Alignment (Feb 2026)**: All agentic skills (`minoan-swarm`, `super-ralph-wiggum`, `firecrawl`, `claude-agent-sdk`, `skill-optimizer`) updated to follow [Anthropic's Claude 4.6 prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)—softer tool-use language, factual quality criteria over motivational framing, effort parameter guidance, structured state management.
 
 ---
 
@@ -98,28 +101,23 @@ Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggl
 
 ---
 
-### [Hooks](hooks/README.md) — Lifecycle event scripts
+### [Hooks](hooks/README.md) — 50 lifecycle event scripts
 
-Scripts that run in response to Claude Code events — terminal UX, crash-resilient session handoffs, cross-repo git tracking, and multi-response sampling.
+30 Python + 20 Bash scripts across 10 lifecycle events. Highlights:
 
 ```
-UserPromptSubmit ──→ multi-response-prompt.py    (/5x trigger)
-PreToolUse ────────→ on-thinking.sh              (🔴 repo-icon + title)
-                   → git-track.sh               (Bash: log git commands to JSONL)
-PostToolUse ───────→ git-track-post.sh           (Bash: capture commit hashes)
-                   → plan-rename.py              (Write/Edit/MultiEdit: random→dated slug)
-                   → plan-session-rename.py      (Write: auto-title session from plan H1)
-                   → lint-on-write.py            (Write/Edit: ESLint/Clippy/Ruff + custom rules)
-                   → mycelium-context.py         (Read: surface git notes for files being read)
-SubagentStart ─────→ mycelium-subagent.py        (inject mycelium spore protocol)
-SessionStart ──────→ mycelium-arrive.sh          (announce arrival to mycelium substrate)
-Stop ──────────────→ on-ready.sh + stop-handoff.py (🟢 title:subtitle + 3-min checkpoint)
-                   → mycelium-depart.sh          (leave departure note on modified files)
-PreCompact ────────→ precompact-handoff.py       (full handoff before compaction, 1M context)
-SessionEnd ────────→ precompact-handoff.py       (handoff on graceful exit)
-                   → git-track-rebuild.py        (rebuild git tracking index)
-                   → plan-cleanup-symlinks.py    (remove plan forwarding symlinks)
+PreToolUse ────────→ git-track.sh               (log git commands to JSONL)
+                   → image-optimize.py           (auto-resize images, PNG→JPEG)
+PostToolUse ───────→ lint-on-write.py            (ESLint/Clippy/Ruff + custom rules)
+                   → phase-detect.py             (detect workflow phase transitions)
+PermissionRequest ─→ smart-auto-approve.py       (auto-approve safe read-only commands)
+Stop ──────────────→ session-tags-infer.py       (AI-powered session tagging)
+PreCompact/End ────→ precompact-handoff.py       (structured YAML handoff for context survival)
+SessionStart ──────→ soul-activate.py            (register Claudicle soul)
+SubagentStart ─────→ soul-subagent-inject.py     (inject soul into subagents)
 ```
+
+See [hooks/README.md](hooks/README.md) for the full event map, hook dependencies, and settings.json configuration.
 
 **Terminal Title**: Two-tier format with repo-type emoji icons — `🔴 🐍 claudicle: Building test suite`. Icons auto-detected from CLAUDE.md keywords and project files. Main title persists across events; subtitle updates from transcript.
 
@@ -175,17 +173,7 @@ All CLIs share `lib/tracker-utils.js` for session parsing and status detection.
 
 ### Session Cost Tracking
 
-The enrichment pipeline (`parseSessionEnriched` in `lib/tracker-utils.js`) scans full JSONL transcripts to aggregate token usage from every API call, then computes USD cost using Anthropic's published pricing:
-
-| Model Tier | Input | Output | Cache Read | Cache Write |
-|------------|-------|--------|------------|-------------|
-| Opus 4.5+ | $5/MTok | $25/MTok | $0.50/MTok | $6.25/MTok |
-| Opus 4.0/4.1 | $15/MTok | $75/MTok | $1.50/MTok | $18.75/MTok |
-| Sonnet 4.x | $3/MTok | $15/MTok | $0.30/MTok | $3.75/MTok |
-| Haiku 4.5 | $1/MTok | $5/MTok | $0.10/MTok | $1.25/MTok |
-| Haiku 3.5 | $0.80/MTok | $4/MTok | $0.08/MTok | $1/MTok |
-
-Run `node scripts/migrate-to-sqlite.js --incremental` to enrich existing sessions. The migration is idempotent and self-healing — sessions missing summary, turn count, or cost data are automatically re-processed.
+The enrichment pipeline (`parseSessionEnriched` in `lib/tracker-utils.js`) scans full JSONL transcripts to aggregate token usage from every API call, then computes USD cost using Anthropic's published per-model pricing.
 
 ```bash
 sqlite3 ~/.claude/tracker.db "SELECT short_id, num_turns, printf('\$%.2f', total_cost_usd), model_short FROM sessions ORDER BY total_cost_usd DESC LIMIT 10;"
@@ -356,7 +344,7 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 
 ---
 
-**Skills**: 94 | **Commands**: 20 | **Hooks**: 46 | **CLI Tools**: 10
+**Skills**: 96 | **Commands**: 21 | **Hooks**: 50 | **CLI Tools**: 10
 
 ---
 

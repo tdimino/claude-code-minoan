@@ -376,6 +376,9 @@ fi
 if [ -n "$MODEL" ]; then
     CODEX_ARGS+=(--model "$MODEL")
 fi
+case "$MODEL" in
+    gpt-4*) REASONING="" ;;
+esac
 if [ -n "$REASONING" ]; then
     CODEX_ARGS+=(-c "model_reasoning_effort=\"$REASONING\"")
 fi

@@ -82,14 +82,11 @@ def chat(
     if max_tokens:
         kwargs["max_completion_tokens"] = max_tokens
 
-    is_reasoning = model.startswith("o")
-    if reasoning and not is_reasoning:
-        kwargs["temperature"] = 1.0 if temperature is None else temperature
-
-    if reasoning:
+    supports_reasoning = model.startswith(("gpt-5", "o"))
+    if reasoning and supports_reasoning:
         effort_map = {"low": "low", "medium": "medium", "high": "high"}
         if reasoning in effort_map:
-            kwargs["reasoning"] = {"effort": effort_map[reasoning]}
+            kwargs["reasoning_effort"] = effort_map[reasoning]
 
     t0 = time.time()
 

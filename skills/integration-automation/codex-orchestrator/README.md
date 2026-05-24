@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-05-18 | Codex CLI v0.130.0 | Models: GPT-5.5 family
+> Last updated: 2026-05-26 | Codex CLI v0.133.0 | Models: GPT-5.5 family
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -140,6 +140,8 @@ Each profile has a default model and reasoning effort. User flags override these
 ### Reasoning Effort Levels
 
 `none` < `minimal` < `low` < `medium` < `high` < `xhigh`
+
+> **Model compatibility:** Reasoning effort is supported on GPT-5.x and o-series models only. GPT-4.x models (gpt-4.1, gpt-4o, etc.) reject the parameter. The script automatically strips reasoning for incompatible models.
 
 See `references/codex-models.md` for full model history, capabilities, and reasoning reference.
 
