@@ -57,7 +57,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="$SCRIPT_DIR/../agents"
 
 echo -e "${BLUE}Agent Profiles:${NC}"
-for profile in reviewer debugger architect security refactor docs planner syseng builder researcher; do
+for profile in reviewer debugger architect security refactor docs planner syseng builder researcher adjudicator chat goal; do
     if [ -f "$AGENTS_DIR/$profile.md" ]; then
         echo -e "  ${GREEN}✓${NC} $profile"
     else

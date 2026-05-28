@@ -117,6 +117,7 @@ Both `codex-orchestrator` and `codex-cto` skills pass `--model` and `-c model_re
 | Coding subagents (builder, reviewer, debugger, etc.) | `gpt-5.5` | `gpt-5.5` | `high` | Agentic coding, 2M context, more token-efficient |
 | Planning subagents (planner, architect) | `gpt-5.5` | `gpt-5.5-pro` | `high` | ChatGPT: best available; API: deepest reasoning |
 | Research subagent (researcher) | `gpt-5.5` | `gpt-5.5` | `medium` | 2M context for codebase analysis |
+| Adjudication subagent (adjudicator) | `gpt-5.5` | `gpt-5.5-pro` | `high` | Rival-hypothesis weighing, corpus comparison, evidence ranking |
 | Quick reads, fast iteration | `gpt-5.4` | `gpt-5-mini` | `medium` | ChatGPT: previous flagship; API: cost-optimized |
 | CTO planning (codex-cto) | `gpt-5.5` | `gpt-5.5-pro` | `high` | Architectural decomposition |
 | CTO review (codex-cto) | `gpt-5.5` | `gpt-5.5` | `high` | Diff analysis and acceptance criteria |

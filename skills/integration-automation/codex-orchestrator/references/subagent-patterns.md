@@ -148,15 +148,18 @@ Patterns for effectively delegating tasks to Codex subagents.
 
 ## Parallel Delegation
 
-For independent tasks, run multiple subagents in parallel:
+For independent tasks, run multiple subagents in parallel. `codex-exec.sh` automatically handles TTY re-attachment via `script(1)`, so `&` backgrounding is safe:
 
 ```bash
-# Run in separate terminals or with background jobs
 ./scripts/codex-exec.sh reviewer "Review src/auth/" &
 ./scripts/codex-exec.sh security "Security audit src/auth/" &
 ./scripts/codex-exec.sh docs "Document src/auth/ API" &
 wait
 ```
+
+AGENTS.md backups are PID-scoped — parallel instances in the same directory do not collide.
+
+Direct `codex exec` calls with `&` require a manual `script(1)` wrapper (see SKILL.md "Backgrounding & Parallel Execution").
 
 ## Scoping Tasks Effectively
 

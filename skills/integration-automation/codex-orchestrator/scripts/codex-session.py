@@ -17,6 +17,8 @@ Examples:
 import subprocess
 import sys
 import os
+import platform
+import shlex
 import signal
 import shutil
 from pathlib import Path
@@ -25,7 +27,18 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 AGENTS_DIR = SCRIPT_DIR.parent / "agents"
 
-BACKUP_NAME = ".AGENTS.md.codex-orchestrator-backup"
+BACKUP_NAME = f".AGENTS.md.codex-backup.{os.getpid()}"
+READ_ONLY_PROFILES = {"researcher", "adjudicator", "chat"}
+
+
+def _pty_wrap(cmd: list[str]) -> list[str]:
+    """Wrap command with script(1) if no controlling TTY (Codex CLI v0.124.0+ fix)."""
+    if sys.stdout.isatty():
+        return cmd
+    if platform.system() == "Darwin":
+        return ["script", "-q", "/dev/null"] + cmd
+    else:
+        return ["script", "-qfc", " ".join(shlex.quote(c) for c in cmd), "/dev/null"]
 
 
 def is_our_injection(path: Path) -> bool:
@@ -56,6 +69,7 @@ PROFILES = {
     "syseng": "Infrastructure/DevOps/CI-CD specialist",
     "builder": "Greenfield implementation specialist",
     "researcher": "Read-only Q&A and analysis (no file changes)",
+    "adjudicator": "Read-only comparative evidence weighing and hypothesis adjudication",
     "chat": "Open-ended conversation (read-only, ephemeral)",
     "goal": "Goal specification writer for autonomous /goal runs",
 }
@@ -108,18 +122,30 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
     backup_path = work_dir / BACKUP_NAME
     had_existing_agents = False
 
-    # Phase 0: Migrate old PID-based backups
-    for old_backup in work_dir.glob("AGENTS.md.backup.*"):
-        print(f"Warning: Found stale backup from previous run: {old_backup}")
-        if not existing_agents.exists() and not existing_agents.is_symlink():
-            if not old_backup.is_symlink():
-                print(f"Restoring AGENTS.md from stale backup: {old_backup}")
-                shutil.move(str(old_backup), str(existing_agents))
+    # Phase 0: Clean orphaned backups from dead processes
+    for orphan in list(work_dir.glob(".AGENTS.md.codex-backup.*")) + list(work_dir.glob("AGENTS.md.backup.*")) + [work_dir / ".AGENTS.md.codex-orchestrator-backup"]:
+        if not orphan.exists() and not orphan.is_symlink():
+            continue
+        if orphan == backup_path:
+            continue
+        orphan_pid_str = orphan.name.rsplit(".", 1)[-1]
+        try:
+            orphan_pid = int(orphan_pid_str)
+            os.kill(orphan_pid, 0)
+            continue
+        except (ValueError, ProcessLookupError, PermissionError):
+            pass
+        if (not existing_agents.exists() and not existing_agents.is_symlink()) or is_our_injection(existing_agents):
+            if is_our_injection(existing_agents):
+                existing_agents.unlink()
+            if not orphan.is_symlink():
+                print(f"Restoring AGENTS.md from orphaned backup: {orphan}")
+                shutil.move(str(orphan), str(existing_agents))
             else:
-                print(f"Removing stale symlink backup: {old_backup}")
-                old_backup.unlink()
+                print(f"Removing orphaned symlink backup: {orphan}")
+                orphan.unlink()
         else:
-            old_backup.unlink()
+            orphan.unlink()
 
     # Phase 1: Startup crash recovery
     if backup_path.exists() or backup_path.is_symlink():
@@ -171,12 +197,14 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
         if interactive:
             # Interactive mode - just launch codex with the profile
             cmd = ["codex", "--model", "gpt-5.5"]
+            if profile in READ_ONLY_PROFILES:
+                cmd.extend(["--sandbox", "read-only"])
             if prompt:
                 cmd.append(prompt)
         else:
             # Non-interactive exec mode
-            # Researcher: read-only sandbox, ephemeral
-            if profile == "researcher":
+            # Read-only analysis profiles: no mutation, ephemeral.
+            if profile in READ_ONLY_PROFILES:
                 cmd = [
                     "codex", "exec",
                     "--skip-git-repo-check",
@@ -196,7 +224,8 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
 
         # Run from current directory so Codex can access project files
         stdin_arg = None if interactive else subprocess.DEVNULL
-        result = subprocess.run(cmd, text=True, stdin=stdin_arg)
+        run_cmd = cmd if interactive else _pty_wrap(cmd)
+        result = subprocess.run(run_cmd, text=True, stdin=stdin_arg)
 
         return result.returncode
 

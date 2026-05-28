@@ -44,7 +44,7 @@ fi
 
 # Test 2: Check all agent profiles exist
 echo -e "\n${YELLOW}Test 2: Agent Profiles${NC}"
-for profile in reviewer debugger architect security refactor docs planner syseng builder researcher chat goal; do
+for profile in reviewer debugger architect security refactor docs planner syseng builder researcher adjudicator chat goal; do
     if [ -f "$SKILL_DIR/agents/$profile.md" ]; then
         test_pass "Profile '$profile' exists"
     else
@@ -160,9 +160,32 @@ else
     test_fail "codex-exec.sh missing PID-based backup migration"
 fi
 
-# Test 10: Quick API test (optional, skipped in quick mode)
+# Test 10: PTY Wrapper
+echo -e "\n${YELLOW}Test 10: PTY Wrapper${NC}"
+if grep -q '_with_pty' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "codex-exec.sh has PTY wrapper function"
+else
+    test_fail "codex-exec.sh missing PTY wrapper function"
+fi
+if grep -q 'script.*-q' "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "codex-exec.sh uses script(1) for PTY re-attachment"
+else
+    test_fail "codex-exec.sh missing script(1) PTY wrapper"
+fi
+if grep -q '_with_pty' "$SKILL_DIR/scripts/codex-goal.sh"; then
+    test_pass "codex-goal.sh has PTY wrapper function"
+else
+    test_fail "codex-goal.sh missing PTY wrapper function"
+fi
+if grep -q 'codex-backup.*os.getpid' "$SKILL_DIR/scripts/codex-session.py"; then
+    test_pass "codex-session.py uses PID-scoped backup name"
+else
+    test_fail "codex-session.py missing PID-scoped backup name"
+fi
+
+# Test 11: Quick API test (optional, skipped in quick mode)
 if [ "$QUICK_MODE" = false ]; then
-    echo -e "\n${YELLOW}Test 10: API Connectivity${NC}"
+    echo -e "\n${YELLOW}Test 11: API Connectivity${NC}"
     if [ -n "$OPENAI_API_KEY" ]; then
         if timeout 15 codex exec --model gpt-5-mini "print('hello')" &> /dev/null; then
             test_pass "Codex API connection works"
@@ -173,7 +196,7 @@ if [ "$QUICK_MODE" = false ]; then
         echo -e "${YELLOW}⚠ SKIP${NC}: OPENAI_API_KEY not set"
     fi
 else
-    echo -e "\n${YELLOW}Test 10: API Connectivity${NC}"
+    echo -e "\n${YELLOW}Test 11: API Connectivity${NC}"
     echo -e "${YELLOW}⚠ SKIP${NC}: Quick mode enabled"
 fi
 

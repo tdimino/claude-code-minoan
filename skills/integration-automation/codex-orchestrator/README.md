@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-05-26 | Codex CLI v0.133.0 | Models: GPT-5.5 family
+> Last updated: 2026-05-28 | Codex CLI v0.130.0 | Models: GPT-5.5 family
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -62,6 +62,7 @@ Billed at standard API rates.
 | `syseng` | Infrastructure, DevOps, CI/CD | Deployment, containers, observability |
 | `builder` | Greenfield implementation | New features from specs |
 | `researcher` | Read-only Q&A and analysis | Questions, comparisons (no file changes) |
+| `adjudicator` | Read-only comparative evidence weighing | Ambiguous hypotheses, rival interpretations, corpus comparisons |
 | `chat` | Open-ended conversation | General questions, brainstorming (read-only, ephemeral) |
 | `goal` | Goal specification for /goal runs | Drafting objectives for autonomous multi-hour Codex sessions |
 
@@ -93,6 +94,9 @@ Billed at standard API rates.
 
 # Full-auto mode (no approval prompts)
 ./scripts/codex-exec.sh reviewer "Fix all lint errors" --full-auto
+
+# Comparative adjudication
+./scripts/codex-exec.sh adjudicator "With Linear B and Linear A inscriptions side-by-side, weigh candidate values for this missing sound."
 ```
 
 ### Session Management
@@ -124,6 +128,7 @@ Each profile has a default model and reasoning effort. User flags override these
 | **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.5` | `high` |
 | **Planning** | planner, architect, goal | `gpt-5.5` | `high` |
 | **Research** | researcher | `gpt-5.5` | `medium` |
+| **Adjudication** | adjudicator | `gpt-5.5` | `high` |
 | **Chat** | chat | `gpt-5.4` | `medium` |
 
 ### Available Models (Apr 2026)
@@ -140,8 +145,6 @@ Each profile has a default model and reasoning effort. User flags override these
 ### Reasoning Effort Levels
 
 `none` < `minimal` < `low` < `medium` < `high` < `xhigh`
-
-> **Model compatibility:** Reasoning effort is supported on GPT-5.x and o-series models only. GPT-4.x models (gpt-4.1, gpt-4o, etc.) reject the parameter. The script automatically strips reasoning for incompatible models.
 
 See `references/codex-models.md` for full model history, capabilities, and reasoning reference.
 
@@ -210,6 +213,31 @@ See `references/codex-models.md` for full model history, capabilities, and reaso
 
 # 4. Review what Codex built
 ./scripts/codex-exec.sh reviewer "Review the caching implementation"
+```
+
+## Backgrounding & Parallel Execution
+
+Codex CLI v0.124.0+ requires a controlling TTY. When run with shell `&` or Claude Code's `run_in_background: true`, the TTY is detached and Codex silently produces empty output ([openai/codex#19945](https://github.com/openai/codex/issues/19945)).
+
+`codex-exec.sh` and `codex-goal.sh` automatically detect non-TTY contexts and wrap `codex exec` with `script(1)` to re-attach a pseudo-TTY. No user action is required.
+
+```bash
+# Safe — PTY wrapper engages automatically
+./scripts/codex-exec.sh reviewer "Review src/auth/" &
+./scripts/codex-exec.sh security "Security audit src/auth/" &
+wait
+```
+
+AGENTS.md backups are PID-scoped — multiple instances can safely run in the same directory.
+
+For direct `codex exec` calls (not through the wrapper scripts), use `script(1)` manually:
+
+```bash
+# macOS
+script -q /dev/null codex exec --skip-git-repo-check "prompt" </dev/null
+
+# Linux
+script -qfc 'codex exec --skip-git-repo-check "prompt" </dev/null' /dev/null
 ```
 
 ## Goal Runs
@@ -294,11 +322,12 @@ Every ExecPlan includes:
 | `--json` | Output raw JSONL event stream (pipe to jq, logs, etc.) |
 | `--image <file>` | Attach image to prompt (vision input) |
 | `--resume` | Resume previous exec session (builder "continue" workflow) |
+| `--no-cleanup` | Preserve output temp file after exit (prints path to stderr) |
 | `--with-mcp` | Keep global MCP servers enabled (no-op, kept for compatibility) |
 
-### Output Extraction (researcher/chat)
+### Output Extraction (researcher/adjudicator/chat)
 
-Read-only profiles (`researcher`, `chat`) use JSONL extraction to return clean responses. Codex runs with `--json`, and the script pipes the event stream through `jq` to extract only `agent_message` text—filtering out intermediate file reads and command executions that would otherwise bury the response in thousands of lines. Requires `jq`; falls back to `-o` (raw last-message capture) if jq is unavailable.
+Read-only profiles (`researcher`, `adjudicator`, `chat`) use JSONL extraction to return clean responses. Codex runs with `--json`, and the script pipes the event stream through `jq` to extract only `agent_message` text—filtering out intermediate file reads and command executions that would otherwise bury the response in thousands of lines. Requires `jq`; falls back to `-o` (raw last-message capture) if jq is unavailable.
 
 ## Notable Recent CLI Features (v0.110–v0.122)
 
@@ -324,6 +353,7 @@ codex-orchestrator/
 │   ├── architect.md
 │   ├── builder.md
 │   ├── chat.md
+│   ├── adjudicator.md     # Comparative evidence weighing and hypothesis ranking
 │   ├── debugger.md
 │   ├── docs.md
 │   ├── goal.md            # /goal specification writer
@@ -380,7 +410,7 @@ export OPENAI_API_KEY=sk-...
 
 ### "Profile not found"
 
-Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`, `chat`, `goal`
+Available profiles: `reviewer`, `debugger`, `architect`, `security`, `refactor`, `docs`, `planner`, `syseng`, `builder`, `researcher`, `adjudicator`, `chat`, `goal`
 
 Check profiles exist:
 
@@ -390,7 +420,12 @@ ls ./agents/
 
 ### "Codex produced no output"
 
-The researcher/chat profiles capture output to a temp file. If empty, common causes: Codex session too short, empty model response, or missing `jq` (install via `brew install jq`). Check for stale `.AGENTS.md.codex-backup.*` files in the working directory.
+The researcher/adjudicator/chat profiles capture output to a temp file. Common causes:
+- **TTY detachment** (most common): Codex CLI v0.124.0+ silently crashes when backgrounded without a TTY. `codex-exec.sh` auto-wraps with `script(1)` — verify your Codex version (`codex --version`).
+- Codex session too short to produce a response
+- Empty model response (retry)
+- Missing `jq` (install via `brew install jq`)
+- Stale `.AGENTS.md.codex-backup.*` files in the working directory
 
 ### Poor Results
 

@@ -26,6 +26,26 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# PTY wrapper: Codex CLI v0.124.0+ requires a controlling TTY.
+# Sourced pattern from codex-exec.sh — wraps with script(1) when backgrounded.
+_with_pty() {
+    if [ -t 1 ]; then
+        "$@"
+    elif ! command -v script >/dev/null 2>&1; then
+        echo -e "${YELLOW}Warning: 'script' not found — PTY wrapper unavailable${NC}" >&2
+        "$@"
+    else
+        case "$(uname -s)" in
+            Darwin)
+                script -q /dev/null "$@"
+                ;;
+            *)
+                script -qfc "$(printf '%q ' "$@")" /dev/null
+                ;;
+        esac
+    fi
+}
+
 show_usage() {
     echo "Usage: codex-goal.sh <command> [args] [options]"
     echo ""
@@ -222,7 +242,7 @@ cmd_draft() {
 
     # Run codex exec with goal profile
     set +e
-    codex exec \
+    _with_pty codex exec \
         --skip-git-repo-check \
         --sandbox workspace-write \
         --model "$model" \

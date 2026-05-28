@@ -3,7 +3,7 @@
 # Usage: codex-exec.sh <profile> "<prompt>" [options]
 # Example: codex-exec.sh reviewer "Review auth.ts for security issues"
 #
-# Profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher, goal
+# Profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher, adjudicator, chat, goal
 
 set -e
 
@@ -16,6 +16,27 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# PTY wrapper: Codex CLI v0.124.0+ silently crashes when stdio is detached
+# from a controlling TTY (e.g., shell &, run_in_background, setsid).
+# Wraps the command with script(1) to re-attach a pseudo-TTY when needed.
+_with_pty() {
+    if [ -t 1 ]; then
+        "$@"
+    elif ! command -v script >/dev/null 2>&1; then
+        echo -e "${YELLOW}Warning: 'script' not found — PTY wrapper unavailable, Codex may fail in background${NC}" >&2
+        "$@"
+    else
+        case "$(uname -s)" in
+            Darwin)
+                script -q /dev/null "$@"
+                ;;
+            *)
+                script -qfc "$(printf '%q ' "$@")" /dev/null
+                ;;
+        esac
+    fi
+}
 
 # Auto-update check: run version check with auto-update enabled
 echo -e "${BLUE}Checking Codex CLI version...${NC}"
@@ -38,6 +59,7 @@ show_usage() {
     echo "  syseng     - Infrastructure/DevOps/CI-CD specialist"
     echo "  builder    - Greenfield implementation specialist"
     echo "  researcher - Read-only Q&A and analysis (no file changes)"
+    echo "  adjudicator - Read-only comparative evidence weighing and hypothesis ranking"
     echo "  chat       - Open-ended conversation (read-only, ephemeral)"
     echo "  goal       - Goal specification writer for /goal autonomous runs"
     echo ""
@@ -61,6 +83,7 @@ show_usage() {
     echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.5 + high"
     echo "  Planning (planner,architect,goal):                                   gpt-5.5 + high"
     echo "  Research (researcher):                                              gpt-5.5 + medium"
+    echo "  Adjudication (adjudicator):                                         gpt-5.5 + high"
     echo "  Chat     (chat):                                                    gpt-5.4 + medium"
     echo ""
     echo "Examples:"
@@ -68,6 +91,7 @@ show_usage() {
     echo "  codex-exec.sh debugger \"Debug the login failure in auth.ts\""
     echo "  codex-exec.sh architect \"Design a caching layer for the API\""
     echo "  codex-exec.sh researcher \"Explain the authentication flow in this project\""
+    echo "  codex-exec.sh adjudicator \"Weigh the competing readings for this ambiguous evidence\""
     echo "  codex-exec.sh researcher \"What are the latest React patterns?\" --search"
     echo "  codex-exec.sh reviewer \"Review this mockup\" --image screenshot.png"
     echo "  codex-exec.sh builder \"continue\" --resume"
@@ -90,6 +114,10 @@ get_profile_defaults() {
         researcher)
             DEFAULT_MODEL="gpt-5.5"
             DEFAULT_REASONING="medium"
+            ;;
+        adjudicator)
+            DEFAULT_MODEL="gpt-5.5"
+            DEFAULT_REASONING="high"
             ;;
         # Coding profiles: gpt-5.5 with high reasoning (unified coding + reasoning)
         builder|reviewer|debugger|refactor|syseng|security|docs)
@@ -131,7 +159,7 @@ shift 2
 AGENTS_FILE="$AGENTS_DIR/$PROFILE.md"
 if [ ! -f "$AGENTS_FILE" ]; then
     echo -e "${RED}Error: Profile '$PROFILE' not found${NC}"
-    echo "Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher, chat, goal"
+    echo "Available profiles: reviewer, debugger, architect, security, refactor, docs, planner, syseng, builder, researcher, adjudicator, chat, goal"
     exit 1
 fi
 
@@ -152,6 +180,7 @@ API_MODE=""
 API_SESSION=""
 API_SYSTEM=""
 API_STREAM=""
+SKIP_OUTPUT_CLEANUP=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -215,6 +244,10 @@ while [[ $# -gt 0 ]]; do
             API_STREAM="true"
             shift
             ;;
+        --no-cleanup)
+            SKIP_OUTPUT_CLEANUP="true"
+            shift
+            ;;
         *)
             echo -e "${YELLOW}Warning: Unknown option $1${NC}"
             shift
@@ -234,7 +267,8 @@ fi
 EPHEMERAL=""
 OUTPUT_FILE=""
 EXTRACT_RESPONSE=""
-if [ "$PROFILE" = "researcher" ] || [ "$PROFILE" = "chat" ]; then
+OUTPUT_DISPLAYED=""
+if [ "$PROFILE" = "researcher" ] || [ "$PROFILE" = "adjudicator" ] || [ "$PROFILE" = "chat" ]; then
     SANDBOX="read-only"
     EPHEMERAL="--ephemeral"
     OUTPUT_FILE=$(mktemp /tmp/codex-researcher-XXXXXXXX)
@@ -361,7 +395,11 @@ cleanup() {
     fi
 
     if [ -n "$OUTPUT_FILE" ]; then
-        rm -f "$OUTPUT_FILE"
+        if [ -n "$SKIP_OUTPUT_CLEANUP" ]; then
+            echo "OUTPUT_FILE=$OUTPUT_FILE" >&2
+        elif [ -n "$OUTPUT_DISPLAYED" ]; then
+            rm -f "$OUTPUT_FILE"
+        fi
     fi
 }
 trap cleanup EXIT INT TERM HUP
@@ -456,20 +494,22 @@ if [ -n "$EXTRACT_RESPONSE" ]; then
     # This filters out intermediate tool calls (file reads, command executions)
     # that would otherwise bury the actual response in thousands of lines.
     if [ -n "$RESUME_SESSION" ]; then
-        codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null 2>/dev/null \
+        _with_pty codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null 2>/dev/null \
+            | tr -d '\r' \
             | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
             > "$OUTPUT_FILE"
     else
-        codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null 2>/dev/null \
+        _with_pty codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null 2>/dev/null \
+            | tr -d '\r' \
             | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
             > "$OUTPUT_FILE"
     fi
     CODEX_EXIT=${PIPESTATUS[0]}
 elif [ -n "$RESUME_SESSION" ]; then
-    codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null
+    _with_pty codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null
     CODEX_EXIT=$?
 else
-    codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null
+    _with_pty codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null
     CODEX_EXIT=$?
 fi
 set -e
@@ -479,16 +519,18 @@ if [ "$CODEX_EXIT" -eq 130 ] || [ "$CODEX_EXIT" -eq 143 ]; then
     exit "$CODEX_EXIT"
 fi
 
-# Display captured response for researcher/chat profile
+# Display captured response for read-only captured-output profiles
 if [ -n "$OUTPUT_FILE" ]; then
     if [ -f "$OUTPUT_FILE" ] && [ -s "$OUTPUT_FILE" ]; then
         echo ""
         echo -e "${GREEN}=== Response ===${NC}"
         cat "$OUTPUT_FILE"
+        OUTPUT_DISPLAYED=1
     else
         echo ""
         echo -e "${RED}Warning: Codex produced no output (exit code $CODEX_EXIT).${NC}"
-        echo -e "${YELLOW}Possible causes: AGENTS.md collision (parallel run), empty model response, or session too short.${NC}"
+        echo -e "${YELLOW}Possible causes: TTY detachment (background execution), AGENTS.md collision, empty model response, or session too short.${NC}"
+        echo -e "${YELLOW}If backgrounded, codex-exec.sh auto-wraps with script(1) — check Codex CLI version (v0.124.0+ required).${NC}"
         exit 1
     fi
 fi
