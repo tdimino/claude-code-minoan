@@ -251,7 +251,7 @@ async function fetchFeedBird(
     console.error(`  bird: @${acct.username}...`);
     try {
       const proc = Bun.spawn(
-        ["bird", "user-tweets", acct.username, "-n", String(limit * 3), "--json", "--plain"],
+        ["bird", "--cookie-source", "chrome", "user-tweets", acct.username, "-n", String(limit * 3), "--json", "--plain"],
         { stdout: "pipe", stderr: "pipe" }
       );
       const output = await new Response(proc.stdout).text();
