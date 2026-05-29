@@ -1,6 +1,6 @@
 ---
 name: cloudflare
-description: Cloudflare platform management via Wrangler CLI, Agents SDK, and Browser Rendering REST API. Deploy Pages sites, manage Workers, KV namespaces, R2 buckets, D1 databases, Queues, Vectorize indexes, Workflows, and Hyperdrive connections. Build stateful AI agents with Code Mode (MCP tools as TypeScript APIs in sandboxed Workers). Also provides budget web scraping, crawling, screenshots, and PDF generation via cf_browser.py (Browser Rendering API). Use when deploying to Cloudflare, managing CF infrastructure, configuring wrangler.toml, working with CF storage services, setting up Cloudflare Pages projects, building AI agents on Workers, or when you need cheap/free web scraping as an alternative to Firecrawl. Triggers on Cloudflare, wrangler, Pages deploy, KV namespace, R2 bucket, D1 database, CF Workers, Cloudflare DNS, Vectorize, Queues, Workflows, Hyperdrive, cf_browser, Browser Rendering, budget scrape, Cloudflare Agents SDK, Code Mode, codemode, AI agent Workers, MCP tools to TypeScript.
+description: Cloudflare platform management via Wrangler CLI, Agents SDK (v0.13+), and Browser Rendering API. Deploy Pages, Workers, KV, R2, D1, Queues, Vectorize, Workflows, Hyperdrive. Build stateful AI agents with the full SDK stack — Agent, AIChatAgent, Think, Voice, sub-agents, fibers, HITL, scheduling, observability, Code Mode (Dynamic Worker sandboxes). Budget web scraping via cf_browser.py. Use when deploying to Cloudflare, managing CF infrastructure, configuring wrangler.toml/wrangler.jsonc, building AI agents or chat agents on Workers, adding voice, orchestrating sub-agents, or for cheap web scraping. Triggers: Cloudflare, wrangler, Pages, KV, R2, D1, Workers, Vectorize, Queues, Workflows, Hyperdrive, cf_browser, Browser Rendering, Agents SDK, Code Mode, codemode, MCP, Think, AIChatAgent, Voice agent, sub-agents, fibers, HITL, Dynamic Workers.
 ---
 
 # Cloudflare & Wrangler CLI
@@ -36,7 +36,7 @@ npm run build && wrangler pages deploy out --project-name mysite
 ## Quick Reference
 
 | Command | Purpose | Example |
-|---------|---------|---------
+|---------|---------|---------|
 | `wrangler pages deploy` | Deploy static site | `wrangler pages deploy out --project-name mysite` |
 | `wrangler pages project list` | List Pages projects | `wrangler pages project list` |
 | `wrangler deploy` | Deploy Worker | `wrangler deploy` |
@@ -123,43 +123,59 @@ Note: `wrangler init` is deprecated — use `npm create cloudflare@latest` inste
 
 ## Agents SDK & Code Mode
 
-Build stateful AI agents on Cloudflare Workers with durable state, MCP tool consumption, and sandboxed dynamic code execution.
-
-**Code Mode** converts AI SDK and MCP tools into TypeScript APIs that LLMs write code against, executed in isolated V8 Worker sandboxes (millisecond cold start, fetch/connect blocked by default).
+Build stateful AI agents on Cloudflare Workers with durable state, chat persistence, voice, sub-agents, durable execution, MCP tools, and sandboxed code execution. SDK at `agents@0.13.2` (May 2026).
 
 ### Quick Start
 
 ```bash
-# Scaffold an Agents project
-npm create cloudflare@latest my-agent -- --template agents
+# Scaffold with the starter (includes chat, tools, HITL, scheduling)
+npx create-cloudflare@latest --template cloudflare/agents-starter
 
-# Install Code Mode
-npm install @cloudflare/codemode ai zod
+# Or install packages individually
+npm install agents @cloudflare/ai-chat @cloudflare/think @cloudflare/voice @cloudflare/codemode
 ```
+
+### Class Hierarchy
+
+| Class | Package | Purpose |
+|-------|---------|---------|
+| `Agent<Env, State>` | `agents` | Base: state, scheduling, fibers, sub-agents, RPC, MCP |
+| `AIChatAgent` | `@cloudflare/ai-chat` | Chat: message persistence, streaming, tool approval, data parts |
+| `Think` | `@cloudflare/think` | Opinionated chat: full agentic loop, extensions, auto-continuation |
+| `withVoice(Agent)` | `@cloudflare/voice` | Mixin: real-time STT/TTS over WebSocket (beta) |
 
 ### Key Concepts
 
 | Concept | Description |
 |---------|-------------|
-| `Agent<Env, State>` | Base class for stateful agents on Workers (extends `DurableObject`) |
-| `createCodeTool()` | Wraps AI SDK tools into a single code tool the LLM writes against |
-| `DynamicWorkerExecutor` | Runs LLM-generated TypeScript in isolated V8 sandbox |
-| `this.mcp.getAITools()` | Consume external MCP tools inside an Agent |
-| `generateTypes()` | Auto-generate TypeScript declarations from tool definitions |
-| `worker_loaders` binding | Required in wrangler.jsonc for Code Mode sandbox |
+| `this.subAgent(Class, id)` | Spawn co-located child agents with typed RPC and isolated SQLite |
+| `runAgentTool` / `agentTool` | Run sub-agents as retained, streaming tools from a parent |
+| `runFiber()` / `stash()` | Durable execution — work survives DO eviction with checkpoint recovery |
+| `needsApproval` | Human-in-the-loop tool approval (5 patterns available) |
+| `this.schedule()` / `scheduleEvery()` | Persistent scheduling: delayed, cron, interval (survives restarts) |
+| `this.retry()` | Built-in exponential backoff with jitter |
+| `keepAlive()` | Prevent DO eviction during long-running work |
+| `diagnostics_channel` | Structured observability across 7 typed event channels |
+| `addMcpServer()` | Consume MCP tools via HTTP/SSE or RPC (DO binding, no HTTP overhead) |
+| `createCodeTool()` | Code Mode: wraps tools into TypeScript API for LLM-generated code |
+| `DynamicWorkerExecutor` | Runs LLM code in isolated V8 sandbox (Dynamic Workers, open beta) |
+| Chat Recovery | Server turns survive client disconnect, resume on reconnect (v0.12.4+) |
+| `codeMcpServer()` | Wrap an MCP server with Code Mode — all tools become typed sandbox APIs |
 
 ### When to Use
 
 | Need | Approach |
 |------|----------|
 | Static API endpoint or cron | Standard Worker (`wrangler deploy`) |
-| Stateful agent with conversations | Agents SDK (`extends Agent`) |
-| LLM composing multiple tools dynamically | Code Mode (`@cloudflare/codemode`) |
-| Consuming external MCP servers | Agents SDK with `this.mcp` |
+| Custom protocol, non-chat agent | `Agent` base class |
+| Chat with full control over agentic loop | `AIChatAgent` |
+| Chat with minimal boilerplate | `Think` (handles everything) |
+| Voice interaction | `withVoice(Agent)` or `withVoice(AIChatAgent)` |
+| Orchestrating multiple agents | `Agent` + `subAgent()` |
+| LLM composing multiple tools via code | Code Mode (`@cloudflare/codemode`) |
+| Durable multi-step workflow | `AgentWorkflow` (Workflows integration) |
 
-**Note:** Dynamic Worker Loader API is in closed beta for production. Available locally via `wrangler dev`.
-
-**Full API reference and examples:** `references/agents-sdk-codemode.md`
+**Full API references:** `references/agents-sdk-core.md`, `references/agents-sdk-chat-voice.md`, `references/codemode.md`
 
 ---
 
@@ -240,8 +256,6 @@ WRANGLER_LOG=debug wrangler pages deploy out --project-name mysite
 - **"Build output not found"** — Verify build output directory exists. See `references/pages-config.md` for framework-to-directory mapping.
 - **Pages deploy hangs** — Check `_headers`/`_redirects` syntax (no YAML, plain text format)
 - **Deploy includes too many files** — Ensure `--directory` points to the build output only (e.g., `out/`, `dist/`), not the project root
-
----
 
 ---
 
@@ -327,4 +341,6 @@ Uses `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` (preferred) or `CLOUDFLARE
 | `references/wrangler-commands.md` | Full Wrangler CLI command reference with all flags |
 | `references/pages-config.md` | Pages config: `_headers`, `_redirects`, build presets, env vars |
 | `references/browser-rendering-api.md` | Browser Rendering REST API: endpoints, params, pricing, limits |
-| `references/agents-sdk-codemode.md` | Agents SDK & Code Mode: API surface, wrangler config, security, examples |
+| `references/agents-sdk-core.md` | Agents SDK core: Agent class, scheduling, fibers, HITL, workflows, observability, MCP |
+| `references/agents-sdk-chat-voice.md` | Chat (AIChatAgent, Think), Voice, sub-agents, agent tools, chat recovery |
+| `references/codemode.md` | Code Mode, Dynamic Workers (open beta), sandbox security, MCP barrel export |

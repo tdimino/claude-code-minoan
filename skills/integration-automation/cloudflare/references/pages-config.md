@@ -19,7 +19,7 @@
 Set in dashboard (Workers & Pages → project → Settings → Environment Variables) or via wrangler.toml for Workers.
 
 | Variable | Purpose | Example |
-|----------|---------|---------
+|----------|---------|---------|
 | `NODE_VERSION` | Node.js version for build | `22` |
 | `NPM_FLAGS` | Flags passed to npm install | `--prefer-offline` |
 | `YARN_VERSION` | Use specific Yarn version | `1.22.19` |

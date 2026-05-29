@@ -1,14 +1,14 @@
 # Cloudflare
 
-Manage Cloudflare infrastructure from the terminal: Pages deploys, Workers, KV, R2, D1, Queues, Vectorize, Hyperdrive, Agents SDK with Code Mode, and budget web scraping via Browser Rendering. Two tools: Wrangler CLI for platform management, `cf_browser.py` for headless Chrome on the edge.
+Manage Cloudflare infrastructure and build AI agents from the terminal: Pages deploys, Workers, KV, R2, D1, Queues, Vectorize, Hyperdrive, the full Agents SDK stack (Agent, AIChatAgent, Think, Voice, sub-agents, fibers, HITL, Code Mode), and budget web scraping via Browser Rendering.
 
-**Last updated:** 2026-04-21
+**Last updated:** 2026-05-29 | **Agents SDK:** v0.13.2
 
 ---
 
 ## Why This Skill Exists
 
-Cloudflare's platform spans a dozen services with different CLI patterns and config formats. This skill consolidates the Wrangler CLI reference, Pages deployment workflows, Agents SDK patterns, and a Python script for Browser Rendering---the budget alternative to Firecrawl for scraping, screenshots, and PDFs.
+Cloudflare's platform spans a dozen services with different CLI patterns and config formats. The Agents SDK alone has evolved rapidly (v0.3 → v0.13 in 4 months) with layered agent classes, durable execution, sub-agents, voice, and Code Mode. This skill consolidates the Wrangler CLI reference, Pages deployment workflows, the full Agents SDK API surface, and a Python script for Browser Rendering---the budget alternative to Firecrawl for scraping, screenshots, and PDFs.
 
 ---
 
@@ -22,7 +22,9 @@ cloudflare/
     wrangler-commands.md                   # Full Wrangler CLI command reference
     pages-config.md                        # _headers, _redirects, build presets
     browser-rendering-api.md               # Browser Rendering REST API reference
-    agents-sdk-codemode.md                 # Agents SDK & Code Mode API
+    agents-sdk-core.md                     # Agent base class, scheduling, fibers, HITL, workflows, observability, MCP
+    agents-sdk-chat-voice.md               # AIChatAgent, Think, Voice, sub-agents, agent tools, chat recovery
+    codemode.md                            # Code Mode, Dynamic Workers (open beta), sandbox security
   scripts/
     cf_browser.py                          # Browser Rendering CLI (scrape, crawl, screenshot, PDF)
 ```
@@ -43,6 +45,23 @@ wrangler r2 bucket list                             # List R2 buckets
 wrangler d1 list                                    # List D1 databases
 wrangler secret put API_KEY                         # Set encrypted secret
 ```
+
+### Agents SDK
+
+```bash
+# Scaffold a new agent project
+npx create-cloudflare@latest --template cloudflare/agents-starter
+
+# Install packages individually
+npm install agents @cloudflare/ai-chat @cloudflare/think @cloudflare/voice @cloudflare/codemode
+```
+
+| Class | Package | Purpose |
+|-------|---------|---------|
+| `Agent` | `agents` | Base: state, scheduling, fibers, sub-agents, RPC, MCP |
+| `AIChatAgent` | `@cloudflare/ai-chat` | Chat: persistence, streaming, tool approval |
+| `Think` | `@cloudflare/think` | Opinionated chat: full agentic loop, extensions |
+| `withVoice(Agent)` | `@cloudflare/voice` | Mixin: real-time STT/TTS over WebSocket (beta) |
 
 ### Browser Rendering (cf_browser.py)
 
