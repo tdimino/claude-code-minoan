@@ -6,17 +6,19 @@ topic tags and a 2-4 sentence summary. Writes to ~/.claude/session-tags/{session
 updates session-registry.json (our self-maintained session index), and updates
 the soul-session registry with topic + summary.
 
-Requires: com.minoan.llama-tags-server launchd daemon running on 127.0.0.1:8787.
+Requires: com.minoan.llama-tags-server launchd daemon running on Mac Mini (toms-mac-mini:8787).
 """
 import datetime
 import fcntl
 import json
 import os
 import pathlib
+import socket
 import sqlite3
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 
 
@@ -24,7 +26,7 @@ TAGS_DIR = pathlib.Path.home() / ".claude" / "session-tags"
 REGISTRY_PATH = pathlib.Path.home() / ".claude" / "session-registry.json"
 DB_PATH = pathlib.Path.home() / ".claude" / "tracker.db"
 TAGS_COOLDOWN = 180  # 3 minutes — matches old stop-handoff.py gate
-LLAMA_SERVER_URL = "http://127.0.0.1:8787/v1/chat/completions"
+LLAMA_SERVER_URL = "http://toms-mac-mini:8787/v1/chat/completions"
 
 # --- Prompt Configurations (switchable) ---
 
@@ -162,6 +164,17 @@ def extract_json(text):
     return json.loads(text[start:end])
 
 
+def check_server_health(timeout=3):
+    """Fast pre-flight: is the remote llama-server reachable?"""
+    health_url = LLAMA_SERVER_URL.rsplit("/", 3)[0] + "/health"
+    try:
+        req = urllib.request.Request(health_url)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
 def infer_tags(transcript_text):
     """Call local llama-server (Qwen 2.5 7B) to extract tags from transcript.
 
@@ -199,7 +212,7 @@ def infer_tags(transcript_text):
         headers={"Content-Type": "application/json"},
     )
 
-    with urllib.request.urlopen(req, timeout=120) as resp:
+    with urllib.request.urlopen(req, timeout=60) as resp:
         result = json.loads(resp.read())
 
     content = result["choices"][0]["message"]["content"]
@@ -332,11 +345,12 @@ def update_registry(session_id, transcript_path, title, tags, display_tags, summ
     except (json.JSONDecodeError, OSError):
         pass
     finally:
-        try:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-            lock_fd.close()
-        except OSError:
-            pass
+        if lock_fd:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                lock_fd.close()
+            except OSError:
+                pass
 
 
 def main():
@@ -399,10 +413,34 @@ def main():
         if nl > 0:
             transcript_text = transcript_text[nl + 1:]
 
+    if not check_server_health(timeout=3):
+        print("session-tags: llama-server unreachable at toms-mac-mini:8787 — skipping", file=sys.stderr)
+        return
+
     try:
         result = infer_tags(transcript_text)
+    except urllib.error.HTTPError as e:
+        print(f"session-tags: llama-server HTTP {e.code}: {e.read().decode()[:200]}", file=sys.stderr)
+        return
+    except urllib.error.URLError as e:
+        reason = getattr(e, 'reason', e)
+        if isinstance(reason, socket.gaierror):
+            print(f"session-tags: DNS failed for toms-mac-mini — Tailscale down? ({reason})", file=sys.stderr)
+        elif isinstance(reason, socket.timeout):
+            print(f"session-tags: timed out — Mac Mini asleep? ({reason})", file=sys.stderr)
+        elif isinstance(reason, ConnectionRefusedError):
+            print(f"session-tags: connection refused — llama-server not running? ({reason})", file=sys.stderr)
+        else:
+            print(f"session-tags: network error: {e}", file=sys.stderr)
+        return
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"session-tags: JSON parse failed (Qwen corruption?): {e}", file=sys.stderr)
+        return
+    except (KeyError, IndexError) as e:
+        print(f"session-tags: unexpected response shape: {e}", file=sys.stderr)
+        return
     except Exception as e:
-        print(f"session-tags: inference error: {e}", file=sys.stderr)
+        print(f"session-tags: inference error ({type(e).__name__}): {e}", file=sys.stderr)
         return
 
     # Write cooldown timestamp AFTER successful inference (not before)

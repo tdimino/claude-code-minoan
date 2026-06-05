@@ -1,12 +1,12 @@
 # threejs-particle-canvas
 
-Generate interactive Three.js canvases as self-contained HTML files in six modes: narrative particle phase cycles, parametric curve spinners/loaders, infinite scrollable image tunnels, behavior-driven glTF specimen scenes, photorealistic vinyl showcases, and physically-accurate 3D glass hero sections. All modes can render through a shared CRT post-processing pipeline (Phosphor Vigil) that is also importable standalone into any Three.js project.
+Generate interactive Three.js canvases as self-contained HTML files in four modes: narrative particle phase cycles, parametric curve spinners/loaders, infinite scrollable image tunnels, and behavior-driven glTF specimen scenes. All modes can render through a shared CRT post-processing pipeline (Phosphor Vigil) that is also importable standalone into any Three.js project.
 
 Each generated file is a single offline-runnable HTML page — no build step, no framework, no bundler. Vanilla ES modules with an import map pointing to Three.js r175 from jsdelivr.
 
 ## When to Use
 
-Whenever a project needs an ambient WebGL/WebGPU canvas, a polished loading spinner, an infinite scroll gallery, a flying-creature scene, a vinyl showcase, or a 3D glass hero section with real refraction. Fills the gap between "ad-hoc Three.js boilerplate" and "fully bundled creative coding project."
+Whenever a project needs an ambient WebGL/WebGPU canvas, a polished loading spinner, an infinite scroll gallery, or a flying-creature scene. Fills the gap between "ad-hoc Three.js boilerplate" and "fully bundled creative coding project."
 
 ## Modes
 
@@ -16,8 +16,6 @@ Whenever a project needs an ambient WebGL/WebGPU canvas, a polished loading spin
 | **2. Spinner / Loader** | (algorithmic) | Parametric curve particle trails via Three.js WebGPU + TSL. 9 curve types: lemniscate, rose, spirograph, Lissajous, circle, triskelion, heart, sphere, spiral. ES module or HTML output. |
 | **3. Infinite Gallery Tunnel** | `assets/tunnel-gallery-source.html` | Scroll-driven procedural corridor with images embedded on the four walls of each tunnel cell. Catmull-Rom path generator, custom wireframe-grid GLSL shader, lazy ring-based image spawning. Vanilla port of [thebuggeddev/Infinitor](https://github.com/thebuggeddev/Infinitor). |
 | **4. Living Specimens** | `assets/butterfly-specimen-source.html` | Three glTF creatures (butterflies, parrots, fish) with flight physics — `followMouse` and `wander` behaviors, soft-wall repulsion, velocity-modulated wing-flap speed. Vanilla port of [celescript.dev/experiments/3d-butterfly](https://celescript.dev/experiments/3d-butterfly). |
-| **5. Vinyl Showcase** | (algorithmic) | Photorealistic vinyl record with webcam `CubeCamera` reflection, procedural groove/scratch textures, scroll-driven keyframe animation, drag-to-scratch interaction, optional vinyl audio. All via `MeshPhysicalMaterial`. Distilled from [OMMA's 3D Vinyl](https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h). |
-| **6. Glass Hero** | (algorithmic) | Voronoi-fractured glass panes with `MeshPhysicalMaterial` refraction, dispersion (chromatic fringe), and iridescence (thin-film rainbow). Hover interaction tilts and pushes individual panes. Fly-in entry animation, parallax, bloom post-processing. Deconstructed from [kaolti's glass-hero](https://experiments.thisiswhitespace.com/glass-hero). |
 
 ## Shared FX: Phosphor Vigil
 
@@ -65,8 +63,6 @@ threejs-particle-canvas/
 │   ├── parametric-curves.md              # Mode 2 curve formulas
 │   ├── tunnel-patterns.md                # Mode 3 anatomy (path gen, ring spawn)
 │   ├── specimen-patterns.md              # Mode 4 anatomy (physics, glTF)
-│   ├── vinyl-showcase-patterns.md        # Mode 5 anatomy (camera, textures, audio)
-│   ├── glass-hero-design-system.md       # Mode 6 glass material, geometry, interaction, presets
 │   └── phosphor-vigil-fx.md              # Shared FX pipeline reference
 └── scripts/
     ├── validate_canvas.py                # Mode 1 validator
@@ -108,22 +104,6 @@ Produces a vanilla port of Infinitor with keyboard scroll, drift-to-stop signatu
 ```
 
 Produces a glTF specimen scene defaulting to Three.js's `Parrot.glb` (CC0, served via jsdelivr). Swap `modelUrl` for any rigged glTF/glb. Phosphor-vigil FX is on by default — the trails are the soul of the scene.
-
-### Mode 5 — Vinyl showcase
-
-```bash
-/threejs-particle-canvas vinyl showcase — MINOAN MYSTERY label, cool palette, deep grooves
-```
-
-Produces a photorealistic vinyl record with webcam reflection, procedural groove textures, scroll-driven animation, and optional audio engine.
-
-### Mode 6 — Glass hero
-
-```bash
-/threejs-particle-canvas glass hero — developer tools landing page with frosted glass panes refracting the headline
-```
-
-Produces Voronoi-fractured glass panes with physically-accurate refraction, dispersion, and iridescence via `MeshPhysicalMaterial`. Three material presets: `clear-crystal`, `frosted-opal`, `chromatic-prism` (default). Requires Three.js r162+ for the `dispersion` property.
 
 ## Validators
 
@@ -182,7 +162,7 @@ See `SKILL.md` for the full list. Key rules:
 cp -R threejs-particle-canvas/ ~/.claude/skills/threejs-particle-canvas/
 ```
 
-The skill is model-invocable. Trigger phrases include narrative canvas, particle art, spinner, loader, infinite gallery, tunnel flythrough, 3D butterfly, glTF specimen, CRT post-processing, vinyl showcase, glass hero, 3D glass, refraction, dispersion, and iridescent glass.
+The skill is model-invocable. Trigger phrases include narrative canvas, particle art, spinner, loader, infinite gallery, tunnel flythrough, 3D butterfly, glTF specimen, and CRT post-processing.
 
 ## Source Material
 
@@ -191,5 +171,3 @@ The skill is model-invocable. Trigger phrases include narrative canvas, particle
 - Mode 3 — vanilla port of [thebuggeddev/Infinitor](https://github.com/thebuggeddev/Infinitor) (MIT license)
 - Mode 4 — vanilla port of [celescript.dev/experiments/3d-butterfly](https://celescript.dev/experiments/3d-butterfly), reverse-engineered from the production bundle. Shaders preserved verbatim.
 - Default Mode 4 model — Three.js's official `Parrot.glb` from `examples/models/gltf/`, served via jsdelivr (CC0)
-- Mode 5 — distilled from [OMMA's 3D Vinyl with Camera Reflection](https://omma.build/p/3d-vinyl-with-camera-reflection-e4598h)
-- Mode 6 — design system deconstructed from [kaolti's glass-hero experiment](https://experiments.thisiswhitespace.com/glass-hero) (thisiswhitespace.com, May 2026). Part of a 21-experiment R3F lab.

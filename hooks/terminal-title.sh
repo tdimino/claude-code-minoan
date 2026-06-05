@@ -193,7 +193,9 @@ set_ready() {
     rm -f "$DURATION_FILE"
   fi
 
-  afplay ~/.claude/sounds/soft-ui.mp3 &
+  if [[ ! -f "$HOME/.claude/.sound-muted" ]]; then
+    afplay ~/.claude/sounds/soft-ui.mp3 &
+  fi
 
   if [[ -n "$SUBTITLE" ]]; then
     send_notification "$REPO_ICON $MAIN_TITLE" "$SUBTITLE$DURATION_MSG"

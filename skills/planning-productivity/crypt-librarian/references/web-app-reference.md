@@ -48,10 +48,10 @@ All tokens registered as Tailwind utilities via `@theme inline` in `globals.css`
 
 | Role | Font | Weight |
 |------|------|--------|
-| Display / Film Titles | Cormorant Garamond | 400/600/700 |
+| Display / Film Titles | Playfair Display | 700 |
 | Body / Commentary | Source Serif 4 | 400/600 |
-| Labels / Metadata | JetBrains Mono | 400/500 |
-| Navigation / UI | Figtree | 400/500/600 |
+| Labels / Metadata | IBM Plex Mono | 400 |
+| Navigation / UI | IBM Plex Sans | 400/500 |
 
 ## Pages
 
@@ -59,9 +59,9 @@ All tokens registered as Tailwind utilities via `@theme inline` in `globals.css`
 |-------|-----|---------|
 | `/` | Archive | Watched films grid, sort by rating/year/A-Z, TiltCard hover |
 | `/queue` | To Watch | Screening Programme — single or columns view, group by source/genre |
-| `/taste` | Taste | Lane calibration, SVG radar + decade timeline side-by-side, Tom/Mary comparison |
+| `/taste` | Taste | Lane calibration, 3D radar, Tom/Mary comparison |
 | `/genres` | Genres | Bestiary — 16 genre medallion gallery |
-| `/claudius` | Claudius | Oracle chat with Oracle Smoke particle background, dev mode (Ctrl+Shift+D), connection status |
+| `/claudius` | Claudius | Oracle chat with procedural GLSL candle flame |
 
 ## API Endpoints
 
@@ -71,35 +71,28 @@ All tokens registered as Tailwind utilities via `@theme inline` in `globals.css`
 | GET | `/api/films/:id` | Single film by kebab-case ID |
 | GET | `/api/taste` | Computed taste profile + lane averages |
 | GET | `/api/profiles` | Tom/Mary stats, bios, agreement metrics |
-| POST | `/api/claudius/stream` | SSE endpoint — spawns `claude -p` with `stream-json`, pipes events |
-| GET | `/api/sessions` | List chat sessions (limit 30) |
-| GET | `/api/sessions/:id/messages` | Messages for a session |
+| POST | `/api/claudius` | Spawns `claude -p` subprocess, returns response |
 
 ## Three.js Components
 
 | Component | File | Description |
 |-----------|------|-------------|
 | ProjectorDust | `atmosphere/ProjectorDust.tsx` | 400 golden dust motes (150 mobile), scroll-responsive |
-| OracleSmoke | `claudius/OracleSmoke.tsx` | 600-particle system orbiting octahedron lattice, dormant/active states, custom GLSL |
-| DevPanel | `claudius/DevPanel.tsx` | Toggleable dev panel (Ctrl+Shift+D) showing SSE events, connection status, active tools |
-| TasteRadar3D | `taste/TasteRadar3D.tsx` | SVG radar of lane averages with viewBox padding fix |
-| DecadeTimeline | `taste/DecadeTimeline.tsx` | Horizontal bar chart of films by decade |
+| OracleFlame | `claudius/OracleFlame.tsx` | Procedural GLSL candle shader, loading-reactive |
+| TasteRadar3D | `taste/TasteRadar3D.tsx` | 3D radar of lane averages, auto-rotation |
 | TiltCard | `archive/TiltCard.tsx` | Parallax 3D tilt, 5deg max, spring physics |
-| ToolUseCard | `claudius/ToolUseCard.tsx` | Renders tool invocations during/after streaming |
 
-SSR wrappers: `DustWrapper.tsx`, `OracleSmokeWrapper.tsx`, `TasteRadar3DWrapper.tsx`.
+SSR wrappers: `DustWrapper.tsx`, `OracleFlameWrapper.tsx`, `TasteRadar3DWrapper.tsx`.
 
 ## Key UI Components
 
 | Component | Purpose |
 |-----------|---------|
 | FilmDetail | 780px side panel (desktop) / bottom sheet (mobile), poster column + detail column |
-| ScreeningCard | Poster-forward horizontal card for queue (120px poster, Claude teaser, trailer indicator) |
+| ScreeningCard | Poster-forward horizontal card for queue |
 | CandleRating | 1–5 candle flame SVGs with graduated amber tones |
-| KotharAvatar | Daimonic avatar with Forge Pulse (4s amber ring breathing) |
-| KotharPersonaModal | Persona modal: mythology, soul architecture, soul.md quote |
+| KotharAvatar | Daimonic avatar with Forge Pulse breathing ring |
 | SideNav / BottomNav | Desktop sidebar / mobile bottom tabs |
-| SessionSidebar | Chat session list for Claudius page |
 
 ## Build Commands
 
@@ -113,19 +106,10 @@ cd web/frontend && npm run build        # Static export → out/
 portless crypt-librarian uv run python3 web/server.py --production
 ```
 
-## Cloudflare Deployment
-
-Deployed to Cloudflare Pages at `buttia-cinema.pages.dev` (basic auth via `functions/_middleware.ts`, password: "hoodrats").
-
-```bash
-cd web/frontend && npm run build
-wrangler pages deploy out --project-name buttia-cinema
-```
-
 ## Assets
 
 | Asset | Directory | Count | Source |
 |-------|-----------|-------|--------|
-| Movie posters | `public/posters/` | 49 JPG + SVG fallback | TMDB API |
+| Movie posters | `public/posters/` | 73 JPG + SVG fallback | TMDB API |
 | Genre badges | `public/badges/` | 16 PNG | Nano Banana Pro |
-| Avatars | `public/avatars/` | 5 | Real photos + AI portraits + daimon |
+| Avatars | `public/avatars/` | 5 | Real photos + AI portraits |

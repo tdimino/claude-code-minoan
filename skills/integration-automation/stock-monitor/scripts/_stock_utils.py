@@ -4,6 +4,7 @@
 import json
 import os
 import sqlite3
+import ssl
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -11,10 +12,16 @@ from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 
+try:
+    import certifi
+    _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _SSL_CTX = ssl.create_default_context()
+
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'stock_monitor.db')
 SMS_SCRIPT = os.path.expanduser('~/.claude/skills/sms/scripts/sms_send.py')
 SLACK_SCRIPT = os.path.expanduser('~/.claude/skills/slack/scripts/slack_post.py')
-DEFAULT_PHONE = ''  # Set your phone number here for SMS notifications
+DEFAULT_PHONE = '+17327595647'
 
 
 def get_db():
@@ -67,7 +74,7 @@ def fetch_shopify_js(domain, handle):
     url = f'https://{domain}/products/{handle}.js'
     req = Request(url, headers={'User-Agent': 'Mozilla/5.0 (stock-monitor)'})
     try:
-        with urlopen(req, timeout=15) as resp:
+        with urlopen(req, timeout=15, context=_SSL_CTX) as resp:
             return json.loads(resp.read())
     except (URLError, json.JSONDecodeError) as e:
         print(f'Error fetching {url}: {e}', file=sys.stderr)
@@ -138,22 +145,28 @@ def send_notification(name, price, url, channel, target):
     if channel == 'sms':
         phone = target or DEFAULT_PHONE
         try:
-            subprocess.run(
-                ['python3', SMS_SCRIPT, phone, msg],
+            result = subprocess.run(
+                [sys.executable, SMS_SCRIPT, phone, msg],
                 capture_output=True, text=True, timeout=30
             )
-            print(f'  SMS sent to {phone}')
+            if result.returncode != 0:
+                print(f'  SMS failed (exit {result.returncode}): {result.stderr}', file=sys.stderr)
+            else:
+                print(f'  SMS sent to {phone}')
         except Exception as e:
             print(f'  SMS failed: {e}', file=sys.stderr)
 
     elif channel == 'slack':
         chan = target or '#general'
         try:
-            subprocess.run(
-                ['python3', SLACK_SCRIPT, chan, msg],
+            result = subprocess.run(
+                [sys.executable, SLACK_SCRIPT, chan, msg],
                 capture_output=True, text=True, timeout=30
             )
-            print(f'  Slack posted to {chan}')
+            if result.returncode != 0:
+                print(f'  Slack failed (exit {result.returncode}): {result.stderr}', file=sys.stderr)
+            else:
+                print(f'  Slack posted to {chan}')
         except Exception as e:
             print(f'  Slack failed: {e}', file=sys.stderr)
 

@@ -9,6 +9,7 @@ Route discovered needs to the right implementation skill. Only recommend skills 
 | Shader effects, aurora, liquid logos | `/rocaille-shader` | Domain warping shaders, stable fluid over DOM sections, depth-parallax editorial heroes (Astryx pattern) |
 | Particle backgrounds, ambient canvases, loading spinners | `/threejs-particle-canvas` | 4 modes: narrative phase canvases, WebGPU curve spinners, infinite image tunnels, glTF specimen scenes |
 | Dark-mode visual effects (vignettes, layered shadows, smooth scroll) | `/grainient` | 16 composable effects: WebGL2 aurora, 9-layer box shadows, spring animations, ticker marquee, glassmorphism |
+| Typewriter effects, progress simulations, staggered reveals, terminal animations | `/conductor-motion` | 8 modes: typewriter/rotator, progress bar, file-review state machine, stagger-reveal, terminal display, Lottie orchestration, full-page, catalog. Behavioral animations that simulate live software. |
 | Kinetic typography, calligrams, flowing text, text art | `/pretext` | Text effects impossible with CSS alone — shrinkwrap bubbles, obstacle-aware reflow, glyph morphing |
 | Game sprites, character art, animated mascots | `/sprite-forge` | 5 output modes: SVG characters, sprite sheets, isometric turnarounds, ASCII art, GSAP animation |
 | Component library, form elements, UI primitives | `/shadcn` | shadcn/ui with Tailwind v4 OKLCH theming, CLI v4, custom registries |

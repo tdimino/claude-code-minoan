@@ -76,15 +76,15 @@ minoan-frontend-design/
 │   │   ├── astryx-hero.md                Depth-parallax editorial hero pattern
 │   │   └── personas.md                   5 evaluation archetypes + project-specific
 │   ├── Quality & Anti-patterns
-│   │   ├── anti-patterns.md              Condensed checklist from Impeccable v3.1.0 (incl. brand register guards)
+│   │   ├── anti-patterns.md              Condensed checklist from Impeccable v1.6.0
 │   │   ├── heuristics-scoring.md         Nielsen's 10, P0-P3 severity
 │   │   └── cognitive-load.md             8-item cognitive load checklist
 │   ├── Impeccable Domain Refs
-│   │   ├── impeccable-typography.md      Font loading, OpenType, scales, anti-reflexes, dark-mode compensation
-│   │   ├── impeccable-color-contrast.md  OKLCH, dark mode tokens, brand-hue-driven tinting
+│   │   ├── impeccable-typography.md      Font loading, OpenType, scales
+│   │   ├── impeccable-color-contrast.md  OKLCH, dark mode tokens
 │   │   ├── impeccable-spatial.md         Container queries, optical alignment
-│   │   ├── impeccable-motion.md          Premium motion materials, stagger formula, reduced-motion
-│   │   ├── impeccable-interaction.md     Popover API, roving tabindex, dialog, anchor positioning
+│   │   ├── impeccable-motion.md          Cubic-bezier values, stagger formula, reduced-motion
+│   │   ├── impeccable-interaction.md     Popover API, roving tabindex, dialog
 │   │   ├── impeccable-responsive.md      Pointer/hover queries, safe areas, srcset
 │   │   └── impeccable-ux-writing.md      Error templates, voice matrix
 │   ├── Color Science

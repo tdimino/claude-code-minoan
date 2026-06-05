@@ -39,11 +39,11 @@ web/
     components/
       archive/              # FilmCard, FilmDetail, TiltCard, ConstellationMap
       atmosphere/           # ProjectorDust (golden motes), DustWrapper (SSR)
-      claudius/             # OracleSmoke (particle system), OracleSmokeWrapper, DevPanel, ToolUseCard, ClaudiusMarkdown, SessionSidebar
+      claudius/             # OracleFlame (GLSL), ClaudiusMarkdown, SessionSidebar
       queue/                # ScreeningCard, EmptyQueue
-      shared/               # SideNav, BottomNav, CandleRating, AvatarPill, YouTubeEmbed, KotharAvatar
-      taste/                # TasteRadar3D, TasteRadar3DWrapper, DecadeTimeline
-      genres/               # BestiaryCard
+      shared/               # SideNav, BottomNav, CandleRating, AvatarPill, YouTubeEmbed
+      taste/                # TasteRadar3D + wrapper
+      genres/               # BestiaryCard (if present)
     lib/
       api.ts                # fetch wrappers for /api/* endpoints
       types.ts              # Film, FilmsData, TasteData, ProfilesData, ClaudiusResponse
@@ -61,10 +61,6 @@ agent_docs/                 # CLAUDE.md @-referenced docs
   autonomous-agent.md       # Agent SDK architecture
   deep-research.md          # Exa/Firecrawl patterns, curated URLs
 ```
-
-## Demo
-
-A full demo with architecture documentation is available at `demos/crypt-librarian/` in this repo (git submodule pointing to the source repo).
 
 ## Key Relationships
 

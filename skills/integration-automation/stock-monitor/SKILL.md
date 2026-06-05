@@ -12,7 +12,7 @@ Track product availability on Shopify stores. Get notified via SMS, Slack, or te
 
 ```bash
 # Add a product to watch (auto-detects name from Shopify)
-python3 ~/.claude/skills/stock-monitor/scripts/stock_watch.py add "https://store.com/products/item?variant=123" --notify sms --target "+1XXXXXXXXXX"
+python3 ~/.claude/skills/stock-monitor/scripts/stock_watch.py add "https://store.com/products/item?variant=123" --notify sms --target "+17327595647"
 
 # Check all watched items
 python3 ~/.claude/skills/stock-monitor/scripts/stock_check.py
