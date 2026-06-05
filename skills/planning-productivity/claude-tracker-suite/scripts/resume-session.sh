@@ -18,11 +18,16 @@ set -euo pipefail
 SESSION_ID=""
 PROJECT_DIR=""
 TARGET="auto"
+TAB_NAME=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --project)
       PROJECT_DIR="$2"
+      shift 2
+      ;;
+    --name)
+      TAB_NAME="$2"
       shift 2
       ;;
     --cmux)
@@ -55,6 +60,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  --project <path>   cd to this directory before resuming"
+      echo "  --name <title>     Set tab title (default: project—session-prefix)"
       echo "  -h, --help         Show this help"
       exit 0
       ;;
@@ -156,9 +162,10 @@ open_in_cmux() {
   cmux send --surface "$surface_id" "$cmd" &>/dev/null
   cmux send-key --surface "$surface_id" enter &>/dev/null
 
-  local tab_label="${SESSION_ID:0:8}"
-  if [[ -n "$PROJECT_DIR" ]]; then
-    tab_label="$(basename "$PROJECT_DIR"):${SESSION_ID:0:8}"
+  local tab_label="$TAB_NAME"
+  if [[ -z "$tab_label" ]]; then
+    tab_label="${SESSION_ID:0:8}"
+    [[ -n "$PROJECT_DIR" ]] && tab_label="$(basename "$PROJECT_DIR"):${SESSION_ID:0:8}"
   fi
   cmux rename-tab --surface "$surface_id" "$tab_label" &>/dev/null
 
@@ -168,8 +175,17 @@ open_in_cmux() {
 # --- Ghostty (AppleScript, macOS only) ---
 # Uses clipboard-paste to avoid AppleScript keystroke capitalization bugs.
 open_in_ghostty() {
+  # Build tab title: explicit --name, or auto-generate from project + session prefix
+  local title="$TAB_NAME"
+  if [[ -z "$title" ]]; then
+    local proj_name=""
+    [[ -n "$PROJECT_DIR" ]] && proj_name="$(basename "$PROJECT_DIR")"
+    title="${proj_name:+${proj_name}—}${SESSION_ID:0:8}"
+  fi
+
+  # Prepend OSC 1 title sequence to the command
   local cmd
-  cmd=$(build_cmd)
+  cmd="printf '\\e]1;${title}\\a' && $(build_cmd)"
 
   # Save clipboard, write command to it
   local old_clipboard

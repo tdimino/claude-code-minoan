@@ -1,10 +1,10 @@
 # Claude Tracker Suite
 
-Session management for Claude Code. Search, resume, spawn, and open sessions across projects---with cmux/Ghostty terminal integration, crash recovery, git-aware tracking, weighted search ranking, and new machine bootstrapping.
+Session management for Claude Code. Search, resume, spawn, and open sessions across projects---with cmux/Ghostty terminal integration, named sessions, workspace save/restore, macOS notifications, crash recovery, git-aware tracking, weighted search ranking, and new machine bootstrapping.
 
-**Last updated:** 2026-03-26
+**Last updated:** 2026-06-05
 
-**Terminal targets:** cmux (preferred, deterministic CLI), Ghostty (AppleScript fallback), VS Code, Cursor
+**Terminal targets:** cmux (preferred, deterministic CLI), Ghostty (OSC escape sequences + AppleScript), VS Code, Cursor
 
 ---
 
@@ -12,7 +12,7 @@ Session management for Claude Code. Search, resume, spawn, and open sessions acr
 
 Claude Code sessions accumulate fast. After a week of active development, you might have 50+ sessions across 10 projects, some crashed mid-task, some with critical context that wasn't committed. Finding the right session to resume---by topic, by project, by what you were working on---requires searching across summaries, first prompts, branches, and project paths.
 
-This skill provides 8 scripts that handle session lifecycle: interactive session opening in cmux/Ghostty tabs, search with weighted ranking and ID prefix lookup, crash recovery with alive detection, headless spawning for automation, project discovery, and a bootstrap generator for new machines.
+This skill provides 13+ scripts that handle session lifecycle: interactive session opening in cmux/Ghostty tabs, named sessions with automatic tab titles, workspace save/restore across Ghostty restarts, macOS notifications for session events, yazi file explorer integration, search with weighted ranking and ID prefix lookup, crash recovery with alive detection, headless spawning for automation, project discovery, and a bootstrap generator for new machines.
 
 ---
 
@@ -28,13 +28,18 @@ claude-tracker-suite/
     data-schemas.md                        # Session index, summary cache, JSONL schemas
   scripts/
     open-sessions.js                       # List top N sessions, open in cmux/Ghostty tabs
-    resume-session.sh                      # Open single session in cmux/Ghostty (replaces resume-in-vscode.sh)
+    resume-session.sh                      # Open single session in cmux/Ghostty
     search-sessions.js                     # Keyword search + --id prefix lookup
     list-sessions.js                       # List recent sessions with status badges
+    new-session.sh                         # Start new interactive/prompt-driven/headless session
+    claude-wrapper.sh                      # Shell function `cc` for named sessions with tab titles
+    save-workspace.js                      # Snapshot alive sessions to workspace-state.json
+    restore-workspace.sh                   # Restore sessions from workspace-state.json
+    session-notify.sh                      # macOS notifications + Ghostty tab badges
+    open-file-explorer.sh                  # Open yazi in Ghostty split pane
+    com.claude.workspace-snapshot.plist    # launchd plist for periodic workspace snapshots
     bootstrap-claude-setup.js              # Generate complete ~/.claude/ structure
     detect-projects.js                     # Project discovery and CLAUDE.md scaffolding
-    new-session.sh                         # Start new interactive/prompt-driven/headless session
-    resume-in-vscode.sh                    # Legacy: AppleScript-based terminal launch
 ```
 
 ---
@@ -54,23 +59,73 @@ Auto-detect order: cmux (if `cmux ping` succeeds) > Ghostty > print resume comma
 
 ---
 
-## What's New (2026-03-26)
+## What's New (2026-06-05)
+
+### Named Sessions (`cc` wrapper)
+
+Shell function that wraps `claude` with automatic Ghostty tab naming and tracker tagging:
+
+```bash
+source ~/.claude/skills/claude-tracker-suite/scripts/claude-wrapper.sh
+
+cc                            # tab titled to cwd basename
+cc --name "kothar-refactor"   # explicit tab title
+cc --resume abc123 --name "fix"  # resume with name
+```
+
+Sets the Ghostty tab title via OSC 1 escape sequence, tags the session in `tracker.db` on exit. All `new-session.sh`, `resume-session.sh`, and `ghostty-resume.sh` also accept `--name`.
+
+### Workspace Save/Restore
+
+Snapshot running sessions and restore them after a Ghostty restart:
+
+```bash
+node save-workspace.js                        # snapshot to workspace-state.json
+node save-workspace.js --dry-run              # preview
+restore-workspace.sh                          # restore all in Ghostty tabs
+restore-workspace.sh --dry-run                # preview
+restore-workspace.sh --limit 3               # cap at 3 sessions
+```
+
+Periodic snapshots via launchd plist (`com.claude.workspace-snapshot.plist`, every 300s).
+
+### Session Notifications
+
+macOS notifications when sessions need attention, with Ghostty tab title badges:
+
+```bash
+session-notify.sh --needs-input --project "my-app"   # ⚡ badge + notification
+session-notify.sh --session-done --project "my-app"   # ✓ badge + notification
+session-notify.sh --tab-badge "🔥" --tab-title "hot"  # badge only
+```
+
+A Stop hook (`session-notify-hook.sh`) auto-fires "needs input" on every Claude stop.
+
+### Yazi File Explorer
+
+Open a yazi file manager in a Ghostty split pane:
+
+```bash
+open-file-explorer.sh                  # left split (sidebar-style)
+open-file-explorer.sh ~/project        # at specific directory
+open-file-explorer.sh --right          # right split
+```
+
+Requires `brew install yazi`. Uses System Events clipboard-paste pattern (Cmd+D for split).
+
+---
+
+## Earlier Updates (2026-03-26)
 
 ### open-sessions.js --- Interactive session launcher
-
-Lists top N sessions and opens selected ones in cmux tabs, Ghostty tabs, or splits:
 
 ```bash
 node open-sessions.js                        # List top 10, prompt to open
 node open-sessions.js --limit 5 --split right  # Vertical splits, top 5
 node open-sessions.js --ghostty              # Force Ghostty instead of cmux
-node open-sessions.js --yes                  # Skip confirmation, open all
-node open-sessions.js --json                 # Machine-readable output
 ```
 
 ### resume-session.sh --- Single session resume
-
-Replaces `resume-in-vscode.sh`. cmux-first with Ghostty fallback:
 
 ```bash
 resume-session.sh <session-id>               # Auto-detect best terminal
@@ -83,12 +138,6 @@ resume-session.sh <session-id> --vscode      # Open project in VS Code + resume
 ```bash
 node search-sessions.js --id d7b8f4dd       # Find session by ID prefix
 ```
-
-Returns the correct project directory from JSONL ground truth, not stale `active-projects.md`.
-
-### cmux-commands.md --- Reference
-
-Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, notifications, keyboard shortcuts. See `references/cmux-commands.md`.
 
 ---
 
@@ -130,10 +179,15 @@ Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, n
 | Script | Usage |
 |--------|-------|
 | `open-sessions.js` | `node open-sessions.js [--limit N] [--cmux\|--ghostty] [--split <dir>]` |
-| `resume-session.sh` | `bash resume-session.sh <session-id> [--cmux\|--ghostty\|--vscode\|--cursor]` |
+| `resume-session.sh` | `bash resume-session.sh <session-id> [--cmux\|--ghostty\|--vscode\|--cursor] [--name <title>]` |
 | `search-sessions.js` | `node search-sessions.js "query" [--id <prefix>] [--name]` |
 | `list-sessions.js` | `node list-sessions.js [--limit 20]` |
-| `new-session.sh` | `bash new-session.sh [dir] [-p "prompt"] [--headless]` |
+| `new-session.sh` | `bash new-session.sh [dir] [--prompt "text"] [--headless] [--name <title>]` |
+| `claude-wrapper.sh` | `source claude-wrapper.sh` then `cc [--name <title>] [--resume <id>]` |
+| `save-workspace.js` | `node save-workspace.js [--dry-run\|--json]` |
+| `restore-workspace.sh` | `bash restore-workspace.sh [--dry-run] [--limit N]` |
+| `session-notify.sh` | `bash session-notify.sh [--needs-input\|--session-done] [--project <name>]` |
+| `open-file-explorer.sh` | `bash open-file-explorer.sh [<dir>] [--left\|--right]` |
 | `detect-projects.js` | `node detect-projects.js [--suggest\|--scaffold]` |
 | `bootstrap-claude-setup.js` | `node bootstrap-claude-setup.js --user "Name"` |
 
@@ -143,8 +197,9 @@ Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, n
 
 - Node.js 18+
 - Claude Code CLI installed
-- macOS (for Ghostty AppleScript fallback)
-- cmux (optional but preferred for deterministic terminal control)
+- macOS (for Ghostty/System Events automation)
+- cmux (optional for deterministic terminal control)
+- yazi (optional, for file explorer: `brew install yazi`)
 - No external npm dependencies (uses built-in `fs`, `path`, `child_process`)
 
 ---

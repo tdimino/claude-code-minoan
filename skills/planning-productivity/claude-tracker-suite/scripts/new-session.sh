@@ -30,6 +30,7 @@ MODEL=""
 PROMPT=""
 HEADLESS=false
 OUTPUT_FORMAT="json"
+TAB_NAME=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -57,6 +58,10 @@ while [[ $# -gt 0 ]]; do
       MODEL="$2"
       shift 2
       ;;
+    --name)
+      TAB_NAME="$2"
+      shift 2
+      ;;
     --output-format)
       OUTPUT_FORMAT="$2"
       shift 2
@@ -75,6 +80,7 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --prompt <text>        Pass a prompt to claude -p"
       echo "  --model <model>        Pass --model to claude (e.g. sonnet, opus, haiku)"
+      echo "  --name <title>         Set Ghostty tab title (default: project basename)"
       echo "  --output-format <fmt>  Headless output format: json (default), text, stream-json"
       echo "  -h, --help             Show this help"
       echo ""
@@ -146,7 +152,9 @@ fi
 # Uses clipboard-paste (Cmd+V) instead of keystroke to avoid AppleScript
 # capitalization bugs. Pattern from zeitlings/alfred-ghostty-script.
 open_in_ghostty() {
-  local cmd="cd $(printf '%q' "$PROJECT_PATH") && $CLAUDE_CMD"
+  local title="${TAB_NAME:-$(basename "$PROJECT_PATH")}"
+  local escaped_title="${title//\'/\'\\\'\'}"
+  local cmd="printf '\\e]1;${escaped_title}\\a' && cd $(printf '%q' "$PROJECT_PATH") && $CLAUDE_CMD"
 
   # Save clipboard, write command to it
   local old_clipboard

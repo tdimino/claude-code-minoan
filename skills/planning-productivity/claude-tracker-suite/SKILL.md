@@ -28,6 +28,11 @@ Search, browse, monitor, and manage Claude Code session history across all proje
 | `quote-session.js` | Capture/search notable phrases with FTS5 |
 | `tag-session.js` | Manual session tagging with provenance |
 | `claude-tracker-recent` | Show last N sessions with full metadata (title, tags, summary, cost, model) |
+| `claude-wrapper.sh` | Shell function `cc` for named Claude sessions with auto tab titles |
+| `save-workspace.js` | Snapshot alive sessions to `~/.claude/workspace-state.json` |
+| `restore-workspace.sh` | Restore saved sessions into Ghostty tabs |
+| `session-notify.sh` | macOS notifications for session events + Ghostty tab badges |
+| `open-file-explorer.sh` | Open yazi file explorer in a Ghostty split pane |
 
 ## Standalone Scripts
 
@@ -46,6 +51,11 @@ Commands delegate to standalone Node.js scripts (avoids shell escaping issues wi
 | `scripts/quote-session.js` | `/quote`, `/quote-search` | Capture and search tagged phrases via FTS5 |
 | `scripts/tag-session.js` | `/tag` | Manual session tagging with provenance |
 | `scripts/recent-sessions.js` | `/claude-tracker-recent` | Last N sessions with title, tags, summary, model, cost |
+| `scripts/claude-wrapper.sh` | Source in `.zshrc` | Shell function `cc` for named sessions with tab titles |
+| `scripts/save-workspace.js` | Direct / launchd | Snapshot alive sessions to workspace-state.json |
+| `scripts/restore-workspace.sh` | Direct invocation | Restore sessions from workspace-state.json into Ghostty tabs |
+| `scripts/session-notify.sh` | Direct / hooks | macOS notifications + Ghostty tab badges for session events |
+| `scripts/open-file-explorer.sh` | Direct invocation | Open yazi in a Ghostty split pane |
 | `~/.claude/scripts/ghostty-resume.sh` | Direct invocation | Open session in a new Ghostty tab |
 
 All scripts use `~/.claude/lib/tracker-utils.js` for shared utilities (path decoding, session parsing, git remote detection) and `~/.claude/lib/tracker-db.js` for SQLite access (better-sqlite3, WAL mode).
@@ -349,6 +359,120 @@ node ~/.claude/skills/claude-tracker-suite/scripts/quote-session.js list --limit
 ```
 
 Phrases are also auto-extracted by the `session-tags-infer.py` Stop hook during LLM inference.
+
+## Named Sessions (`cc` Wrapper)
+
+Shell function that wraps `claude` with automatic Ghostty tab naming and tracker tagging.
+
+```bash
+# Source in .zshrc (one-time setup)
+source ~/.claude/skills/claude-tracker-suite/scripts/claude-wrapper.sh
+
+# Start a named session
+cc --name "kothar-refactor"
+
+# Resume with a name
+cc --resume abc12345 --name "auth-fix"
+
+# Default: tab title = basename of cwd
+cc
+```
+
+The `cc` function sets the Ghostty tab title via OSC 1 escape sequence before launching `claude`, then tags the session with the name in `tracker.db` on exit. Tab title resets to the directory basename when the session ends.
+
+## Tab Auto-Naming
+
+`new-session.sh`, `resume-session.sh`, and `ghostty-resume.sh` all accept `--name` to set the Ghostty tab title on launch. When no name is given, the default format is `{project-basename}—{session-id-prefix}`.
+
+```bash
+# Named new session
+~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --name "auth-rewrite"
+
+# Named resume
+~/.claude/scripts/ghostty-resume.sh abc12345 --project ~/my-project --name "auth-rewrite"
+```
+
+Tab titles use VT escape sequences (`\e]1;Title\a`) which persist while `claude` is interactive—no shell prompt resets them.
+
+## Workspace Save/Restore
+
+Snapshot running Claude sessions and restore them after a Ghostty restart.
+
+### Save
+
+```bash
+# Snapshot current sessions
+node ~/.claude/skills/claude-tracker-suite/scripts/save-workspace.js
+
+# Preview without writing
+node ~/.claude/skills/claude-tracker-suite/scripts/save-workspace.js --dry-run
+```
+
+Detects alive sessions via `pgrep`/`lsof` (same logic as `claude-tracker-alive`), matches them to tracker DB entries, and writes `~/.claude/workspace-state.json` with session IDs, project directories, and tab titles.
+
+### Restore
+
+```bash
+# Restore all saved sessions into Ghostty tabs
+~/.claude/skills/claude-tracker-suite/scripts/restore-workspace.sh
+
+# Preview what would be restored
+~/.claude/skills/claude-tracker-suite/scripts/restore-workspace.sh --dry-run
+
+# Restore at most 3 sessions
+~/.claude/skills/claude-tracker-suite/scripts/restore-workspace.sh --limit 3
+```
+
+Opens each session in a new Ghostty tab via `ghostty-resume.sh` with saved tab titles. 2-second stagger between tab openings.
+
+### Automatic Snapshots (launchd)
+
+A launchd plist at `scripts/com.claude.workspace-snapshot.plist` runs `save-workspace.js` every 300 seconds. Install:
+
+```bash
+cp ~/.claude/skills/claude-tracker-suite/scripts/com.claude.workspace-snapshot.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.claude.workspace-snapshot.plist
+```
+
+## Session Notifications
+
+macOS notifications when Claude sessions need attention, with Ghostty tab title badges.
+
+```bash
+# Custom notification
+~/.claude/skills/claude-tracker-suite/scripts/session-notify.sh --title "Done" --message "Build complete"
+
+# Preset: session completed
+~/.claude/skills/claude-tracker-suite/scripts/session-notify.sh --session-done --project "my-app"
+
+# Preset: needs user input
+~/.claude/skills/claude-tracker-suite/scripts/session-notify.sh --needs-input --project "my-app"
+
+# Tab badge only (no notification)
+~/.claude/skills/claude-tracker-suite/scripts/session-notify.sh --tab-badge "✓" --tab-title "my-app"
+
+# Silent notification (no sound)
+~/.claude/skills/claude-tracker-suite/scripts/session-notify.sh --needs-input --no-sound
+```
+
+A Stop hook at `~/.claude/hooks/session-notify-hook.sh` automatically sends a "needs input" notification whenever Claude stops. Registered in `settings.json` as async.
+
+## Yazi File Explorer
+
+Open a yazi file manager in a Ghostty split pane for project browsing.
+
+```bash
+# Open yazi in a left split (default, sidebar-style)
+~/.claude/skills/claude-tracker-suite/scripts/open-file-explorer.sh
+
+# Open at a specific directory
+~/.claude/skills/claude-tracker-suite/scripts/open-file-explorer.sh ~/my-project
+
+# Split to the right instead
+~/.claude/skills/claude-tracker-suite/scripts/open-file-explorer.sh --right
+```
+
+Uses System Events clipboard-paste pattern (Cmd+D for split, then paste yazi command). Requires yazi: `brew install yazi ffmpegthumbnailer unar jq poppler fd ripgrep fzf zoxide`.
 
 ## Related Systems
 
