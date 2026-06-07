@@ -493,14 +493,17 @@ if [ -n "$EXTRACT_RESPONSE" ]; then
     # JSONL mode: pipe through jq to extract only agent_message text.
     # This filters out intermediate tool calls (file reads, command executions)
     # that would otherwise bury the actual response in thousands of lines.
+    # grep '^{' filters non-JSON lines (control chars, stderr bleed from script(1) PTY wrapper).
     if [ -n "$RESUME_SESSION" ]; then
         _with_pty codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null 2>/dev/null \
             | tr -d '\r' \
+            | grep '^{' \
             | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
             > "$OUTPUT_FILE"
     else
         _with_pty codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null 2>/dev/null \
             | tr -d '\r' \
+            | grep '^{' \
             | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
             > "$OUTPUT_FILE"
     fi

@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-05-28 | Codex CLI v0.130.0 | Models: GPT-5.5 family
+> Last updated: 2026-06-07 | Codex CLI v0.137.0 | Models: GPT-5.5 family
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -329,7 +329,7 @@ Every ExecPlan includes:
 
 Read-only profiles (`researcher`, `adjudicator`, `chat`) use JSONL extraction to return clean responses. Codex runs with `--json`, and the script pipes the event stream through `jq` to extract only `agent_message` text—filtering out intermediate file reads and command executions that would otherwise bury the response in thousands of lines. Requires `jq`; falls back to `-o` (raw last-message capture) if jq is unavailable.
 
-## Notable Recent CLI Features (v0.110–v0.122)
+## Notable Recent CLI Features (v0.110–v0.137)
 
 - **Plugin system** (v0.110) — `codex plugins` / `codex plugin install <name>`
 - **`/fast` toggle** (v0.110) — Switch to faster output mid-session
@@ -340,6 +340,12 @@ Read-only profiles (`researcher`, `adjudicator`, `chat`) use JSONL extraction to
 - **`/side` conversations** (v0.122) — Parallel side conversations without losing main context
 - **Plan Mode improvements** (v0.122) — Better plan editing, approval, and execution tracking
 - **Deny-read glob policies** (v0.122) — `deny_file_read_patterns` blocks reads of sensitive paths
+- **Local history search** (v0.134) — Search past conversations from TUI
+- **MCP OAuth + per-server env vars** (v0.134) — Isolated MCP server environments
+- **`--profile` flag promoted** (v0.134) — Breaking: rejects legacy v1 profile configs at startup
+- **Session archiving** (v0.136) — `/archive` command and `codex archive` CLI
+- **Multi-agent v2** (v0.137) — Runtime-tracked threads, cleaner spawned agent metadata
+- **Hosted web/image tools in exec** (v0.137) — Web searches can run in parallel in code mode
 
 See `references/codex-cli.md` for full feature details.
 
@@ -421,11 +427,13 @@ ls ./agents/
 ### "Codex produced no output"
 
 The researcher/adjudicator/chat profiles capture output to a temp file. Common causes:
-- **TTY detachment** (most common): Codex CLI v0.124.0+ silently crashes when backgrounded without a TTY. `codex-exec.sh` auto-wraps with `script(1)` — verify your Codex version (`codex --version`).
+- **stderr bleed through PTY wrapper**: `script(1)` merges stderr (error logs, control chars) into stdout, corrupting the JSON stream. Fixed in v0.137.0 support by filtering non-JSON lines (`grep '^{'`) before `jq`. If you still see this, ensure your `codex-exec.sh` is current.
+- **TTY detachment**: Codex CLI v0.124.0+ silently crashes when backgrounded without a TTY. `codex-exec.sh` auto-wraps with `script(1)` — verify your Codex version (`codex --version`).
 - Codex session too short to produce a response
 - Empty model response (retry)
 - Missing `jq` (install via `brew install jq`)
 - Stale `.AGENTS.md.codex-backup.*` files in the working directory
+- Broken skill YAML in `~/.claude/skills/` (causes ERROR log that bleeds through PTY — harmless but noisy)
 
 ### Poor Results
 

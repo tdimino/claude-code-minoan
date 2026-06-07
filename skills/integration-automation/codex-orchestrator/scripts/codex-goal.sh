@@ -186,14 +186,21 @@ cmd_draft() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --output|--model|--reasoning)
+            --output)
                 if [[ $# -lt 2 || "$2" == --* ]]; then
                     echo -e "${RED}Error: $1 requires a value${NC}"; exit 1
                 fi
-                ;;&
-            --output) output_path="$2"; shift 2 ;;
-            --model) model="$2"; shift 2 ;;
-            --reasoning) reasoning="$2"; shift 2 ;;
+                output_path="$2"; shift 2 ;;
+            --model)
+                if [[ $# -lt 2 || "$2" == --* ]]; then
+                    echo -e "${RED}Error: $1 requires a value${NC}"; exit 1
+                fi
+                model="$2"; shift 2 ;;
+            --reasoning)
+                if [[ $# -lt 2 || "$2" == --* ]]; then
+                    echo -e "${RED}Error: $1 requires a value${NC}"; exit 1
+                fi
+                reasoning="$2"; shift 2 ;;
             *) echo -e "${YELLOW}Warning: Unknown option $1${NC}"; shift ;;
         esac
     done
@@ -316,13 +323,16 @@ cmd_run() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --model|--sandbox)
+            --model)
                 if [[ $# -lt 2 || "$2" == --* ]]; then
                     echo -e "${RED}Error: $1 requires a value${NC}"; exit 1
                 fi
-                ;;&
-            --model) model="$2"; shift 2 ;;
-            --sandbox) sandbox="$2"; shift 2 ;;
+                model="$2"; shift 2 ;;
+            --sandbox)
+                if [[ $# -lt 2 || "$2" == --* ]]; then
+                    echo -e "${RED}Error: $1 requires a value${NC}"; exit 1
+                fi
+                sandbox="$2"; shift 2 ;;
             *) echo -e "${YELLOW}Warning: Unknown option $1${NC}"; shift ;;
         esac
     done
