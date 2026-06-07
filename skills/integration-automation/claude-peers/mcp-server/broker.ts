@@ -115,15 +115,26 @@ function checkIdleShutdown() {
   }
 }
 
-// Clean up stale peers (PIDs that no longer exist) on startup
+// Clean up stale peers (PIDs that no longer exist or orphaned with PPID=1)
 // Uses inline SQL instead of prepared statements because this runs before they're initialized
 function cleanStalePeers() {
   const peers = db.query("SELECT id, pid FROM peers").all() as { id: string; pid: number }[];
   for (const peer of peers) {
+    let isStale = false;
     try {
       process.kill(peer.pid, 0);
+      // PID alive — check if orphaned (reparented to init/launchd)
+      const proc = Bun.spawnSync(["ps", "-o", "ppid=", "-p", String(peer.pid)]);
+      const ppid = parseInt(new TextDecoder().decode(proc.stdout).trim(), 10);
+      if (ppid === 1) {
+        isStale = true;
+        try { process.kill(peer.pid, "SIGTERM"); } catch {}
+        console.error(`[claude-peers broker] Killed orphaned peer ${peer.id} (PID ${peer.pid})`);
+      }
     } catch {
-      // Process doesn't exist, remove peer and its messages
+      isStale = true;
+    }
+    if (isStale) {
       db.run("DELETE FROM messages WHERE to_id = ? AND delivered = 0", [peer.id]);
       db.run("DELETE FROM messages WHERE from_id = ?", [peer.id]);
       db.run("DELETE FROM peers WHERE id = ?", [peer.id]);
@@ -178,6 +189,13 @@ const insertMessage = db.prepare(`
 
 const selectUndelivered = db.prepare(`
   SELECT * FROM messages WHERE to_id = ? AND delivered = 0 ORDER BY sent_at ASC
+`);
+
+const selectHistory = db.prepare(`
+  SELECT * FROM messages
+  WHERE to_id = ? OR from_id = ?
+  ORDER BY sent_at DESC
+  LIMIT ?
 `);
 
 const markDelivered = db.prepare(`
@@ -310,6 +328,11 @@ function handlePollMessages(body: PollMessagesRequest): PollMessagesResponse {
   return pollTransaction(body.id);
 }
 
+function handleMessageHistory(body: { id: string; limit?: number }): { messages: Message[] } {
+  const limit = Math.min(body.limit ?? 20, 100);
+  return { messages: selectHistory.all(body.id, body.id, limit) as Message[] };
+}
+
 function handleUnregister(body: { id: string }): void {
   deletePeer.run(body.id);
   checkIdleShutdown();
@@ -386,6 +409,8 @@ async function handleRequest(req: Request): Promise<Response> {
         return Response.json(handleSendMessage(body as SendMessageRequest));
       case "/poll-messages":
         return Response.json(handlePollMessages(body as PollMessagesRequest));
+      case "/message-history":
+        return Response.json(handleMessageHistory(body as { id: string; limit?: number }));
       case "/unregister":
         handleUnregister(body as { id: string });
         return Response.json({ ok: true });

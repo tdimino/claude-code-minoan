@@ -25,7 +25,7 @@ Claude Code MCP              Codex MCP                           CLI tool
 | `list_peers` | Discover other agents (scope: machine/directory/repo) |
 | `send_message` | Send a message to a peer by ID |
 | `set_summary` | Set a summary visible to other peers |
-| `check_messages` | Poll for new messages (required for Codex; Claude Code gets push) |
+| `check_messages` | View message history with `[NEW]` markers, client-type tags, and timestamps |
 | `kill_peer` | Terminate a stuck peer's agent session (SIGTERM to parent) |
 
 ## Client Types
@@ -117,12 +117,22 @@ args = ["/path/to/claude-peers-mcp/server.ts", "--client-type", "codex"]
 ## CLI
 
 ```bash
-bun cli.ts status        # Broker health + all peers with [type] tags
-bun cli.ts peers         # Quick peer listing
-bun cli.ts send <id> <msg>  # Send message (tagged as unverified)
-bun cli.ts kill <id>     # Kill a peer's agent session
-bun cli.ts kill-broker   # Stop the broker daemon
+bun cli.ts status          # Broker health + all peers (with orphan warnings)
+bun cli.ts peers           # Quick peer listing
+bun cli.ts orphans         # List orphaned server.ts processes (PPID=1)
+bun cli.ts cleanup         # Kill orphaned processes and remove from broker
+bun cli.ts send <id> <msg> # Send message (tagged as unverified)
+bun cli.ts kill <id>       # Kill a peer's agent session
+bun cli.ts kill-broker     # Stop the broker daemon
 ```
+
+## Orphan Management
+
+MCP server processes detect parent death via stdin close (immediate) and PPID monitoring (30s fallback). The broker's stale-peer sweep also detects orphaned processes (PPID=1) and terminates them. Use `bun cli.ts orphans` to list and `bun cli.ts cleanup` to kill orphaned processes manually.
+
+## Message History
+
+`check_messages` returns all recent messages (sent and received) with `[NEW]` markers, `[claude-code]`/`[codex]` tags, timestamps, and direction (From/To). Messages persist across reads.
 
 ## Environment Variables
 

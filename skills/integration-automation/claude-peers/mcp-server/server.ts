@@ -412,14 +412,27 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         };
       }
       try {
-        const result = await brokerFetch<PollMessagesResponse>("/poll-messages", { id: myId });
-        if (result.messages.length === 0) {
+        // Fetch history first (non-destructive) to identify undelivered messages
+        const history = await brokerFetch<{ messages: Array<Message & { delivered: number }> }>("/message-history", {
+          id: myId,
+          limit: 20,
+        });
+
+        // Identify undelivered messages before marking them
+        const newIds = new Set(
+          history.messages.filter((m) => !m.delivered && m.to_id === myId).map((m) => m.id)
+        );
+
+        // Now mark as delivered (so push loop won't re-push)
+        await brokerFetch<PollMessagesResponse>("/poll-messages", { id: myId });
+
+        if (history.messages.length === 0) {
           return {
-            content: [{ type: "text" as const, text: "No new messages." }],
+            content: [{ type: "text" as const, text: "No messages." }],
           };
         }
 
-        // Enrich messages with sender context (same as push path)
+        // Build peer lookup for enrichment
         let peerMap = new Map<string, Peer>();
         try {
           const peers = await brokerFetch<Peer[]>("/list-peers", {
@@ -429,21 +442,31 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
           });
           for (const p of peers) peerMap.set(p.id, p);
         } catch {
-          // Non-critical — proceed without enrichment
+          // Non-critical
         }
 
-        const lines = result.messages.map((m) => {
-          const sender = peerMap.get(m.from_id);
-          const header = sender
-            ? `From ${m.from_id} [${sender.client_type ?? "claude-code"}] (${sender.summary || sender.cwd})`
-            : `From ${m.from_id}`;
-          return `${header} (${m.sent_at}):\n${m.text}`;
+        const newCount = newIds.size;
+        const lines = history.messages.map((m) => {
+          const isNew = newIds.has(m.id);
+          const isSent = m.from_id === myId;
+          const otherId = isSent ? m.to_id : m.from_id;
+          const otherPeer = peerMap.get(otherId);
+          const tag = otherPeer?.client_type ?? "unknown";
+          const context = otherPeer ? (otherPeer.summary || otherPeer.cwd) : otherId;
+          const direction = isSent ? `To ${otherId}` : `From ${otherId}`;
+          const prefix = isNew ? "[NEW] " : "";
+          return `${prefix}[${tag}] ${direction} (${context}) — ${m.sent_at}\n  ${m.text}`;
         });
+
+        const header = newCount > 0
+          ? `${history.messages.length} message(s) (${newCount} new):`
+          : `${history.messages.length} message(s):`;
+
         return {
           content: [
             {
               type: "text" as const,
-              text: `${result.messages.length} new message(s):\n\n${lines.join("\n\n---\n\n")}`,
+              text: `${header}\n\n${lines.join("\n\n")}`,
             },
           ],
         };
@@ -594,6 +617,7 @@ async function main() {
 
   // 6. Start polling for inbound messages (only for clients that support push)
   let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let orphanTimer: ReturnType<typeof setInterval> | null = null;
   if (CLIENT_TYPE === "claude-code") {
     pollTimer = setInterval(pollAndPushMessages, POLL_INTERVAL_MS);
   } else {
@@ -612,9 +636,13 @@ async function main() {
   }, HEARTBEAT_INTERVAL_MS);
 
   // 8. Clean up on exit
+  let cleanupCalled = false;
   const cleanup = async () => {
+    if (cleanupCalled) return;
+    cleanupCalled = true;
     if (pollTimer) clearInterval(pollTimer);
     clearInterval(heartbeatTimer);
+    if (orphanTimer) clearInterval(orphanTimer);
     if (myId) {
       try {
         await brokerFetch("/unregister", { id: myId });
@@ -623,11 +651,30 @@ async function main() {
         // Best effort
       }
     }
+    try { await mcp.close(); } catch {}
     process.exit(0);
   };
 
   process.on("SIGINT", cleanup);
   process.on("SIGTERM", cleanup);
+
+  // 9. Detect parent death — stdin close (primary) + PPID check (fallback)
+  process.stdin.on("end", () => {
+    log("stdin closed (parent exited), shutting down");
+    cleanup();
+  });
+  process.stdin.on("close", () => {
+    log("stdin closed (parent exited), shutting down");
+    cleanup();
+  });
+
+  const startupPpid = process.ppid;
+  orphanTimer = setInterval(() => {
+    if (process.ppid !== startupPpid || process.ppid === 1) {
+      log("Parent process exited (orphan detected), shutting down");
+      cleanup();
+    }
+  }, 30_000);
 }
 
 main().catch((e) => {

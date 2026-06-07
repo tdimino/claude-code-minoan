@@ -5,9 +5,12 @@
  * Utility commands for managing the broker and inspecting peers.
  *
  * Usage:
- *   bun cli.ts status          — Show broker status and all peers
+ *   bun cli.ts status          — Show broker status, peers, orphans, pending messages
  *   bun cli.ts peers           — List all peers
+ *   bun cli.ts orphans         — List orphaned server.ts processes (PPID=1)
+ *   bun cli.ts cleanup         — Kill orphaned processes and remove from broker
  *   bun cli.ts send <id> <msg> — Send a message to a peer
+ *   bun cli.ts kill <id>       — Kill a peer's agent session
  *   bun cli.ts kill-broker     — Stop the broker daemon
  */
 
@@ -35,6 +38,31 @@ async function brokerFetch<T>(path: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+type PeerInfo = {
+  id: string;
+  pid: number;
+  cwd: string;
+  git_root: string | null;
+  tty: string | null;
+  client_type: string;
+  summary: string;
+  last_seen: string;
+};
+
+function getPpid(pid: number): number | null {
+  try {
+    const proc = Bun.spawnSync(["ps", "-o", "ppid=", "-p", String(pid)]);
+    return parseInt(new TextDecoder().decode(proc.stdout).trim(), 10) || null;
+  } catch {
+    return null;
+  }
+}
+
+function isOrphaned(pid: number): boolean {
+  const ppid = getPpid(pid);
+  return ppid === 1;
+}
+
 const cmd = process.argv[2];
 
 switch (cmd) {
@@ -45,30 +73,27 @@ switch (cmd) {
       console.log(`Socket: ${SOCKET_PATH}`);
 
       if (health.peers > 0) {
-        const peers = await brokerFetch<
-          Array<{
-            id: string;
-            pid: number;
-            cwd: string;
-            git_root: string | null;
-            tty: string | null;
-            client_type: string;
-            summary: string;
-            last_seen: string;
-          }>
-        >("/list-peers", {
+        const peers = await brokerFetch<PeerInfo[]>("/list-peers", {
           scope: "machine",
           cwd: "/",
           git_root: null,
         });
 
+        let orphanCount = 0;
         console.log("\nPeers:");
         for (const p of peers) {
           const tag = p.client_type ?? "claude-code";
-          console.log(`  ${p.id}  [${tag}]  PID:${p.pid}  ${p.cwd}`);
+          const orphan = isOrphaned(p.pid);
+          if (orphan) orphanCount++;
+          const orphanTag = orphan ? " ⚠ ORPHAN" : "";
+          console.log(`  ${p.id}  [${tag}]  PID:${p.pid}${orphanTag}  ${p.cwd}`);
           if (p.summary) console.log(`         ${p.summary}`);
           if (p.tty) console.log(`         TTY: ${p.tty}`);
           console.log(`         Last seen: ${p.last_seen}`);
+        }
+
+        if (orphanCount > 0) {
+          console.log(`\n⚠ ${orphanCount} orphaned process(es). Run 'bun cli.ts cleanup' to terminate.`);
         }
       }
     } catch {
@@ -157,6 +182,70 @@ switch (cmd) {
     break;
   }
 
+  case "orphans": {
+    try {
+      const peers = await brokerFetch<PeerInfo[]>("/list-peers", {
+        scope: "machine",
+        cwd: "/",
+        git_root: null,
+      });
+
+      const orphans = peers.filter((p) => isOrphaned(p.pid));
+      if (orphans.length === 0) {
+        console.log("No orphaned peers found.");
+      } else {
+        console.log(`${orphans.length} orphaned peer(s):\n`);
+        for (const p of orphans) {
+          const tag = p.client_type ?? "claude-code";
+          console.log(`  ${p.id}  [${tag}]  PID:${p.pid}  ${p.cwd}`);
+          if (p.summary) console.log(`         ${p.summary}`);
+          console.log(`         Last seen: ${p.last_seen}`);
+        }
+      }
+    } catch {
+      console.log("Broker is not running.");
+    }
+    break;
+  }
+
+  case "cleanup": {
+    try {
+      const peers = await brokerFetch<PeerInfo[]>("/list-peers", {
+        scope: "machine",
+        cwd: "/",
+        git_root: null,
+      });
+
+      const orphans = peers.filter((p) => isOrphaned(p.pid));
+      if (orphans.length === 0) {
+        console.log("No orphaned peers to clean up.");
+        break;
+      }
+
+      console.log(`Found ${orphans.length} orphaned peer(s). Cleaning up...`);
+      let killed = 0;
+      for (const p of orphans) {
+        try {
+          process.kill(p.pid, "SIGTERM");
+          killed++;
+          console.log(`  Killed ${p.id} [${p.client_type ?? "claude-code"}] PID:${p.pid} (${p.cwd})`);
+        } catch {
+          console.log(`  PID ${p.pid} already dead, removing record`);
+        }
+        // Unregister from broker immediately
+        try {
+          await brokerFetch("/unregister", { id: p.id });
+        } catch {
+          // Broker cleanup will catch it on next sweep
+        }
+      }
+      console.log(`\nDone: ${killed} process(es) terminated, ${orphans.length} peer record(s) removed.`);
+    } catch {
+      console.log("Broker is not running.");
+    }
+    break;
+  }
+
   case "kill-broker": {
     try {
       const health = await brokerFetch<{ status: string; peers: number }>("/health");
@@ -179,8 +268,10 @@ switch (cmd) {
     console.log(`claude-peers CLI
 
 Usage:
-  bun cli.ts status          Show broker status and all peers
+  bun cli.ts status          Show broker status, peers, orphans
   bun cli.ts peers           List all peers
+  bun cli.ts orphans         List orphaned server.ts processes (PPID=1)
+  bun cli.ts cleanup         Kill orphaned processes and remove from broker
   bun cli.ts send <id> <msg> Send a message to a peer
   bun cli.ts kill <id>       Kill a peer's agent session
   bun cli.ts kill-broker     Stop the broker daemon`);

@@ -29,12 +29,30 @@ Peer discovery and messaging network for AI coding agents on the same machine. A
 ## CLI Reference
 
 ```bash
-bun ~/tools/claude-peers-mcp/cli.ts status        # Broker health + all peers with [type] tags
-bun ~/tools/claude-peers-mcp/cli.ts peers          # Quick peer listing
-bun ~/tools/claude-peers-mcp/cli.ts send <id> <msg> # Send from terminal (tagged as unverified)
-bun ~/tools/claude-peers-mcp/cli.ts kill <id>       # Kill a peer's agent session (SIGTERM to parent)
-bun ~/tools/claude-peers-mcp/cli.ts kill-broker     # Stop the broker daemon
+bun ~/tools/claude-peers-mcp/cli.ts status          # Broker health + all peers (with orphan warnings)
+bun ~/tools/claude-peers-mcp/cli.ts peers            # Quick peer listing
+bun ~/tools/claude-peers-mcp/cli.ts orphans          # List orphaned server.ts processes (PPID=1)
+bun ~/tools/claude-peers-mcp/cli.ts cleanup          # Kill orphaned processes and remove from broker
+bun ~/tools/claude-peers-mcp/cli.ts send <id> <msg>  # Send from terminal (tagged as unverified)
+bun ~/tools/claude-peers-mcp/cli.ts kill <id>         # Kill a peer's agent session (SIGTERM to parent)
+bun ~/tools/claude-peers-mcp/cli.ts kill-broker       # Stop the broker daemon
 ```
+
+## Message History
+
+`check_messages` returns all recent messages (sent and received) with enrichment:
+- `[claude-code]` or `[codex]` client-type tags
+- ISO timestamps
+- `[NEW]` marker for previously unseen messages
+- Direction indicator (From/To) with peer summary or CWD
+
+Messages persist across reads — calling `check_messages` multiple times still shows history. The `/message-history` broker endpoint is non-destructive.
+
+## Orphan Management
+
+MCP server processes detect parent death via stdin close (immediate) and PPID monitoring (30s fallback). The broker's stale-peer sweep (every 30s) also detects orphaned processes (PPID=1) and terminates them.
+
+For manual cleanup: `bun cli.ts orphans` lists and `bun cli.ts cleanup` kills orphaned processes.
 
 ## Gotchas
 
