@@ -10,7 +10,6 @@ Web search, academic research, scraping, and computational analysis.
 | `firecrawl` | Cloud web scraping to markdown — single pages, site crawls, search, agent extraction |
 | `omnisearch` | Unified meta-router across 5 providers (Brave, Tavily, Xpoz, Exa, Firecrawl) — auto-routes, parallel search, dedup, social media |
 | `linear-a-decipherment` | Computational Linear A analysis using Gordon's Semitic hypothesis |
-| `minoan` | Speak, compose, and inhabit reconstructed Minoan (Lisan al-Qads) — language faculty built on Gordon's readings |
 | `openplanter` | Dataset investigation, entity resolution, evidence chains with confidence tiers (Admiralty/ACH) |
 | `reverse-trace` | Reverse image/video source identification — chains Vision, Picarta, Gemini to trace TV shows, movies, locations |
 | `scrapling` | Local stealth web scraping — anti-bot bypass, Cloudflare solver, adaptive element tracking |
