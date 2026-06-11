@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-96-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-97-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-21-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-50-orange.svg" alt="Hooks"></a>
 </p>
@@ -20,7 +20,7 @@ A curated `~/.claude/` configuration for professional development workflows — 
 
 ```
 claude-code-minoan/
-├── skills/                      # 96 custom skills across 5 categories
+├── skills/                      # 97 custom skills across 5 categories
 │   ├── core-development/        #   Architecture, task tracking, code search
 │   ├── integration-automation/  #   Local ML, RAG, browser, telephony
 │   ├── design-media/            #   Frontend, image gen, TTS, vision
@@ -77,7 +77,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 96 skills across 5 categories
+### [Skills](skills/README.md) — 97 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -85,7 +85,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
-| Core Development | 14 | `skill-optimizer`, `claude-agent-sdk`, `claude-md-manager`, `dag-typesafe`, `glossary`, `autoresearch`, `claude-usage`, `architecture-md-builder`, `stop-slop`, `test-harness-auditor`, `user-model-builder` |
+| Core Development | 15 | `fable`, `skill-optimizer`, `claude-agent-sdk`, `claude-md-manager`, `dag-typesafe`, `glossary`, `autoresearch`, `claude-usage`, `architecture-md-builder`, `stop-slop`, `test-harness-auditor`, `user-model-builder` |
 | Integration & Automation | 31 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator`, `obscura`, `stock-monitor` |
 | Design & Media | 33 | `minoan-frontend-design` (70% win rate), `scroll-cinema`, `conductor-motion`, `vellum-editorial`, `gpt-atelier`, `nano-banana-pro`, `gemini-forge`, `sprite-forge`, `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy`, `particle-swarm-sim`, `tamarru` |
 | Research | 10 | `minoan` (reconstructed Minoan language faculty), `omnisearch`, `geo-seo`, `academic-research`, `ancient-near-east-research`, `exa-search`, `firecrawl`, `scrapling`, `openplanter`, `reverse-trace` |
@@ -154,6 +154,7 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 
 | Agent | Model | Purpose |
 |-------|-------|---------|
+| `fable` | fable | Naos (ναός, √n-w-y) — visiting Mythos-class spirit for long-horizon tasks. 100-turn budget, full tool access. Available until June 22, 2026. |
 | `librarian` | sonnet | GitHub repo exploration via `gh` CLI. Caches to `/tmp/claude-librarian/`. |
 
 ---
@@ -344,7 +345,7 @@ Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgen
 
 ---
 
-**Skills**: 96 | **Commands**: 21 | **Hooks**: 50 | **CLI Tools**: 10
+**Skills**: 97 | **Commands**: 21 | **Hooks**: 50 | **CLI Tools**: 10
 
 ---
 
