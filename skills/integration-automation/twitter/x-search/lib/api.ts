@@ -2,10 +2,13 @@
  * X API v2 wrapper — search, threads, profiles, single tweets.
  * Bearer token from: X_BEARER_TOKEN env var or ~/.config/env/global.env
  *
- * Pricing (Feb 2026 pay-per-use):
- *   Post read:   $0.005
- *   User lookup:  $0.010
- *   Post create:  $0.010
+ * Pricing (July 2026 pay-per-use, after April 2026 repricing):
+ *   Post read:              $0.005
+ *   User lookup:            $0.010
+ *   Post create:            $0.015
+ *   Post create (with URL): $0.200  <- 13x surcharge, guard before posting
+ *   Owned reads (own posts/mentions/bookmarks/likes/followers): $0.001
+ * Full rate card: https://docs.x.com/x-api/getting-started/pricing
  */
 
 import { readFileSync } from "fs";
@@ -441,6 +444,13 @@ export async function getTweet(tweetId: string): Promise<Tweet | null> {
     return parsed[0] || null;
   }
   return null;
+}
+
+export async function getUsage(): Promise<any> {
+  // Billed post consumption per day — ground truth for spend, unlike the
+  // per-command estimates printed elsewhere.
+  const url = `${BASE}/usage/tweets`;
+  return apiGet(url);
 }
 
 export function sortBy(

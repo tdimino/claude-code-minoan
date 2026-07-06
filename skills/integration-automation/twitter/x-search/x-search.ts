@@ -14,8 +14,9 @@
  *   watchlist remove <user>     Remove user from watchlist
  *   watchlist check             Check recent tweets from all watchlist accounts
  *   cache clear                 Clear search cache
- *   post <text>                 Post a tweet (OAuth 1.0a)
- *   reply <tweet_id> <text>     Reply to a tweet (OAuth 1.0a)
+ *   usage                       Billed post consumption per day
+ *   post <text>                 Post a tweet (OAuth 1.0a; --allow-url for URL posts)
+ *   reply <tweet_id> <text>     Reply to a tweet (OAuth 1.0a; --allow-url for URL posts)
  *
  * Search options:
  *   --sort likes|impressions|retweets|recent   Sort order (default: likes)
@@ -567,35 +568,75 @@ async function cmdCache() {
   }
 }
 
+// Posts containing a URL bill at $0.20 instead of $0.015 (April 2026 repricing).
+// Refuse by default — agents post autonomously, and a warning alone doesn't protect spend.
+// X's t.co shortener also wraps bare domains (example.com/page), so protocol-only
+// detection under-matches; the common-TLD alternation errs toward over-blocking,
+// which is safe because --allow-url overrides.
+const URL_PATTERN =
+  /https?:\/\/|www\.|\b[a-z0-9][a-z0-9-]*\.(com|org|net|io|ai|dev|co|app|me|xyz|info|gg|tv|sh|so|to|us|uk|ca|de|fr|es|it|nl|jp|in|edu|gov|mil|biz|online|site|tech|store|blog|news|cloud|link)(\/|\b)/i;
+
+function guardUrlSurcharge(text: string, allowUrl: boolean) {
+  if (allowUrl) return;
+  if (URL_PATTERN.test(text)) {
+    console.error(
+      "Refused: text contains a URL. X bills URL posts at $0.200 (vs $0.015 without).\n" +
+        "Re-run with --allow-url to accept the surcharge."
+    );
+    process.exit(1);
+  }
+}
+
 async function cmdPost() {
+  const allowUrl = getFlag("allow-url");
+  const dryRun = getFlag("dry-run");
   const text = args.slice(1).join(" ");
   if (!text) {
-    console.error("Usage: x-search post <text>");
+    console.error("Usage: x-search post <text> [--allow-url] [--dry-run]");
     process.exit(1);
   }
   if (text.length > 280) {
     console.error(`Tweet too long: ${text.length}/280 chars`);
     process.exit(1);
   }
+  guardUrlSurcharge(text, allowUrl);
+  if (dryRun) {
+    console.log(`[dry-run] Would post (${text.length}/280 chars): ${text}`);
+    console.log(`[dry-run] Cost would be: ~$${allowUrl ? "0.20" : "0.015"}`);
+    return;
+  }
   const result = await api.postTweet(text);
   console.log(`Posted: https://x.com/i/status/${result.id}`);
-  console.log(`Cost: ~$0.01`);
+  console.log(`Cost: ~$${allowUrl ? "0.20" : "0.015"}`);
 }
 
 async function cmdReply() {
+  const allowUrl = getFlag("allow-url");
+  const dryRun = getFlag("dry-run");
   const tweetId = args[1];
   const text = args.slice(2).join(" ");
   if (!tweetId || !text) {
-    console.error("Usage: x-search reply <tweet_id> <text>");
+    console.error("Usage: x-search reply <tweet_id> <text> [--allow-url] [--dry-run]");
     process.exit(1);
   }
   if (text.length > 280) {
     console.error(`Reply too long: ${text.length}/280 chars`);
     process.exit(1);
   }
+  guardUrlSurcharge(text, allowUrl);
+  if (dryRun) {
+    console.log(`[dry-run] Would reply to ${tweetId} (${text.length}/280 chars): ${text}`);
+    console.log(`[dry-run] Cost would be: ~$${allowUrl ? "0.20" : "0.015"}`);
+    return;
+  }
   const result = await api.replyToTweet(text, tweetId);
   console.log(`Replied: https://x.com/i/status/${result.id}`);
-  console.log(`Cost: ~$0.01`);
+  console.log(`Cost: ~$${allowUrl ? "0.20" : "0.015"}`);
+}
+
+async function cmdUsage() {
+  const raw = await api.getUsage();
+  console.log(JSON.stringify(raw, null, 2));
 }
 
 async function cmdDelete() {
@@ -883,6 +924,8 @@ Commands:
   watchlist add <user> [note] Add user to watchlist
   watchlist remove <user>     Remove user from watchlist
   watchlist check             Check recent from all watchlist accounts
+  usage                       Billed post consumption per day (GET /2/usage/tweets)
+  delete <tweet_id>           Delete own tweet ($0.01)
   cache clear                 Clear search cache
 
 Search options:
@@ -909,10 +952,19 @@ Feed options:
   --json                     Raw JSON output
   --no-cache                 Skip cache
 
-Cost: $0.005/post read, $0.01/user lookup, $0.01/post create (pay-per-use)`);
+Post options:
+  --allow-url                Accept the $0.200 URL-post surcharge (refused otherwise)
+  --dry-run                  Validate and show cost without posting
+
+Cost: $0.005/post read, $0.01/user lookup, $0.015/post create,
+      $0.20/post create with URL, $0.001/owned read (pay-per-use)`);
 }
 
 async function main() {
+  // Drop cache entries past the longest TTL (1hr quick mode) so data/cache
+  // doesn't accumulate dead files indefinitely.
+  cache.prune(60 * 60 * 1000);
+
   switch (command) {
     case "search":
     case "s":
@@ -953,6 +1005,10 @@ async function main() {
     case "delete":
     case "rm":
       await cmdDelete();
+      break;
+    case "usage":
+    case "u":
+      await cmdUsage();
       break;
     default:
       usage();

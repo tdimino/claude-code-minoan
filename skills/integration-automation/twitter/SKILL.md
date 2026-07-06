@@ -1,206 +1,107 @@
 ---
 name: twitter
-description: "Search, post, monitor, and archive on Twitter/X via three modes: official API v2 search via x-search (pay-per-use, $0.005/read), session-based posting/reading via bird CLI (free, browser cookies), and bookmark archival via Smaug. Triggers on 'search tweets', 'post to X', 'monitor account', 'archive bookmarks', 'research topic on Twitter'."
+description: "Search, post, monitor, and archive on Twitter/X via five tools: the official hosted X MCP server (full-archive search, trends, bookmarks, Articles via xurl bridge), x-search CLI (cost-tracked API v2 research, feeds, watchlists, posting), xurl (official CLI for any endpoint incl. media/DMs), bird CLI (free session-based reads/writes, frozen at 0.8.0), and Smaug bookmark archival. Triggers on: search tweets, post to X, reply on Twitter, full-archive search, what's trending, check mentions, timeline, DMs, monitor account, research topic on Twitter, archive bookmarks."
 ---
 
-# Twitter/X — Dual-Mode Integration
+# Twitter/X — Multi-Mode Integration
 
-Three tools for different operations. Choose by task:
+Five tools; choose by task:
 
 | Mode | Tool | Auth | Cost | Use For |
 |------|------|------|------|---------|
-| **Official API** | `x-search` | Bearer token | $0.005/read, $0.01/user | Search, research, profiles, threads, monitoring |
-| **Official API** | `x-search post/reply` | OAuth 1.0a | $0.01/post | Posting, replying via official API |
-| **Session** | `bird` | Browser cookies | Free | Posting, replying, bookmarks, mentions, media |
+| **Hosted MCP** | `xapi` MCP server (via xurl bridge) — *setup pending* | OAuth 2.0 | pay-per-use | Full-archive search, trends, bookmarks, Articles, timelines |
+| **Official API** | `x-search` | Bearer + OAuth 1.0a | pay-per-use, tracked | Cost-governed research, feeds, watchlists, posting |
+| **Official CLI** | `xurl` | OAuth 1.0a + 2.0 | pay-per-use | Any endpoint: media upload, DMs, raw API calls |
+| **Session** | `bird` | Browser cookies | Free | Casual reads, mentions, media posts — while it lasts |
 | **Archival** | `smaug` | Via bird | Free | Bookmark/likes processing, AI-powered filing |
 
-> **Alternative**: `opencli twitter` provides 25 free session-based commands (post, reply, search, bookmarks, follow, block, etc.) via Chrome session reuse. Prefer opencli for routine Twitter operations. Use x-search for deep research with cost tracking. bird CLI remains available as fallback.
+Pricing changes often (twice in 2026 already) — full rate card and billing mechanics in `references/pricing.md`. Headline numbers: post read $0.005, post create $0.015, **post with URL $0.200**, owned reads $0.001, 24h-UTC dedup, 2M reads/month cap.
 
-## Setup
+## When to Use Which
 
-### x-search (Official API v2)
+| Task | Tool | Why |
+|------|------|-----|
+| Full-archive search (beyond 7 days) | xapi MCP | Only mode that reaches X's full history |
+| Trends, news by location | xapi MCP | X-proprietary, not in x-search |
+| Search recent tweets by topic | x-search | Cost-tracked, cached, quality filters |
+| Daily feed from followed accounts | x-search feed | Batched OR-queries, cheap |
+| Monitor specific accounts | x-search watchlist | Batch check with cost tracking |
+| Post a text tweet or reply | x-search post/reply | URL-surcharge guard built in |
+| Post with media, DMs, Articles | xurl | Official CLI, chunked upload |
+| Check actual billed spend | x-search usage | `GET /2/usage/tweets` ground truth |
+| Free casual reads / mentions | bird | Free while cookies + GraphQL hold |
+| Archive bookmarks | smaug | AI categorization, markdown output |
 
-Requires an X API Bearer token from [console.x.com](https://console.x.com). Pay-per-use — no monthly commitment.
+## Hosted X MCP (`xapi`)
 
-```bash
-# Store token (pick one)
-echo 'X_BEARER_TOKEN=your_token_here' >> ~/.claude/skills/twitter/.env
-# OR
-export X_BEARER_TOKEN=your_token_here
-# OR
-mkdir -p ~/.config/env && echo 'X_BEARER_TOKEN=your_token_here' >> ~/.config/env/global.env
-```
+X's first-party MCP server at `https://api.x.com/mcp` (launched June 2026). Six tool groups: Posts, Search (incl. full-archive), Users/timelines, Bookmarks, Trends by WOEID, Articles.
 
-#### OAuth 1.0a (for posting)
+**Not yet wired** — blocked on OAuth 2.0 client credentials (`CLIENT_ID`/`CLIENT_SECRET` in the skill `.env`). Once present, run the `claude mcp add xapi` command in `references/xurl-mcp-setup.md`, and verify with `claude mcp list` before directing work at xapi tools.
 
-Posting requires OAuth 1.0a credentials in addition to the Bearer token.
+Every tool call bills standard pay-per-use rates — treat agentic MCP loops with the same cost discipline as x-search deep searches. Setup, re-auth, and the read-only Bearer fallback: `references/xurl-mcp-setup.md`.
 
-1. Go to [console.x.com](https://console.x.com) → your project → Keys and tokens
-2. Under "Consumer Keys", copy **API Key** and **API Key Secret**
-3. Under "Authentication Tokens", generate **Access Token** and **Access Token Secret** (with **Read and Write** permissions)
-4. Add all four to `~/.claude/skills/twitter/.env`:
+Never read `~/.xurl` (live OAuth tokens) or the skill `.env` values into context.
 
-```bash
-X_API_KEY=your_api_key
-X_API_SECRET=your_api_secret
-X_ACCESS_TOKEN=your_access_token
-X_ACCESS_TOKEN_SECRET=your_access_token_secret
-```
+## x-search — Cost-Governed Research
 
-### bird CLI
+Run via: `bun run ~/.claude/skills/twitter/x-search/x-search.ts <command>` — the examples below abbreviate this prefix to `x-search.ts`; always use the full `bun run` invocation.
 
 ```bash
-brew install steipete/tap/bird   # or: npm install -g @steipete/bird
-bird whoami                       # verify auth (uses browser cookies)
+# Quick search (default for exploration): 1 page, max 10, noise filter, 1hr cache, ~$0.50
+x-search.ts search "AI agents" --quick
+
+# Full search
+x-search.ts search "Claude Code" --pages 3 --sort likes --since 1d
+x-search.ts search "Minoan archaeology" --markdown --save
+
+# Profiles, threads, single tweets
+x-search.ts profile AnthropicAI --count 10
+x-search.ts thread 1234567890 --pages 3
+x-search.ts tweet 1234567890
+
+# Feeds from named account groups (geopolitics, palestine, all-feeds)
+x-search.ts feed geopolitics --since 1d
+x-search.ts feed all-feeds --since 7d --markdown --save
+x-search.ts feed imetatronink,Megatron_ron --since 1d --bird   # free via bird
+x-search.ts feedgroup add tech kaboreas "K8s/infra"            # manage groups
+
+# Watchlist (profile API — pricier)
+x-search.ts watchlist add kikismith "Ancient art"
+x-search.ts watchlist check
+
+# Posting (OAuth 1.0a). URL posts are REFUSED unless --allow-url ($0.20 vs $0.015)
+x-search.ts post "Hello from x-search!"
+x-search.ts post "test text" --dry-run          # validate + show cost WITHOUT posting
+x-search.ts reply 1234567890 "Great thread!"
+x-search.ts delete 1234567890                    # delete own tweet ($0.01)
+
+# Billed consumption (real spend, not estimates)
+x-search.ts usage
 ```
 
-### Smaug (archival)
+Key search flags: `--quick`, `--sort likes|impressions|retweets|recent`, `--since 1h|3h|12h|1d|7d`, `--pages 1-5`, `--from user`, `--quality`, `--min-likes N`, `--min-impressions N`, `--no-replies`, `--json`, `--markdown`, `--save`. Profile: `--count N` (default 20), `--replies` to include replies. Cache: 15min TTL (1hr quick), auto-pruned on every run; `cache clear` to flush.
+
+When testing or demonstrating post/reply, always use `--dry-run` — the success path publishes a live tweet otherwise.
+
+Setup (Bearer + OAuth 1.0a keys in `~/.claude/skills/twitter/.env`) is done on this machine. Re-setup walkthrough and credential troubleshooting: `references/setup.md`.
+
+### Research methodology
+
+1. **Decompose** the topic into 2-3 query angles, 2. **search `--quick`** to assess signal, 3. **refine** with `--from`/`--quality`/`--since`, 4. **thread** high-value conversations, 5. **deep-dive** best queries with `--pages 3 --markdown --save`, 6. **synthesize**. Reach for the xapi MCP when the answer predates the 7-day window.
+
+## xurl — Official CLI
 
 ```bash
-cd ~/tools/smaug && npx smaug setup
+xurl /2/users/me                                   # any endpoint, OAuth handled
+xurl -X POST /2/tweets -d '{"text": "hello"}'
+xurl media upload photo.png                        # chunked media upload
 ```
 
----
+Installed (v1.2.2). Auth registration and the MCP bridge command: `references/xurl-mcp-setup.md`.
 
-## x-search — Official API Research
+## bird CLI — Session-Based Operations (Frozen at 0.8.0)
 
-Run via: `bun run ~/.claude/skills/twitter/x-search/x-search.ts <command>`
-
-### Quick Search (cost-conscious default)
-
-```bash
-bun run ~/.claude/skills/twitter/x-search/x-search.ts search "AI agents" --quick
-# 1 page, max 10 results, auto noise filter, 1hr cache, cost summary
-# Est. cost: ~$0.50
-```
-
-### Full Search
-
-```bash
-bun run ~/.claude/skills/twitter/x-search/x-search.ts search "Claude Code" --pages 3 --sort likes --since 1d
-bun run ~/.claude/skills/twitter/x-search/x-search.ts search "BG3 mods" --from LarianStudios --quality
-bun run ~/.claude/skills/twitter/x-search/x-search.ts search "Minoan archaeology" --markdown --save
-```
-
-### Search Options
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--quick` | off | 1 page, max 10, noise filter, 1hr cache |
-| `--sort` | likes | `likes\|impressions\|retweets\|recent` |
-| `--since` | 7d | `1h\|3h\|12h\|1d\|7d` or ISO timestamp |
-| `--pages` | 1 | 1-5 pages (100 tweets/page) |
-| `--limit` | 15 | Max results displayed |
-| `--from` | — | Shorthand for `from:username` |
-| `--quality` | off | Filter tweets with < 10 likes |
-| `--min-likes` | 0 | Minimum like threshold |
-| `--no-replies` | off | Exclude replies |
-| `--save` | off | Save markdown to `~/tools/smaug/knowledge/research/` |
-| `--json` | off | Raw JSON output |
-| `--markdown` | off | Markdown research document |
-
-### Profiles, Threads, Single Tweets
-
-```bash
-bun run ~/.claude/skills/twitter/x-search/x-search.ts profile AnthropicAI --count 10
-bun run ~/.claude/skills/twitter/x-search/x-search.ts thread 1234567890 --pages 3
-bun run ~/.claude/skills/twitter/x-search/x-search.ts tweet 1234567890
-```
-
-### Feed -- Daily Reading from Followed Accounts
-
-Pull the latest tweets from named account groups, filtered by time window. Uses batched OR-query search (cheap, ~$0.005/tweet).
-
-```bash
-# Read today's tweets from a feed group
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feed geopolitics --since 1d
-
-# Last week from all groups
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feed all-feeds --since 7d
-
-# Custom accounts (comma-separated)
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feed imetatronink,Megatron_ron --since 1d
-
-# Free via bird CLI (no API cost)
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feed geopolitics --since 1d --bird
-
-# Save as markdown research doc
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feed all-feeds --since 7d --markdown --save
-```
-
-Feed options: `--since 1d|7d|1h|3h|12h`, `--limit N` (tweets per account, default 4), `--bird` (free), `--markdown`, `--save`, `--json`, `--no-cache`.
-
-### Feed Groups -- Named Account Collections
-
-```bash
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup                              # list all
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup show geopolitics              # show group
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup create tech "Tech follows"
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup add tech kaboreas "K8s/infra"
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup remove tech kaboreas
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup delete tech
-bun run ~/.claude/skills/twitter/x-search/x-search.ts feedgroup alias daily geopolitics,palestine
-```
-
-Pre-configured groups: `geopolitics` (18 accounts), `palestine` (3 accounts), alias `all-feeds` (all 21). Stored at `~/.claude/skills/twitter/x-search/data/feedgroups.json`.
-
-### Watchlist
-
-Monitor accounts with batch checking (uses profile API, more expensive).
-
-```bash
-bun run ~/.claude/skills/twitter/x-search/x-search.ts watchlist                    # show list
-bun run ~/.claude/skills/twitter/x-search/x-search.ts watchlist add kikismith "Ancient art"
-bun run ~/.claude/skills/twitter/x-search/x-search.ts watchlist remove kikismith
-bun run ~/.claude/skills/twitter/x-search/x-search.ts watchlist check              # check all accounts
-```
-
-Watchlist stored at `~/.claude/skills/twitter/x-search/data/watchlist.json`.
-
-### Posting and Replying (OAuth 1.0a)
-
-Post tweets and replies via the official API. Requires OAuth 1.0a credentials (see setup above).
-
-```bash
-# Post a tweet
-bun run ~/.claude/skills/twitter/x-search/x-search.ts post "Hello from x-search!"
-
-# Reply to a tweet
-bun run ~/.claude/skills/twitter/x-search/x-search.ts reply 1234567890 "Great thread!"
-```
-
-- 280-character limit enforced
-- Cost: $0.01 per post
-- Returns the posted tweet URL
-- Errors: descriptive messages for missing credentials, permission issues, rate limits
-
-### Cache
-
-15-minute TTL (1hr in quick mode). File-based, auto-managed.
-
-```bash
-bun run ~/.claude/skills/twitter/x-search/x-search.ts cache clear
-```
-
-### Cost Reference
-
-| Resource | Cost |
-|----------|------|
-| Post read | $0.005 |
-| User lookup | $0.010 |
-| Post create | $0.010 |
-| Quick search (~100 tweets) | ~$0.50 |
-| 3-page deep search (~300 tweets) | ~$1.50 |
-| Profile check | ~$0.51 |
-| Cached repeat | FREE |
-
-X API deduplicates reads within 24h. Cache prevents redundant queries within 15min.
-
----
-
-## bird CLI — Session-Based Operations
-
-Uses undocumented Twitter GraphQL APIs via browser cookies. Free but may break when Twitter rotates internals.
+Uses undocumented Twitter GraphQL APIs via browser cookies. Free, but **upstream is dead**: steipete deleted the repo and brew tap (Feb 2026). npm still serves the final 0.8.0 (`npm install -g @steipete/bird`); source mirror at `github.com/LaceLetho/bird-cli-backup`. Verified working 2026-07-05 — but when X rotates GraphQL internals there will be no fix. Fall back to xapi MCP / x-search for reads, xurl for writes. Smaug's fetching inherits this risk (migration path: Owned Reads at $0.001/resource, see `references/pricing.md`).
 
 Always pass `--cookie-source chrome` to all bird commands to avoid EPERM warnings from Safari cookie access.
 
@@ -245,11 +146,13 @@ bird --cookie-source chrome check           # credential sources
 bird --cookie-source chrome query-ids --fresh  # refresh when Twitter rotates IDs
 ```
 
----
+### Troubleshooting
+
+- **403 errors**: browser cookies expired — log into Twitter in Chrome, then `bird check`
+- **Query ID errors**: `bird query-ids --fresh` (works until X changes the schema itself; then bird is done)
+- **Rate limiting (429)**: wait a few minutes
 
 ## Smaug — Bookmark Archival
-
-Archives bookmarks/likes to organized markdown with AI categorization.
 
 ```bash
 cd ~/tools/smaug
@@ -257,58 +160,15 @@ npx smaug run                    # fetch + process with Claude
 npx smaug fetch 20               # fetch only
 npx smaug fetch --source likes   # likes instead of bookmarks
 npx smaug run -t                 # track token costs
-npx smaug status                 # check state
+npx smaug status
 ```
 
-Output: `bookmarks.md`, `knowledge/tools/`, `knowledge/articles/`
+Output: `bookmarks.md`, `knowledge/tools/`, `knowledge/articles/`.
 
----
+## Reference Files
 
-## Research Methodology
-
-For deep X research, follow this agentic loop:
-
-1. **Decompose** — Break topic into 2-3 search queries targeting different angles
-2. **Search** — Run each query with `--quick` first to assess signal quality
-3. **Refine** — Narrow queries based on initial results (add `--from`, `--quality`, `--since`)
-4. **Thread** — Follow high-value conversation threads for deeper context
-5. **Deep-Dive** — Re-run best queries with `--pages 3 --markdown --save`
-6. **Synthesize** — Compile findings from saved markdown into analysis
-
-Default to `--quick` for exploratory queries. Use full mode only for confirmed-valuable searches.
-
----
-
-## Troubleshooting
-
-### x-search: "X_BEARER_TOKEN not found"
-
-Set token via env, `~/.config/env/global.env`, or `~/.claude/skills/twitter/.env`. Get one at [console.x.com](https://console.x.com).
-
-### bird: 403 Errors
-
-Browser cookies expired. Log into Twitter in browser, then `bird check`.
-
-### bird: Query ID Errors
-
-Twitter rotated internals. Run `bird query-ids --fresh`.
-
-### Rate Limiting (429)
-
-Wait for reset. x-search shows reset time. bird: wait a few minutes.
-
----
-
-## When to Use Which
-
-| Task | Tool | Why |
-|------|------|-----|
-| Search tweets by topic | x-search | Official API, cost-tracked, cached |
-| Research a topic deeply | x-search | Multi-page, markdown output, save |
-| Monitor specific accounts | x-search watchlist | Batch check with cost tracking |
-| Post a tweet or reply | x-search post/reply | Official API, reliable, $0.01/post |
-| Post with media | bird | Free, media upload support |
-| Read a specific tweet/thread | bird (free) or x-search (tracked) | bird for quick reads, x-search for research |
-| Check mentions | bird | Free, real-time |
-| Archive bookmarks | smaug | AI categorization, markdown output |
-| Fetch bookmarks/likes | bird + smaug | Session-based access |
+| File | Contents |
+|------|----------|
+| `references/pricing.md` | Full July 2026 rate card, Owned Reads endpoints, rebates, dedup, worked estimates |
+| `references/xurl-mcp-setup.md` | OAuth 2.0 app setup, MCP bridge wiring, xurl usage, self-hosted xMCP |
+| `references/setup.md` | Bearer + OAuth 1.0a credential setup, bird/smaug install, credential troubleshooting |
