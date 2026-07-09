@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-06-07 | Codex CLI v0.137.0 | Models: GPT-5.5 family
+> Last updated: 2026-07-09 | Codex CLI v0.137.0 | Models: GPT-5.6 Sol / Terra / Luna + GPT-5.5 family
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -125,39 +125,41 @@ Each profile has a default model and reasoning effort. User flags override these
 
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
-| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.5` | `high` |
-| **Planning** | planner, architect, goal | `gpt-5.5` | `high` |
-| **Research** | researcher | `gpt-5.5` | `medium` |
-| **Adjudication** | adjudicator | `gpt-5.5` | `high` |
-| **Chat** | chat | `gpt-5.4` | `medium` |
+| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.6-sol` | `high` |
+| **Planning** | planner, architect, goal | `gpt-5.6-sol` | `high` |
+| **Research** | researcher | `gpt-5.6-sol` | `medium` |
+| **Adjudication** | adjudicator | `gpt-5.6-sol` | `high` |
+| **Chat** | chat | `gpt-5.6-terra` | `medium` |
 
-### Available Models (Apr 2026)
+### Available Models (Jul 2026)
 
 | Model | ID | ChatGPT Auth | API Key | Notes |
 |-------|----|:---:|:---:|-------|
-| **GPT-5.5** | `gpt-5.5` | Yes | Yes | New flagship. Agentic workflows, 2M context. Default for all profiles. |
-| **GPT-5.5 Pro** | `gpt-5.5-pro` | No | Yes | Iterative research partner. Use `--model gpt-5.5-pro` to override. |
-| **GPT-5 Mini** | `gpt-5-mini` | No | Yes | Cost-optimized. Fast iteration. |
-| **GPT-5 Nano** | `gpt-5-nano` | No | Yes | High-throughput. Cheapest option. |
+| **GPT-5.6 Sol** | `gpt-5.6-sol` | Yes (Plus+) | Yes | New flagship. Complex reasoning, agentic workflows. Default for coding/planning profiles. |
+| **GPT-5.6 Terra** | `gpt-5.6-terra` | Yes (all tiers) | Yes | Balanced everyday model. GPT-5.5-class at half the cost. Default for chat. |
+| **GPT-5.6 Luna** | `gpt-5.6-luna` | Yes (Plus+) | Yes | Fastest and most cost-efficient. High-throughput pipelines. |
+| **GPT-5.5** | `gpt-5.5` | Yes | Yes | Previous flagship. 2M context, agentic workflows. Use `--model gpt-5.5` to override. |
+| **GPT-5.5 Pro** | `gpt-5.5-pro` | No | Yes | Deeper reasoning variant. Use `--model gpt-5.5-pro` to override. |
+| **GPT-5 Mini** | `gpt-5-mini` | No | Yes | Cost-optimized. Use `--model gpt-5-mini` to override. |
 
-> **Note:** `gpt-5.5-pro`, `gpt-5-mini`, and `gpt-5-nano` require `OPENAI_API_KEY` (API billing). ChatGPT auth (`codex login`) supports `gpt-5.5` and legacy models (`gpt-5.4`, `gpt-5.3-codex`, `gpt-5.2`). GPT-5.3 Instant and GPT-5.4 Thinking are ChatGPT-app models, not Codex CLI model IDs.
+> **Note:** Free/Go ChatGPT users get **Terra only** in Codex. Plus+ users can select Sol, Terra, or Luna. All models (including GPT-5.5 family) available with `OPENAI_API_KEY`.
 
 ### Reasoning Effort Levels
 
-`none` < `minimal` < `low` < `medium` < `high` < `xhigh`
+`none` < `minimal` < `low` < `medium` < `high` < `max`
 
 See `references/codex-models.md` for full model history, capabilities, and reasoning reference.
 
 ### Override Per-Task
 
 ```bash
-# Override model for quick tasks
-./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5-mini
+# Use a different model tier
+./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.6-luna
 
 # Override reasoning effort
 ./scripts/codex-exec.sh builder "Quick lint fix" --reasoning medium
 
-# Override both
+# Override both (use previous-gen model)
 ./scripts/codex-exec.sh planner "Complex design" --model gpt-5.5 --reasoning high
 ```
 
@@ -397,11 +399,14 @@ npm install -g @openai/codex
 Older model names (`codex-mini`, `o3`, `o4-mini`, `gpt-5.3-codex`) have been superseded. Use current models:
 
 ```bash
-# Recommended
-./scripts/codex-exec.sh reviewer "task" --model gpt-5.5
+# Recommended (GPT-5.6 Sol)
+./scripts/codex-exec.sh reviewer "task" --model gpt-5.6-sol
 
-# Fast/cheap
-./scripts/codex-exec.sh reviewer "task" --model gpt-5-mini
+# Balanced (GPT-5.6 Terra)
+./scripts/codex-exec.sh reviewer "task" --model gpt-5.6-terra
+
+# Fast/cheap (GPT-5.6 Luna)
+./scripts/codex-exec.sh reviewer "task" --model gpt-5.6-luna
 ```
 
 ### "Authentication error"
@@ -440,7 +445,7 @@ The researcher/adjudicator/chat profiles capture output to a temp file. Common c
 - Narrow the task scope
 - Provide more context in the prompt
 - Try a different profile
-- Use `--model gpt-5.5-pro` for complex tasks
+- Use `--model gpt-5.6-sol` with `--reasoning max` for complex tasks
 
 ## Testing
 

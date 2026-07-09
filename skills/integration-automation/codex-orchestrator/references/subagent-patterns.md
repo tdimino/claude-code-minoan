@@ -204,16 +204,16 @@ Direct `codex exec` calls with `&` require a manual `script(1)` wrapper (see SKI
 
 | Profile Use Case | Recommended Model |
 |-----------------|-------------------|
-| Quick checks | gpt-5-mini |
-| Detailed review | gpt-5.5 |
-| Complex architecture | gpt-5.5-pro |
-| Simple docs | gpt-5-mini |
-| Security audit | gpt-5.5 |
+| Quick checks | gpt-5.6-luna |
+| Detailed review | gpt-5.6-sol |
+| Complex architecture | gpt-5.6-sol (max reasoning) |
+| Simple docs | gpt-5.6-luna |
+| Security audit | gpt-5.6-sol |
 
 ```bash
 # Override model for cost savings
-./scripts/codex-exec.sh reviewer "Quick style check" --model gpt-5-mini
+./scripts/codex-exec.sh reviewer "Quick style check" --model gpt-5.6-luna
 
 # Use full power for complex tasks
-./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.5-pro
+./scripts/codex-exec.sh architect "Design distributed cache" --model gpt-5.6-sol --reasoning max
 ```

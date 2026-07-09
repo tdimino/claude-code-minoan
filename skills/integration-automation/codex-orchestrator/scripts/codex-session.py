@@ -196,7 +196,7 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
 
         if interactive:
             # Interactive mode - just launch codex with the profile
-            cmd = ["codex", "--model", "gpt-5.5"]
+            cmd = ["codex", "--model", "gpt-5.6-sol"]
             if profile in READ_ONLY_PROFILES:
                 cmd.extend(["--sandbox", "read-only"])
             if prompt:
@@ -208,7 +208,7 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
                 cmd = [
                     "codex", "exec",
                     "--skip-git-repo-check",
-                    "--model", "gpt-5.5",
+                    "--model", "gpt-5.6-sol",
                     "--sandbox", "read-only",
                     "--ephemeral",
                     prompt
@@ -217,7 +217,7 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
                 cmd = [
                     "codex", "exec",
                     "--skip-git-repo-check",
-                    "--model", "gpt-5.5",
+                    "--model", "gpt-5.6-sol",
                     "--sandbox", "workspace-write",
                     prompt
                 ]

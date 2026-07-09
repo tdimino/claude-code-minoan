@@ -80,11 +80,11 @@ show_usage() {
     echo "  --stream              Stream API response tokens (requires --api)"
     echo ""
     echo "Profile defaults:"
-    echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.5 + high"
-    echo "  Planning (planner,architect,goal):                                   gpt-5.5 + high"
-    echo "  Research (researcher):                                              gpt-5.5 + medium"
-    echo "  Adjudication (adjudicator):                                         gpt-5.5 + high"
-    echo "  Chat     (chat):                                                    gpt-5.4 + medium"
+    echo "  Coding   (builder,reviewer,debugger,refactor,syseng,security,docs): gpt-5.6-sol + high"
+    echo "  Planning (planner,architect,goal):                                   gpt-5.6-sol + high"
+    echo "  Research (researcher):                                              gpt-5.6-sol + medium"
+    echo "  Adjudication (adjudicator):                                         gpt-5.6-sol + high"
+    echo "  Chat     (chat):                                                    gpt-5.6-terra + medium"
     echo ""
     echo "Examples:"
     echo "  codex-exec.sh reviewer \"Review src/auth.ts for security issues\""
@@ -101,27 +101,28 @@ show_usage() {
 get_profile_defaults() {
     local profile="$1"
     case "$profile" in
-        # Planning profiles: gpt-5.5 with high reasoning (gpt-5.5-pro requires API key auth)
+        # Planning profiles: gpt-5.6-sol with high reasoning
         planner|architect|goal)
-            DEFAULT_MODEL="gpt-5.5"
+            DEFAULT_MODEL="gpt-5.6-sol"
             DEFAULT_REASONING="high"
             ;;
-        # Chat/Research profiles: gpt-5.4 (chat) / gpt-5.5 (researcher) with medium reasoning, read-only
+        # Chat: gpt-5.6-terra (balanced, cost-efficient) with medium reasoning, read-only
         chat)
-            DEFAULT_MODEL="gpt-5.4"
+            DEFAULT_MODEL="gpt-5.6-terra"
             DEFAULT_REASONING="medium"
             ;;
+        # Research: gpt-5.6-sol with medium reasoning, read-only
         researcher)
-            DEFAULT_MODEL="gpt-5.5"
+            DEFAULT_MODEL="gpt-5.6-sol"
             DEFAULT_REASONING="medium"
             ;;
         adjudicator)
-            DEFAULT_MODEL="gpt-5.5"
+            DEFAULT_MODEL="gpt-5.6-sol"
             DEFAULT_REASONING="high"
             ;;
-        # Coding profiles: gpt-5.5 with high reasoning (unified coding + reasoning)
+        # Coding profiles: gpt-5.6-sol with high reasoning
         builder|reviewer|debugger|refactor|syseng|security|docs)
-            DEFAULT_MODEL="gpt-5.5"
+            DEFAULT_MODEL="gpt-5.6-sol"
             DEFAULT_REASONING="high"
             ;;
         *)
@@ -454,7 +455,7 @@ fi
 if [ -n "$API_MODE" ]; then
     source ~/.config/env/secrets.env 2>/dev/null || true
     API_CHAT_SCRIPT="$SCRIPT_DIR/gpt-api-chat.py"
-    API_ARGS=("$PROMPT" --model "${MODEL:-gpt-5.5}")
+    API_ARGS=("$PROMPT" --model "${MODEL:-gpt-5.6-sol}")
     if [ -n "$API_SESSION" ]; then
         API_ARGS+=(--session "$API_SESSION")
     fi
@@ -471,7 +472,7 @@ if [ -n "$API_MODE" ]; then
         API_ARGS+=(--json)
     fi
     echo -e "${GREEN}API mode: calling OpenAI API directly (billed to API key)${NC}"
-    echo -e "Model: ${MODEL:-gpt-5.5}"
+    echo -e "Model: ${MODEL:-gpt-5.6-sol}"
     if [ -n "$API_SESSION" ]; then
         echo -e "Session: $API_SESSION"
     fi

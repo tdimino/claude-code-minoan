@@ -56,11 +56,11 @@ show_usage() {
     echo ""
     echo "Draft options:"
     echo "  --output <path>       Output file (default: goals/goal-YYYYMMDD-HHMMSS.md)"
-    echo "  --model <model>       Override model (default: gpt-5.5)"
+    echo "  --model <model>       Override model (default: gpt-5.6-sol)"
     echo "  --reasoning <level>   Override reasoning effort (default: high)"
     echo ""
     echo "Run options:"
-    echo "  --model <model>       Override model (default: gpt-5.5)"
+    echo "  --model <model>       Override model (default: gpt-5.6-sol)"
     echo "  --sandbox <mode>      Sandbox mode (default: workspace-write)"
     echo ""
     echo "List options:"
@@ -181,7 +181,7 @@ cmd_draft() {
     fi
 
     local output_path=""
-    local model="gpt-5.5"
+    local model="gpt-5.6-sol"
     local reasoning="high"
 
     while [[ $# -gt 0 ]]; do
@@ -318,7 +318,7 @@ cmd_run() {
         exit 1
     fi
 
-    local model="gpt-5.5"
+    local model="gpt-5.6-sol"
     local sandbox="workspace-write"
 
     while [[ $# -gt 0 ]]; do

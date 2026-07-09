@@ -21,8 +21,9 @@ except ImportError:
     print("Error: openai library not installed. Run: pip install openai", file=sys.stderr)
     sys.exit(1)
 
-DEFAULT_MODEL = "gpt-5.5"
+DEFAULT_MODEL = "gpt-5.6-sol"
 KNOWN_MODELS = {
+    "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
     "gpt-5.5", "gpt-5.5-pro", "gpt-5.4", "gpt-5-mini",
     "o3", "o4-mini", "o3-mini",
     "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",

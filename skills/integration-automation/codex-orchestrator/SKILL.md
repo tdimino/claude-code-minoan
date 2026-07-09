@@ -1,6 +1,6 @@
 ---
 name: codex-orchestrator
-description: "Spawn specialized OpenAI Codex CLI subagents for code review, debugging, architecture analysis, security audits, refactoring, documentation, comparative evidence adjudication, and autonomous /goal runs via AGENTS.md persona injection (gpt-5.5, gpt-5.5-pro, gpt-5-mini). Triggers on 'delegate to Codex', 'Codex subagent', 'code review agent', 'security audit', 'refactor with Codex', 'goal run', 'autonomous goal', 'have Codex weigh this'."
+description: "Spawn specialized OpenAI Codex CLI subagents for code review, debugging, architecture analysis, security audits, refactoring, documentation, comparative evidence adjudication, and autonomous /goal runs via AGENTS.md persona injection (gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5). Triggers on 'delegate to Codex', 'Codex subagent', 'code review agent', 'security audit', 'refactor with Codex', 'goal run', 'autonomous goal', 'have Codex weigh this'."
 ---
 
 # Codex Orchestrator
@@ -98,18 +98,18 @@ Examples:
 # Continue from previous builder session
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "continue"
 
-# Open-ended conversation (read-only, ephemeral, gpt-5.4 via subscription)
+# Open-ended conversation (read-only, ephemeral, gpt-5.6-terra via subscription)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "What are the tradeoffs of event sourcing vs CRUD?"
 
-# Conversation via API billing (gpt-5.5, bypasses Codex subscription)
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Explain quantum error correction" --api --model gpt-5.5
+# Conversation via API billing (gpt-5.6-sol, bypasses Codex subscription)
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Explain quantum error correction" --api --model gpt-5.6-sol
 
 # Multi-turn API chat with session file
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "What is the tallest mountain?" --api --session /tmp/chat.json
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "And the deepest ocean?" --api --session /tmp/chat.json
 
 # Streaming API response
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Tell me about CQRS" --api --model gpt-5.5 --stream
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Tell me about CQRS" --api --model gpt-5.6-sol --stream
 
 # Ask a question about the codebase (read-only, no file changes)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "Explain the authentication flow in this project"
@@ -299,7 +299,7 @@ The `/goal` command sets a persistent objective that Codex works toward autonomo
 ~/.claude/skills/codex-orchestrator/scripts/codex-goal.sh run goals/goal-20260518-143000.md
 
 # Run with custom model
-~/.claude/skills/codex-orchestrator/scripts/codex-goal.sh run goals/goal-01.md --model gpt-5.5-pro
+~/.claude/skills/codex-orchestrator/scripts/codex-goal.sh run goals/goal-01.md --model gpt-5.6-sol
 ```
 
 ### Goal File Format
@@ -373,29 +373,29 @@ Each profile has a default model and reasoning effort. User flags override these
 
 | Profile Type | Profiles | Model | Reasoning |
 |-------------|----------|-------|-----------|
-| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.5` | `high` |
-| **Planning** | planner, architect, goal | `gpt-5.5` | `high` |
-| **Research** | researcher | `gpt-5.5` | `medium` |
-| **Adjudication** | adjudicator | `gpt-5.5` | `high` |
-| **Chat** | chat | `gpt-5.4` | `medium` |
+| **Coding** | builder, reviewer, debugger, refactor, syseng, security, docs | `gpt-5.6-sol` | `high` |
+| **Planning** | planner, architect, goal | `gpt-5.6-sol` | `high` |
+| **Research** | researcher | `gpt-5.6-sol` | `medium` |
+| **Adjudication** | adjudicator | `gpt-5.6-sol` | `high` |
+| **Chat** | chat | `gpt-5.6-terra` | `medium` |
 
-**Reasoning effort levels**: `none` < `minimal` < `low` < `medium` < `high` < `xhigh`
+**Reasoning effort levels**: `none` < `minimal` < `low` < `medium` < `high` < `max`
 
 ```bash
-# Uses profile defaults (builder → gpt-5.5 + high)
+# Uses profile defaults (builder → gpt-5.6-sol + high)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Implement auth module"
 
-# Uses profile defaults (planner → gpt-5.5 + high)
+# Uses profile defaults (planner → gpt-5.6-sol + high)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Create ExecPlan for caching"
 
 # Override model for quick tasks
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Style check" --model gpt-5-mini
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh reviewer "Style check" --model gpt-5.6-luna
 
 # Override reasoning only
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh builder "Quick lint fix" --reasoning medium
 
 # Override both
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Design distributed cache" --model gpt-5.5 --reasoning high
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Design distributed cache" --model gpt-5.6-sol --reasoning max
 ```
 
 ## API Mode (Direct OpenAI API)
@@ -403,30 +403,30 @@ Each profile has a default model and reasoning effort. User flags override these
 The `--api` flag bypasses Codex CLI entirely and calls the OpenAI API directly via `gpt-api-chat.py`. Billing goes to your `OPENAI_API_KEY`, not the Codex subscription.
 
 **When to use API mode:**
-- Access models not in your Codex subscription (e.g. `gpt-5.5`)
+- Access models not in your Codex subscription (e.g. `gpt-5.6-sol`)
 - Multi-turn conversations with session persistence
 - Streaming responses
 - Custom system prompts
 
 ```bash
 # One-shot API query
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Explain X" --api --model gpt-5.5
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Explain X" --api --model gpt-5.6-sol
 
 # Multi-turn with session file (context carries across calls)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "What is X?" --api --session /tmp/session.json
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Tell me more" --api --session /tmp/session.json
 
 # Streaming output
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Describe Y" --api --model gpt-5.5 --stream
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Describe Y" --api --model gpt-5.6-sol --stream
 
 # Custom system prompt
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh chat "Analyze this" --api --system "You are a security analyst"
 
 # Any profile works with --api (sends raw prompt to OpenAI API, no Codex CLI)
-~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "What are the latest React patterns?" --api --model gpt-5.5
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "What are the latest React patterns?" --api --model gpt-5.6-sol
 ```
 
-**Supported models:** `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5-mini`, `gpt-5-nano`
+**Supported models:** `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5-mini`
 
 **Three-way mode (Claude + GPT):** Within a Claude Code session, invoke `gpt-api-chat.py` via Bash, read GPT's response, synthesize perspectives, and steer the conversation. Use `--session` to maintain GPT's context across turns.
 
@@ -465,7 +465,7 @@ codex login
 ```
 
 ### "Model not supported with ChatGPT account"
-Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.5`, `gpt-5.5-pro`, `gpt-5-mini`, `gpt-5-nano`. Previous generation (`gpt-5.4`, `gpt-5.4-pro`, `gpt-5.3-codex`, `gpt-5.2`) still works but is superseded.
+Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.5-pro`, `gpt-5-mini`. Previous generation (`gpt-5.4`, `gpt-5.4-pro`, `gpt-5.3-codex`, `gpt-5.2`) still works but is superseded.
 Set an API key instead of using `codex login`:
 ```bash
 export OPENAI_API_KEY=sk-...
@@ -490,4 +490,4 @@ The researcher/adjudicator/chat profiles capture output to a temp file. If Codex
 - Narrow the task scope
 - Provide more context in the prompt
 - Try a different profile
-- Use `--model gpt-5.5-pro` for complex tasks
+- Use `--model gpt-5.6-sol --reasoning max` for complex tasks

@@ -106,10 +106,10 @@ To launch a goal from a script, pass it as the initial prompt to the interactive
 
 ```bash
 # Inline goal (under 3,500 chars)
-codex --enable goals --model gpt-5.5 --sandbox workspace-write "/goal <content>"
+codex --enable goals --model gpt-5.6-sol --sandbox workspace-write "/goal <content>"
 
 # File-referenced goal (over 3,500 chars)
-codex --enable goals --model gpt-5.5 --sandbox workspace-write \
+codex --enable goals --model gpt-5.6-sol --sandbox workspace-write \
   "/goal Follow the objective in $(realpath goals/goal-01.md): <summary>"
 ```
 
