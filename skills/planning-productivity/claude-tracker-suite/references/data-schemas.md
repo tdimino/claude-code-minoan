@@ -101,7 +101,7 @@ CREATE TABLE title_history (
 
 Project directories under `~/.claude/projects/` use hyphen-encoding:
 ```
-/Users/tomdimino/Desktop/Aldea → -Users-tomdimino-Desktop-Aldea
+/Users/alice/Projects/my-app → -Users-alice-Projects-my-app
 ```
 
 **Decoding priority:**

@@ -244,9 +244,13 @@ case $sqlite_choice in
     1)
         if command -v npm &> /dev/null; then
             print_blue "Installing better-sqlite3..."
-            mkdir -p ~/.claude/lib
+            mkdir -p ~/.claude/lib ~/.claude/scripts
             cp "$SCRIPT_DIR/lib/tracker-db.js" ~/.claude/lib/tracker-db.js
+            cp "$SCRIPT_DIR/lib/tracker-utils.js" ~/.claude/lib/tracker-utils.js 2>/dev/null || true
             cp "$SCRIPT_DIR/lib/package.json" ~/.claude/lib/package.json
+            # resume/restore scripts expect this at ~/.claude/scripts/
+            cp "$SCRIPT_DIR/scripts/ghostty-resume.sh" ~/.claude/scripts/ghostty-resume.sh 2>/dev/null || true
+            chmod +x ~/.claude/scripts/ghostty-resume.sh 2>/dev/null || true
             (cd ~/.claude/lib && npm install --production 2>&1) && print_green "better-sqlite3 installed"
 
             print_blue "Running migration..."

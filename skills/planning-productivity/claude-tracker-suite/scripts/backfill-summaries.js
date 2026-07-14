@@ -53,12 +53,12 @@ if (!enabled && !dryRun) {
 
 const PROMPT_HEADER = `Summarize this Claude Code session. Name the CONCRETE subjects, tools, file types, and deliverables — the specific nouns someone would search for later (project names, commands, technologies, artifacts). Always include the destination or platform the work was FOR when stated anywhere (Twitter profile, GitHub README, a client site). Never write vague gerunds like "adjusted the image"; write "composited Subquadratic logo into Twitter background porthole using ImageMagick".
 
-Reply in EXACTLY this format (no other text):
-TITLE: <3-6 word title>
-SUMMARY: <one sentence, max 35 words, starting with a verb>
+Reply with ONLY a JSON object, no other text, no code fences:
+{"title": "<3-6 word title>", "summary": "<one sentence, max 35 words, starting with a verb>"}
 
 Session excerpts:
 `;
+const PROMPT_VERSION = 2;
 
 /** Build a compact evidence block: first prompt + sampled user asks + final assistant text. */
 function buildExcerpts(sessionId) {
@@ -189,6 +189,24 @@ function callClaude(prompt, modelId) {
 
 function parseReply(reply) {
   if (!reply) return null;
+  // Primary: strict JSON (allowing stray prose/fences around the object).
+  // Try lazy match first (survives trailing braces in prose), then greedy
+  // (survives braces inside string values) — flat schema, one of them parses
+  for (const m of [reply.match(/\{[\s\S]*?\}/), reply.match(/\{[\s\S]*\}/)]) {
+    if (!m) continue;
+    try {
+      const obj = JSON.parse(m[0]);
+      // Require BOTH fields — the prompt always asks for both, and a stray
+      // {…} fragment in prose is unlikely to carry title AND summary
+      if (obj.summary && obj.title) {
+        return {
+          title: String(obj.title).trim().slice(0, 80),
+          summary: String(obj.summary).trim().slice(0, 250),
+        };
+      }
+    } catch { /* try next match, then legacy format */ }
+  }
+  // Fallback: legacy TITLE:/SUMMARY: lines (older models ignore JSON asks)
   const title = (reply.match(/^TITLE:\s*(.+)$/m) || [])[1];
   const summary = (reply.match(/^SUMMARY:\s*(.+)$/m) || [])[1];
   if (!summary) return null;
@@ -214,9 +232,11 @@ async function main() {
   targets = targets.slice(0, limit === Infinity ? targets.length : limit);
   console.log(`${targets.length} session(s) to summarize via ${provider}/${model} (concurrency ${concurrency}${dryRun ? ', dry-run' : ''})`);
 
+  const summarySource = `backfill:${provider}/${model}@p${PROMPT_VERSION}`;
   const updateStmt = d.prepare(`
     UPDATE sessions SET
       summary = @summary,
+      summary_source = @summary_source,
       auto_title = COALESCE(NULLIF(auto_title, ''), @title)
     WHERE session_id = @session_id
   `);
@@ -245,12 +265,18 @@ async function main() {
         continue;
       }
       const hadTitle = d.prepare('SELECT auto_title FROM sessions WHERE session_id = ?').get(session_id);
-      updateStmt.run({ session_id, summary: parsed.summary, title: parsed.title || null });
+      updateStmt.run({ session_id, summary: parsed.summary, summary_source: summarySource, title: parsed.title || null });
       // Provenance: model-written titles are erasable by source — the lesson
-      // of the 2026-07-13 haiku purge, which required registry archaeology
+      // of the 2026-07-13 haiku purge, which required registry archaeology.
+      // Best-effort: the summary is already committed, so a history failure
+      // must not crash the worker and orphan the rest of the queue
       if (parsed.title && (!hadTitle || !hadTitle.auto_title)) {
-        db.insertTitleEvent({ sessionId: session_id, title: parsed.title, source: 'summarizer',
-          observedIn: `backfill:${provider}/${model}`, firstSeenSeq: 0 });
+        try {
+          db.insertTitleEvent({ sessionId: session_id, title: parsed.title, source: 'summarizer',
+            observedIn: `backfill:${provider}/${model}`, firstSeenSeq: 0 });
+        } catch (e) {
+          console.error(`  ! title provenance failed for ${session_id.slice(0, 8)}: ${e.message}`);
+        }
       }
       done++;
       if (done % 25 === 0) console.log(`  ${done}/${targets.length} …`);

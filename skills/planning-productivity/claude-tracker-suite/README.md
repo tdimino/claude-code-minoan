@@ -4,7 +4,7 @@ Session management for Claude Code. Search, resume, spawn, and open sessions acr
 
 **Last updated:** 2026-07-13
 
-**Terminal targets:** cmux (preferred, deterministic CLI), Ghostty (OSC escape sequences + AppleScript), VS Code, Cursor
+**Terminal targets:** cmux (preferred, deterministic CLI), Ghostty (OSC escape sequences + AppleScript), Cursor. VS Code integration is disabled---supplanted by Ghostty.
 
 ---
 
@@ -65,7 +65,7 @@ Both `open-sessions.js` and `resume-session.sh` support multiple terminal backen
 |--------|------|--------|-------------|
 | **cmux** | `--cmux` | `cmux new-surface` + `cmux send` | Requires cmux running; known UI bugs ([#616](https://github.com/manaflow-ai/cmux/issues/616), [#2132](https://github.com/manaflow-ai/cmux/issues/2132)) |
 | **Ghostty** | `--ghostty` | AppleScript clipboard-paste | Requires Accessibility permissions; timing-dependent; no native CLI on macOS |
-| **VS Code** | `--vscode` | Opens project in editor + resumes in terminal | Editor-open only; terminal via cmux/Ghostty |
+| **VS Code** | `--vscode` | **Disabled** (supplanted by Ghostty)---flag warns and falls back to Ghostty | Code retained, inert |
 | **Cursor** | `--cursor` | Opens project in editor + resumes in terminal | Editor-open only; terminal via cmux/Ghostty |
 
 Auto-detect order: cmux (if `cmux ping` succeeds) > Ghostty > print resume command.
@@ -235,7 +235,7 @@ Default path: transcript FTS + metadata FTS, merged, with former-title fallback.
 | `audit-suite.js` | `node audit-suite.js` |
 | `search-regression.js` | `node search-regression.js [--json]` |
 | `open-sessions.js` | `node open-sessions.js [--limit N] [--cmux\|--ghostty] [--split <dir>]` |
-| `resume-session.sh` | `bash resume-session.sh <session-id> [--cmux\|--ghostty\|--vscode\|--cursor] [--name <title>]` |
+| `resume-session.sh` | `bash resume-session.sh <session-id> [--cmux\|--ghostty\|--cursor] [--name <title>]` |
 | `list-sessions.js` | `node list-sessions.js [--limit 20]` |
 | `recent-sessions.js` | `node recent-sessions.js [--limit N] [--project <name>] [--json]` |
 | `new-session.sh` | `bash new-session.sh [dir] [--prompt "text"] [--headless] [--name <title>]` |
@@ -248,6 +248,8 @@ Default path: transcript FTS + metadata FTS, merged, with former-title fallback.
 | `quote-session.js` | `node quote-session.js capture "phrase" --tags a,b \| search "term"` |
 | `detect-projects.js` | `node detect-projects.js [--suggest\|--scaffold]` |
 | `bootstrap-claude-setup.js` | `node bootstrap-claude-setup.js --user "Name"` |
+
+The two launchd plists hardcode absolute paths (launchd does not expand `$HOME`)---edit the `/Users/<you>/...` strings before copying them to `~/Library/LaunchAgents/`.
 
 ---
 

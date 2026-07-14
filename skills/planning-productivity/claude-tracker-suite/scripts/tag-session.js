@@ -25,7 +25,7 @@
  *
  * Session auto-detection (when --session is omitted):
  *   - No CLAUDE_SESSION_ID env var exists in slash-command bash context.
- *   - Heuristic: encode process.cwd() as `-Users-tomdimino-Desktop` and
+ *   - Heuristic: encode process.cwd() as `-Users-alice-Projects` and
  *     pick the most recently modified .jsonl in ~/.claude/projects/<encoded>/.
  *     Must be within the last 10 minutes to be considered "live".
  *
@@ -52,7 +52,7 @@ const LIVE_SESSION_MAX_AGE_MS = 10 * 60 * 1000;  // 10 minutes
 
 /**
  * Encode a cwd path for Claude Code's projects/ directory naming.
- * /Users/tomdimino/Desktop → -Users-tomdimino-Desktop
+ * /Users/alice/Projects → -Users-alice-Projects
  * NOTE: lossy if real dir names contain hyphens. Matches Claude Code's own
  * convention; see tracker-utils.js::decodeProjectPath for the reverse.
  */

@@ -7,7 +7,7 @@
 # Targets:
 #   --cmux      Open in cmux tab (default when CMUX_WORKSPACE_ID is set)
 #   --ghostty   Open in Ghostty tab via AppleScript (default when cmux unavailable)
-#   --vscode    Open project in VS Code + resume in terminal
+#   --vscode    Disabled (supplanted by Ghostty) — falls back to Ghostty
 #   --cursor    Open project in Cursor + resume in terminal
 #
 # Auto-detects: cmux if running, otherwise Ghostty.
@@ -39,7 +39,8 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --vscode)
-      TARGET="vscode"
+      echo "Note: VS Code integration is disabled (supplanted by Ghostty) — resuming in Ghostty" >&2
+      TARGET="ghostty"
       shift
       ;;
     --cursor)
@@ -55,7 +56,7 @@ while [[ $# -gt 0 ]]; do
       echo "Targets (pick one, or let auto-detect choose):"
       echo "  --cmux             cmux terminal tab"
       echo "  --ghostty          Ghostty tab via AppleScript"
-      echo "  --vscode           Open project in VS Code + resume in terminal"
+      echo "  --vscode           Disabled (supplanted by Ghostty) — falls back to Ghostty"
       echo "  --cursor           Open project in Cursor + resume in terminal"
       echo ""
       echo "Options:"

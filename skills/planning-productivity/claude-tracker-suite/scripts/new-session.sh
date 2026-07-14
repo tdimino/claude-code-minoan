@@ -6,7 +6,7 @@
 #
 # Targets (pick one):
 #   --ghostty          Ghostty terminal — new tab (default)
-#   --vscode           VS Code integrated terminal
+#   --vscode           Disabled (supplanted by Ghostty) — falls back to Ghostty
 #   --cursor           Cursor integrated terminal
 #   --headless         Run in current terminal, return JSON (requires --prompt)
 #
@@ -39,7 +39,8 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --vscode)
-      TARGET="vscode"
+      echo "Note: VS Code integration is disabled (supplanted by Ghostty) — opening in Ghostty" >&2
+      TARGET="ghostty"
       shift
       ;;
     --cursor)
@@ -73,7 +74,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Targets (pick one):"
       echo "  --ghostty              Ghostty terminal — new tab (default)"
-      echo "  --vscode               VS Code integrated terminal"
+      echo "  --vscode               Disabled (supplanted by Ghostty) — falls back to Ghostty"
       echo "  --cursor               Cursor integrated terminal"
       echo "  --headless             Run in current terminal, return output (requires --prompt)"
       echo ""
@@ -88,7 +89,7 @@ while [[ $# -gt 0 ]]; do
       echo "  new-session.sh ~/project                              # interactive in Ghostty"
       echo "  new-session.sh ~/project --prompt 'fix the bug'       # prompt-driven in Ghostty"
       echo "  new-session.sh ~/project --headless --prompt 'hello'  # headless JSON output"
-      echo "  new-session.sh ~/project --vscode --model opus        # interactive in VS Code"
+      echo "  new-session.sh ~/project --ghostty --model opus       # interactive in Ghostty"
       exit 0
       ;;
     -*)

@@ -89,7 +89,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Integration & Automation | 31 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator`, `obscura`, `stock-monitor` |
 | Design & Media | 33 | `minoan-frontend-design` (70% win rate), `scroll-cinema`, `conductor-motion`, `vellum-editorial`, `gpt-atelier`, `nano-banana-pro`, `gemini-forge`, `sprite-forge`, `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy`, `particle-swarm-sim`, `tamarru` |
 | Research | 10 | `minoan` (reconstructed Minoan language faculty), `omnisearch`, `geo-seo`, `academic-research`, `ancient-near-east-research`, `exa-search`, `firecrawl`, `scrapling`, `openplanter`, `reverse-trace` |
-| Planning & Productivity | 7 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (session checkpoints, workflow phases, tagged phrases, cost tracking via optional SQLite), `travel-requirements-expert` |
+| Planning & Productivity | 7 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (FTS5 transcript search, title/nickname history, fzf picker, checkpoints, workflow phases, tagged phrases, workspace save/restore, cost tracking via optional SQLite), `travel-requirements-expert` |
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
 

@@ -24,8 +24,8 @@ Search, browse, monitor, and manage Claude Code session history across all proje
 | `claude-tracker-alive` | Check which sessions have running processes |
 | `claude-tracker-watch` | Daemon: auto-summarize new sessions, update active-projects.md |
 | `claude-tracker` | List recent sessions with status badges (standalone script) |
-| `new-session.sh` | Start a new session in Ghostty/VSCode/Cursor, with optional prompt or headless mode |
-| `resume-session.sh` | Open a session in a cmux tab (optionally open project in VS Code/Cursor) |
+| `new-session.sh` | Start a new session in Ghostty/Cursor (VS Code disabled), with optional prompt or headless mode |
+| `resume-session.sh` | Open a session in a cmux tab (optionally open project in Cursor; VS Code disabled) |
 | `detect-projects.js` | Scan sessions to find all projects, check CLAUDE.md coverage |
 | `bootstrap-claude-setup.js` | Generate complete ~/.claude/ config for new machine |
 | `update-active-projects.py` | Regenerate active-projects.md with enriched session data |
@@ -48,8 +48,8 @@ Commands delegate to standalone Node.js scripts (avoids shell escaping issues wi
 | `scripts/search-sessions.js` | `/claude-tracker-search` | Keyword search or `--id` prefix lookup across all sessions |
 | `scripts/open-sessions.js` | Direct invocation | List top N sessions, open in cmux tabs/splits with confirmation |
 | `scripts/list-sessions.js` | `/claude-tracker` | List recent sessions with status badges |
-| `scripts/new-session.sh` | `/spawn` | Start new interactive or prompt-driven session in Ghostty/VSCode/Cursor or headless |
-| `scripts/resume-session.sh` | Direct invocation | Open session in cmux tab, optionally open project in VS Code/Cursor |
+| `scripts/new-session.sh` | `/spawn` | Start new interactive or prompt-driven session in Ghostty/Cursor (VS Code disabled) or headless |
+| `scripts/resume-session.sh` | Direct invocation | Open session in cmux tab, optionally open project in Cursor (VS Code disabled) |
 | `scripts/detect-projects.js` | Direct invocation | Project discovery and CLAUDE.md scaffolding |
 | `scripts/bootstrap-claude-setup.js` | Direct invocation | New machine setup generator |
 | `scripts/checkpoint-session.js` | `/checkpoint`, `/checkpoint-list` | Create and query session checkpoints |
@@ -264,9 +264,6 @@ Open a session in a new cmux tab, optionally opening the project in an editor:
 # Resume in cmux tab (default — auto-detects project directory)
 ~/.claude/skills/claude-tracker-suite/scripts/resume-session.sh <session-id>
 
-# Resume in cmux + open project in VS Code
-~/.claude/skills/claude-tracker-suite/scripts/resume-session.sh <session-id> --vscode
-
 # Resume in cmux + open project in Cursor
 ~/.claude/skills/claude-tracker-suite/scripts/resume-session.sh <session-id> --cursor
 
@@ -274,7 +271,7 @@ Open a session in a new cmux tab, optionally opening the project in an editor:
 ~/.claude/skills/claude-tracker-suite/scripts/resume-session.sh <session-id> --project ~/Desktop/Programming
 ```
 
-cmux owns the terminal lifecycle. Editor flags (`--vscode`, `--cursor`) only open the project in the editor — the session always resumes in cmux. Falls back to printing the resume command if cmux is not running.
+cmux owns the terminal lifecycle. The `--cursor` flag only opens the project in the editor — the session always resumes in cmux. `--vscode` is disabled (supplanted by Ghostty) and falls back to Ghostty with a warning. Falls back to printing the resume command if cmux is not running.
 
 ## Resume in Ghostty Tab
 
@@ -300,9 +297,6 @@ Start a new Claude Code session in a terminal tab or headless:
 
 # Prompt-driven session in Ghostty tab
 ~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --prompt "fix the login bug"
-
-# Prompt-driven in VS Code terminal
-~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --vscode --prompt "fix the login bug"
 
 # Headless — runs in current terminal, returns JSON
 ~/.claude/skills/claude-tracker-suite/scripts/new-session.sh ~/my-project --headless --prompt "summarize the README"
