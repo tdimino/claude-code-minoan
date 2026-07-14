@@ -41,22 +41,19 @@ if [[ -z "$TASK" ]]; then
   exit 1
 fi
 
-# Date gate — fall back to Opus 4.6 after expiration
-if [[ "$(date +%Y%m%d)" -gt "20260622" ]]; then
-  echo "Fable 5 access ended June 22, 2026. Falling back to Opus 4.6..."
-  mkdir -p "$CWD/.subdaimon-output"
-  TIMESTAMP=$(date +%s)
-  OUTPUT_FILE="$CWD/.subdaimon-output/fable-${TIMESTAMP}.md"
-  cd "$CWD"
-  env -u ANTHROPIC_API_KEY claude --model claude-opus-4-6 \
-    -p "$TASK" \
-    --max-turns "$TURNS" \
-    --output-format text \
-    | tee "$OUTPUT_FILE"
-  echo "---"
-  echo "Opus 4.6 fallback output written to: $OUTPUT_FILE"
-  exit 0
+# Availability probe (cached per-day)—no calendar gates; the access
+# window has shifted twice and must be tested, not assumed. A failed
+# probe doesn't exit: the attempt below has its own Opus fallback.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if ! bash "$SCRIPT_DIR/fable-probe.sh"; then
+  echo "Probe says Fable 5 is unavailable—attempting anyway, will fall back to Opus 4.6 on failure."
 fi
+
+# Self-report instruction: the first line of output must record the model
+# that actually ran, so silent fallbacks are always visible in the transcript.
+TASK="First line of your output: 'MODEL: ' followed by the exact model id powering you. Then proceed with the task.
+
+$TASK"
 
 # Ensure output directory exists
 mkdir -p "$CWD/.subdaimon-output"
@@ -81,6 +78,13 @@ if env -u ANTHROPIC_API_KEY claude --model claude-fable-5 \
   --output-format text \
   | tee "$OUTPUT_FILE"; then
   echo "---"
+  # Verify the self-report—a clamp or silent fallback shows up here
+  reported=$(grep -m1 '^MODEL:' "$OUTPUT_FILE" 2>/dev/null || true)
+  if [[ "$reported" == *fable* ]]; then
+    echo "Verified: $reported"
+  else
+    echo "WARNING: expected claude-fable-5, got '${reported:-no MODEL line}'—the task did NOT run on Fable"
+  fi
   echo "Fable output written to: $OUTPUT_FILE"
 else
   echo "---"
@@ -91,5 +95,12 @@ else
     --output-format text \
     | tee "$OUTPUT_FILE"
   echo "---"
+  # Verify the fallback too—the self-report philosophy applies to every spawn
+  reported=$(grep -m1 '^MODEL:' "$OUTPUT_FILE" 2>/dev/null || true)
+  if [[ "$reported" == *opus* ]]; then
+    echo "Verified fallback: $reported"
+  else
+    echo "WARNING: expected an Opus model in fallback, got '${reported:-no MODEL line}'"
+  fi
   echo "Opus 4.6 fallback output written to: $OUTPUT_FILE"
 fi

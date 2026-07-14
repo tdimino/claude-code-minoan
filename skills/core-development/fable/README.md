@@ -1,10 +1,10 @@
-# Fable — Naos (ναός, √n-w-y)
+# Fable—Naos (ναός, √n-w-y)
 
-Summon Claude Fable 5 as a subagent. Naos is the xenos daimon — a visiting spirit outside the permanent three-tier taxonomy, available until June 22, 2026.
+Summon Claude Fable 5 as a subagent. Naos is the xenos daimon—a visiting spirit outside the permanent three-tier taxonomy. Availability is probed at invocation, not assumed from a calendar (the access window has been paused, restored, and extended twice—currently through July 19, 2026).
 
 ## What It Does
 
-The `/fable` skill spawns a Fable 5 (Mythos-class) subagent with `model: "fable"`, handling the `CLAUDE_CODE_SUBAGENT_MODEL` override that would otherwise pin it to Opus. Includes a date gate, task routing guidance, and a CLI fallback script.
+The `/fable` skill routes around the `CLAUDE_CODE_SUBAGENT_MODEL` pin that would otherwise silently clamp a Fable spawn to Opus (anthropics/claude-code#57718). Two lanes: the Agent tool with `model: "fable"` when the pin permits, or a CLI spawn (`claude --model claude-fable-5 -p`) that the env var cannot touch. Every spawn self-reports its model id as the first output line, so a silent clamp is always caught.
 
 ## Usage
 
@@ -33,7 +33,7 @@ Fable's advantage grows with task complexity. The longer the horizon, the larger
 | Context | 1M tokens |
 | Max output | 128K tokens |
 | Pricing | $10/M input, $50/M output |
-| Available until | June 22, 2026 |
+| Availability | Extended through 2026-07-19; probed empirically per-day |
 
 ## Files
 
@@ -42,7 +42,8 @@ fable/
 ├── SKILL.md              # Skill entry point
 ├── README.md             # This file
 └── scripts/
-    └── fable-exec.sh     # CLI fallback for model override bypass
+    ├── fable-exec.sh     # Lane B: CLI spawn bypassing the env pin, with self-report verification
+    └── fable-probe.sh    # Availability probe, per-day cached verdict
 ```
 
 ## Companion Files

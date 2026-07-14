@@ -154,7 +154,7 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 
 | Agent | Model | Purpose |
 |-------|-------|---------|
-| `fable` | fable | Naos (ναός, √n-w-y) — visiting Mythos-class spirit for long-horizon tasks. 100-turn budget, full tool access. Available until June 22, 2026. |
+| `fable` | fable | Naos (ναός, √n-w-y)—visiting Mythos-class spirit for long-horizon tasks. 100-turn budget, full tool access, model self-report verification. Availability probed at invocation. |
 | `librarian` | sonnet | GitHub repo exploration via `gh` CLI. Caches to `/tmp/claude-librarian/`. |
 
 ---
