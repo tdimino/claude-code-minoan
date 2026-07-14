@@ -1,6 +1,6 @@
 ---
 name: claude-tracker-suite
-description: "Manage Claude Code sessions — search by topic or ID, browse recent sessions with full metadata (tags, summaries, titles, cost), resume in Ghostty tabs, spawn interactive or headless sessions, monitor live sessions, and bootstrap new setups. Triggers on resume session, find session, list sessions, recent sessions, spawn session, session history, what was I working on, open in ghostty."
+description: "Manage Claude Code sessions — search by topic or ID, browse recent sessions with full metadata (tags, summaries, titles, cost), view title/nickname history timelines, resume in Ghostty tabs, spawn interactive or headless sessions, monitor live sessions, and bootstrap new setups. Triggers on resume session, find session, list sessions, recent sessions, spawn session, session history, what was I working on, open in ghostty, title history, session nicknames."
 argument-hint: [query or --id <prefix>]
 allowed-tools: Bash(claude-tracker*), Bash(node ~/.claude/skills/claude-tracker-suite/scripts/*), Bash(~/.claude/skills/claude-tracker-suite/scripts/*.sh), Bash(python3 ~/.claude/scripts/*), Read, Grep, Glob, Edit, Write, Skill
 ---
@@ -14,6 +14,11 @@ Search, browse, monitor, and manage Claude Code session history across all proje
 | Tool | Purpose |
 |------|---------|
 | `claude-tracker-search` | Search sessions by keyword or ID prefix (standalone script) |
+| `claude-tracker-pick` | Interactive fzf picker: fuzzy-find recent sessions, preview, Enter resumes in Ghostty |
+| `index-transcripts.js` | Build/refresh the transcript full-text index (FTS5 over user+assistant text) and extract title history events |
+| `backfill-summaries.js` | Generate missing session summaries (claude CLI or OpenRouter; disabled by default, `--enable` to run) |
+| `audit-suite.js` | Self-audit: inventory, portability, daemons, DB coverage, search recall → AUDIT.md |
+| `search-regression.js` | Recall regression fixtures for the search stack (exit 1 on regression) |
 | `open-sessions.js` | List top N sessions, open selected in cmux tabs/splits |
 | `claude-tracker-resume` | Find and resume crashed/inactive sessions |
 | `claude-tracker-alive` | Check which sessions have running processes |
@@ -52,8 +57,13 @@ Commands delegate to standalone Node.js scripts (avoids shell escaping issues wi
 | `scripts/tag-session.js` | `/tag` | Manual session tagging with provenance |
 | `scripts/recent-sessions.js` | `/claude-tracker-recent` | Last N sessions with title, tags, summary, model, cost |
 | `scripts/claude-wrapper.sh` | Source in `.zshrc` | Shell function `cc` for named sessions with tab titles |
-| `scripts/save-workspace.js` | Direct / launchd | Snapshot alive sessions to workspace-state.json |
+| `scripts/save-workspace.js` | Direct / launchd | Snapshot alive sessions to workspace-state.json (deduped; never overwrites a good snapshot with an empty one) |
 | `scripts/restore-workspace.sh` | Direct invocation | Restore sessions from workspace-state.json into Ghostty tabs |
+| `scripts/claude-tracker-pick` | Direct invocation | fzf session picker with preview; Enter→Ghostty, Ctrl-O→current terminal, Ctrl-Y→copy |
+| `scripts/index-transcripts.js` | Direct / after heavy sessions | Incremental transcript FTS indexer (EXTRACTOR_VERSION 4; prunes deleted; extracts title history events) |
+| `scripts/backfill-summaries.js` | Direct invocation | Hermetic summary backfill, claude or OpenRouter provider (disabled by default) |
+| `scripts/audit-suite.js` | Direct invocation | Suite self-audit → AUDIT.md |
+| `scripts/search-regression.js` | After search changes | Recall fixtures incl. expected-fail semantic-gap marker |
 | `scripts/session-notify.sh` | Direct / hooks | macOS notifications + Ghostty tab badges for session events |
 | `scripts/open-file-explorer.sh` | Direct invocation | Open yazi in a Ghostty split pane |
 | `~/.claude/scripts/ghostty-resume.sh` | Direct invocation | Open session in a new Ghostty tab |
@@ -94,17 +104,66 @@ claude-tracker-watch --daemon
 claude-tracker-search "$ARGUMENTS"
 ```
 
-**Search targets** (weighted ranking): Summary (3x), First prompt (2x), Project name (1x), Git branch (1x).
+**How search works**: the default path queries the **transcript full-text index** (FTS5 over all user+assistant conversation text, built by `index-transcripts.js`), merged with metadata FTS over titles/slug/summary/first-prompt (bm25 column weights: custom_title 3x, auto_title 2x, summary 2x, first_prompt 1.5x, slug 1x). Multi-word queries match per-term at the *session* level (terms may appear in different messages), expand through synonym groups in `references/synonyms.json`, and fall back from AND to OR with a labeled partial-match notice. Ranking: IDF-weighted saturated match-density with a short-session damp. Results include highlighted snippet excerpts.
 
-| Flag | Description |
+**Former-title fallback**: default search also checks `title_history` for sessions whose past titles match the query but whose current title does not. A session renamed away from a name the user remembers still surfaces under a "former-title matches" heading, capped to avoid crowding body results. Each former-title hit prints its old name, provenance, date, and a link to the full timeline via the `titles` subcommand.
+
+| Flag / Subcommand | Description |
 |------|-------------|
-| `--limit <n>` | Max results (default: 20) |
+| `--limit <n>` | Max results (default: 15) |
 | `--id <prefix>` | Lookup by session ID prefix (8+ chars) |
-| `--project <name>` | Filter by project name (substring) |
-| `--since <duration>` | Recent only: `7d`, `24h`, `30m`, `2w` |
-| `--json` | Machine-readable JSON output |
-| `--name` | Search only session names, slugs, summaries—skips JSONL body scan (fast) |
-| `--fzf` | Interactive selection via fzf (outputs resume command) |
+| `--name` | Titles/slugs/summaries only via metadata FTS (fastest) |
+| `--deep` | Bypass the index: streaming raw JSONL scan (new/unindexed sessions; whole-phrase matching) |
+| `--open` | Resume the top hit in a new Ghostty tab immediately |
+| `titles <id-prefix>` | Print the chronological title/nickname timeline for a session (all rename, slug, cache, and summarizer events) |
+
+## Transcript Index & Summary Backfill
+
+```bash
+# Incremental index refresh (skips unchanged files; run after heavy sessions)
+node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js
+
+# Full rebuild (also forced automatically when EXTRACTOR_VERSION bumps)
+node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --rebuild
+
+# Backfill missing summaries — DISABLED BY DEFAULT, requires --enable
+# (or TRACKER_SUMMARIZER=1). Hermetic when run: --safe-mode
+# --no-session-persistence, no hooks fire, no synthetic sessions persist.
+node ~/.claude/skills/claude-tracker-suite/scripts/backfill-summaries.js --enable
+node ~/.claude/skills/claude-tracker-suite/scripts/backfill-summaries.js --enable --session <id-prefix>  # force one
+
+# OpenRouter backend instead of claude CLI (default model moonshotai/kimi-k2;
+# key from OPENROUTER_API_KEY or ~/.config/env/secrets.env)
+node ~/.claude/skills/claude-tracker-suite/scripts/backfill-summaries.js --enable --provider openrouter
+
+# Preview excerpts without any LLM calls (no gate needed)
+node ~/.claude/skills/claude-tracker-suite/scripts/backfill-summaries.js --dry-run
+
+# NOTE: the watcher-daemon auto-name path (update-active-projects.py) is also
+# gated off by default; set TRACKER_AUTO_NAME=1 to re-enable it.
+
+# Recall regression suite — run after touching search code or synonyms
+node ~/.claude/skills/claude-tracker-suite/scripts/search-regression.js
+
+# Suite self-audit → AUDIT.md (P0-P3 findings)
+node ~/.claude/skills/claude-tracker-suite/scripts/audit-suite.js
+```
+
+Incremental indexing skips files whose size, mtime, and extractor version (currently EXTRACTOR_VERSION 4) all match `transcript_index_state`. Bumping the version constant forces a full reindex under new extraction rules. Read errors are never recorded as indexed—the session stays eligible for the next run, preventing a partial read from permanently masking content from search. Deleted transcripts are pruned on full (unlimited) runs.
+
+Since v4, the indexer also extracts **title history events** from each transcript: `/rename` custom-title lines (source `user`), slug changes (source `slug`). Custom-title lines route by the line's own `sessionId` field, not the containing file—a `/rename` after `/resume` writes into the active transcript but targets the previous session. Claude Code's own metadata scanner gets this wrong, overwriting the active session's title with the rename target's title. Consecutive duplicate title values within a file collapse to a single event.
+
+Known lexical limit: a session can only be found by words that actually occur in it—the `[expected fail]` regression fixture documents this; a semantic (rlama) layer is the designated future fix.
+
+## Interactive Picker (restart recovery)
+
+```bash
+~/.claude/skills/claude-tracker-suite/scripts/claude-tracker-pick              # fuzzy-find recent 50
+~/.claude/skills/claude-tracker-suite/scripts/claude-tracker-pick --here      # resume in current terminal
+~/.claude/skills/claude-tracker-suite/scripts/claude-tracker-pick --project thera --limit 100
+```
+
+Enter opens the session in a Ghostty tab, Ctrl-O resumes in the current terminal, Ctrl-Y copies the resume command. Preview shows title, summary, and first prompt. Pair with `restore-workspace.sh` (bulk restore from the launchd snapshot) — the picker is for choosing, restore is for "give me back everything".
 
 ## Resume Crashed Sessions
 
@@ -184,7 +243,7 @@ python3 ~/.claude/scripts/update-active-projects.py              # Regenerate ac
 python3 ~/.claude/scripts/update-active-projects.py --summarize  # Show sessions needing summaries
 ```
 
-The generated table includes Model, Turns, and Cost columns from enriched session data (extracted from JSONL transcripts). Git worktree sessions show a tree emoji badge. Sessions without summaries are auto-named via one-shot `claude --model haiku` call.
+The generated table includes Model, Turns, and Cost columns from enriched session data (extracted from JSONL transcripts). Git worktree sessions show a tree emoji badge. The auto-name path (one-shot `claude --model haiku` call for sessions without summaries) is disabled by default—set `TRACKER_AUTO_NAME=1` to re-enable it. Native Claude Code session summaries stopped generating around v2.1.31 (February 2026), so `sessions-index.json` summary fields are stale for newer sessions; use `backfill-summaries.js` or the transcript index instead.
 
 ## Bootstrap New Setup
 
@@ -306,6 +365,22 @@ sqlite3 ~/.claude/tracker.db "SELECT phrase, GROUP_CONCAT(tag) FROM tagged_phras
 
 **Migration** (idempotent): `node ~/.claude/scripts/migrate-to-sqlite.js`
 
+### Title / Nickname History
+
+The `title_history` table records every name a session has ever had, with provenance. Sources: `user` (from `/rename` custom-title lines), `slug` (auto-nickname from Claude Code), `cache` (May 2026 metadata import from `session-summaries.json`), `summarizer` (from `backfill-summaries.js`).
+
+```bash
+# Print the title timeline for a session
+node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js titles <id-prefix>
+
+# Query raw history
+sqlite3 ~/.claude/tracker.db "SELECT title, source, observed_at FROM title_history WHERE session_id LIKE 'abc%' ORDER BY observed_at;"
+```
+
+Title events are extracted during transcript indexing (`index-transcripts.js` v4+). `/rename` entries route by the line's own `sessionId`—a rename issued after `/resume` targets the previous session, not the file it was written into. This corrects a known upstream behavior where Claude Code's metadata scanner assigns the rename to the wrong session.
+
+Default search automatically surfaces sessions findable only by a former title under a "former-title matches" heading. The `titles` subcommand prints the full chronological timeline: timestamp, source, title value, and cross-session rename provenance.
+
 ### Checkpoints
 
 Named bookmarks within sessions capturing label, git state, workflow phase, and modified files.
@@ -408,7 +483,7 @@ node ~/.claude/skills/claude-tracker-suite/scripts/save-workspace.js
 node ~/.claude/skills/claude-tracker-suite/scripts/save-workspace.js --dry-run
 ```
 
-Detects alive sessions via `pgrep`/`lsof` (same logic as `claude-tracker-alive`), matches them to tracker DB entries, and writes `~/.claude/workspace-state.json` with session IDs, project directories, and tab titles.
+Detects alive sessions via `pgrep`/`lsof` (same logic as `claude-tracker-alive`), matches them to tracker DB entries, and writes `~/.claude/workspace-state.json` with session IDs, project directories, and tab titles. Deduplicates by sessionId (multiple PIDs from forks and MCP children resolve to one entry). Never overwrites a good snapshot with an empty one—after a crash or logout with zero live sessions, the previous snapshot is preserved for `restore-workspace.sh`.
 
 ### Restore
 
@@ -485,6 +560,8 @@ Uses System Events clipboard-paste pattern (Cmd+D for split, then paste yazi com
 
 For detailed schemas and infrastructure:
 
-- `references/data-schemas.md` — Session index, summary cache, and JSONL transcript schemas; data source locations; shared library API
+- `references/data-schemas.md` — Session index, summary cache, JSONL transcript schemas, title_history schema; data source locations; shared library API
+- `references/search-mechanics.md` — Transcript FTS indexing pipeline, search query resolution, synonym expansion, AND-to-OR fallback, former-title fallback, ranking algorithm
 - `references/daemon-setup.md` — Watcher daemon lifecycle and launchd plist template
+- `references/synonyms.json` — Bidirectional synonym groups for search query expansion (Porter stemming handles inflections; groups list distinct vocabulary)
 - `references/cmux-commands.md` — Complete cmux CLI reference: hierarchy, splits, tabs, input, browser, sidebar, notifications, keyboard shortcuts

@@ -112,10 +112,14 @@ function getSessionTitle(sessionId) {
 
 const processes = getRunningClaudeProcesses();
 const entries = [];
+const seenSessions = new Set();
 
 for (const proc of processes) {
   const sessionId = findSessionForProcess(proc);
   if (!sessionId) continue;
+  // Several PIDs (forks, MCP children) resolve to the same session — one tab each
+  if (seenSessions.has(sessionId)) continue;
+  seenSessions.add(sessionId);
 
   const projectDir = proc.cwd || '';
   const projectName = projectDir ? path.basename(projectDir) : '';
@@ -146,6 +150,17 @@ if (jsonMode) {
     console.log(`  ${e.tabTitle} — ${e.projectDir} (PID ${e.pid})`);
   }
 } else {
+  // Never clobber a useful snapshot with an empty one — after a crash or
+  // logout there are 0 live sessions, and the previous snapshot is exactly
+  // what restore-workspace.sh needs
+  if (entries.length === 0) {
+    let prior = null;
+    try { prior = JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')); } catch {}
+    if (prior && Array.isArray(prior.sessions) && prior.sessions.length > 0) {
+      console.log(`No live sessions detected — keeping prior snapshot of ${prior.sessions.length} session(s) (saved ${prior.savedAt}).`);
+      process.exit(0);
+    }
+  }
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2) + '\n');
   console.log(`Saved ${entries.length} session(s) to ${STATE_PATH}`);
   for (const e of entries) {

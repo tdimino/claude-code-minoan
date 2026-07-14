@@ -26,6 +26,7 @@ function trackResume(projectPath, sessionId) {
   if (!firstResumeCmd) {
     firstResumeCmd = 'cd ' + projectPath + ' && claude --resume ' + sessionId;
   }
+  trackTopHit(sessionId);
 }
 
 function copyToClipboard() {
@@ -38,6 +39,27 @@ function copyToClipboard() {
   }
 }
 
+let firstSessionId = null;
+
+function trackTopHit(sessionId) {
+  if (!firstSessionId) firstSessionId = sessionId;
+}
+
+/** --open: resume the top hit in a new Ghostty tab */
+function openTopHit() {
+  if (!openTop || !firstSessionId) return;
+  if (!hasGhostty) {
+    console.log('\x1b[33m--open: ghostty-resume.sh not found; resume manually with the command above.\x1b[0m\n');
+    return;
+  }
+  try {
+    const out = execSync(`"${ghosttyScript}" "${firstSessionId}"`, { encoding: 'utf8', timeout: 15000 });
+    console.log('\x1b[32m✓ ' + out.trim() + '\x1b[0m\n');
+  } catch (e) {
+    console.log('\x1b[33m--open failed: ' + e.message + '\x1b[0m\n');
+  }
+}
+
 // Parse arguments
 const args = process.argv.slice(2);
 let searchTerm = '';
@@ -45,6 +67,19 @@ let maxResults = 15;
 let maxLinesPerFile = 8000;
 let nameOnly = false;
 let idPrefix = '';
+let deepScan = false;
+let openTop = false;
+let titlesMode = false;
+
+// `titles <id-prefix>` subcommand — print the title/nickname timeline
+if (args[0] === 'titles') {
+  titlesMode = true;
+  idPrefix = (args[1] || '').toLowerCase();
+  if (!idPrefix) {
+    console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js titles <session-id-prefix>\n');
+    process.exit(0);
+  }
+}
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--limit' && args[i + 1]) {
@@ -55,6 +90,10 @@ for (let i = 0; i < args.length; i++) {
     i++;
   } else if (args[i] === '--name') {
     nameOnly = true;
+  } else if (args[i] === '--deep') {
+    deepScan = true;
+  } else if (args[i] === '--open') {
+    openTop = true;
   } else if (args[i] === '--id' && args[i + 1]) {
     idPrefix = args[i + 1].toLowerCase();
     i++;
@@ -64,11 +103,14 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (!searchTerm && !idPrefix) {
-  console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js <search-term> [--limit N] [--name]');
+  console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js <search-term> [--limit N] [--name] [--deep] [--open]');
   console.log('\x1b[90mExample: node search-sessions.js "kothar mac mini"');
   console.log('Example: node search-sessions.js "websocket" --limit 5');
   console.log('Example: node search-sessions.js "thera" --name    (name/slug only, fast)');
-  console.log('Example: node search-sessions.js --id d7b8f4dd     (lookup by session ID prefix)\x1b[0m\n');
+  console.log('Example: node search-sessions.js --id d7b8f4dd     (lookup by session ID prefix)');
+  console.log('Example: node search-sessions.js titles d7b8f4dd   (title/nickname history timeline)');
+  console.log('Example: node search-sessions.js "twitter banner" --open   (resume top hit in Ghostty)');
+  console.log('Example: node search-sessions.js "rare term" --deep        (streaming JSONL scan, bypasses index)\x1b[0m\n');
   process.exit(0);
 }
 
@@ -390,13 +432,89 @@ function printDbResults(results, escapedTerm) {
   return count;
 }
 
+/**
+ * Print session-level transcript FTS results (with snippet excerpts).
+ * Rows come from db.searchTranscripts() — sessions metadata LEFT-JOINed,
+ * so title/summary may be null for unmigrated sessions.
+ */
+function printFtsResults(rows) {
+  let count = 0;
+  for (const r of rows) {
+    if (count >= maxResults) {
+      console.log('\x1b[90m... (showing first ' + maxResults + ' results)\x1b[0m\n');
+      return count;
+    }
+    count++;
+
+    // Some legacy rows store the encoded dir name in project_path — decode defensively
+    const decoded = r.project_dir ? utils.decodeProjectPath(r.project_dir) : null;
+    const projectPath = (r.project_path && r.project_path.startsWith('/'))
+      ? r.project_path
+      : (decoded || (r.project_path ? utils.decodeProjectPath(r.project_path) : '(unknown)'));
+    const projectName = r.project_name || projectPath.split('/').pop();
+    const title = r.custom_title || r.auto_title || '';
+    const age = r.modified_at ? utils.formatAge(r.modified_at) : '';
+
+    console.log(
+      '\x1b[33m[' + count + ']\x1b[0m \x1b[1m' + projectName +
+      '\x1b[0m' + (age ? ' \x1b[90m(' + age + ')\x1b[0m' : '') +
+      (r.model_short ? ' \x1b[35m' + r.model_short + '\x1b[0m' : '') +
+      ' \x1b[90m· ' + r.match_count + ' match' + (r.match_count === 1 ? '' : 'es') + '\x1b[0m'
+    );
+    if (title) console.log('    \x1b[90mName:\x1b[0m \x1b[1m\x1b[35m' + title + '\x1b[0m');
+    if (r.summary) console.log('    \x1b[90mSummary:\x1b[0m ' + r.summary.substring(0, 160));
+    if (r.slug && !title) console.log('    \x1b[90mSession:\x1b[0m ' + r.slug);
+    console.log('    \x1b[90mDir:\x1b[0m ' + projectPath);
+    console.log('    \x1b[90mID:\x1b[0m ' + r.session_id);
+    trackResume(projectPath, r.session_id);
+    console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + projectPath + ' && claude --resume ' + r.session_id + '\x1b[0m');
+    if (hasGhostty) {
+      console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + r.session_id + '\x1b[0m');
+    }
+    for (const snip of r.snippets) {
+      const highlighted = snip
+        .replace(/\n/g, ' ')
+        .replace(/>>([^<]*)<</g, '\x1b[43m\x1b[30m$1\x1b[0m');
+      console.log('    \x1b[32m›\x1b[0m ' + highlighted.substring(0, 160));
+    }
+    console.log('');
+  }
+  return count;
+}
+
 async function main() {
-  // SQLite fast path — only for --id lookups and --name searches.
-  // Body searches (no --name flag) must fall through to JSONL scan because
-  // FTS5 only indexes metadata (title/slug/summary/first_prompt), not transcript bodies.
+  // SQLite fast path — --id lookups, --name searches, and (default) FTS body
+  // search over the transcript index. --deep bypasses the index for a
+  // streaming JSONL scan (unindexed/new sessions).
   const db = utils.tryDb();
   if (db) {
     try {
+      if (titlesMode) {
+        const session = db.getSessionById(idPrefix);
+        if (!session) {
+          console.log('\n\x1b[33mNo session found matching ID prefix "' + idPrefix + '".\x1b[0m\n');
+          return;
+        }
+        const history = db.getTitleHistory(session.session_id);
+        const current = session.custom_title || session.auto_title || session.slug || '(untitled)';
+        console.log('\n\x1b[1m\x1b[36mTitle history:\x1b[0m ' + session.session_id.slice(0, 8) +
+          ' \x1b[90m(' + (session.project_name || '?') + ')\x1b[0m — now: \x1b[1m\x1b[35m' + current + '\x1b[0m\n');
+        if (history.length === 0) {
+          console.log('\x1b[90mNo recorded title events. Run index-transcripts.js to backfill.\x1b[0m\n');
+          return;
+        }
+        const SOURCE_COLOR = { user: '\x1b[35m', slug: '\x1b[36m', cache: '\x1b[33m', summarizer: '\x1b[32m' };
+        for (const h of history) {
+          const when = h.observed_at ? h.observed_at.slice(0, 16).replace('T', ' ') : '(undated)      ';
+          const cross = h.observed_in && h.observed_in !== session.session_id &&
+            h.source === 'user' ? ' \x1b[90m(renamed from session ' + h.observed_in.slice(0, 8) + ')\x1b[0m' : '';
+          console.log('  \x1b[90m' + when + '\x1b[0m  ' + (SOURCE_COLOR[h.source] || '') +
+            h.source.padEnd(10) + '\x1b[0m ' + h.title + cross);
+        }
+        console.log('');
+        return;
+      }
+
       if (idPrefix) {
         console.log('\n\x1b[1m\x1b[36mLooking up session:\x1b[0m "' + idPrefix + '" \x1b[90m(sqlite)\x1b[0m\n');
         const result = db.getSessionById(idPrefix);
@@ -406,6 +524,7 @@ async function main() {
         }
         printDbResults([result], utils.escapeRegex(idPrefix));
         copyToClipboard();
+        openTopHit();
         return;
       }
 
@@ -421,6 +540,71 @@ async function main() {
         console.log('\x1b[90mFound ' + count + ' session(s) via FTS5.\x1b[0m');
         console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
         copyToClipboard();
+        openTopHit();
+        return;
+      }
+
+      // Default body search: transcript FTS index + metadata FTS, merged.
+      if (!deepScan && db.searchTranscripts) {
+        console.log('\n\x1b[1m\x1b[36mSearching for:\x1b[0m "' + searchTerm + '" \x1b[90m(transcript index)\x1b[0m\n');
+        const bodyRows = db.searchTranscripts(searchTerm, { limit: maxResults });
+        const bodyIds = new Set(bodyRows.map(r => r.session_id));
+        let metaRows = [];
+        try {
+          metaRows = db.searchSessions(searchTerm, { limit: maxResults })
+            .filter(r => !bodyIds.has(r.session_id));
+        } catch (e) { /* metadata search optional */ }
+
+        // Former-nickname fallback: a session renamed away from a title the
+        // user remembers should still be findable by that old title. High
+        // precision (the user remembered a NAME), so it shows even when body
+        // results are plentiful — capped, never crowding them out.
+        let formerRows = [];
+        if (db.searchTitleHistory) {
+          const knownIds = new Set([...bodyIds, ...metaRows.map(r => r.session_id)]);
+          try {
+            formerRows = db.searchTitleHistory(searchTerm, maxResults)
+              .filter(r => !knownIds.has(r.session_id));
+          } catch (e) { /* history table optional */ }
+        }
+
+        if (bodyRows.length === 0 && metaRows.length === 0 && formerRows.length === 0) {
+          console.log('\x1b[33mNo matches found in the transcript index.\x1b[0m');
+          console.log('\x1b[90mTry --deep for a raw JSONL scan (new/unindexed sessions),');
+          console.log('or claude-tracker pick for an interactive browse.\x1b[0m\n');
+          return;
+        }
+
+        if (bodyRows[0] && bodyRows[0].dropped_terms && bodyRows[0].dropped_terms.length > 0) {
+          console.log('\x1b[33mWarning: some search terms could not be parsed and were ignored: ' +
+            bodyRows[0].dropped_terms.join(', ') + '\x1b[0m\n');
+        }
+        if (bodyRows[0] && bodyRows[0].mode === 'OR') {
+          console.log('\x1b[90mNo session matched every term — showing best partial matches (OR mode).\x1b[0m\n');
+        }
+
+        let count = printFtsResults(bodyRows);
+        if (metaRows.length > 0 && count < maxResults) {
+          console.log('\x1b[90m— metadata-only matches (title/summary, not in transcript index) —\x1b[0m\n');
+          count += printDbResults(metaRows.slice(0, maxResults - count), utils.escapeRegex(searchTerm));
+        }
+        if (formerRows.length > 0) {
+          const formerCap = count < maxResults ? maxResults - count : 2;
+          console.log('\x1b[90m— former-title matches (session since renamed) —\x1b[0m\n');
+          for (const r of formerRows.slice(0, formerCap)) {
+            const now = r.custom_title || r.auto_title || '(untitled)';
+            console.log('\x1b[1m' + (r.project_name || '?') + '\x1b[0m \x1b[90m(' +
+              utils.formatAge(r.modified_at) + ')\x1b[0m');
+            console.log('    \x1b[90mWas:\x1b[0m \x1b[35m' + r.title + '\x1b[0m \x1b[90m(' + r.source +
+              (r.observed_at ? ', ' + r.observed_at.slice(0, 10) : '') + ')\x1b[0m → \x1b[90mnow:\x1b[0m \x1b[1m' + now + '\x1b[0m');
+            console.log('    \x1b[90mID:\x1b[0m ' + r.session_id);
+            console.log('    \x1b[90mTimeline:\x1b[0m \x1b[36mclaude-tracker-search titles ' + r.session_id.slice(0, 8) + '\x1b[0m\n');
+            count++;
+          }
+        }
+        console.log('\x1b[90mFound ' + count + ' session(s). Use --deep to scan raw JSONL instead.\x1b[0m\n');
+        copyToClipboard();
+        openTopHit();
         return;
       }
     } catch (e) {
@@ -481,6 +665,7 @@ async function main() {
     console.log('\x1b[90mFound ' + results.length + ' session(s) by name.\x1b[0m');
     console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
     copyToClipboard();
+    openTopHit();
     return;
   }
 
@@ -645,11 +830,13 @@ async function main() {
 
   if (resultCount === 0) {
     console.log('\x1b[33mNo matches found.\x1b[0m\n');
+    console.log('\x1b[90mTip: claude-tracker pick for an interactive browse of recent sessions.\x1b[0m\n');
   } else {
     console.log('\x1b[90mFound ' + resultCount + ' session(s) with matches.\x1b[0m');
     console.log('\x1b[90mResume: cd <dir> && claude --resume <session-id>\x1b[0m\n');
   }
   copyToClipboard();
+  openTopHit();
 }
 
 main().catch(console.error);

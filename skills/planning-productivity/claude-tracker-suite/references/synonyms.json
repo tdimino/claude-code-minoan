@@ -1,0 +1,32 @@
+{
+  "_comment": "Synonym groups for tracker search. Every token in a group expands to the whole group (bidirectional). Porter stemming already covers plural/verb forms — list distinct vocabulary, not inflections.",
+  "groups": [
+    ["twitter", "tweet", "banner", "header", "profile"],
+    ["background", "wallpaper", "backdrop"],
+    ["imagemagick", "magick", "convert", "composite", "mogrify", "montage"],
+    ["logo", "symbol", "icon", "emblem", "badge"],
+    ["screenshot", "capture", "screengrab"],
+    ["image", "picture", "photo"],
+    ["subquadratic", "subq"],
+    ["session", "conversation", "transcript"],
+    ["resume", "restore", "reopen"],
+    ["terminal", "ghostty", "shell", "tty"],
+    ["repo", "repository", "codebase"],
+    ["bug", "defect", "regression", "glitch"],
+    ["fix", "patch", "repair"],
+    ["deploy", "ship", "release", "publish"],
+    ["frontend", "ui", "interface"],
+    ["website", "site", "webpage", "page"],
+    ["db", "database", "sqlite"],
+    ["search", "query", "lookup", "find"],
+    ["config", "configuration", "settings"],
+    ["auth", "authentication", "login"],
+    ["docs", "documentation", "readme"],
+    ["mail", "email", "gmail"],
+    ["cal", "calendar", "schedule"],
+    ["llm", "model", "claude", "gpt", "gemini"],
+    ["scrape", "crawl", "fetch", "harvest"],
+    ["minoan", "linear-a", "kaphtor"],
+    ["kothar", "daimon", "soul"]
+  ]
+}

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# claude-tracker-pick — Interactive session picker: fuzzy-find, preview, resume.
+#
+# Usage:
+#   claude-tracker-pick                # last 50 sessions, fzf, Enter → Ghostty tab
+#   claude-tracker-pick --limit 100    # more history
+#   claude-tracker-pick --here         # Enter resumes in the CURRENT terminal
+#   claude-tracker-pick --project foo  # filter by project name substring
+#
+# Keys inside fzf:
+#   Enter   resume in a new Ghostty tab (or current terminal with --here)
+#   Ctrl-O  force resume in current terminal
+#   Ctrl-Y  copy the resume command to clipboard
+#
+# The "I just restarted, get me back to work" front door. Data comes from
+# tracker.db (title, summary, project, age); preview shows summary, first
+# prompt, and the resume command.
+
+set -euo pipefail
+
+LIMIT=50
+HERE=false
+PROJECT=""
+DB="$HOME/.claude/tracker.db"
+GHOSTTY_RESUME="$HOME/.claude/scripts/ghostty-resume.sh"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --limit)   LIMIT="$2"; shift 2 ;;
+    --here)    HERE=true; shift ;;
+    --project) PROJECT="$2"; shift 2 ;;
+    -h|--help) grep '^#' "$0" | head -20 | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+command -v fzf >/dev/null || { echo "fzf not installed (brew install fzf)" >&2; exit 1; }
+[[ -f "$DB" ]] || { echo "tracker.db not found — run migrate-to-sqlite.js first" >&2; exit 1; }
+
+# Tab-separated: short_id, session_id, project_path, project_name, age, title, summary
+ROWS=$(sqlite3 -separator $'\t' "$DB" "
+  SELECT short_id, session_id, project_path, project_name,
+    CAST((julianday('now') - julianday(modified_at)) AS INTEGER) || 'd',
+    COALESCE(NULLIF(custom_title,''), NULLIF(auto_title,''), NULLIF(slug,''), '(untitled)'),
+    COALESCE(summary, '')
+  FROM sessions
+  WHERE project_path LIKE '/%' ${PROJECT:+AND project_name LIKE '%$PROJECT%'}
+  ORDER BY modified_at DESC LIMIT $LIMIT;
+")
+
+[[ -n "$ROWS" ]] || { echo "No sessions found." >&2; exit 1; }
+
+PICKED=$(echo "$ROWS" | fzf \
+  --delimiter=$'\t' \
+  --with-nth=4,5,6 \
+  --preview 'printf "\033[1;35m%s\033[0m\n\033[90m%s · %s ago\033[0m\n\n%s\n\n\033[36mcd %s && claude --resume %s\033[0m" {6} {4} {5} {7} {3} {2}' \
+  --preview-window=down,wrap,40% \
+  --prompt="session> " \
+  --header="Enter: Ghostty tab · Ctrl-O: this terminal · Ctrl-Y: copy command" \
+  --expect=ctrl-o,ctrl-y) || exit 0
+
+KEY=$(head -1 <<< "$PICKED")
+LINE=$(tail -1 <<< "$PICKED")
+[[ -n "$LINE" ]] || exit 0
+
+SESSION_ID=$(cut -f2 <<< "$LINE")
+PROJECT_PATH=$(cut -f3 <<< "$LINE")
+RESUME_CMD="cd $PROJECT_PATH && claude --resume $SESSION_ID"
+
+if [[ "$KEY" == "ctrl-y" ]]; then
+  printf '%s' "$RESUME_CMD" | pbcopy 2>/dev/null && echo "Copied: $RESUME_CMD"
+elif [[ "$KEY" == "ctrl-o" || "$HERE" == "true" || ! -x "$GHOSTTY_RESUME" ]]; then
+  cd "$PROJECT_PATH" && exec claude --resume "$SESSION_ID"
+else
+  "$GHOSTTY_RESUME" "$SESSION_ID" --project "$PROJECT_PATH"
+fi
