@@ -1,6 +1,6 @@
 # Credential Setup & Troubleshooting (x-search / official API)
 
-Everything here is already configured on this machine — this file exists for
+Once configured, none of this needs revisiting — this file exists for
 re-setup after a machine migration or credential rotation.
 
 ## Bearer token (reads: search, profiles, threads, feed, usage)

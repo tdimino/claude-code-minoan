@@ -9,7 +9,7 @@ Five tools; choose by task:
 
 | Mode | Tool | Auth | Cost | Use For |
 |------|------|------|------|---------|
-| **Hosted MCP** | `xapi` MCP server (via xurl bridge) — *setup pending* | OAuth 2.0 | pay-per-use | Full-archive search, trends, bookmarks, Articles, timelines |
+| **Hosted MCP** | `xapi` MCP server (via xurl bridge) | OAuth 2.0 | pay-per-use | Full-archive search, trends, bookmarks, Articles, timelines |
 | **Official API** | `x-search` | Bearer + OAuth 1.0a | pay-per-use, tracked | Cost-governed research, feeds, watchlists, posting |
 | **Official CLI** | `xurl` | OAuth 1.0a + 2.0 | pay-per-use | Any endpoint: media upload, DMs, raw API calls |
 | **Session** | `bird` | Browser cookies | Free | Casual reads, mentions, media posts — while it lasts |
@@ -36,7 +36,7 @@ Pricing changes often (twice in 2026 already) — full rate card and billing mec
 
 X's first-party MCP server at `https://api.x.com/mcp` (launched June 2026). Six tool groups: Posts, Search (incl. full-archive), Users/timelines, Bookmarks, Trends by WOEID, Articles.
 
-**Not yet wired** — blocked on OAuth 2.0 client credentials (`CLIENT_ID`/`CLIENT_SECRET` in the skill `.env`). Once present, run the `claude mcp add xapi` command in `references/xurl-mcp-setup.md`, and verify with `claude mcp list` before directing work at xapi tools.
+Wire it once via the `claude mcp add xapi` command in `references/xurl-mcp-setup.md` (requires OAuth 2.0 client credentials on your X app), and verify with `claude mcp list` (`xapi ... ✔ Connected`) before directing work at xapi tools.
 
 Every tool call bills standard pay-per-use rates — treat agentic MCP loops with the same cost discipline as x-search deep searches. Setup, re-auth, and the read-only Bearer fallback: `references/xurl-mcp-setup.md`.
 
@@ -83,7 +83,7 @@ Key search flags: `--quick`, `--sort likes|impressions|retweets|recent`, `--sinc
 
 When testing or demonstrating post/reply, always use `--dry-run` — the success path publishes a live tweet otherwise.
 
-Setup (Bearer + OAuth 1.0a keys in `~/.claude/skills/twitter/.env`) is done on this machine. Re-setup walkthrough and credential troubleshooting: `references/setup.md`.
+Setup requires Bearer + OAuth 1.0a keys in `~/.claude/skills/twitter/.env` — walkthrough and credential troubleshooting: `references/setup.md`.
 
 ### Research methodology
 

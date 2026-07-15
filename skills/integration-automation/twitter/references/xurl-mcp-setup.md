@@ -42,13 +42,16 @@ Security: never read `~/.xurl` into LLM context — it holds live access tokens
 ## MCP wiring (Claude Code, user scope)
 
 ```bash
-claude mcp add xapi --scope user \
-  --env CLIENT_ID=... --env CLIENT_SECRET=... \
-  -- npx -y @xdevplatform/xurl mcp https://api.x.com/mcp
+claude mcp add xapi --scope user -- xurl --app main mcp https://api.x.com/mcp
 ```
 
-`xurl mcp` bridges stdio ↔ Streamable HTTP, injecting and refreshing the Bearer
-token. Read-only alternative (no OAuth, no writes): point any MCP client at the
+No env vars needed — credentials and tokens live in `~/.xurl` under the named
+app (`--app main`; the bare `default` app has none). `xurl mcp` bridges
+stdio ↔ Streamable HTTP, injecting and refreshing the Bearer token.
+
+Gotcha: the callback URI must be registered on the X app's User authentication
+settings (console.x.com → app → Settings → Authentication) or X shows
+"Something went wrong" at the approval screen. Only the app owner can edit this. Read-only alternative (no OAuth, no writes): point any MCP client at the
 URL directly with `Authorization: Bearer $X_BEARER_TOKEN`.
 
 ## xurl as a curl-like CLI
