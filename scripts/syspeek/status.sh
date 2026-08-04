@@ -40,14 +40,28 @@ else
     echo -e "  Data:     ${D}no data directory${N}"
 fi
 
-# 3. Ensouled status
+# 3. Disk
+disk_line=$(df -h /System/Volumes/Data | tail -1)
+disk_pct=$(echo "$disk_line" | awk '{print $5}' | tr -d '%')
+disk_used=$(echo "$disk_line" | awk '{print $3}')
+disk_total=$(echo "$disk_line" | awk '{print $2}')
+if [ "$disk_pct" -ge 90 ] 2>/dev/null; then
+    disk_color=$R
+elif [ "$disk_pct" -ge 80 ] 2>/dev/null; then
+    disk_color=$Y
+else
+    disk_color=$G
+fi
+echo -e "  Disk:     ${disk_color}${disk_pct}%${N}  ($disk_used / $disk_total)"
+
+# 4. Ensouled status
 if [ -f "$HOME/.claudicle/soul/soul.md" ]; then
     echo -e "  Ensouled: ${C}yes${N} (writing to memory.db)"
 else
     echo -e "  Ensouled: ${D}no${N} (JSONL only)"
 fi
 
-# 4. Last snapshot
+# 5. Last snapshot
 if [ -f "$LOG_FILE" ]; then
     last=$(grep "Snapshot\|Recorded" "$LOG_FILE" | tail -1)
     if [ -n "$last" ]; then

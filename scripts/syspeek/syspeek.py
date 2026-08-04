@@ -47,10 +47,30 @@ LOG_FILE = LOG_DIR / "syspeek.log"
 SOUL_MD = Path.home() / ".claudicle" / "soul" / "soul.md"
 MEMORY_DB = Path.home() / ".claudicle" / "daemon" / "memory" / "memory.db"
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_TOP_N = 10
 DEFAULT_INTERVAL_MIN = 5
-ROTATION_DAYS = 7
+ROTATION_DAYS = 7           # gzip .jsonl older than this
+ARCHIVE_RETENTION_DAYS = 30  # delete .jsonl.gz older than this
+MEMDB_MIN_INTERVAL_SEC = 3600  # daemon: at most one memory.db row per hour
+DATA_VOLUME = "/System/Volumes/Data"
+
+# Stale Claude session detection: transcript mtime is the activity signal
+# (TTY atime is useless — the Claude TUI polls the terminal constantly).
+STALE_SESSION_DAYS = 10
+SPECULATOR_SESSIONS = Path.home() / ".claude" / "scripts" / "speculator" / "data" / "ghostty-sessions.json"
+PROJECTS_DIR = Path.home() / ".claude" / "projects"
+STALE_ALERT_COOLDOWN_SEC = 86400  # one notification per session per day
+
+# Curated directories for `--disk` hotspot listing. Deep scans belong to
+# Mole (`mo analyze`) and gdu-go — this list is intentionally shallow.
+DISK_HOTSPOT_DIRS = [
+    "~/Library/Caches",
+    "~/Library/Developer",
+    "~/.ollama",
+    "~/.claude",
+    "~/Desktop/Programming",
+]
 
 # ---------------------------------------------------------------------------
 # Data Models
@@ -116,6 +136,37 @@ class MemoryInfo:
 
 
 @dataclass
+class DiskInfo:
+    total_bytes: int
+    used_bytes: int
+    avail_bytes: int
+    # APFS container free space (includes purgeable); 0 if diskutil unavailable
+    container_free_bytes: int = 0
+
+    @property
+    def used_pct(self) -> float:
+        if self.total_bytes == 0:
+            return 0.0
+        return (self.used_bytes / self.total_bytes) * 100
+
+    @property
+    def purgeable_bytes(self) -> int:
+        return max(0, self.container_free_bytes - self.avail_bytes)
+
+
+@dataclass
+class SwapInfo:
+    total_bytes: int
+    used_bytes: int
+
+    @property
+    def used_pct(self) -> float:
+        if self.total_bytes == 0:
+            return 0.0
+        return (self.used_bytes / self.total_bytes) * 100
+
+
+@dataclass
 class CategorySummary:
     category: Category
     count: int
@@ -133,6 +184,11 @@ class SystemSnapshot:
     processes: list
     thermal_level: str = "normal"
     network_available: bool = True
+    disk: Optional[DiskInfo] = None
+    swap: Optional[SwapInfo] = None
+    memory_pressure: str = "normal"
+    disk_io: Optional[dict] = None
+    stale_sessions: list = field(default_factory=list)
     schema_version: int = SCHEMA_VERSION
     snapshot_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
 
@@ -369,12 +425,267 @@ def capture_network() -> bool:
         return True  # assume available
 
 
-def take_snapshot() -> SystemSnapshot:
-    """Capture a full system snapshot."""
+def capture_disk(path: str = DATA_VOLUME) -> Optional[DiskInfo]:
+    """Capture data-volume capacity via df, plus APFS container free via diskutil."""
+    try:
+        result = subprocess.run(
+            ["df", "-k", path],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode != 0:
+            return None
+        fields = result.stdout.strip().splitlines()[-1].split()
+        total_kb, used_kb, avail_kb = int(fields[1]), int(fields[2]), int(fields[3])
+    except Exception:
+        return None
+
+    container_free = 0
+    try:
+        info = subprocess.run(
+            ["diskutil", "info", "-plist", "/"],
+            capture_output=True, timeout=5
+        )
+        extract = subprocess.run(
+            ["plutil", "-extract", "APFSContainerFree", "raw", "-"],
+            input=info.stdout, capture_output=True, timeout=5
+        )
+        if extract.returncode == 0:
+            container_free = int(extract.stdout.strip().decode())
+    except Exception:
+        pass
+
+    return DiskInfo(
+        total_bytes=total_kb * 1024,
+        used_bytes=used_kb * 1024,
+        avail_bytes=avail_kb * 1024,
+        container_free_bytes=container_free,
+    )
+
+
+def capture_swap() -> Optional[SwapInfo]:
+    """Capture swap usage via sysctl vm.swapusage."""
+    try:
+        result = subprocess.run(
+            ["sysctl", "-n", "vm.swapusage"],
+            capture_output=True, text=True, timeout=5
+        )
+        m = re.search(r"total = ([\d.]+)M.*used = ([\d.]+)M", result.stdout)
+        if not m:
+            return None
+        return SwapInfo(
+            total_bytes=int(float(m.group(1)) * 1048576),
+            used_bytes=int(float(m.group(2)) * 1048576),
+        )
+    except Exception:
+        return None
+
+
+def capture_memory_pressure() -> str:
+    """System memory pressure via memory_pressure -Q (normal/warn/critical)."""
+    try:
+        result = subprocess.run(
+            ["memory_pressure", "-Q"],
+            capture_output=True, text=True, timeout=5
+        )
+        m = re.search(r"free percentage:\s*(\d+)", result.stdout)
+        if m:
+            free_pct = int(m.group(1))
+            if free_pct < 10:
+                return "critical"
+            if free_pct <= 20:
+                return "warn"
+        return "normal"
+    except Exception:
+        return "normal"
+
+
+def capture_disk_io() -> Optional[dict]:
+    """Current disk transfer rates via iostat (two 1s samples; costs ~1s).
+
+    macOS iostat reports transfers/sec and MB/s but not a read/write split,
+    so the Kothar readsPerSec/writesPerSec fields stay 0 and the real rates
+    ride in superset keys.
+    """
+    try:
+        result = subprocess.run(
+            ["iostat", "-d", "-w", "1", "-c", "2"],
+            capture_output=True, text=True, timeout=10
+        )
+        lines = result.stdout.strip().splitlines()
+        # Header: disk names; header: "KB/t tps MB/s" per disk; then samples.
+        sample = lines[-1].split()
+        tps = sum(float(sample[i]) for i in range(1, len(sample), 3))
+        mbs = sum(float(sample[i]) for i in range(2, len(sample), 3))
+        return {"transfersPerSec": round(tps, 1), "mbPerSec": round(mbs, 2)}
+    except Exception:
+        return None
+
+
+def _agent_tty_procs() -> list[dict]:
+    """Interactive claude and codex session processes: [{pid, tty, agent}].
+
+    claude: comm is exactly `claude`. codex: the native binary (args end in
+    /bin/codex, excluding the `node` wrapper around it).
+    """
+    procs = []
+    try:
+        result = subprocess.run(
+            ["ps", "-axo", "pid=,tty=,args="],
+            capture_output=True, text=True, timeout=10
+        )
+    except Exception:
+        return []
+    for line in result.stdout.strip().splitlines():
+        fields = line.split(None, 2)
+        if len(fields) < 3 or fields[1] in ("??", "-"):
+            continue
+        pid, tty, args = int(fields[0]), fields[1], fields[2]
+        if args == "claude" or args.startswith("claude "):
+            procs.append({"pid": pid, "tty": tty, "agent": "claude"})
+        elif args.split()[0].endswith("/bin/codex") and not args.startswith("node"):
+            procs.append({"pid": pid, "tty": tty, "agent": "codex"})
+    return procs
+
+
+def _proc_cwd(pid: int) -> Optional[str]:
+    try:
+        result = subprocess.run(
+            ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in result.stdout.splitlines():
+            if line.startswith("n"):
+                return line[1:]
+    except Exception:
+        pass
+    return None
+
+
+def _proc_start_epoch(pid: int) -> Optional[float]:
+    try:
+        result = subprocess.run(
+            ["ps", "-o", "lstart=", "-p", str(pid)],
+            capture_output=True, text=True, timeout=5
+        )
+        lstart = " ".join(result.stdout.split())  # normalize double spaces
+        return time.mktime(time.strptime(lstart, "%a %b %d %H:%M:%S %Y"))
+    except Exception:
+        return None
+
+
+def _speculator_session_map() -> dict:
+    """pid -> {sessionId, project} from speculator's Ghostty tab map."""
+    try:
+        data = json.loads(SPECULATOR_SESSIONS.read_text())
+    except Exception:
+        return {}
+    mapping = {}
+    for entry in data.get("sessions", []):
+        cs = entry.get("claude_session")
+        if cs and cs.get("pid") and cs.get("sessionId"):
+            mapping[cs["pid"]] = cs
+    return mapping
+
+
+def _claude_last_activity(pid: int, spec: dict) -> tuple[Optional[float], str]:
+    """(transcript mtime, project label) for a claude PID.
+
+    Speculator's pid->sessionId map first; when speculator missed the pid,
+    match a transcript in the cwd's project dir whose birthtime is within
+    ±180s of process start (a transcript is born when its session starts).
+    """
+    info = spec.get(pid)
+    if info:
+        transcripts = list(PROJECTS_DIR.glob(f"*/{info['sessionId']}.jsonl"))
+        if transcripts:
+            return (max(t.stat().st_mtime for t in transcripts),
+                    info.get("project") or "")
+
+    cwd = _proc_cwd(pid)
+    start = _proc_start_epoch(pid)
+    if not cwd or not start:
+        return None, ""
+    slug_dir = PROJECTS_DIR / cwd.replace("/", "-")
+    if not slug_dir.is_dir():
+        return None, ""
+    # Two sessions can start in the same project within the window — take the
+    # transcript born closest to process start, not the first glob hit.
+    candidates = []
+    for t in slug_dir.glob("*.jsonl"):
+        try:
+            st = t.stat()
+            delta = abs(st.st_birthtime - start)
+            if delta <= 180:
+                candidates.append((delta, st.st_mtime))
+        except OSError:
+            continue
+    if not candidates:
+        return None, ""
+    return min(candidates)[1], Path(cwd).name
+
+
+def _codex_last_activity(pid: int) -> tuple[Optional[float], str]:
+    """(newest open-rollout mtime, project label) for a codex PID.
+
+    codex holds its rollout files open, so lsof is an exact join. A session
+    with several open rollouts (subagent threads) is active if any moves.
+    """
+    try:
+        result = subprocess.run(
+            ["lsof", "-a", "-p", str(pid), "-Fn"],
+            capture_output=True, text=True, timeout=5
+        )
+    except Exception:
+        return None, ""
+    mtimes = []
+    for line in result.stdout.splitlines():
+        if line.startswith("n") and "/.codex/sessions/" in line and line.endswith(".jsonl"):
+            try:
+                mtimes.append(os.stat(line[1:]).st_mtime)
+            except OSError:
+                continue
+    if not mtimes:
+        return None, ""
+    cwd = _proc_cwd(pid)
+    return max(mtimes), (Path(cwd).name if cwd else "")
+
+
+def capture_stale_sessions(threshold_days: float = STALE_SESSION_DAYS) -> list[dict]:
+    """Claude and Codex sessions idle (no transcript activity) >= threshold_days."""
+    now = time.time()
+    spec = _speculator_session_map()
+    stale = []
+    for proc in _agent_tty_procs():
+        if proc["agent"] == "claude":
+            mtime, project = _claude_last_activity(proc["pid"], spec)
+        else:
+            mtime, project = _codex_last_activity(proc["pid"])
+        if mtime is None:
+            continue
+        idle_days = (now - mtime) / 86400
+        if idle_days >= threshold_days:
+            stale.append({
+                "agent": proc["agent"],
+                "pid": proc["pid"],
+                "tty": proc["tty"],
+                "project": project,
+                "idle_days": round(idle_days, 1),
+            })
+    stale.sort(key=lambda s: s["idle_days"], reverse=True)
+    return stale
+
+
+def take_snapshot(with_io: bool = False) -> SystemSnapshot:
+    """Capture a full system snapshot. with_io adds a ~1s iostat sample."""
     procs = capture_processes()
     mem = capture_memory()
     thermal = capture_thermal()
     network = capture_network()
+    disk = capture_disk()
+    swap = capture_swap()
+    pressure = capture_memory_pressure()
+    disk_io = capture_disk_io() if with_io else None
+    stale = capture_stale_sessions()
 
     return SystemSnapshot(
         timestamp=datetime.now().isoformat(timespec="seconds"),
@@ -384,6 +695,11 @@ def take_snapshot() -> SystemSnapshot:
         processes=procs,
         thermal_level=thermal,
         network_available=network,
+        disk=disk,
+        swap=swap,
+        memory_pressure=pressure,
+        disk_io=disk_io,
+        stale_sessions=stale,
     )
 
 
@@ -533,10 +849,42 @@ def format_terminal(snapshot: SystemSnapshot, agg: dict, top_n: int,
     else:
         lines.append(f"  [{mem_color}{bar}{RESET}] {used_pct:.1f}% MEM ({used_gb:.1f} / {total_gb:.0f} GB)")
 
+    # Disk bar (80/90 thresholds — high disk use is routine, unlike memory)
+    disk = snapshot.disk
+    if disk:
+        d_pct = disk.used_pct
+        d_filled = int(bar_width * d_pct / 100)
+        d_bar = BLOCK_FULL * d_filled + BLOCK_EMPTY * (bar_width - d_filled)
+        d_used_gb = disk.used_bytes / 1073741824
+        d_total_gb = disk.total_bytes / 1073741824
+        d_color = "\033[32m" if d_pct < 80 else ("\033[33m" if d_pct < 90 else "\033[31m")
+        if nc:
+            lines.append(f"  [{d_bar}] {d_pct:.1f}% DISK ({d_used_gb:.0f} / {d_total_gb:.0f} GB)")
+        else:
+            lines.append(f"  [{d_color}{d_bar}{RESET}] {d_pct:.1f}% DISK ({d_used_gb:.0f} / {d_total_gb:.0f} GB)")
+
+    # Swap (only when in use)
+    swap = snapshot.swap
+    if swap and swap.used_bytes > 0:
+        swap_line = (f"  swap {swap.used_bytes / 1073741824:.1f} / "
+                     f"{swap.total_bytes / 1073741824:.1f} GB ({swap.used_pct:.0f}%)")
+        lines.append(_dim(swap_line, nc))
+
+    # Memory pressure
+    if snapshot.memory_pressure != "normal":
+        p_color = "\033[33m" if snapshot.memory_pressure == "warn" else "\033[31m"
+        lines.append(f"  {_colored(f'PRESSURE: {snapshot.memory_pressure.upper()}', p_color, nc)}")
+
     # Thermal
     if snapshot.thermal_level != "normal":
         t_color = "\033[33m" if snapshot.thermal_level == "elevated" else "\033[31m"
         lines.append(f"  {_colored(f'THERMAL: {snapshot.thermal_level.upper()}', t_color, nc)}")
+
+    # Stale agent sessions
+    for s in snapshot.stale_sessions:
+        stale_line = (f"  STALE: {s['agent']} PID {s['pid']} ({s['project']}, {s['tty']}) "
+                      f"idle {s['idle_days']:.0f}d — syspeek --kill {s['pid']}")
+        lines.append(_colored(stale_line, "\033[33m", nc))
 
     lines.append("")
 
@@ -600,6 +948,14 @@ def format_json(snapshot: SystemSnapshot, agg: dict, top_n: int,
         issues.append("CPU usage above 90%")
     if snapshot.thermal_level != "normal":
         issues.append(f"Thermal: {snapshot.thermal_level}")
+    if snapshot.disk and snapshot.disk.used_pct > 90:
+        issues.append("Disk usage above 90%")
+    if snapshot.memory_pressure != "normal":
+        issues.append(f"Memory pressure: {snapshot.memory_pressure}")
+    if snapshot.swap and snapshot.swap.used_pct > 90:
+        issues.append("Swap usage above 90%")
+    if snapshot.stale_sessions:
+        issues.append(f"{len(snapshot.stale_sessions)} agent session(s) idle >{STALE_SESSION_DAYS}d")
 
     # Kothar-compatible topProcesses
     kothar_procs = [
@@ -618,9 +974,12 @@ def format_json(snapshot: SystemSnapshot, agg: dict, top_n: int,
         # Kothar SystemHealthReport fields (kothar.ts:63-74)
         "cpuUsage": round(agg["total_cpu"], 1),
         "memoryUsage": round(mem.used_pct, 1),
-        "gpuUsage": 0,  # requires IOKit — v2
+        "diskUsage": round(snapshot.disk.used_pct, 1) if snapshot.disk else None,
+        "gpuUsage": 0,  # requires IOKit — v3
         "thermalLevel": snapshot.thermal_level,
-        "diskIO": {"readsPerSec": 0, "writesPerSec": 0},  # requires iostat — v2
+        "memoryPressure": snapshot.memory_pressure,
+        # macOS iostat has no read/write split; real rates in superset keys
+        "diskIO": {"readsPerSec": 0, "writesPerSec": 0, **(snapshot.disk_io or {})},
         "networkAvailable": snapshot.network_available,
         "topProcesses": kothar_procs,
         "issues": issues,
@@ -632,6 +991,21 @@ def format_json(snapshot: SystemSnapshot, agg: dict, top_n: int,
             "used_pct": round(mem.used_pct, 1),
             "app_bytes": mem.app_bytes,
         },
+
+        # Extended: disk + swap detail
+        "disk": {
+            "total_bytes": snapshot.disk.total_bytes,
+            "used_bytes": snapshot.disk.used_bytes,
+            "avail_bytes": snapshot.disk.avail_bytes,
+            "used_pct": round(snapshot.disk.used_pct, 1),
+            "purgeable_bytes": snapshot.disk.purgeable_bytes,
+            "container_free_bytes": snapshot.disk.container_free_bytes,
+        } if snapshot.disk else None,
+        "swap": {
+            "total_bytes": snapshot.swap.total_bytes,
+            "used_bytes": snapshot.swap.used_bytes,
+            "used_pct": round(snapshot.swap.used_pct, 1),
+        } if snapshot.swap else None,
 
         # Extended: categories
         "categories": {
@@ -645,6 +1019,9 @@ def format_json(snapshot: SystemSnapshot, agg: dict, top_n: int,
             }
             for s in agg["summaries"]
         },
+
+        # Extended: stale sessions
+        "staleSessions": snapshot.stale_sessions,
 
         # Extended: process lists
         "total_processes": agg["total_processes"],
@@ -679,7 +1056,10 @@ def is_ensouled() -> bool:
 def one_line_summary(snapshot: SystemSnapshot, agg: dict) -> str:
     """Human-readable one-liner for memory content field."""
     mem = snapshot.memory
-    parts = [f"{mem.used_pct:.1f}% mem, {agg['total_cpu']:.1f}% CPU, {agg['total_processes']} procs"]
+    head = f"{mem.used_pct:.1f}% mem, {agg['total_cpu']:.1f}% CPU, {agg['total_processes']} procs"
+    if snapshot.disk:
+        head += f", {snapshot.disk.used_pct:.0f}% disk"
+    parts = [head]
     cats = []
     for s in agg["summaries"][:4]:  # top 4 categories
         cats.append(f"{s.category.name}: {s.count} ({format_bytes(s.total_rss_kb)})")
@@ -732,17 +1112,41 @@ def record_to_memory_db(snapshot_json: str, snapshot_id: str, summary: str) -> b
         return False
 
 
-def record(snapshot: SystemSnapshot, agg: dict, snapshot_json: str):
-    """Persist snapshot to JSONL (always) and memory.db (if ensouled)."""
+MEMDB_MARKER = DATA_DIR / ".last-memdb-write"
+
+
+def _memdb_due(min_interval_sec: float) -> bool:
+    """True if enough time has passed since the last memory.db write."""
+    if min_interval_sec <= 0:
+        return True
+    try:
+        return (time.time() - MEMDB_MARKER.stat().st_mtime) >= min_interval_sec
+    except FileNotFoundError:
+        return True
+
+
+def record(snapshot: SystemSnapshot, agg: dict, snapshot_json: str,
+           memdb_min_interval: float = 0):
+    """Persist snapshot to JSONL (always) and memory.db (if ensouled).
+
+    memdb_min_interval throttles memory.db writes — the daemon passes an hour
+    so canonical working memory gets 24 rows/day, not 288. JSONL is unthrottled.
+    """
     jsonl_path = record_to_jsonl(snapshot_json)
     summary = one_line_summary(snapshot, agg)
 
-    ensouled = is_ensouled()
-    if ensouled:
-        ok = record_to_memory_db(snapshot_json, snapshot.snapshot_id, summary)
-        _log(f"Recorded {snapshot.snapshot_id}: JSONL={jsonl_path.name}, memory.db={'ok' if ok else 'failed'}")
-    else:
+    if not is_ensouled():
         _log(f"Recorded {snapshot.snapshot_id}: JSONL={jsonl_path.name} (not ensouled)")
+        return
+
+    if not _memdb_due(memdb_min_interval):
+        _log(f"Recorded {snapshot.snapshot_id}: JSONL={jsonl_path.name} (memory.db throttled)")
+        return
+
+    ok = record_to_memory_db(snapshot_json, snapshot.snapshot_id, summary)
+    if ok:
+        MEMDB_MARKER.touch()
+    _log(f"Recorded {snapshot.snapshot_id}: JSONL={jsonl_path.name}, memory.db={'ok' if ok else 'failed'}")
 
 
 # ---------------------------------------------------------------------------
@@ -838,15 +1242,120 @@ def show_history(as_json: bool):
     if as_json:
         print(json.dumps(snapshots, indent=2))
     else:
-        print(f"  {'TIMESTAMP':<20}  {'CPU%':>6}  {'MEM%':>6}  {'PROCS':>6}  {'THERMAL'}")
-        print(f"  {'─' * 20}  {'─' * 6}  {'─' * 6}  {'─' * 6}  {'─' * 8}")
+        print(f"  {'TIMESTAMP':<20}  {'CPU%':>6}  {'MEM%':>6}  {'DISK%':>6}  {'PROCS':>6}  {'THERMAL'}")
+        print(f"  {'─' * 20}  {'─' * 6}  {'─' * 6}  {'─' * 6}  {'─' * 6}  {'─' * 8}")
         for snap in snapshots:
             ts = snap.get("timestamp", "")[:19]
             cpu = snap.get("cpuUsage", 0)
             mem_pct = snap.get("memoryUsage", 0)
+            disk_pct = snap.get("diskUsage")  # absent in pre-v2 snapshots
+            disk_str = f"{disk_pct:>6.1f}" if isinstance(disk_pct, (int, float)) else f"{'-':>6}"
             n_procs = snap.get("total_processes", 0)
             thermal = snap.get("thermalLevel", "normal")
-            print(f"  {ts:<20}  {cpu:>6.1f}  {mem_pct:>6.1f}  {n_procs:>6}  {thermal}")
+            print(f"  {ts:<20}  {cpu:>6.1f}  {mem_pct:>6.1f}  {disk_str}  {n_procs:>6}  {thermal}")
+
+
+# ---------------------------------------------------------------------------
+# Disk View
+# ---------------------------------------------------------------------------
+
+def _capture_volumes() -> list[dict]:
+    """All mounted /dev/disk* volumes via df -k."""
+    volumes = []
+    try:
+        result = subprocess.run(
+            ["df", "-k"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in result.stdout.strip().splitlines()[1:]:
+            fields = line.split()
+            if len(fields) < 9 or not fields[0].startswith("/dev/disk"):
+                continue
+            mount = " ".join(fields[8:])
+            volumes.append({
+                "device": fields[0],
+                "mount": mount,
+                "total_bytes": int(fields[1]) * 1024,
+                "used_bytes": int(fields[2]) * 1024,
+                "avail_bytes": int(fields[3]) * 1024,
+                "used_pct": round(int(fields[2]) / int(fields[1]) * 100, 1) if int(fields[1]) else 0,
+            })
+    except Exception:
+        pass
+    return volumes
+
+
+def _capture_hotspots() -> list[dict]:
+    """du -sk over the curated hotspot list. Each dir capped at 15s."""
+    hotspots = []
+    for raw in DISK_HOTSPOT_DIRS:
+        path = Path(raw).expanduser()
+        if not path.exists():
+            continue
+        try:
+            result = subprocess.run(
+                ["du", "-sk", str(path)],
+                capture_output=True, text=True, timeout=15
+            )
+            size_kb = int(result.stdout.split()[0])
+            hotspots.append({"path": str(path), "bytes": size_kb * 1024})
+        except Exception:
+            hotspots.append({"path": str(path), "bytes": None})  # timed out / denied
+    hotspots.sort(key=lambda h: h["bytes"] or 0, reverse=True)
+    return hotspots
+
+
+def show_disk(as_json: bool, no_color: bool):
+    """Disk-focused view: volumes, purgeable space, curated hotspots."""
+    nc = no_color
+    disk = capture_disk()
+    volumes = _capture_volumes()
+    hotspots = _capture_hotspots()
+
+    if as_json:
+        print(json.dumps({
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "data_volume": {
+                "total_bytes": disk.total_bytes,
+                "used_bytes": disk.used_bytes,
+                "avail_bytes": disk.avail_bytes,
+                "used_pct": round(disk.used_pct, 1),
+                "purgeable_bytes": disk.purgeable_bytes,
+                "container_free_bytes": disk.container_free_bytes,
+            } if disk else None,
+            "volumes": volumes,
+            "hotspots": hotspots,
+        }, indent=2))
+        return
+
+    lines = ["", _bold("  DISK", nc), ""]
+    bar_width = 30
+    for vol in volumes:
+        pct = vol["used_pct"]
+        filled = int(bar_width * pct / 100)
+        bar = BLOCK_FULL * filled + BLOCK_EMPTY * (bar_width - filled)
+        color = "\033[32m" if pct < 80 else ("\033[33m" if pct < 90 else "\033[31m")
+        used = format_bytes_from_bytes(vol["used_bytes"])
+        total = format_bytes_from_bytes(vol["total_bytes"])
+        bar_str = bar if nc else f"{color}{bar}{RESET}"
+        lines.append(f"  [{bar_str}] {pct:>5.1f}%  {used:>9} / {total:<9}  {vol['mount']}")
+
+    if disk and disk.container_free_bytes:
+        lines.append("")
+        lines.append(_dim(f"  APFS container free: {format_bytes_from_bytes(disk.container_free_bytes)}"
+                          f"  (purgeable: {format_bytes_from_bytes(disk.purgeable_bytes)})", nc))
+
+    if hotspots:
+        lines.append("")
+        lines.append(_bold("  HOTSPOTS", nc))
+        for spot in hotspots:
+            size = format_bytes_from_bytes(spot["bytes"]) if spot["bytes"] is not None else "(skipped)"
+            lines.append(f"  {size:>9}  {spot['path']}")
+
+    lines.append("")
+    lines.append(_dim("  Deep-dive: mo analyze (treemap) | mo clean --dry-run (cleanup) | gdu-go <path> (fast scan)", nc))
+    lines.append("")
+    print("\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -854,21 +1363,92 @@ def show_history(as_json: bool):
 # ---------------------------------------------------------------------------
 
 def rotate_logs():
-    """Gzip JSONL files older than ROTATION_DAYS."""
+    """Two-stage JSONL lifecycle: gzip after ROTATION_DAYS, delete archives
+    after ARCHIVE_RETENTION_DAYS. Only touches strict YYYY-MM-DD-named files."""
     if not DATA_DIR.exists():
         return
-    cutoff = date.today() - timedelta(days=ROTATION_DAYS)
+    today = date.today()
+    gzip_cutoff = today - timedelta(days=ROTATION_DAYS)
+    delete_cutoff = today - timedelta(days=ARCHIVE_RETENTION_DAYS)
+
     for jsonl_file in DATA_DIR.glob("*.jsonl"):
         try:
             file_date = date.fromisoformat(jsonl_file.stem)
-            if file_date < cutoff:
+            if file_date < gzip_cutoff:
                 gz_path = jsonl_file.with_suffix(".jsonl.gz")
                 if not gz_path.exists():
-                    with open(jsonl_file, "rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+                    # Write to a tmp file and rename so the archive is atomic:
+                    # a crash mid-write never leaves a truncated .gz behind.
+                    tmp_path = gz_path.with_suffix(".gz.tmp")
+                    with open(jsonl_file, "rb") as f_in, gzip.open(tmp_path, "wb") as f_out:
                         f_out.writelines(f_in)
+                    tmp_path.rename(gz_path)
                     jsonl_file.unlink()
+                    _log(f"Rotated {jsonl_file.name} -> {gz_path.name}")
+                else:
+                    # Archive exists from a prior run that crashed before unlink
+                    jsonl_file.unlink()
+                    _log(f"Cleaned stale {jsonl_file.name} (archive already exists)")
         except ValueError:
             continue
+
+    for gz_file in DATA_DIR.glob("*.jsonl.gz"):
+        try:
+            file_date = date.fromisoformat(gz_file.name.split(".")[0])
+            if file_date < delete_cutoff:
+                gz_file.unlink()
+                _log(f"Recycled {gz_file.name} (older than {ARCHIVE_RETENTION_DAYS}d)")
+        except ValueError:
+            continue
+
+    # Leftover tmp archives from a crash mid-rotation
+    for tmp_file in DATA_DIR.glob("*.jsonl.gz.tmp"):
+        tmp_file.unlink()
+        _log(f"Removed incomplete archive {tmp_file.name}")
+
+
+STALE_ALERTS_MARKER = DATA_DIR / ".stale-alerts.json"
+
+
+def alert_stale_sessions(stale: list[dict]):
+    """macOS notification for stale sessions, at most once per PID per day."""
+    if not stale:
+        return
+    try:
+        alerted = json.loads(STALE_ALERTS_MARKER.read_text())
+    except Exception:
+        alerted = {}
+
+    now = time.time()
+    due = [s for s in stale
+           if now - alerted.get(str(s["pid"]), 0) >= STALE_ALERT_COOLDOWN_SEC]
+    if not due:
+        return
+
+    detail = ", ".join(f"{s['agent']} PID {s['pid']} ({s['project']}, {s['idle_days']:.0f}d)" for s in due)
+    msg = f"{len(due)} stale session(s): {detail}"
+    osa_msg = msg.replace("\\", "\\\\").replace('"', '\\"')
+    try:
+        subprocess.run(
+            ["osascript", "-e",
+             f'display notification "{osa_msg}" with title "syspeek"'],
+            capture_output=True, timeout=10
+        )
+    except Exception as e:
+        _log(f"Stale alert notification failed: {e}")
+
+    for s in due:
+        alerted[str(s["pid"])] = now
+    # Drop entries for sessions no longer stale (killed or resumed)
+    current = {str(s["pid"]) for s in stale}
+    alerted = {p: t for p, t in alerted.items() if p in current}
+    try:
+        tmp = STALE_ALERTS_MARKER.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(alerted))
+        tmp.rename(STALE_ALERTS_MARKER)
+    except Exception as e:
+        _log(f"Stale alert marker write failed: {e}")
+    _log(f"Stale session alert: {msg}")
 
 
 def run_daemon(interval_min: int, top_n: int):
@@ -877,12 +1457,13 @@ def run_daemon(interval_min: int, top_n: int):
 
     while True:
         try:
-            snapshot = take_snapshot()
+            snapshot = take_snapshot(with_io=True)
             agg = aggregate(snapshot)
             snapshot_json = format_json_compact(snapshot, agg, top_n, None)
 
-            record(snapshot, agg, snapshot_json)
+            record(snapshot, agg, snapshot_json, memdb_min_interval=MEMDB_MIN_INTERVAL_SEC)
             rotate_logs()
+            alert_stale_sessions(snapshot.stale_sessions)
 
             _log(f"Snapshot {snapshot.snapshot_id}: "
                  f"CPU {agg['total_cpu']:.1f}%, "
@@ -929,6 +1510,8 @@ def main():
                         help="Send SIGTERM to a process")
     parser.add_argument("--history", action="store_true",
                         help="Show last 24h of recorded snapshots")
+    parser.add_argument("--disk", action="store_true",
+                        help="Disk view: volumes, purgeable space, hotspot dirs")
     parser.add_argument("--daemon", action="store_true",
                         help="Run in daemon mode (loop + record)")
     parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_MIN,
@@ -948,12 +1531,16 @@ def main():
         show_history(args.as_json)
         return
 
+    if args.disk:
+        show_disk(args.as_json, no_color)
+        return
+
     if args.daemon:
         run_daemon(args.interval, args.top)
         return
 
-    # Main path: snapshot + display
-    snapshot = take_snapshot()
+    # Main path: snapshot + display (iostat sample only on JSON/record paths)
+    snapshot = take_snapshot(with_io=args.as_json or args.record)
     agg = aggregate(snapshot, args.category)
 
     if args.as_json:

@@ -1,12 +1,12 @@
 # syspeek
 
-macOS system resource monitor with process categorization and optional Claudicle memory integration.
+macOS system resource monitor with process categorization, disk/swap/pressure tracking, stale-agent-session alerts, and optional Claudicle memory integration.
 
-Single command, zero dependencies, <200ms.
+Single command, zero dependencies, <0.5s.
 
 ## What It Does
 
-Captures a system snapshot via `ps`, `vm_stat`, and `sysctl`, classifies every process into one of 7 categories, and renders a colored terminal table or Kothar-compatible JSON.
+Captures a system snapshot via `ps`, `vm_stat`, `sysctl`, `df`, and `diskutil`, classifies every process into one of 7 categories, and renders a colored terminal table (memory + disk bars, swap, memory-pressure and thermal warnings) or Kothar-compatible JSON. v2 adds disk capacity, swap, memory pressure, real iostat rates, a `--disk` volume/hotspot view, and daemon notifications for stale Claude/Codex sessions.
 
 **Categories:**
 | Icon | Category | Matches |
@@ -35,7 +35,8 @@ echo "alias syspeek='~/.claude/scripts/syspeek/syspeek'" >> ~/.zshrc
 ```bash
 syspeek                       # Colored terminal snapshot
 syspeek --top 15              # Show top N processes (default: 10)
-syspeek --json                # JSON output (Kothar SystemHealthReport superset)
+syspeek --json                # JSON output (Kothar SystemHealthReport superset; adds ~1s iostat sample)
+syspeek --disk                # Disk view: volumes, APFS purgeable, hotspot dirs
 syspeek --no-color            # Strip ANSI codes
 syspeek --category claude     # Filter to one category
 syspeek --record              # Persist to JSONL + memory.db (if ensouled)
@@ -73,7 +74,7 @@ syspeek --interval 5          # Daemon interval in minutes (default: 5)
 
 When `--record` is passed, syspeek persists the snapshot in two ways:
 
-**JSONL (always):** Appends compact JSON to `data/YYYY-MM-DD.jsonl`. Daily files, auto-rotated (gzipped after 7 days).
+**JSONL (always):** Appends compact JSON to `data/YYYY-MM-DD.jsonl`. Daily files, gzipped after 7 days, archives deleted after 30 (atomic rotation). In daemon mode, memory.db writes are throttled to hourly while JSONL gets every snapshot.
 
 **Canonical memory.db (Claudicle ensouled only):** If `~/.claudicle/soul/soul.md` exists, writes directly to the `working_memory` table in `~/.claudicle/daemon/memory/memory.db`:
 - Channel: `system:syspeek`
@@ -121,6 +122,10 @@ launchctl load ~/Library/LaunchAgents/com.minoan.syspeek.plist
 # Check status
 bash status.sh
 ```
+
+## Stale Session Alerts
+
+The daemon flags Claude Code and OpenAI Codex CLI sessions with no transcript activity for 10+ days and fires a macOS notification (once per PID per day). Idle time comes from transcript/rollout mtimes — Claude via a PID→session map (fallback: transcript birthtime ≈ process start), Codex via `lsof` on its open rollout files. TTY atime is deliberately not used: agent TUIs poll the terminal constantly. Stale sessions also appear in terminal output, JSON `staleSessions`, and `issues`.
 
 ## Kill Command
 
