@@ -177,6 +177,18 @@ claude-tracker-resume --dry-run          # Preview without acting
 
 Smart fallback: if `--resume` fails on an expired session, automatically starts a fresh session in that project directory. Sessions older than 7 days show a STALE badge.
 
+## Workspace Stamp & Restore (claude + codex)
+
+Survive a logout/reboot with every agent session intact:
+
+```bash
+node ~/.claude/skills/claude-tracker-suite/scripts/save-workspace.js   # Stamp now (also runs every 5 min via launchd)
+claude-tracker-resume --workspace --dry-run                            # Preview the restore
+claude-tracker-resume --workspace                                      # Reopen every session in Ghostty tabs, in order
+```
+
+The stamp (`~/.claude/workspace-state.json`) captures all live **Claude Code** sessions (from the authoritative `~/.claude/sessions/<pid>.json` PID files) and **Codex CLI** sessions (native binary PIDs joined to their open rollout files via `lsof`; the earliest-opened rollout is the main thread, its filename carries the UUID). Entries are TTY-ordered so tabs restore in their original order. Empty-protection means a post-logout stamp never clobbers the last good one. Restore warns when the stamp is >15 min old and reports per-agent counts.
+
 ## Alive Detection
 
 Check which sessions have running Claude processes:

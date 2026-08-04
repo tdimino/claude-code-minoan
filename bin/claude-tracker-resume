@@ -13,6 +13,8 @@
  *   claude-tracker-resume --dry-run        Show what would be resumed without doing it
  *   claude-tracker-resume --all            Include all inactive sessions, not just VS Code
  *   claude-tracker-resume --limit 5        Max sessions to resume (default: 10)
+ *   claude-tracker-resume --workspace      Restore the stamped workspace (claude + codex
+ *                                          Ghostty tabs from ~/.claude/workspace-state.json)
  */
 
 const os = require('os');
@@ -47,6 +49,7 @@ function parseArgs(argv) {
     else if (arg === '--zsh') args.zsh = true;
     else if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--all') args.all = true;
+    else if (arg === '--workspace') args.workspace = true;
     else if (arg === '--limit' || arg === '-n') {
       const val = parseInt(argv[++i]);
       args.limit = (val > 0 && val <= 100) ? val : 10;
@@ -54,6 +57,23 @@ function parseArgs(argv) {
   }
 
   return args;
+}
+
+// --workspace: delegate to the workspace restore pipeline and exit
+{
+  const early = parseArgs(process.argv);
+  if (early.workspace) {
+    const script = path.join(os.homedir(), '.claude', 'skills', 'claude-tracker-suite', 'scripts', 'restore-workspace.sh');
+    const extra = [];
+    if (early.dryRun) extra.push('--dry-run');
+    if (early.limit !== 10) extra.push('--limit', String(early.limit));
+    try {
+      execSync(`bash ${JSON.stringify(script)} ${extra.join(' ')}`, { stdio: 'inherit' });
+      process.exit(0);
+    } catch (e) {
+      process.exit(e.status || 1);
+    }
+  }
 }
 
 // --- Helpers ---
@@ -117,7 +137,8 @@ function resumeInTmux(sessions, dryRun) {
     const projectName = path.basename(s.projectPath);
     const windowName = projectName.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 20);
     const escapedPath = shellEscape(s.projectPath);
-    const cmd = `cd ${escapedPath} && claude --resume ${s.sessionId}`;
+    // Smart resume: try --resume, if it exits within 5s, fall back to fresh session
+    const cmd = `cd ${escapedPath} && claude --resume ${s.sessionId} || { echo '\\x1b[33mResume failed, starting fresh session...\\x1b[0m'; sleep 1; claude; }`;
 
     if (dryRun) {
       console.log(`  [dry-run] tmux new-window -n ${shellEscape(windowName)} ${shellEscape(cmd)}`);
@@ -161,14 +182,14 @@ function resumeInZsh(sessions, dryRun) {
 
   for (const s of sessions) {
     const projectName = path.basename(s.projectPath);
-    const escapedPath = s.projectPath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    const cmd = `cd "${escapedPath}" && claude --resume ${s.sessionId}`;
+    const escapedPath = shellEscape(s.projectPath);
+    // Smart resume: try --resume, if it fails, fall back to fresh session
+    const cmd = `cd ${escapedPath} && claude --resume ${s.sessionId} || { echo 'Resume failed, starting fresh session...'; sleep 1; claude; }`;
 
     // AppleScript to open a new Terminal tab and run the command
-    const script = `tell application "Terminal"
-  activate
-  do script "${cmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"
-end tell`;
+    // Use shellEscape for the entire command to prevent injection via project paths
+    const asCmd = cmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const script = `tell application "Terminal"\n  activate\n  do script "${asCmd}"\nend tell`;
 
     if (dryRun) {
       console.log(`  [dry-run] Open Terminal tab: cd ${shellEscape(s.projectPath)} && claude --resume ${s.sessionId}`);
@@ -197,9 +218,11 @@ async function displaySessions(sessions) {
     const projectName = path.basename(s.projectPath);
     const age = utils.formatAge(new Date(s.mtime).toISOString());
     const vsCodeBadge = s.isInVSCode ? ' \x1b[44m\x1b[37m VS CODE \x1b[0m' : '';
+    const daysSinceActive = (Date.now() - s.mtime) / (1000 * 60 * 60 * 24);
+    const staleBadge = daysSinceActive > 7 ? ' \x1b[43m\x1b[30m STALE \x1b[0m' : '';
 
     console.log(
-      '\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + projectName + '\x1b[0m' + vsCodeBadge
+      '\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + projectName + '\x1b[0m' + vsCodeBadge + staleBadge
     );
 
     if (p && p.sessionSummary) {

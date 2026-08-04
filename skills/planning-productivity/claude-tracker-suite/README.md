@@ -155,15 +155,16 @@ Sets the Ghostty tab title via OSC 1 escape sequence, tags the session in `track
 
 ### Workspace Save/Restore
 
-Snapshot running sessions and restore them after a Ghostty restart:
+Snapshot running sessions — Claude Code **and** OpenAI Codex CLI — and restore them all after a logout or reboot:
 
 ```bash
 node save-workspace.js                        # snapshot to workspace-state.json
-restore-workspace.sh                          # restore all in Ghostty tabs
+claude-tracker-resume --workspace             # one command: restore every session in Ghostty tabs, in order
+claude-tracker-resume --workspace --dry-run   # preview
 restore-workspace.sh --limit 3                # cap at 3 sessions
 ```
 
-Periodic snapshots via launchd plist (`com.claude.workspace-snapshot.plist`, every 300s). Snapshots dedupe by session ID and never overwrite a good snapshot with an empty one.
+Claude sessions come from the authoritative `~/.claude/sessions/<pid>.json` PID files; Codex sessions are discovered via `lsof` on their open rollout files (the earliest-opened rollout is the main thread, its filename carries the resume UUID). The manifest is TTY-ordered so tabs restore in their original order, and restore skips sessions that are still running. Periodic snapshots via launchd plist (`com.claude.workspace-snapshot.plist`, every 300s) never overwrite a good snapshot with an empty one.
 
 ### Session Notifications
 

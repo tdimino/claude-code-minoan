@@ -1,33 +1,49 @@
 #!/usr/bin/env bash
-# ghostty-resume.sh — open a Claude Code session in a new Ghostty tab
+# ghostty-resume.sh — open a Claude Code or Codex session in a new Ghostty tab
 #
 # Usage:
-#   ghostty-resume.sh <session-id> [--project <path>]
+#   ghostty-resume.sh <session-id> [--agent claude|codex] [--project <path>] [--name <title>]
 #   ghostty-resume.sh --help
 #
 # Arguments:
-#   <session-id>         Required. The Claude Code session ID to resume.
-#   --project <path>     Optional. Explicit project directory (skips auto-detection).
+#   <session-id>         Required. The session ID to resume.
+#   --agent <name>       Optional. claude (default) or codex.
+#   --project <path>     Optional. Explicit project directory (skips auto-detection;
+#                        required for codex — codex sessions aren't in the tracker DB).
+#   --name <title>       Optional. Set Ghostty tab title (default: project — session-prefix).
 #   --help / -h          Print this usage message and exit.
 
 set -euo pipefail
 
 usage() {
-  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
 SESSION_ID=""
 PROJECT_DIR=""
+TAB_NAME=""
+AGENT="claude"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h)
       usage
       ;;
+    --agent)
+      [[ $# -lt 2 ]] && { echo "ghostty-resume: --agent requires claude or codex" >&2; exit 1; }
+      AGENT="$2"
+      [[ "$AGENT" == "claude" || "$AGENT" == "codex" ]] || { echo "ghostty-resume: unknown agent: $AGENT" >&2; exit 1; }
+      shift 2
+      ;;
     --project)
       [[ $# -lt 2 ]] && { echo "ghostty-resume: --project requires a path" >&2; exit 1; }
       PROJECT_DIR="$2"
+      shift 2
+      ;;
+    --name)
+      [[ $# -lt 2 ]] && { echo "ghostty-resume: --name requires a title" >&2; exit 1; }
+      TAB_NAME="$2"
       shift 2
       ;;
     -*)
@@ -60,6 +76,11 @@ fi
 
 if [[ ! -d "/Applications/Ghostty.app" ]]; then
   echo "ghostty-resume: Ghostty.app not found in /Applications" >&2
+  exit 1
+fi
+
+if [[ "$AGENT" == "codex" && -z "$PROJECT_DIR" ]]; then
+  echo "ghostty-resume: --project is required for codex sessions (not in tracker DB)" >&2
   exit 1
 fi
 
@@ -114,8 +135,20 @@ if ! pgrep -x Ghostty &>/dev/null; then
   sleep 2
 fi
 
+# Build tab title: explicit --name, or auto-generate from project + session prefix
+if [[ -z "$TAB_NAME" ]]; then
+  TAB_NAME="$(basename "$PROJECT_DIR")—${SESSION_ID:0:8}"
+fi
+
+if [[ "$AGENT" == "codex" ]]; then
+  RESUME_CMD="codex resume ${SESSION_ID}"
+else
+  RESUME_CMD="claude --resume ${SESSION_ID}"
+fi
+
 escaped_dir="${PROJECT_DIR//\'/\'\\\'\'}"
-cmd="cd '${escaped_dir}' && claude --resume ${SESSION_ID}"
+escaped_name="${TAB_NAME//\'/\'\\\'\'}"
+cmd="printf '\\e]1;${escaped_name}\\a' && cd '${escaped_dir}' && ${RESUME_CMD}"
 
 old_clipboard="$(pbpaste 2>/dev/null || true)"
 printf '%s' "$cmd" | pbcopy
@@ -147,4 +180,4 @@ APPLESCRIPT
 sleep 0.5
 printf '%s' "$old_clipboard" | pbcopy
 
-echo "Opened Ghostty tab: cd ${PROJECT_DIR} && claude --resume ${SESSION_ID}"
+echo "Opened Ghostty tab: cd ${PROJECT_DIR} && ${RESUME_CMD}"

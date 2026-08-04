@@ -62,8 +62,10 @@ SESSIONS=$(node -e "
   const limit = ${LIMIT};
   const sessions = limit > 0 ? state.sessions.slice(0, limit) : state.sessions;
   for (const s of sessions) {
-    // Tab-separated: sessionId, projectDir, tabTitle
-    console.log([s.sessionId, s.projectDir, s.tabTitle].join('\t'));
+    // Tab-separated: agent, sessionId, projectDir, tabTitle, pid
+    // (fields are tab-safe: agent literal, UUID, and paths/titles from
+    // basename — macOS dir names with literal tabs are not supported)
+    console.log([s.agent || 'claude', s.sessionId, s.projectDir, s.tabTitle, s.pid || ''].join('\t'));
   }
   if (sessions.length === 0) process.exit(1);
 " 2>/dev/null) || {
@@ -78,20 +80,40 @@ SAVED_AT=$(node -e "
 
 COUNT=$(echo "$SESSIONS" | wc -l | tr -d ' ')
 echo "Restoring $COUNT session(s) from workspace saved at $SAVED_AT"
+
+# Warn if the stamp is stale — sessions started after it won't be restored
+STAMP_AGE_MIN=$(node -e "
+  const state = JSON.parse(require('fs').readFileSync('$STATE_FILE', 'utf8'));
+  console.log(Math.round((Date.now() - new Date(state.savedAt)) / 60000));
+" 2>/dev/null || echo "")
+if [[ -n "$STAMP_AGE_MIN" && "$STAMP_AGE_MIN" -gt 15 ]]; then
+  echo "WARNING: stamp is ${STAMP_AGE_MIN} minutes old — sessions started since then are not in it."
+fi
 echo ""
 
 RESTORED=0
-while IFS=$'\t' read -r session_id project_dir tab_title; do
+CLAUDE_N=0
+CODEX_N=0
+while IFS=$'\t' read -r agent session_id project_dir tab_title pid; do
+  # Skip sessions still running (double-invoke, or partial crash where some survived)
+  if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null && ps -p "$pid" -o command= 2>/dev/null | grep -qE 'claude|codex'; then
+    echo "  Skipped: ($agent) $tab_title already running (PID $pid)"
+    continue
+  fi
   if [[ "$DRY_RUN" == "true" ]]; then
-    echo "  [dry-run] $tab_title — $project_dir (session: ${session_id:0:8}…)"
+    echo "  [dry-run] ($agent) $tab_title — $project_dir (session: ${session_id:0:8}…)"
   else
-    echo "  Restoring: $tab_title"
+    echo "  Restoring ($agent): $tab_title"
     if [[ -n "$project_dir" && -d "$project_dir" ]]; then
-      "$RESUME_SCRIPT" "$session_id" --project "$project_dir" --name "$tab_title"
+      "$RESUME_SCRIPT" "$session_id" --agent "$agent" --project "$project_dir" --name "$tab_title"
+    elif [[ "$agent" == "codex" ]]; then
+      echo "  Skipped: codex session ${session_id:0:8}… has no saved project directory" >&2
+      continue
     else
-      "$RESUME_SCRIPT" "$session_id" --name "$tab_title"
+      "$RESUME_SCRIPT" "$session_id" --agent "$agent" --name "$tab_title"
     fi
     RESTORED=$((RESTORED + 1))
+    [[ "$agent" == "codex" ]] && CODEX_N=$((CODEX_N + 1)) || CLAUDE_N=$((CLAUDE_N + 1))
     # Stagger tab openings to avoid overwhelming Ghostty
     sleep 2
   fi
@@ -102,5 +124,5 @@ if [[ "$DRY_RUN" == "true" ]]; then
   echo "Dry run complete. $COUNT session(s) would be restored."
 else
   echo ""
-  echo "Restored $RESTORED session(s)."
+  echo "Restored $RESTORED session(s) ($CLAUDE_N claude, $CODEX_N codex)."
 fi
