@@ -1,8 +1,8 @@
 # Twitter
 
-Search, post, monitor, and archive on Twitter/X via five tools: the official hosted X MCP server (full-archive search, trends, bookmarks — via xurl bridge), x-search CLI (pay-per-use, cost-tracked, cached), xurl (X's official CLI for any endpoint), bird CLI (free session-based operations, frozen at 0.8.0), and Smaug bookmark archival. Includes feed groups, watchlists, a URL-surcharge guard on posting, and a structured research methodology.
+Search, post, monitor, and archive on Twitter/X via five tools: the official hosted X MCP server (full-archive search, trends, bookmarks — via xurl bridge), x-search CLI (pay-per-use, cost-tracked, cached), xurl (X's official CLI for any endpoint), bird CLI (free session-based operations, frozen at 0.8.0), and Smaug bookmark archival. Includes calendar-day windows (`--today`), volume counts before reads, multi-query fan-out with a query-expansion protocol, feed groups, watchlists, a URL-surcharge guard on posting, and a structured research methodology.
 
-**Last updated:** 2026-07-05
+**Last updated:** 2026-08-04
 
 ---
 
@@ -18,8 +18,10 @@ Twitter/X is essential for monitoring topics, researching discourse, and posting
 twitter/
   SKILL.md                          # Full usage guide with all modes
   README.md                         # This file
+  codex-agent-guide.md              # Self-contained x-search guide for Codex CLI agents
   references/
     pricing.md                      # July 2026 rate card, Owned Reads, rebates
+    query-expansion.md              # Abstract a request into 3-4 query variants, fan out with multi
     xurl-mcp-setup.md               # OAuth 2.0 + hosted MCP bridge wiring
     setup.md                        # Bearer/OAuth 1.0a setup, troubleshooting
   x-search/
@@ -52,8 +54,18 @@ twitter/
 ### x-search (Official API)
 
 ```bash
-# Quick search (cost-conscious, cached)
-bun run x-search.ts search "AI agents" --quick
+# Volume probe first — $0.005 histogram + read-cost projection
+bun run x-search.ts counts "claude code" --today
+
+# Quick search (cost-conscious, cached); --today = since local midnight
+bun run x-search.ts search "AI agents" --quick --today
+
+# Multi-query fan-out: merge + dedupe expanded variants (references/query-expansion.md)
+bun run x-search.ts multi "anthropic fundraise" 'anthropic (raise OR funding)' --today --quick
+
+# Free search via bird session; --dry-run previews any query + cost without calling
+bun run x-search.ts search "query" --bird --today
+bun run x-search.ts search "query" --since yesterday --dry-run
 
 # Full search with sorting and filtering
 bun run x-search.ts search "Claude Code" --pages 3 --sort likes --since 1d
@@ -101,6 +113,7 @@ cd ~/tools/smaug && npx smaug run    # Fetch + process with AI categorization
 | Resource | Cost |
 |----------|------|
 | Post read | $0.005 |
+| Counts request (volume histogram) | $0.005 flat |
 | User lookup | $0.010 |
 | Post create | $0.015 |
 | Post create (with URL) | $0.200 |

@@ -2,7 +2,7 @@
  * Format tweets for terminal or markdown output.
  */
 
-import type { Tweet } from "./api";
+import type { Tweet, CountBucket } from "./api";
 
 function compactNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -196,6 +196,59 @@ export function formatFeedGroupMarkdown(
 
   if (opts.cost) {
     out += `---\n\n*Est. cost: ~$${opts.cost}*\n`;
+  }
+
+  return out;
+}
+
+// --- Counts & usage formatters ---
+
+export function formatCounts(
+  query: string,
+  buckets: CountBucket[],
+  total: number,
+  opts: { granularity?: string } = {}
+): string {
+  const granularity = opts.granularity || "hour";
+  let out = `"${query}" — ${total.toLocaleString()} tweets (${granularity} buckets)\n\n`;
+
+  const max = Math.max(...buckets.map((b) => b.count), 1);
+  const barWidth = 30;
+
+  for (const b of buckets) {
+    const d = new Date(b.start);
+    const label =
+      granularity === "day"
+        ? b.start.split("T")[0]
+        : `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:00`;
+    const bar = "█".repeat(Math.max(Math.round((b.count / max) * barWidth), b.count > 0 ? 1 : 0));
+    out += `  ${label}  ${bar} ${compactNumber(b.count)}\n`;
+  }
+
+  return out;
+}
+
+export function formatUsage(raw: any): string {
+  const d = raw?.data;
+  if (!d) return JSON.stringify(raw, null, 2);
+
+  const cap = parseInt(d.project_cap || "0");
+  const used = parseInt(d.project_usage || "0");
+
+  let out = `Project reads: ${used.toLocaleString()} / ${cap.toLocaleString()}`;
+  if (cap > 0) out += ` (${((used / cap) * 100).toFixed(1)}% of monthly cap)`;
+  out += "\n";
+  if (d.cap_reset_day) out += `Cap resets on day ${d.cap_reset_day} of the month\n`;
+
+  const daily =
+    d.daily_project_usage?.usage ||
+    (Array.isArray(d.daily_project_usage) ? d.daily_project_usage[0]?.usage : undefined);
+  if (Array.isArray(daily) && daily.length > 0) {
+    out += `\nDaily reads:\n`;
+    for (const row of daily) {
+      const date = String(row.date || "").split("T")[0];
+      out += `  ${date}  ${parseInt(row.usage || "0").toLocaleString()}\n`;
+    }
   }
 
   return out;

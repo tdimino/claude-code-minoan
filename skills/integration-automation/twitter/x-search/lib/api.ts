@@ -128,8 +128,16 @@ function parseTweets(raw: RawResponse): Tweet[] {
 const FIELDS =
   "tweet.fields=created_at,public_metrics,author_id,conversation_id,entities&expansions=author_id&user.fields=username,name,public_metrics";
 
-function parseSince(since: string): string | null {
-  const match = since.match(/^(\d+)(m|h|d)$/);
+function localMidnight(daysAgo = 0): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo);
+}
+
+function parseTimeSpec(spec: string): string | null {
+  if (spec === "today") return localMidnight().toISOString();
+  if (spec === "yesterday") return localMidnight(1).toISOString();
+
+  const match = spec.match(/^(\d+)(m|h|d)$/);
   if (match) {
     const num = parseInt(match[1]);
     const unit = match[2];
@@ -140,15 +148,60 @@ function parseSince(since: string): string | null {
     return new Date(Date.now() - ms).toISOString();
   }
 
-  if (since.includes("T") || since.includes("-")) {
-    try {
-      return new Date(since).toISOString();
-    } catch {
-      return null;
-    }
+  if (spec.includes("T") || spec.includes("-")) {
+    const d = new Date(spec);
+    if (!isNaN(d.getTime())) return d.toISOString();
   }
 
   return null;
+}
+
+/**
+ * Resolve --since/--until specs into API start_time/end_time bounds.
+ * Keywords: "today" = local midnight, "yesterday" = previous local midnight
+ * (and, when used as --since with no --until, implies end at local midnight).
+ * Also accepts relative (15m/3h/1d) and ISO date specs.
+ */
+export function parseWindow(
+  since?: string,
+  until?: string
+): { startTime?: string; endTime?: string } {
+  const window: { startTime?: string; endTime?: string } = {};
+
+  if (since) {
+    const start = parseTimeSpec(since);
+    if (start) window.startTime = start;
+    if (since === "yesterday" && !until) {
+      window.endTime = localMidnight().toISOString();
+    }
+  }
+
+  if (until) {
+    const end = until === "yesterday"
+      ? localMidnight().toISOString() // bound = end of yesterday
+      : parseTimeSpec(until);
+    if (end) window.endTime = end;
+  }
+
+  if (window.endTime) {
+    // X requires end_time >= 10s before the request; clamp instead of erroring.
+    const cap = Date.now() - 30_000;
+    if (new Date(window.endTime).getTime() > cap) {
+      window.endTime = new Date(cap).toISOString();
+    }
+  }
+
+  if (
+    window.startTime &&
+    window.endTime &&
+    window.startTime >= window.endTime
+  ) {
+    throw new Error(
+      `Invalid window: start (${window.startTime}) is not before end (${window.endTime})`
+    );
+  }
+
+  return window;
 }
 
 async function apiGet(url: string): Promise<RawResponse> {
@@ -353,6 +406,7 @@ export async function search(
     pages?: number;
     sortOrder?: "relevancy" | "recency";
     since?: string;
+    until?: string;
   } = {}
 ): Promise<Tweet[]> {
   const maxResults = Math.max(Math.min(opts.maxResults || 100, 100), 10);
@@ -361,12 +415,9 @@ export async function search(
   const encoded = encodeURIComponent(query);
 
   let timeFilter = "";
-  if (opts.since) {
-    const startTime = parseSince(opts.since);
-    if (startTime) {
-      timeFilter = `&start_time=${startTime}`;
-    }
-  }
+  const { startTime, endTime } = parseWindow(opts.since, opts.until);
+  if (startTime) timeFilter += `&start_time=${startTime}`;
+  if (endTime) timeFilter += `&end_time=${endTime}`;
 
   let allTweets: Tweet[] = [];
   let nextToken: string | undefined;
@@ -413,7 +464,7 @@ export async function thread(
 
 export async function profile(
   username: string,
-  opts: { count?: number; includeReplies?: boolean } = {}
+  opts: { count?: number; includeReplies?: boolean; since?: string } = {}
 ): Promise<{ user: any; tweets: Tweet[] }> {
   const userUrl = `${BASE}/users/by/username/${username}?user.fields=public_metrics,description,created_at`;
   const userData = await apiGet(userUrl);
@@ -430,6 +481,7 @@ export async function profile(
   const tweets = await search(query, {
     maxResults: Math.min(opts.count || 20, 100),
     sortOrder: "recency",
+    since: opts.since,
   });
 
   return { user, tweets };
@@ -444,6 +496,38 @@ export async function getTweet(tweetId: string): Promise<Tweet | null> {
     return parsed[0] || null;
   }
   return null;
+}
+
+export interface CountBucket {
+  start: string;
+  end: string;
+  count: number;
+}
+
+export async function counts(
+  query: string,
+  opts: { granularity?: "minute" | "hour" | "day"; since?: string; until?: string } = {}
+): Promise<{ buckets: CountBucket[]; total: number }> {
+  // GET /2/tweets/counts/recent bills per request ($0.005), not per bucket —
+  // the cheap volume probe before committing to $0.005/tweet reads.
+  const encoded = encodeURIComponent(query);
+  const { startTime, endTime } = parseWindow(opts.since, opts.until);
+
+  let url = `${BASE}/tweets/counts/recent?query=${encoded}&granularity=${opts.granularity || "hour"}`;
+  if (startTime) url += `&start_time=${startTime}`;
+  if (endTime) url += `&end_time=${endTime}`;
+
+  const raw = await apiGet(url);
+  const buckets: CountBucket[] = (raw.data || []).map((d: any) => ({
+    start: d.start,
+    end: d.end,
+    count: d.tweet_count || 0,
+  }));
+  const total =
+    (raw.meta as any)?.total_tweet_count ??
+    buckets.reduce((s, b) => s + b.count, 0);
+
+  return { buckets, total };
 }
 
 export async function getUsage(): Promise<any> {

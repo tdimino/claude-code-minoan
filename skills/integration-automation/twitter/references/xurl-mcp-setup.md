@@ -11,6 +11,11 @@ Two capabilities nothing else in this skill provides:
 
 - **Full-archive search** — reaches across all of X's history, not the 7-day
   recent window x-search is limited to. Previously required the $5,000/mo Pro tier.
+  Caveat (verified 2026-07-15): `search_posts_all` requires **App-Only auth**;
+  the xurl bridge sends the OAuth2 user token and gets a 403. Workaround: POST
+  JSON-RPC directly to `https://api.x.com/mcp` with `Authorization: Bearer
+  $X_BEARER_TOKEN` (initialize → notifications/initialized → tools/call). All
+  user-context tools (bookmarks, mentions, timelines) work fine through the bridge.
 - **Trends by WOEID** + news search.
 
 Plus: bookmarks CRUD, timelines/mentions, Articles (long-form draft + publish).
@@ -47,11 +52,13 @@ claude mcp add xapi --scope user -- xurl --app main mcp https://api.x.com/mcp
 
 No env vars needed — credentials and tokens live in `~/.xurl` under the named
 app (`--app main`; the bare `default` app has none). `xurl mcp` bridges
-stdio ↔ Streamable HTTP, injecting and refreshing the Bearer token.
+stdio ↔ Streamable HTTP, injecting and refreshing the Bearer token. Done on
+this machine 2026-07-15.
 
-Gotcha: the callback URI must be registered on the X app's User authentication
-settings (console.x.com → app → Settings → Authentication) or X shows
-"Something went wrong" at the approval screen. Only the app owner can edit this. Read-only alternative (no OAuth, no writes): point any MCP client at the
+Gotcha from the live setup: the callback URI must be registered on the X app's
+User authentication settings (console.x.com → app → Settings → Authentication)
+or X shows "Something went wrong" at the approval screen. Only the app owner
+can edit this. Read-only alternative (no OAuth, no writes): point any MCP client at the
 URL directly with `Authorization: Bearer $X_BEARER_TOKEN`.
 
 ## xurl as a curl-like CLI

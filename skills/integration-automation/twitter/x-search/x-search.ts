@@ -4,8 +4,10 @@
  *
  * Commands:
  *   search <query> [options]    Search recent tweets (last 7 days)
+ *   multi <q1> <q2>... [opts]   Fan out query variants, merge + dedupe (see references/query-expansion.md)
+ *   counts <query> [options]    Tweet volume histogram ($0.005/request — probe before reading)
  *   thread <tweet_id>           Fetch full conversation thread
- *   profile <username>          Recent tweets from a user
+ *   profile <username>          Recent tweets from a user (--count N, default 20)
  *   tweet <tweet_id>            Fetch a single tweet
  *   feed <group|users> [opts]   Daily feed from account groups
  *   feedgroup [subcommand]      Manage feed groups (list/show/create/add/remove/delete/alias)
@@ -24,11 +26,16 @@
  *   --min-impressions N        Filter by minimum impressions
  *   --pages N                  Number of pages to fetch (default: 1, max 5)
  *   --no-replies               Exclude replies
- *   --no-retweets              Exclude retweets (added by default)
+ *   --retweets                 Include retweets (excluded by default)
  *   --limit N                  Max results to display (default: 15)
  *   --quick                    Quick mode: 1 page, noise filter, 1hr cache
+ *   --today                    Only since local midnight (sugar for --since today)
+ *   --since <spec>             Nm|Nh|Nd (e.g. 15m, 3h, 7d), today, yesterday, or ISO date
+ *   --until <spec>             Upper bound (end_time); same specs as --since
  *   --from <username>          Shorthand for from:username in query
  *   --quality                  Pre-filter low-engagement (min 10 likes)
+ *   --bird                     Free session-based search via bird CLI (no API cost)
+ *   --dry-run                  Print final query + window + est. cost, no API call
  *   --save                     Save results to ~/tools/smaug/knowledge/research/
  *   --json                     Output raw JSON
  *   --markdown                 Output as markdown research doc
@@ -67,6 +74,151 @@ function getOpt(name: string): string | undefined {
     return val;
   }
   return undefined;
+}
+
+// Call after a command has consumed all its flags. Anything still --prefixed
+// is a typo — without this, `--sicne 1d` silently leaks "1d" into the query.
+function rejectUnknownFlags() {
+  const unknown = args.filter((a) => a.startsWith("--"));
+  if (unknown.length > 0) {
+    console.error(`Unknown flag${unknown.length > 1 ? "s" : ""}: ${unknown.join(", ")}`);
+    process.exit(1);
+  }
+}
+
+// --- Shared search machinery (used by search + multi) ---
+
+interface SearchOpts {
+  quick: boolean;
+  quality: boolean;
+  fromUser?: string;
+  sortOpt: string;
+  minLikes: number;
+  minImpressions: number;
+  pages: number;
+  limit: number;
+  since?: string;
+  until?: string;
+  noReplies: boolean;
+  includeRetweets: boolean;
+  save: boolean;
+  asJson: boolean;
+  asMarkdown: boolean;
+  useBird: boolean;
+  dryRun: boolean;
+}
+
+function parseSearchOpts(): SearchOpts {
+  const quick = getFlag("quick");
+  const quality = getFlag("quality");
+  const fromUser = getOpt("from");
+  const sortOpt = getOpt("sort") || "likes";
+  const minLikes = parseInt(getOpt("min-likes") || "0");
+  const minImpressions = parseInt(getOpt("min-impressions") || "0");
+  let pages = Math.min(parseInt(getOpt("pages") || "1"), 5);
+  let limit = parseInt(getOpt("limit") || "15");
+  let since = getOpt("since");
+  if (getFlag("today")) since = "today";
+  const until = getOpt("until");
+  const noReplies = getFlag("no-replies");
+  const includeRetweets = getFlag("retweets");
+  if (getFlag("no-retweets")) {
+    console.error("Note: retweets are already excluded by default; use --retweets to include them.");
+  }
+  const save = getFlag("save");
+  const asJson = getFlag("json");
+  const asMarkdown = getFlag("markdown");
+  const useBird = getFlag("bird");
+  const dryRun = getFlag("dry-run");
+
+  if (quick) {
+    pages = 1;
+    limit = Math.min(limit, 10);
+  }
+
+  return {
+    quick, quality, fromUser, sortOpt, minLikes, minImpressions, pages, limit,
+    since, until, noReplies, includeRetweets, save, asJson, asMarkdown, useBird, dryRun,
+  };
+}
+
+// API v2 and bird (web/GraphQL) use different operator dialects.
+function buildSearchQuery(raw: string, o: SearchOpts, dialect: "api" | "bird" = "api"): string {
+  let query = raw;
+  const rtOp = dialect === "bird" ? "-filter:retweets" : "-is:retweet";
+  const replyOp = dialect === "bird" ? "-filter:replies" : "-is:reply";
+
+  if (o.fromUser && !query.toLowerCase().includes("from:")) {
+    query += ` from:${o.fromUser.replace(/^@/, "")}`;
+  }
+  if (!o.includeRetweets && !query.includes(rtOp.slice(1))) {
+    query += ` ${rtOp}`;
+  }
+  if ((o.quick || o.noReplies) && !query.includes(replyOp.slice(1))) {
+    query += ` ${replyOp}`;
+  }
+  return query;
+}
+
+async function runRecentSearch(
+  query: string,
+  o: SearchOpts
+): Promise<{ tweets: api.Tweet[]; cached: boolean }> {
+  const cacheTtlMs = o.quick ? 3_600_000 : 900_000;
+  const cacheParams = `sort=${o.sortOpt}&pages=${o.pages}&since=${o.since || "7d"}&until=${o.until || ""}`;
+  const cached = cache.get(query, cacheParams, cacheTtlMs);
+  if (cached) return { tweets: cached, cached: true };
+
+  const tweets = await api.search(query, {
+    pages: o.pages,
+    sortOrder: o.sortOpt === "recent" ? "recency" : "relevancy",
+    since: o.since || undefined,
+    until: o.until || undefined,
+  });
+  cache.set(query, cacheParams, tweets);
+  return { tweets, cached: false };
+}
+
+// bird's GraphQL search date-filters only via native operators (day granularity).
+// until:D excludes day D itself, so name the day AFTER the bound and let
+// searchBird's client-side trim enforce the precise timestamp.
+function birdDateOperators(o: SearchOpts): string {
+  const { startTime, endTime } = api.parseWindow(o.since, o.until);
+  let ops = "";
+  if (startTime) ops += ` since:${startTime.split("T")[0]}`;
+  if (endTime) {
+    const dayAfter = new Date(new Date(endTime).getTime() + 86_400_000);
+    ops += ` until:${dayAfter.toISOString().split("T")[0]}`;
+  }
+  return ops;
+}
+
+async function searchBird(rawQuery: string, o: SearchOpts): Promise<api.Tweet[]> {
+  const query = buildSearchQuery(rawQuery, o, "bird") + birdDateOperators(o);
+  const proc = Bun.spawn(
+    ["bird", "--cookie-source", "chrome", "search", query, "-n", String(Math.max(o.limit * 3, 20)), "--json", "--plain"],
+    { stdout: "pipe", stderr: "pipe" }
+  );
+  const output = await new Response(proc.stdout).text();
+  await proc.exited;
+
+  const parsed = JSON.parse(output);
+  const rawTweets = parsed.tweets || parsed || [];
+  let tweets: api.Tweet[] = rawTweets.map((t: any) => mapBirdTweet(t));
+
+  // since:/until: are day-granular; trim to the exact window client-side.
+  if (o.since) {
+    const cutoff = Date.now() - parseSinceToMs(o.since);
+    tweets = tweets.filter((t) => new Date(t.created_at).getTime() > cutoff);
+  }
+  if (o.until) {
+    const { endTime } = api.parseWindow(undefined, o.until);
+    if (endTime) {
+      const endCutoff = new Date(endTime).getTime();
+      tweets = tweets.filter((t) => new Date(t.created_at).getTime() < endCutoff);
+    }
+  }
+  return tweets;
 }
 
 // --- Watchlist ---
@@ -167,6 +319,13 @@ function batchAccountsForQuery(accounts: FeedAccount[]): FeedAccount[][] {
 }
 
 function parseSinceToMs(since: string): number {
+  const now = new Date();
+  if (since === "today") {
+    return now.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  }
+  if (since === "yesterday") {
+    return now.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
+  }
   const match = since.match(/^(\d+)(m|h|d)$/);
   if (!match) return 86_400_000; // default 1 day
   const num = parseInt(match[1]);
@@ -174,6 +333,34 @@ function parseSinceToMs(since: string): number {
   if (unit === "m") return num * 60_000;
   if (unit === "h") return num * 3_600_000;
   return num * 86_400_000;
+}
+
+// bird's user-tweets and search endpoints emit different shapes
+// (username/likes/created_at vs author.username/likeCount/createdAt) — cover both.
+function mapBirdTweet(t: any, fallbackUsername = ""): api.Tweet {
+  const username = t.username || t.user?.username || t.author?.username || fallbackUsername;
+  const id = t.id || t.tweetId || "";
+  return {
+    id,
+    text: t.text || t.content || "",
+    author_id: t.author_id || t.authorId || "",
+    username,
+    name: t.name || t.user?.name || t.author?.name || username,
+    created_at: t.created_at || t.createdAt || t.date || "",
+    conversation_id: t.conversation_id || t.conversationId || t.id || "",
+    metrics: {
+      likes: t.metrics?.likes || t.likes || t.likeCount || t.favorite_count || 0,
+      retweets: t.metrics?.retweets || t.retweets || t.retweetCount || t.retweet_count || 0,
+      replies: t.metrics?.replies || t.replies || t.replyCount || t.reply_count || 0,
+      quotes: t.metrics?.quotes || t.quotes || t.quoteCount || 0,
+      impressions: t.metrics?.impressions || t.impressions || t.viewCount || 0,
+      bookmarks: t.metrics?.bookmarks || t.bookmarks || t.bookmarkCount || 0,
+    },
+    urls: t.urls || [],
+    mentions: t.mentions || [],
+    hashtags: t.hashtags || [],
+    tweet_url: t.tweet_url || `https://x.com/${username}/status/${id}`,
+  };
 }
 
 async function fetchFeedApi(
@@ -266,27 +453,7 @@ async function fetchFeedBird(
           return ts > cutoff;
         })
         .slice(0, limit)
-        .map((t: any) => ({
-          id: t.id || t.tweetId || "",
-          text: t.text || t.content || "",
-          author_id: t.author_id || "",
-          username: t.username || t.user?.username || acct.username,
-          name: t.name || t.user?.name || acct.username,
-          created_at: t.created_at || t.createdAt || t.date || "",
-          conversation_id: t.conversation_id || t.id || "",
-          metrics: {
-            likes: t.metrics?.likes || t.likes || t.favorite_count || 0,
-            retweets: t.metrics?.retweets || t.retweets || t.retweet_count || 0,
-            replies: t.metrics?.replies || t.replies || t.reply_count || 0,
-            quotes: t.metrics?.quotes || t.quotes || 0,
-            impressions: t.metrics?.impressions || t.impressions || 0,
-            bookmarks: t.metrics?.bookmarks || t.bookmarks || 0,
-          },
-          urls: t.urls || [],
-          mentions: t.mentions || [],
-          hashtags: t.hashtags || [],
-          tweet_url: t.tweet_url || `https://x.com/${acct.username}/status/${t.id || t.tweetId}`,
-        }));
+        .map((t: any) => mapBirdTweet(t, acct.username));
 
       result.set(acct.username.toLowerCase(), { label: acct.label, tweets });
     } catch (e: any) {
@@ -306,116 +473,240 @@ async function fetchFeedBird(
 // --- Commands ---
 
 async function cmdSearch() {
-  const quick = getFlag("quick");
-  const quality = getFlag("quality");
-  const fromUser = getOpt("from");
+  const o = parseSearchOpts();
+  rejectUnknownFlags();
 
-  const sortOpt = getOpt("sort") || "likes";
-  const minLikes = parseInt(getOpt("min-likes") || "0");
-  const minImpressions = parseInt(getOpt("min-impressions") || "0");
-  let pages = Math.min(parseInt(getOpt("pages") || "1"), 5);
-  let limit = parseInt(getOpt("limit") || "15");
-  const since = getOpt("since");
-  const noReplies = getFlag("no-replies");
-  const noRetweets = getFlag("no-retweets");
-  const save = getFlag("save");
-  const asJson = getFlag("json");
-  const asMarkdown = getFlag("markdown");
-
-  if (quick) {
-    pages = 1;
-    limit = Math.min(limit, 10);
-  }
-
-  const queryParts = args.slice(1).filter((a) => !a.startsWith("--"));
-  let query = queryParts.join(" ");
-
-  if (!query) {
+  const raw = args.slice(1).join(" ");
+  if (!raw) {
     console.error("Usage: x-search search <query> [options]");
     process.exit(1);
   }
 
-  if (fromUser && !query.toLowerCase().includes("from:")) {
-    query += ` from:${fromUser.replace(/^@/, "")}`;
+  const dialect = o.useBird ? "bird" : "api";
+  const query = buildSearchQuery(raw, o, dialect);
+
+  if (o.dryRun) {
+    const { startTime, endTime } = api.parseWindow(o.since, o.until);
+    console.log(`[dry-run] query: ${query}${o.useBird ? birdDateOperators(o) : ""}`);
+    if (startTime) console.log(`[dry-run] start_time: ${startTime}`);
+    if (endTime) console.log(`[dry-run] end_time: ${endTime}`);
+    console.log(`[dry-run] pages: ${o.pages} · sort: ${o.sortOpt}`);
+    console.log(
+      `[dry-run] est. cost: ${o.useBird ? "$0.00 (bird)" : `up to ~$${(o.pages * 100 * 0.005).toFixed(2)}`}`
+    );
+    return;
   }
 
-  if (!query.includes("is:retweet") && !noRetweets) {
-    query += " -is:retweet";
-  }
-  if (quick && !query.includes("is:reply")) {
-    query += " -is:reply";
-  } else if (noReplies && !query.includes("is:reply")) {
-    query += " -is:reply";
-  }
-
-  const cacheTtlMs = quick ? 3_600_000 : 900_000;
-  const cacheParams = `sort=${sortOpt}&pages=${pages}&since=${since || "7d"}`;
-  const cached = cache.get(query, cacheParams, cacheTtlMs);
   let tweets: api.Tweet[];
-
-  if (cached) {
-    tweets = cached;
-    console.error(`(cached — ${tweets.length} tweets)`);
+  if (o.useBird) {
+    tweets = await searchBird(raw, o);
   } else {
-    tweets = await api.search(query, {
-      pages,
-      sortOrder: sortOpt === "recent" ? "recency" : "relevancy",
-      since: since || undefined,
-    });
-    cache.set(query, cacheParams, tweets);
+    const res = await runRecentSearch(query, o);
+    tweets = res.tweets;
+    if (res.cached) console.error(`(cached — ${tweets.length} tweets)`);
   }
 
   const rawTweetCount = tweets.length;
 
-  if (minLikes > 0 || minImpressions > 0) {
+  if (o.minLikes > 0 || o.minImpressions > 0) {
     tweets = api.filterEngagement(tweets, {
-      minLikes: minLikes || undefined,
-      minImpressions: minImpressions || undefined,
+      minLikes: o.minLikes || undefined,
+      minImpressions: o.minImpressions || undefined,
     });
   }
 
-  if (quality) {
+  if (o.quality) {
     tweets = api.filterEngagement(tweets, { minLikes: 10 });
   }
 
-  if (sortOpt !== "recent") {
-    tweets = api.sortBy(tweets, sortOpt as "likes" | "impressions" | "retweets");
+  if (o.sortOpt !== "recent") {
+    tweets = api.sortBy(tweets, o.sortOpt as "likes" | "impressions" | "retweets");
   }
 
   tweets = api.dedupe(tweets);
 
-  if (asJson) {
-    console.log(JSON.stringify(tweets.slice(0, limit), null, 2));
-  } else if (asMarkdown) {
+  if (o.asJson) {
+    console.log(JSON.stringify(tweets.slice(0, o.limit), null, 2));
+  } else if (o.asMarkdown) {
     console.log(fmt.formatResearchMarkdown(query, tweets, { queries: [query] }));
   } else {
-    console.log(fmt.formatResultsTelegram(tweets, { query, limit }));
+    console.log(fmt.formatResultsTelegram(tweets, { query, limit: o.limit }));
   }
 
-  if (save) {
-    if (!existsSync(RESEARCH_DIR)) mkdirSync(RESEARCH_DIR, { recursive: true });
-    const slug = query
-      .replace(/[^a-zA-Z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 40)
-      .toLowerCase();
-    const date = new Date().toISOString().split("T")[0];
-    const path = join(RESEARCH_DIR, `x-research-${slug}-${date}.md`);
-    writeFileSync(path, fmt.formatResearchMarkdown(query, tweets, { queries: [query] }));
-    console.error(`\nSaved to ${path}`);
+  if (o.save) {
+    saveResearch(query, tweets, [query]);
   }
 
-  const cost = (rawTweetCount * 0.005).toFixed(2);
-  if (quick) {
+  const cost = o.useBird ? "0.00 (bird)" : (rawTweetCount * 0.005).toFixed(2);
+  if (o.quick) {
     console.error(`\nquick mode · ${rawTweetCount} tweets read (~$${cost})`);
   } else {
     console.error(`\n${rawTweetCount} tweets read · est. cost ~$${cost}`);
   }
 
   const filtered = rawTweetCount !== tweets.length ? ` -> ${tweets.length} after filters` : "";
-  const sinceLabel = since ? ` | since ${since}` : "";
+  const sinceLabel = o.since ? ` | since ${o.since}` : "";
+  const untilLabel = o.until ? ` | until ${o.until}` : "";
   console.error(
-    `${rawTweetCount} tweets${filtered} | sorted by ${sortOpt} | ${pages} page(s)${sinceLabel}`
+    `${rawTweetCount} tweets${filtered} | sorted by ${o.sortOpt} | ${o.pages} page(s)${sinceLabel}${untilLabel}`
+  );
+}
+
+function saveResearch(title: string, tweets: api.Tweet[], queries: string[]) {
+  if (!existsSync(RESEARCH_DIR)) mkdirSync(RESEARCH_DIR, { recursive: true });
+  const slug = title
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40)
+    .toLowerCase();
+  const date = new Date().toISOString().split("T")[0];
+  const path = join(RESEARCH_DIR, `x-research-${slug}-${date}.md`);
+  writeFileSync(path, fmt.formatResearchMarkdown(title, tweets, { queries }));
+  console.error(`\nSaved to ${path}`);
+}
+
+async function cmdMulti() {
+  const o = parseSearchOpts();
+  rejectUnknownFlags();
+
+  const rawQueries = args.slice(1);
+  if (rawQueries.length < 2) {
+    console.error('Usage: x-search multi "<query1>" "<query2>" [...] [search options]');
+    console.error("Fan out expanded query variants, merge + dedupe (see references/query-expansion.md).");
+    process.exit(1);
+  }
+
+  const dialect = o.useBird ? "bird" : "api";
+  const finalQueries = rawQueries.map((q) => buildSearchQuery(q, o, dialect));
+
+  if (o.dryRun) {
+    const { startTime, endTime } = api.parseWindow(o.since, o.until);
+    finalQueries.forEach((q, i) =>
+      console.log(`[dry-run] q${i + 1}: ${q}${o.useBird ? birdDateOperators(o) : ""}`)
+    );
+    if (startTime) console.log(`[dry-run] start_time: ${startTime}`);
+    if (endTime) console.log(`[dry-run] end_time: ${endTime}`);
+    console.log(
+      `[dry-run] est. cost: ${o.useBird ? "$0.00 (bird)" : `up to ~$${(finalQueries.length * o.pages * 100 * 0.005).toFixed(2)}`}`
+    );
+    return;
+  }
+
+  const seen = new Set<string>();
+  const merged: api.Tweet[] = [];
+  const perVariant: { count: number; fresh: number; cached: boolean; error?: string }[] = [];
+  let billedReads = 0;
+
+  for (let i = 0; i < finalQueries.length; i++) {
+    try {
+      let tweets: api.Tweet[];
+      let cached = false;
+      if (o.useBird) {
+        tweets = await searchBird(rawQueries[i], o);
+      } else {
+        const res = await runRecentSearch(finalQueries[i], o);
+        tweets = res.tweets;
+        cached = res.cached;
+        if (!cached) billedReads += tweets.length;
+      }
+      let fresh = 0;
+      for (const t of tweets) {
+        if (!seen.has(t.id)) {
+          seen.add(t.id);
+          merged.push(t);
+          fresh++;
+        }
+      }
+      perVariant.push({ count: tweets.length, fresh, cached });
+    } catch (e: any) {
+      // Fail-soft: a bad variant shouldn't sink the run.
+      console.error(`  q${i + 1} failed: ${e.message}`);
+      perVariant.push({ count: 0, fresh: 0, cached: false, error: e.message });
+    }
+    if (i < finalQueries.length - 1) {
+      await new Promise((r) => setTimeout(r, 400));
+    }
+  }
+
+  let tweets = merged;
+  if (o.minLikes > 0 || o.minImpressions > 0) {
+    tweets = api.filterEngagement(tweets, {
+      minLikes: o.minLikes || undefined,
+      minImpressions: o.minImpressions || undefined,
+    });
+  }
+  if (o.quality) {
+    tweets = api.filterEngagement(tweets, { minLikes: 10 });
+  }
+  if (o.sortOpt !== "recent") {
+    tweets = api.sortBy(tweets, o.sortOpt as "likes" | "impressions" | "retweets");
+  }
+
+  if (o.asJson) {
+    console.log(JSON.stringify(tweets.slice(0, o.limit), null, 2));
+  } else if (o.asMarkdown) {
+    console.log(fmt.formatResearchMarkdown(rawQueries[0], tweets, { queries: finalQueries }));
+  } else {
+    console.log(
+      fmt.formatResultsTelegram(tweets, { query: `${rawQueries.length} variants`, limit: o.limit })
+    );
+  }
+
+  if (o.save) {
+    saveResearch(rawQueries[0], tweets, finalQueries);
+  }
+
+  console.error("");
+  perVariant.forEach((v, i) => {
+    const status = v.error
+      ? `error — ${v.error}`
+      : `${v.count} tweets (${v.fresh} new)${v.cached ? " · cached" : ""}`;
+    console.error(`  q${i + 1}: ${status}`);
+  });
+  const cost = o.useBird ? "0.00 (bird)" : (billedReads * 0.005).toFixed(2);
+  console.error(
+    `${merged.length} unique tweets from ${rawQueries.length} variants · est. cost ~$${cost}`
+  );
+}
+
+async function cmdCounts() {
+  const granularity = (getOpt("granularity") || "hour") as "minute" | "hour" | "day";
+  let since = getOpt("since");
+  if (getFlag("today")) since = "today";
+  const until = getOpt("until");
+  const asJson = getFlag("json");
+  const dryRun = getFlag("dry-run");
+  rejectUnknownFlags();
+
+  const query = args.slice(1).join(" ");
+  if (!query) {
+    console.error("Usage: x-search counts <query> [--granularity minute|hour|day] [--today|--since|--until] [--json]");
+    process.exit(1);
+  }
+
+  if (dryRun) {
+    const { startTime, endTime } = api.parseWindow(since, until);
+    console.log(`[dry-run] counts query: ${query} · granularity: ${granularity}`);
+    if (startTime) console.log(`[dry-run] start_time: ${startTime}`);
+    if (endTime) console.log(`[dry-run] end_time: ${endTime}`);
+    console.log(`[dry-run] est. cost: $0.005 (1 request)`);
+    return;
+  }
+
+  const { buckets, total } = await api.counts(query, {
+    granularity,
+    since: since || undefined,
+    until: until || undefined,
+  });
+
+  if (asJson) {
+    console.log(JSON.stringify({ query, granularity, total, buckets }, null, 2));
+  } else {
+    console.log(fmt.formatCounts(query, buckets, total, { granularity }));
+  }
+
+  console.error(
+    `1 counts request · $0.005 — reading all ${total.toLocaleString()} tweets would cost ~$${(total * 0.005).toFixed(2)}`
   );
 }
 
@@ -427,6 +718,7 @@ async function cmdThread() {
   }
 
   const pages = Math.min(parseInt(getOpt("pages") || "2"), 5);
+  rejectUnknownFlags();
   const tweets = await api.thread(tweetId, { pages });
 
   if (tweets.length === 0) {
@@ -439,6 +731,8 @@ async function cmdThread() {
     console.log(fmt.formatTweetTelegram(t, undefined, { full: true }));
     console.log();
   }
+
+  console.error(`${tweets.length} tweets read · est. cost ~$${(tweets.length * 0.005).toFixed(2)}`);
 }
 
 async function cmdProfile() {
@@ -451,14 +745,21 @@ async function cmdProfile() {
   const count = parseInt(getOpt("count") || "20");
   const includeReplies = getFlag("replies");
   const asJson = getFlag("json");
+  let since = getOpt("since");
+  if (getFlag("today")) since = "today";
+  rejectUnknownFlags();
 
-  const { user, tweets } = await api.profile(username, { count, includeReplies });
+  const { user, tweets } = await api.profile(username, { count, includeReplies, since });
 
   if (asJson) {
     console.log(JSON.stringify({ user, tweets }, null, 2));
   } else {
     console.log(fmt.formatProfileTelegram(user, tweets));
   }
+
+  console.error(
+    `\n1 user lookup + ${tweets.length} tweets read · est. cost ~$${(0.01 + tweets.length * 0.005).toFixed(2)}`
+  );
 }
 
 async function cmdTweet() {
@@ -468,13 +769,14 @@ async function cmdTweet() {
     process.exit(1);
   }
 
+  const asJson = getFlag("json");
+  rejectUnknownFlags();
+
   const tweet = await api.getTweet(tweetId);
   if (!tweet) {
     console.log("Tweet not found.");
     return;
   }
-
-  const asJson = getFlag("json");
   if (asJson) {
     console.log(JSON.stringify(tweet, null, 2));
   } else {
@@ -523,14 +825,21 @@ async function cmdWatchlist() {
   }
 
   if (sub === "check") {
+    let since = getOpt("since");
+    if (getFlag("today")) since = "today";
+    rejectUnknownFlags();
     if (wl.accounts.length === 0) {
       console.log("Watchlist empty. Add accounts with: watchlist add <username>");
       return;
     }
     console.log(`Checking ${wl.accounts.length} watchlist accounts...\n`);
+    let lookups = 0;
+    let reads = 0;
     for (const acct of wl.accounts) {
       try {
-        const { user, tweets } = await api.profile(acct.username, { count: 5 });
+        const { user, tweets } = await api.profile(acct.username, { count: 5, since });
+        lookups++;
+        reads += tweets.length;
         const label = acct.note ? ` (${acct.note})` : "";
         console.log(`\n--- @${acct.username}${label} ---`);
         if (tweets.length === 0) {
@@ -545,6 +854,9 @@ async function cmdWatchlist() {
         console.error(`  Error checking @${acct.username}: ${e.message}`);
       }
     }
+    console.error(
+      `\n${lookups} user lookups + ${reads} tweets read · est. cost ~$${(lookups * 0.01 + reads * 0.005).toFixed(2)}`
+    );
     return;
   }
 
@@ -590,6 +902,7 @@ function guardUrlSurcharge(text: string, allowUrl: boolean) {
 async function cmdPost() {
   const allowUrl = getFlag("allow-url");
   const dryRun = getFlag("dry-run");
+  rejectUnknownFlags();
   const text = args.slice(1).join(" ");
   if (!text) {
     console.error("Usage: x-search post <text> [--allow-url] [--dry-run]");
@@ -613,6 +926,7 @@ async function cmdPost() {
 async function cmdReply() {
   const allowUrl = getFlag("allow-url");
   const dryRun = getFlag("dry-run");
+  rejectUnknownFlags();
   const tweetId = args[1];
   const text = args.slice(2).join(" ");
   if (!tweetId || !text) {
@@ -635,11 +949,18 @@ async function cmdReply() {
 }
 
 async function cmdUsage() {
+  const asJson = getFlag("json");
+  rejectUnknownFlags();
   const raw = await api.getUsage();
-  console.log(JSON.stringify(raw, null, 2));
+  if (asJson) {
+    console.log(JSON.stringify(raw, null, 2));
+  } else {
+    console.log(fmt.formatUsage(raw));
+  }
 }
 
 async function cmdDelete() {
+  rejectUnknownFlags();
   const tweetId = args[1];
   if (!tweetId) {
     console.error("Usage: x-search delete <tweet_id>");
@@ -658,23 +979,28 @@ async function cmdFeed() {
   if (!target) {
     console.error("Usage: x-search feed <group|alias|user1,user2,...> [options]");
     console.error("\nOptions:");
-    console.error("  --since 1d|7d|1h|3h|12h   Time window (default: 1d)");
+    console.error("  --since <spec>             Nm|Nh|Nd, today, yesterday (default: 1d)");
+    console.error("  --today                    Sugar for --since today (local midnight)");
     console.error("  --limit N                  Tweets per account (default: 4)");
     console.error("  --markdown                 Markdown output");
     console.error("  --save                     Save to smaug/knowledge/research/");
     console.error("  --json                     Raw JSON");
     console.error("  --bird                     Free bird CLI fallback");
+    console.error("  --dry-run                  Show batches + est. cost, no API call");
     console.error("  --no-cache                 Skip cache");
     process.exit(1);
   }
 
-  const since = getOpt("since") || "1d";
+  let since = getOpt("since") || "1d";
+  if (getFlag("today")) since = "today";
   const limit = parseInt(getOpt("limit") || "4");
   const asMarkdown = getFlag("markdown");
   const asJson = getFlag("json");
   const save = getFlag("save");
   const useBird = getFlag("bird");
   const noCache = getFlag("no-cache");
+  const dryRun = getFlag("dry-run");
+  rejectUnknownFlags();
 
   const feedgroups = loadFeedGroups();
   const accounts = resolveFeedAccounts(feedgroups, target);
@@ -682,6 +1008,21 @@ async function cmdFeed() {
   if (accounts.length === 0) {
     console.error(`No accounts found for "${target}". Use: x-search feedgroup`);
     process.exit(1);
+  }
+
+  if (dryRun) {
+    const batches = batchAccountsForQuery(accounts);
+    const { startTime, endTime } = api.parseWindow(since);
+    console.log(`[dry-run] ${accounts.length} accounts in ${batches.length} batched quer${batches.length === 1 ? "y" : "ies"}`);
+    batches.forEach((b, i) =>
+      console.log(`[dry-run] batch ${i + 1}: (${b.map((a) => `from:${a.username}`).join(" OR ")}) -is:retweet -is:reply`)
+    );
+    if (startTime) console.log(`[dry-run] start_time: ${startTime}`);
+    if (endTime) console.log(`[dry-run] end_time: ${endTime}`);
+    console.log(
+      `[dry-run] est. cost: ${useBird ? "$0.00 (bird)" : `up to ~$${(batches.length * 100 * 0.005).toFixed(2)}`}`
+    );
+    return;
   }
 
   console.error(`Fetching feed: ${accounts.length} accounts, since ${since}...\n`);
@@ -695,7 +1036,10 @@ async function cmdFeed() {
   }
 
   const windowLabel =
-    since === "1d" ? "today" : since === "7d" ? "last week" : `last ${since}`;
+    since === "today" ? "today" :
+    since === "yesterday" ? "yesterday" :
+    since === "1d" ? "last 24h" :
+    since === "7d" ? "last week" : `last ${since}`;
   const totalTweets = [...groupedTweets.values()].reduce((s, d) => s + d.tweets.length, 0);
   const costStr = useBird ? "0.00 (bird)" : (totalTweets * 0.005).toFixed(2);
 
@@ -913,8 +1257,10 @@ function usage() {
 
 Commands:
   search <query> [options]    Search recent tweets (last 7 days)
+  multi <q1> <q2>... [opts]   Fan out query variants, merge + dedupe by tweet ID
+  counts <query> [options]    Tweet volume histogram — probe before reading ($0.005)
   thread <tweet_id>           Fetch full conversation thread
-  profile <username>          Recent tweets from a user
+  profile <username>          Recent tweets from a user (--count N, default 20)
   tweet <tweet_id>            Fetch a single tweet
   feed <group|users> [opts]   Daily feed from account groups
   feedgroup [subcommand]      Manage feed groups (list/show/create/add/remove/delete/alias)
@@ -923,14 +1269,16 @@ Commands:
   watchlist                   Show watchlist
   watchlist add <user> [note] Add user to watchlist
   watchlist remove <user>     Remove user from watchlist
-  watchlist check             Check recent from all watchlist accounts
-  usage                       Billed post consumption per day (GET /2/usage/tweets)
+  watchlist check             Check recent from all watchlist accounts (--today/--since)
+  usage                       Billed post consumption per day (--json for raw)
   delete <tweet_id>           Delete own tweet ($0.01)
   cache clear                 Clear search cache
 
-Search options:
+Search options (also apply to multi):
   --sort likes|impressions|retweets|recent   (default: likes)
-  --since 1h|3h|12h|1d|7d   Time filter (default: last 7 days)
+  --today                    Only since local midnight (sugar for --since today)
+  --since <spec>             Nm|Nh|Nd (e.g. 15m, 3h, 7d), today, yesterday, or ISO date
+  --until <spec>             Upper bound (end_time); same specs as --since
   --min-likes N              Filter minimum likes
   --min-impressions N        Filter minimum impressions
   --pages N                  Pages to fetch, 1-5 (default: 1)
@@ -939,12 +1287,21 @@ Search options:
   --from <username>          Shorthand for from:username in query
   --quality                  Filter low-engagement tweets (min 10 likes)
   --no-replies               Exclude replies
+  --retweets                 Include retweets (excluded by default)
+  --bird                     Free session-based search via bird CLI ($0.00)
+  --dry-run                  Show final query + window + est. cost, no API call
   --save                     Save to ~/tools/smaug/knowledge/research/
   --json                     Raw JSON output
   --markdown                 Markdown research doc
 
+Counts options:
+  --granularity minute|hour|day   Bucket size (default: hour)
+  --today / --since / --until     Window (same specs as search)
+  --json                          Raw JSON output
+
 Feed options:
-  --since 1d|7d|1h|3h|12h   Time window (default: 1d)
+  --since <spec>             Nm|Nh|Nd, today, yesterday (default: 1d)
+  --today                    Sugar for --since today
   --limit N                  Tweets per account (default: 4)
   --bird                     Free bird CLI fallback (no API cost)
   --markdown                 Markdown output
@@ -969,6 +1326,14 @@ async function main() {
     case "search":
     case "s":
       await cmdSearch();
+      break;
+    case "multi":
+    case "m":
+      await cmdMulti();
+      break;
+    case "counts":
+    case "c":
+      await cmdCounts();
       break;
     case "thread":
     case "t":
