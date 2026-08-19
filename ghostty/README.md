@@ -18,10 +18,10 @@ Restart Ghostty fully (`Cmd+Q` then reopen) to register new fonts.
 
 | Category | Settings |
 |----------|----------|
-| **Theme** | Catppuccin Mocha/Latte, Cream (parchment), Knossot (dark), Akrotiri (light) — follows macOS appearance or manual switch |
+| **Theme** | Catppuccin Mocha (dark) / Alabaster (light) — follows macOS appearance. Manual: Cream (parchment), Akrotiri (plaster), Knossot (dark), Catppuccin Latte |
 | **Font** | JetBrainsMono Nerd Font 15pt, thickened. Codepoint maps: Linear A (U+10600–1077F), Linear B (U+10000–100FF), Phaistos Disc (U+101D0–101FF), Minoan Glyphs PUA (U+E500–E5FF) |
 | **macOS** | Option-as-Alt (required for word nav), transparent titlebar |
-| **Appearance** | 0.90 opacity, blur, balanced padding, bold-is-bright, unfocused split dimming (0.85) |
+| **Appearance** | 0.90 opacity, blur, balanced padding, unfocused split dimming (0.85), minimum-contrast 1.1 (floor against invisible text only — a 2:1 clamp whitewashes Claude Code's intentional dim text) |
 | **Persistence** | Tabs/splits restored on restart |
 | **Shell** | Auto-detected integration with prompt jumping, sudo, title |
 | **Scrollback** | 100K lines (default 10K fills fast with Claude Code output) |
@@ -88,11 +88,16 @@ Then use the commands:
 
 | Command | Effect |
 |---------|--------|
-| `dark` | macOS dark mode + Catppuccin Mocha |
-| `light` | macOS light mode + Catppuccin Latte |
+| `dark` | macOS dark mode + auto pair (Mocha/Alabaster) |
+| `light` | macOS light mode + auto pair (Mocha/Alabaster) |
+| `alabaster` | macOS light mode + Alabaster (warm ivory) |
 | `cream` | macOS light mode + Cream (warm parchment) |
-| `knossot` | macOS dark mode + Knossot (Minoan palace) |
+| `knossos` | macOS dark mode + Knossot (Minoan palace) — command spelled knossos because `knossot` is a cd alias in ~/.zshrc |
 | `akrotiri` | macOS light mode + Akrotiri (sun-bleached plaster) |
+
+Single-theme commands (`cream`, `knossos`, `akrotiri`, `alabaster`) pin Ghostty to that theme; run `dark` or `light` to restore automatic light/dark following.
+
+Switching themes only restyles new TUI sessions — Codex and Claude Code sample the terminal background once at startup and never re-detect, so the helpers warn when running `codex` sessions will keep stale colors until restarted.
 
 ### Custom Themes
 
@@ -104,6 +109,7 @@ cp ghostty/themes/* ~/Library/Application\ Support/com.mitchellh.ghostty/themes/
 
 | Theme | Mode | Inspiration |
 |-------|------|-------------|
+| **Alabaster** | Light | Gypsum of the Knossos throne room — per-channel midpoint of Catppuccin Latte and Cream, warm ivory ground with sepia ink |
 | **Cream** | Light | Aged vellum and iron gall ink |
 | **Knossot** | Dark | Palace interior — obsidian walls, Egyptian blue frescoes, saffron and terracotta |
 | **Akrotiri** | Light | Excavated city — sun-bleached plaster, Spring Fresco colors, volcanic earth |

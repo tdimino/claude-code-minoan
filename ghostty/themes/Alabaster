@@ -1,0 +1,30 @@
+# Alabaster — warm ivory light theme
+# Midpoint of Catppuccin Latte and Cream: gypsum stone, not grey, not vellum
+# Palette = per-channel blend of the two parents; fg warmed from #474145 to sepia ink
+
+background = #f2ede2
+foreground = #443f38
+cursor-color = #c8774a
+cursor-text = #f2ede2
+selection-background = #c9c3bb
+selection-foreground = #3d3833
+
+# Normal colors (0-7)
+palette = 0=#5c5458
+palette = 1=#bc2634
+palette = 2=#488436
+palette = 3=#bf8326
+palette = 4=#3164b6
+palette = 5=#ba64a1
+palette = 6=#217c7d
+palette = 7=#9b9794
+
+# Bright colors (8-15)
+palette = 8=#736a6b
+palette = 9=#d33c3e
+palette = 10=#5b9d4a
+palette = 11=#d99c32
+palette = 12=#416cc6
+palette = 13=#cb5da7
+palette = 14=#318989
+palette = 15=#aeaaa2

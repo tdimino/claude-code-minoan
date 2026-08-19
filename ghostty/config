@@ -3,7 +3,7 @@
 # 2026-02-17
 
 # --- Theme ---
-theme = dark:Catppuccin Mocha,light:Catppuccin Latte
+theme = dark:Catppuccin Mocha,light:Alabaster
 
 # --- Font ---
 font-family = JetBrainsMono Nerd Font
@@ -11,6 +11,7 @@ font-codepoint-map = U+10600-U+1077F=Noto Sans Linear A
 font-codepoint-map = U+10000-U+100FF=Noto Sans Linear B
 font-codepoint-map = U+101D0-U+101FF=Noto Sans Symbols 2
 font-codepoint-map = U+E500-U+E5FF=Minoan Glyphs
+font-codepoint-map = U+23BF=Apple Symbols
 font-size = 15
 font-thicken = true
 
@@ -19,12 +20,15 @@ macos-option-as-alt = true
 macos-titlebar-style = transparent
 
 # --- Appearance ---
+# Mild floor against pathological invisible text only. Claude Code's
+# theme:auto now emits mode-appropriate palettes; a 2:1 clamp here forced
+# its intentional dim text (user echo, spinner shimmer) to pure white.
+minimum-contrast = 1.1
 background-opacity = 0.90
 background-blur = true
 window-padding-x = 12
 window-padding-y = 10
 window-padding-balance = true
-bold-is-bright = true
 unfocused-split-opacity = 0.85
 
 # --- Session Persistence ---
