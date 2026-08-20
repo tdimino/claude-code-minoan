@@ -1,16 +1,18 @@
 # Pinning Claude Code to Opus 4.6
 
-Claude Code defaults to the latest Opus model (currently 4.7). If you want Opus 4.6 instead—for its output style, reasoning characteristics, or consistency with an existing setup—you need to pin the version explicitly. The alias `"opus"` always resolves to the newest Opus release; pinning requires the full model identifier.
+Claude Code defaults to the latest Opus model (currently Opus 5). If you want Opus 4.6 instead—for its output style, reasoning characteristics, or consistency with an existing setup—you need to pin the version explicitly. The alias `"opus"` always resolves to the newest Opus release; pinning requires the full model identifier.
 
 ## Model identifiers
 
 | Alias | Resolves to | Pinned ID |
 |-------|-------------|-----------|
-| `opus` | Latest Opus (currently 4.7) | — |
+| `opus` | Latest Opus (currently Opus 5) | — |
 | `sonnet` | Latest Sonnet | — |
 | `haiku` | Latest Haiku | — |
 | — | Opus 4.6 specifically | `claude-opus-4-6` |
 | — | Opus 4.7 specifically | `claude-opus-4-7` |
+| — | Opus 4.8 specifically | `claude-opus-4-8` |
+| — | Opus 5 specifically | `claude-opus-5` |
 
 Dated builds (e.g. `claude-opus-4-6-20260220`) also work but are rarely needed—the undated ID tracks the latest point release within that major version.
 
@@ -96,8 +98,12 @@ Or inside a session, the system prompt includes the line: `You are powered by th
 
 ## Why pin to 4.6?
 
-Opus 4.7 is the default and generally the most capable model. Reasons to pin to 4.6:
+Opus 5 is the default and the most capable model on benchmarks. Reasons to pin to 4.6:
 
 - **Consistency**: If your CLAUDE.md, skills, and prompts were tuned for 4.6's behavior, switching models can change output style, tool-calling patterns, and reasoning strategies.
-- **Fast mode**: `/fast` toggles faster output on Opus 4.6 without downgrading to a smaller model. Check current Claude Code release notes to confirm availability on newer versions.
+- **Fast mode**: `/fast` toggles faster output without downgrading to a smaller model. Currently available on Opus 5 and 4.8.
 - **Known behavior**: If your workflow depends on specific model characteristics (verbosity, code style, agent coordination patterns), pinning prevents surprises when Anthropic updates the `opus` alias.
+
+## A note on Opus 5
+
+Opus 5 tops benchmarks and is priced at $5/$25 per million tokens (half of Fable 5), but early adoption feedback has been consistently mixed. The dominant complaint is personality, not capability—users report verbose, over-cautious output that is harder to steer than 4.6 or 4.8. It tends toward overreach (doing more than asked), struggles as an orchestrator despite excelling as a subagent, and at higher effort levels can spin in circles. Measured catches include a higher hallucination rate and slow first response at max effort. Benchmarks and lived experience diverge here: many users rate it first on output quality and last on enjoyment of use. If your workflow relies on tight, predictable model behavior—especially in multi-agent setups—4.6 or 4.8 remains the safer pin.
