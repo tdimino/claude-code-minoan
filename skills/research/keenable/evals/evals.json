@@ -1,0 +1,46 @@
+[
+  {
+    "prompt": "Search for recent news about AI agents",
+    "should_trigger": true,
+    "expected_tool": "keenable_search.py",
+    "notes": "General web search — should use keenable_search with no special flags"
+  },
+  {
+    "prompt": "Fetch the contents of https://docs.keenable.ai/",
+    "should_trigger": true,
+    "expected_tool": "keenable_fetch.py",
+    "notes": "Direct URL fetch — should use keenable_fetch"
+  },
+  {
+    "prompt": "What were the top AI papers from January 2025?",
+    "should_trigger": true,
+    "expected_tool": "keenable_search.py",
+    "notes": "Historical/date-bounded search — should use --query-time or --published-after"
+  },
+  {
+    "prompt": "Extract the pricing information from https://example.com/pricing",
+    "should_trigger": true,
+    "expected_tool": "keenable_fetch.py",
+    "notes": "Prompt-driven extraction — should use keenable_fetch with --prompt"
+  },
+  {
+    "prompt": "Deploy my Next.js app to Vercel",
+    "should_trigger": false,
+    "notes": "Deployment task — should NOT trigger keenable"
+  },
+  {
+    "prompt": "Fix the CSS layout in my React component",
+    "should_trigger": false,
+    "notes": "Code editing task — should NOT trigger keenable"
+  },
+  {
+    "prompt": "Run the test suite and show me failures",
+    "should_trigger": false,
+    "notes": "Testing task — should NOT trigger keenable"
+  },
+  {
+    "prompt": "Explain how the authentication middleware works",
+    "should_trigger": false,
+    "notes": "Code explanation — should NOT trigger keenable"
+  }
+]

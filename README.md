@@ -88,7 +88,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Core Development | 15 | `fable`, `skill-optimizer`, `claude-agent-sdk`, `claude-md-manager`, `dag-typesafe`, `glossary`, `autoresearch`, `claude-usage`, `architecture-md-builder`, `stop-slop`, `test-harness-auditor`, `user-model-builder` |
 | Integration & Automation | 31 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator`, `obscura`, `stock-monitor` |
 | Design & Media | 33 | `minoan-frontend-design` (70% win rate), `scroll-cinema`, `conductor-motion`, `vellum-editorial`, `gpt-atelier`, `nano-banana-pro`, `gemini-forge`, `sprite-forge`, `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy`, `particle-swarm-sim`, `tamarru` |
-| Research | 10 | `minoan` (reconstructed Minoan language faculty), `omnisearch`, `geo-seo`, `academic-research`, `ancient-near-east-research`, `exa-search`, `firecrawl`, `scrapling`, `openplanter`, `reverse-trace` |
+| Research | 10 | `omnisearch`, `geo-seo`, `academic-research`, `ancient-near-east-research`, `exa-search`, `firecrawl`, `keenable`, `scrapling`, `openplanter`, `reverse-trace` |
 | Planning & Productivity | 7 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (FTS5 transcript search, title/nickname history, fzf picker, checkpoints, workflow phases, tagged phrases, workspace save/restore, cost tracking via optional SQLite), `travel-requirements-expert` |
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
