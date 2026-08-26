@@ -1,6 +1,6 @@
 # image-well
 
-Multi-source image search and download aggregator for Claude Code. Searches 12 image APIs in parallel through a single CLI, with unified result format, license filtering, domain presets, caching, and bulk download with metadata sidecars.
+Multi-source image search and download aggregator for Claude Code. Searches 15 image APIs in parallel through a single CLI, with unified result format, license filtering, domain presets, caching, and bulk download with metadata sidecars.
 
 ## When to Use
 
@@ -13,6 +13,9 @@ Any time a project needs images: stock photography, museum art, NASA space image
 | 1 | Openverse | 800M+ CC items | No | CC variants |
 | 1 | Wikimedia Commons | Millions | No | CC variants |
 | 1 | Met Museum | 375k objects | No | CC0 |
+| 1 | Cleveland Museum | 37k CC0 works | No | CC0 |
+| 1 | Art Inst. Chicago | 60k+ PD works | No | Public Domain |
+| 1 | Getty Museum | Open Content CC0 | No | CC0 |
 | 1 | NASA Images | 140k assets | No | Public Domain |
 | 2 | Pexels | Large | `PEXELS_API_KEY` | Pexels License |
 | 2 | Pixabay | Large | `PIXABAY_API_KEY` | Pixabay License |
@@ -23,6 +26,8 @@ Any time a project needs images: stock photography, museum art, NASA space image
 | 3 | Pollinations AI | AI gen | No | Free Use |
 
 **Rijksmuseum** (700k CC0 objects) is listed but unavailable—their REST API returned HTTP 410 Gone as of March 2026. The collection is still browsable at rijksmuseum.nl; sourcing images would require a Playwright or agentic browser-based search against the web UI.
+
+**Walters Art Museum** has no module—its v1 API closed in 2023 and the whole `thewalters.org` domain (image CDN included) sits behind Cloudflare bot protection. Their ~18,600 Commons uploads are reachable through the `wikimedia` source: `incategory:"Media contributed by the Walters Art Museum" scarab`. Per-file Commons licenses apply (mostly CC BY-SA 3.0 from the 2012 upload, many with a Public Domain Mark).
 
 Tier 1 sources work with zero API keys. Tier 2/3 keys are optional and go in `~/.config/env/secrets.env`.
 
@@ -41,6 +46,9 @@ image-well/
 │       ├── openverse.py           # api.openverse.org
 │       ├── wikimedia.py           # commons.wikimedia.org
 │       ├── met_museum.py          # collectionapi.metmuseum.org (two-step: IDs → details)
+│       ├── cleveland.py           # openaccess-api.clevelandart.org (print JPEG / web thumb)
+│       ├── artic.py               # api.artic.edu + IIIF (843px download, serialized)
+│       ├── getty.py               # getty.edu collection search API + IIIF (per-row CC0 gate)
 │       ├── nasa.py                # images-api.nasa.gov
 │       ├── pexels.py              # api.pexels.com
 │       ├── pixabay.py             # pixabay.com/api
@@ -57,7 +65,7 @@ image-well/
 ## Usage
 
 ```bash
-# Search across default sources (Tier 1: Openverse, Wikimedia, Met, NASA)
+# Search across default sources (Tier 1: Openverse, Wikimedia, Met, Cleveland, AIC, Getty, NASA)
 uv run scripts/well.py search "ancient Minoan fresco"
 
 # Use a preset
@@ -136,10 +144,10 @@ uv run ~/.claude/skills/image-well/scripts/well.py search "Minoan pottery" \
 | Preset | Sources | Use Case |
 |--------|---------|----------|
 | `military` | nasa, wikimedia, smithsonian | Defense/military imagery (CC0 only) |
-| `museum` | met, rijksmuseum, smithsonian | Art, antiquities, historical (CC0 only) |
+| `museum` | met, cleveland, artic, getty, rijksmuseum, smithsonian | Art, antiquities, historical (CC0 only) |
 | `texture` | wikimedia, pollinations | Game dev, 3D materials |
 | `stock` | pexels, pixabay, unsplash | Editorial photography |
-| `all-free` | openverse, wikimedia, met, nasa, smithsonian | All no-key sources |
+| `all-free` | openverse, wikimedia, met, cleveland, artic, getty, nasa, smithsonian | All no-key sources |
 
 ## Key Design Decisions
 

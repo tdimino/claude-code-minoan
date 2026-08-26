@@ -285,6 +285,7 @@ def format_html(results: list[ImageResult], query: str, output_path: Path | None
 
     source_colors = {
         "openverse": "#4ade80", "wikimedia": "#a78bfa", "met": "#f0c040",
+        "cleveland": "#2dd4bf", "artic": "#e11d48", "getty": "#eab308",
         "nasa": "#38bdf8", "pexels": "#f472b6", "pixabay": "#fb923c",
         "rijksmuseum": "#818cf8", "unsplash": "#34d399", "smithsonian": "#fbbf24",
         "europeana": "#c084fc", "iconify": "#94a3b8", "pollinations": "#f43f5e",

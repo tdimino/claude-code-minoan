@@ -125,50 +125,63 @@ async def download_results(
     output_dir.mkdir(parents=True, exist_ok=True)
     downloaded = 0
     sem = asyncio.Semaphore(5)
+    # AIC asks image scrapers to download one at a time with ~1s spacing;
+    # serialize artic downloads without occupying the global slots while waiting.
+    artic_sem = asyncio.Semaphore(1)
+    artic_pause = 1.0
 
     async def download_one(r: ImageResult, session: aiohttp.ClientSession) -> bool:
         if not r.url:
             return False
+        if r.source == "artic":
+            async with artic_sem:
+                await asyncio.sleep(artic_pause)
+                async with sem:
+                    return await _fetch_and_save(r, session)
         async with sem:
-            try:
-                async with session.get(r.url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
-                    if resp.status != 200:
-                        if not quiet:
-                            warn(f"Download failed ({resp.status}): {r.url[:60]}")
-                        return False
-                    data = await resp.read()
-            except (aiohttp.ClientError, TimeoutError) as e:
-                if not quiet:
-                    warn(f"Download error: {e}")
-                return False
+            return await _fetch_and_save(r, session)
 
-            # Determine extension from URL or content-type
-            ext = ".jpg"
-            url_lower = r.url.lower().split("?")[0]
-            if url_lower.endswith(".png"):
-                ext = ".png"
-            elif url_lower.endswith(".webp"):
-                ext = ".webp"
-            elif url_lower.endswith(".svg"):
-                ext = ".svg"
-
-            # Sanitize filename
-            safe_title = "".join(c if c.isalnum() or c in "-_ " else "" for c in r.title)[:40].strip()
-            safe_title = safe_title.replace(" ", "_") or "image"
-            h = hashlib.sha256(r.url.encode()).hexdigest()[:8]
-            filename = f"{r.source}_{safe_title}_{h}{ext}"
-
-            filepath = output_dir / filename
-            filepath.write_bytes(data)
-
-            # Write metadata sidecar
-            meta_path = output_dir / f"{filename}.meta.json"
-            meta_path.write_text(json.dumps(r.to_dict(), indent=2))
-
+    async def _fetch_and_save(r: ImageResult, session: aiohttp.ClientSession) -> bool:
+        headers = {"AIC-User-Agent": "ImageWell/1.0 (github.com/tdimino)"} if r.source == "artic" else None
+        try:
+            async with session.get(r.url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                if resp.status != 200:
+                    if not quiet:
+                        warn(f"Download failed ({resp.status}): {r.url[:60]}")
+                    return False
+                data = await resp.read()
+        except (aiohttp.ClientError, TimeoutError) as e:
             if not quiet:
-                size_kb = len(data) / 1024
-                print(f"  \u2193 {filename} ({size_kb:.0f} KB)")
-            return True
+                warn(f"Download error: {e}")
+            return False
+
+        # Determine extension from URL or content-type
+        ext = ".jpg"
+        url_lower = r.url.lower().split("?")[0]
+        if url_lower.endswith(".png"):
+            ext = ".png"
+        elif url_lower.endswith(".webp"):
+            ext = ".webp"
+        elif url_lower.endswith(".svg"):
+            ext = ".svg"
+
+        # Sanitize filename
+        safe_title = "".join(c if c.isalnum() or c in "-_ " else "" for c in r.title)[:40].strip()
+        safe_title = safe_title.replace(" ", "_") or "image"
+        h = hashlib.sha256(r.url.encode()).hexdigest()[:8]
+        filename = f"{r.source}_{safe_title}_{h}{ext}"
+
+        filepath = output_dir / filename
+        filepath.write_bytes(data)
+
+        # Write metadata sidecar
+        meta_path = output_dir / f"{filename}.meta.json"
+        meta_path.write_text(json.dumps(r.to_dict(), indent=2))
+
+        if not quiet:
+            size_kb = len(data) / 1024
+            print(f"  \u2193 {filename} ({size_kb:.0f} KB)")
+        return True
 
     async with aiohttp.ClientSession(
         headers={"User-Agent": "ImageWell/1.0 (github.com/tdimino)"}

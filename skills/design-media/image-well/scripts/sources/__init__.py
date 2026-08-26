@@ -8,6 +8,9 @@ _SOURCE_MODULES: dict[str, tuple[str, str]] = {
     "openverse": ("openverse", "OpenverseSource"),
     "wikimedia": ("wikimedia", "WikimediaSource"),
     "met": ("met_museum", "MetMuseumSource"),
+    "cleveland": ("cleveland", "ClevelandSource"),
+    "artic": ("artic", "ArticSource"),
+    "getty": ("getty", "GettySource"),
     "nasa": ("nasa", "NasaSource"),
     "pexels": ("pexels", "PexelsSource"),
     "pixabay": ("pixabay", "PixabaySource"),
@@ -21,13 +24,13 @@ _SOURCE_MODULES: dict[str, tuple[str, str]] = {
 
 PRESETS: dict[str, dict] = {
     "military": {"sources": ["nasa", "wikimedia", "smithsonian"], "license": "cc0"},
-    "museum": {"sources": ["met", "rijksmuseum", "smithsonian"], "license": "cc0"},
+    "museum": {"sources": ["met", "cleveland", "artic", "getty", "rijksmuseum", "smithsonian"], "license": "cc0"},
     "texture": {"sources": ["wikimedia", "pollinations"], "license": "any"},
     "stock": {"sources": ["pexels", "pixabay", "unsplash"], "license": "any"},
-    "all-free": {"sources": ["openverse", "wikimedia", "met", "nasa", "smithsonian"], "license": "any"},
+    "all-free": {"sources": ["openverse", "wikimedia", "met", "cleveland", "artic", "getty", "nasa", "smithsonian"], "license": "any"},
 }
 
-TIER_1 = ["openverse", "wikimedia", "met", "nasa"]
+TIER_1 = ["openverse", "wikimedia", "met", "cleveland", "artic", "getty", "nasa"]
 TIER_2 = ["pexels", "pixabay", "rijksmuseum", "unsplash"]
 TIER_3 = ["smithsonian", "europeana", "iconify", "pollinations"]
 

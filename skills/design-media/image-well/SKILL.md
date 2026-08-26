@@ -1,11 +1,11 @@
 ---
 name: image-well
-description: "Search and download images from 12 APIs in parallel (Openverse, Pexels, Pixabay, Met Museum, NASA, Rijksmuseum, Wikimedia Commons, Unsplash, Smithsonian, Europeana, Iconify, Pollinations AI). Supports license filtering, presets (military, museum, stock), cached results, and bulk download with metadata sidecars. Triggers on find images, stock photos, public domain artwork, museum images, CC-licensed, NASA photos, icons."
+description: "Search and download images from 15 APIs in parallel (Openverse, Pexels, Pixabay, Met Museum, Cleveland Museum, Art Institute of Chicago, Getty Museum, NASA, Rijksmuseum, Wikimedia Commons, Unsplash, Smithsonian, Europeana, Iconify, Pollinations AI). Supports license filtering, presets (military, museum, stock), cached results, and bulk download with metadata sidecars. Triggers on find images, stock photos, public domain artwork, museum images, CC-licensed, NASA photos, icons."
 ---
 
 # Image Well
 
-Search and download images from 12 sources through a single CLI. Four sources work with zero API keys (Openverse, Wikimedia, Met Museum, NASA). Additional sources activate when keys are set.
+Search and download images from 15 sources through a single CLI. Seven sources work with zero API keys (Openverse, Wikimedia, Met Museum, Cleveland Museum, Art Institute of Chicago, Getty Museum, NASA). Additional sources activate when keys are set.
 
 ## Quick Start
 
@@ -36,6 +36,9 @@ uv run ~/.claude/skills/image-well/scripts/well.py search "cat" --format json
 | 1 | Openverse (800M+) | No | CC variants |
 | 1 | Wikimedia Commons | No | CC variants |
 | 1 | Met Museum (375k) | No | CC0 |
+| 1 | Cleveland Museum (37k) | No | CC0 |
+| 1 | Art Inst. Chicago (60k+) | No | Public Domain |
+| 1 | Getty Museum (Open Content) | No | CC0 |
 | 1 | NASA (140k) | No | Public Domain |
 | 2 | Pexels | `PEXELS_API_KEY` | Pexels License |
 | 2 | Pixabay | `PIXABAY_API_KEY` | Pixabay License |
@@ -48,15 +51,31 @@ uv run ~/.claude/skills/image-well/scripts/well.py search "cat" --format json
 
 Add Tier 2 keys to `~/.config/env/secrets.env` for expanded coverage.
 
+Source notes:
+
+- **Cleveland** downloads the ~3400px print JPEG; the ~900px web derivative is the thumbnail. The archival TIFFs are never fetched.
+- **Art Institute of Chicago** images are public domain (`PD`), not formally CC0 — `--license cc0` accepts them. Downloads use AIC's preferred 843px IIIF size and are serialized (1/s) per their API etiquette.
+- **Getty** rides the collection website's undocumented JSON search API (`open_content=true` filter) — the only keyword-search surface Getty exposes. Every emitted row is gated on the CC0 URI in its IIIF manifest license; downloads at 1200px IIIF. Superb Greek/Roman/Etruscan; thin on Egypt/Near East.
+
+### Museum Collections on Wikimedia Commons
+
+Some museums have no usable API but mass-uploaded their images to Wikimedia Commons. Search them through the existing `wikimedia` source with a category-scoped query:
+
+| Museum | Commons Files | Example |
+|--------|--------------|---------|
+| Walters Art Museum | ~18,600 | `incategory:"Media contributed by the Walters Art Museum" scarab` |
+
+The Walters v1 API closed in 2023 and the whole `thewalters.org` domain (including its image CDN) sits behind Cloudflare bot protection — Commons is the only programmatic path. Note the 2012 Walters upload was recorded as CC BY-SA 3.0 (many files also carry a Public Domain Mark); keep the per-file license Commons reports rather than assuming CC0.
+
 ## Presets
 
 | Preset | Sources | Use Case |
 |--------|---------|----------|
 | `military` | nasa, wikimedia, smithsonian | Defense/military imagery |
-| `museum` | met, rijksmuseum, smithsonian | Art, antiquities, historical |
+| `museum` | met, cleveland, artic, getty, rijksmuseum, smithsonian | Art, antiquities, historical |
 | `texture` | wikimedia, pollinations | Game dev, 3D materials |
 | `stock` | pexels, pixabay, unsplash | Editorial photography |
-| `all-free` | openverse, wikimedia, met, nasa, smithsonian | All no-key sources |
+| `all-free` | openverse, wikimedia, met, cleveland, artic, getty, nasa, smithsonian | All no-key sources |
 
 ## Options
 
