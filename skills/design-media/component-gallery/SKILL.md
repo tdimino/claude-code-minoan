@@ -23,6 +23,7 @@ Read these files directly for fast lookup. No RAG query needed.
 | `references/component-index.md` | All 60 component types with alt names, example counts, descriptions |
 | `references/design-system-index.md` | All 95 design systems with org, tech stack, features, links |
 | `references/component-taxonomy.md` | Components grouped by functional category (Forms, Navigation, Feedback, Layout, Data Display, Actions) |
+| `references/*-pattern.md` | Externally-sourced pattern docs: `astryx-hero-pattern.md` (depth-parallax hero), `fluid-dom-pattern.md` (fluid over DOM), `composio-glitch-hero-pattern.md` (generative pixel-glitch canvas hero), `composio-agent-console-pattern.md` (product diorama of tool-call panels) |
 
 For a quick answer to "what is this component called?" or "which design systems use React?"—read the index files. Reserve RAG queries for deeper questions.
 

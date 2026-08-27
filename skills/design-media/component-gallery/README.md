@@ -97,7 +97,9 @@ component-gallery/
 │   ├── design-system-index.md
 │   ├── index.json
 │   ├── astryx-hero-pattern.md        Depth-parallax editorial hero pattern
-│   └── fluid-dom-pattern.md          Stable fluid simulation over live DOM
+│   ├── fluid-dom-pattern.md          Stable fluid simulation over live DOM
+│   ├── composio-glitch-hero-pattern.md   Generative pixel-glitch canvas hero
+│   └── composio-agent-console-pattern.md Product diorama of tool-call panels
 └── scripts/
     ├── ingest.py          # Crawl + build RAG collection
     ├── build_indexes.py   # Generate static reference files

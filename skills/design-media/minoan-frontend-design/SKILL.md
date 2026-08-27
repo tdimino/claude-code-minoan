@@ -1,6 +1,6 @@
 ---
 name: minoan-frontend-design
-description: Build distinctive, production-grade frontend interfaces — websites, landing pages, dashboards, React components, HTML/CSS layouts, editorial heroes with depth-parallax (Astryx pattern), pointer-reactive fluid effects. Avoids generic AI aesthetics. Triggers on web UI, styling, beautify, frontend design, dashboard, landing page, React component, editorial hero.
+description: Build distinctive, production-grade frontend interfaces — websites, landing pages, dashboards, React components, HTML/CSS layouts, editorial heroes with depth-parallax (Astryx pattern), pointer-reactive fluid effects, pixel-glitch canvas heroes and terminal-style tool-panel dioramas (Composio pattern). Avoids generic AI aesthetics. Triggers on web UI, styling, beautify, frontend design, dashboard, landing page, React component, editorial hero, glitch hero, dev-tool landing page.
 ---
 
 <!-- Creative core: syncretic-v3 (eval/skills/syncretic-v3.md). See eval/skills/INDEX.md for lineage. -->
@@ -88,6 +88,7 @@ Consult `references/` on demand:
 **Techniques**: `creative-arsenal.md`, `design-dials.md`, `editorial-patterns.md` (eval-tested), `astryx-hero.md` (depth-parallax editorial hero + fluid-dom sibling links). **Shader cross-ref**: `~/.claude/skills/rocaille-shader/references/fluid-dom.md` (pointer-reactive fluid over DOM sections).
 **Stripe** (light-mode): `stripe-design-tokens.md`, `stripe-component-patterns.md`, `stripe-signature-techniques.md`.
 **Mintlify** (dark-first docs): `mintlify-design-tokens.md`, `mintlify-component-patterns.md`, `mintlify-signature-techniques.md`.
+**Composio** (dark dev-tool, mono chrome + glitch art): `composio-design-tokens.md`, `composio-component-patterns.md`, `composio-signature-techniques.md`.
 **Anti-patterns**: `anti-patterns.md` (condensed checklist from Impeccable v3.1.0, incl. brand register guards).
 **Critique & Scoring**: `heuristics-scoring.md` (Nielsen's 10, P0-P3 severity), `cognitive-load.md` (8-item checklist, working memory rule), `personas.md` (5 archetypes + project-specific).
 **Design system exemplar**: `linear-design-md.md` (DESIGN.md format—tokens, components, responsive rules from Linear).

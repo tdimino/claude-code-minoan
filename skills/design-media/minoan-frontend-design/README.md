@@ -97,6 +97,9 @@ minoan-frontend-design/
 │   │   ├── mintlify-design-tokens.md     Mintlify dark-first tokens
 │   │   ├── mintlify-component-patterns.md Mintlify component patterns
 │   │   ├── mintlify-signature-techniques.md Mintlify signature effects
+│   │   ├── composio-design-tokens.md     Composio dev-tool tokens (shadcn base)
+│   │   ├── composio-component-patterns.md Composio component patterns
+│   │   ├── composio-signature-techniques.md Mono-as-chrome, glitch art, UI dioramas
 │   │   ├── rothenberg-portfolio-patterns.md Dark editorial portfolio archetype
 │   │   └── vercel-web-interface-guidelines.md Engineering standards from Vercel
 └── eval/
