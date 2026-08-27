@@ -7,10 +7,10 @@ Reverse-engineered component architecture from composio.dev (August 2026). Each 
 ## Labels & Buttons
 
 **Mono Eyebrow Chip** — Section label as a bordered chip: small filled square + uppercase monospace text.
-`<span class="eyebrow">■ WHY COMPOSIO</span>` with `font-family: 'JetBrains Mono'; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--border); padding: 4px 10px; display: inline-flex; gap: 8px; align-items: center`. The square is a `6px × 6px` filled span, not a bullet glyph. Use for section eyebrows on both dark and light bands—the chip border keys to the band's hairline color.
+`<span class="eyebrow">■ WHY COMPOSIO</span>` with `font-family: 'JetBrains Mono'; font-size: 14px; border: 1px solid var(--border); padding: 4px 8px; display: inline-flex; gap: 8px; align-items: center`. Caps are typed into the content (no `text-transform`); tracking is near-flat (−0.011em). The square is a `6px × 6px` filled span, not a bullet glyph. Use for section eyebrows on both dark and light bands—the chip border keys to the band's hairline color.
 
 **Uppercase-Mono CTA Pair** — Primary + secondary buttons, both uppercase JetBrains Mono, near-square corners.
-Primary inverts against the band: white bg/black text on dark, black bg/white text on light. Secondary is transparent with 1px hairline border. `padding: 12px 24px; border-radius: 4px; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; font-family: 'JetBrains Mono'`. Labels are imperative and tracking-tagged (`GET STARTED FOR FREE`, `GET A DEMO`). Use for hero and final-CTA sections; the mono treatment makes buttons read as terminal commands.
+Primary inverts against the band: white bg/black text on dark, black bg/white text on light. Secondary is transparent with 1px hairline border. `padding: 10px 16px; border-radius: 0; font-size: 14px; font-family: 'JetBrains Mono'`—hard square corners, caps typed into the label content (`GET STARTED FOR FREE`, `GET A DEMO`), no `text-transform`. Use for hero and final-CTA sections; the mono treatment makes buttons read as terminal commands.
 
 **Variant Tag Chip** — Small outlined chip in brand color appended to a product name.
 `Composio [FOR YOU]` where the chip is `border: 1px solid #51a2ff; color: #51a2ff; font-family: mono; font-size: 11px; padding: 2px 8px; border-radius: 4px`. A green variant (`PLATFORM`) distinguishes product lines. Use for product-line disambiguation next to headings.
@@ -26,7 +26,7 @@ Left column: stacked tabs `01 SMART TOOLS / 02 CONSTANT EVOLUTION / ...` in mono
 `li { border-left: 2px solid rgba(255,255,255,0.3); padding-left: 12px; margin-bottom: 12px; }`. Reads as annotation marks in a technical document. Use inside feature rails and comparison columns; pairs with mono eyebrow chips.
 
 **Accordion (Hairline Rows)** — Security/FAQ accordion as full-width hairline rows with +/− toggles.
-Rows separated by `border-bottom: 1px solid rgba(255,255,255,0.12)`; open row shows a `−`, closed rows `+`, right-aligned; open-row title white, closed-row titles at `rgba(255,255,255,0.4)`. Content is a single muted line under the title. Use for FAQ/security/detail sections where content should stay quiet until summoned.
+Rows separated by `border-bottom: 1px solid rgba(255,255,255,0.12)`; open row shows a `−`, closed rows `+`, right-aligned; open-row title white, closed-row titles at `rgba(255,255,255,0.32)`. Content is a single muted line under the title. Use for FAQ/security/detail sections where content should stay quiet until summoned.
 
 ---
 
@@ -52,4 +52,4 @@ Image sits inside a container with `outline: 1px dashed rgba(255,255,255,0.3)`; 
 Columns (`PRODUCTS / SOLUTIONS / FOR AGENTS / RESOURCES / COMPANY`) with mono uppercase column headers at `rgba(255,255,255,0.4)` and link rows at `rgba(255,255,255,0.8)`; hairline column separators; social icon row bottom-left, copyright bottom-right. Everything 11–13px mono. Use for developer-tool footers—the directory doubles as a sitemap and reads as a man page.
 
 **Logo Marquee (Dark-Band Variant)** — Infinite client-logo ticker, logos rendered monochrome at low opacity on the dark hero.
-Mechanism per `marquee-component.md` (triplicated list, `translateX(-33.33%)` loop). Composio's variant: logos at `opacity: 0.5`, grayscale/white treatment, no separators, sitting directly under the hero CTA pair. Extends `marquee-component.md`—see that file for the base implementation.
+Mechanism per `marquee-component.md` (triplicated list, `translateX(-33.33%)` loop; Composio uses three `.logoloop__list` runs of six inside a `.logoloop__track`). The monochrome treatment is a `grayscale` filter class on the wrapper (`overflow-hidden px-4 py-[14px] grayscale`), logos at full opacity—not an opacity fade. No separators, sitting directly under the hero CTA pair. Extends `marquee-component.md`—see that file for the base implementation.

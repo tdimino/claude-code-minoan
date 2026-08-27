@@ -26,7 +26,7 @@ Composio runs a stock shadcn/Tailwind v4 token system (oklch neutrals, `--sideba
 | Brand Blue | `#51a2ff` | Links, accents, "FOR YOU" chip borders |
 | Brand Hover | `#3590f5` | Hover state |
 | Brand Active | `#1f7ee8` | Active/pressed state |
-| Deep Blue | `rgb(0, 7, 205)` | Saturated accent inside glitch art |
+| Deep Blue | `rgb(0, 7, 205)` | Saturated accent (observed in computed styles; likely glitch-art family) |
 | Emerald Status | `bg-emerald-400` / `oklch(0.792 0.209 151.711)` | Live/connected status dots |
 | Violet Accent | `rgb(139, 92, 246)` | Syntax highlighting, secondary accent |
 
@@ -61,7 +61,7 @@ Key principle: on dark bands, hierarchy comes from white-alpha steps (`/0.85` bo
 | Technical chrome | JetBrains Mono | Eyebrow labels, buttons, panel titles, footer nav, metadata. SIL OFL. |
 | Terminal fallback | Menlo | Inside code panes |
 
-Scale observed: hero ~64–72px/1.05 grotesk; section headers ~40–48px; eyebrow labels ~11–12px uppercase mono with wide tracking; body 16px. Mono chrome is always uppercase with `letter-spacing: 0.05–0.1em`.
+Scale observed (1280px viewport): hero 64px/1.05 grotesk; section headers 40–44px; eyebrow chips 14px mono, nav category headers 11px; body 16px. Mono chrome is uppercase by *content*—caps are typed into the HTML, not applied via `text-transform`. Tracking runs near-flat to slightly negative (−0.011em at 14px), turning positive (~0.05em) only on the 11px nav headers.
 
 ---
 
@@ -70,11 +70,11 @@ Scale observed: hero ~64–72px/1.05 grotesk; section headers ~40–48px; eyebro
 | Token | Value | Usage |
 |-------|-------|-------|
 | `--radius` | `.625rem` (10px) | shadcn default, used on app-like panels |
-| Marketing radius | `4px` | Buttons, chips, cards—near-square, technical feel |
+| Marketing radius | `0px` | Buttons—hard square corners, technical feel |
 | Full round | `9999px` | Status dots only |
 | Hairline | `1px` at `--border` (light) / `rgba(255,255,255,0.1–0.15)` (dark) | Card borders, grid rules, accordion rows |
 
-The 4px marketing radius against shadcn's 10px default is deliberate: marketing surfaces read squarer and more technical than the product.
+Square-cornered marketing buttons against shadcn's 10px product default is deliberate: the marketing surface reads harder and more technical than the app.
 
 ---
 

@@ -9,7 +9,7 @@ High-level design patterns that define composio.dev's visual identity (August 20
 Every piece of interface *chrome*—eyebrow labels, buttons, panel titles, tab labels, footer nav, metadata captions—is uppercase JetBrains Mono, while every piece of *content*—headlines, body copy—is a humanist grotesk (ABC Diatype). The split is absolute: mono never carries prose, grotesk never carries chrome.
 
 **Key rules:**
-- Mono chrome is always uppercase, 11–13px, `letter-spacing: 0.05–0.1em`
+- Mono chrome is always uppercase, 11–14px; the caps are typed into the content, not applied via `text-transform`, and tracking sits near-flat to slightly negative (−0.011em), going positive only at the tiniest 11px labels
 - Buttons become terminal commands (`GET STARTED FOR FREE`), labels become system identifiers (`COMPOSIO_SEARCH_TOOLS`)
 - Snake_case and SCREAMING_CASE in labels are features, not bugs—they signal "this is API surface"
 - The grotesk stays sentence-case and generously sized (40–72px headlines) so the two voices never blur

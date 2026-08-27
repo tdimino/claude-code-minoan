@@ -7,12 +7,12 @@ Generative pixel-glitch canvas backdrop behind hero typography. Rectangular bloc
 ## Source
 
 - **URL**: https://composio.dev/
-- **Engine**: Custom `<canvas>` (2D context, no WebGL detected), Next.js site
+- **Engine**: Custom `<canvas>` on a Next.js site (context type not externally inspectable; the block-fill aesthetic needs only a 2D context)
 - **Platform**: Custom React / Tailwind v4 / shadcn tokens
 
 ## Technique
 
-A single full-width canvas (viewport-width × ~644px, absolutely positioned at `top: 0` behind the hero content) paints clusters of axis-aligned rectangles in the brand palette, concentrated toward the top corners and thinning toward center, leaving a calm zone for the headline. Blocks appear, shift, and decay in stepped (non-eased) jumps—the glitch reads because motion is *quantized*, not smooth. The same visual language is exported as static PNGs for section art and echoed in ASCII display type, giving the motif three cost tiers (live canvas → static image → text).
+A single full-width canvas (viewport-width × ~644px; the canvas itself is static inside an absolutely-positioned `inset-y-0 z-0` wrapper behind the hero content) paints clusters of axis-aligned rectangles in the brand palette, concentrated toward the top corners and thinning toward center, leaving a calm zone for the headline. Blocks appear, shift, and decay in stepped (non-eased) jumps—the glitch reads because motion is *quantized*, not smooth. The same visual language is exported as static PNGs for section art and echoed in ASCII display type, giving the motif three cost tiers (live canvas → static image → text).
 
 ## Tags
 
@@ -24,13 +24,13 @@ A single full-width canvas (viewport-width × ~644px, absolutely positioned at `
 |----------|-------|
 | Effect family | Generative block-glitch (2D canvas fill) |
 | Render loop | Stepped/quantized updates; ~12–24fps reads best |
-| GPU cost | Minimal (2D `fillRect` batches, no shaders) |
+| GPU cost | Minimal (axis-aligned block fills; no shader work required) |
 | Pointer input | None—time-driven, not pointer-reactive |
 | DPR strategy | Scale canvas by `devicePixelRatio`, blocks stay axis-aligned |
 | Reduced motion | Freeze to a single painted frame, or swap static PNG of same composition |
 | No-JS fallback | Static PNG (site uses this approach for section art) |
 | Palette | Brand blues + cyan + pink + white on `#0f0f0f`; never rainbow |
-| Typography over it | Large grotesk (~64–72px), white, centered in the calm zone |
+| Typography over it | Large grotesk (64px at desktop), white, centered in the calm zone |
 
 ## Cross-References
 
