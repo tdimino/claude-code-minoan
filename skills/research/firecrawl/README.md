@@ -1,8 +1,8 @@
 # Firecrawl
 
-Cleaner web scraping than `WebFetch` — handles JavaScript-heavy pages, avoids content truncation, and exposes the full Firecrawl v2 API: scrape, crawl, map, search, document parsing (PDF/DOCX/XLSX), LLM extraction, autonomous agents, and post-scrape browser interaction. Ships with a token-efficient filter pipeline and a DeepWiki helper for GitHub repo documentation.
+Cleaner web scraping than `WebFetch` — handles JavaScript-heavy pages, avoids content truncation, and exposes the full Firecrawl v2 API: scrape, crawl, map, search, document parsing (PDF/DOCX/XLSX), LLM extraction, autonomous agents, and post-scrape browser interaction. **Free keyless mode** for search/scrape/parse/interact — no API key or signup required. Ships with a token-efficient filter pipeline and a DeepWiki helper for GitHub repo documentation.
 
-**Last updated:** 2026-04-28
+**Last updated:** 2026-08-28
 
 ---
 
@@ -15,12 +15,18 @@ Cleaner web scraping than `WebFetch` — handles JavaScript-heavy pages, avoids 
 ## Prerequisites
 
 ```bash
-npm install -g firecrawl-cli
+# Keyless (search/scrape/parse/interact work immediately, no API key needed):
+npm install -g firecrawl-cli@latest
+pip install 'firecrawl-py>=4.17.0' requests
+
+# Full access (crawl, map, batch-scrape, agent, extract, monitor):
 firecrawl login --api-key $FIRECRAWL_API_KEY
-pip install 'firecrawl-py>=4.17.0' requests   # ≥4.17.0 required for parse
+
+# Agent setup (installs CLI + skill segments into coding agents + OAuth):
+npx -y firecrawl-cli@latest init --all --browser
 ```
 
-`FIRECRAWL_API_KEY` lives in `~/.config/env/secrets.env`. Optional: `export FIRECRAWL_NO_TELEMETRY=1`.
+`FIRECRAWL_API_KEY` lives in `~/.config/env/secrets.env`. Optional for keyless commands. Optional: `export FIRECRAWL_NO_TELEMETRY=1`.
 
 ---
 
@@ -47,11 +53,28 @@ firecrawl/
 
 ---
 
+## Keyless Mode (v2.11.0+)
+
+Firecrawl's core endpoints work **without an API key**, rate-limited per IP per day. No signup required.
+
+| Mode | Commands | Auth |
+|------|----------|------|
+| Keyless | Search, Scrape, Parse, Interact | None (per-IP daily cap) |
+| Free API key | All above + higher limits | Free signup, 1,000 credits |
+| Paid | Everything | API key required |
+
+**Keyless MCP endpoint:** `https://mcp.firecrawl.dev/v2/mcp` — Search/Scrape/Parse without any key.
+
+**Search accuracy:** 94.7% on SimpleQA — custom relevance model returns the most relevant excerpts with 10x fewer tokens than full-page processing.
+
+---
+
 ## Quick Start
 
 ### Single page → Markdown
 
 ```bash
+# Works keyless — no API key needed
 firecrawl scrape https://docs.example.com/api --only-main-content
 firecrawl scrape URL --only-main-content -o page.md
 ```
@@ -59,6 +82,7 @@ firecrawl scrape URL --only-main-content -o page.md
 ### Search the web
 
 ```bash
+# Works keyless — 94.7% SimpleQA accuracy
 firecrawl search "claude code skill patterns" --limit 10
 firecrawl search "query" --scrape --scrape-formats markdown
 ```
@@ -83,7 +107,7 @@ firecrawl scrape URL --only-main-content | \
 
 ## Python API Script
 
-`firecrawl_api.py` covers everything the CLI doesn't, plus the agent and interact APIs.
+`firecrawl_api.py` covers everything the CLI doesn't, plus the agent and interact APIs. `FIRECRAWL_API_KEY` is optional for keyless commands (search, scrape, parse, interact); required for all others.
 
 | Command | Purpose | Example |
 |---------|---------|---------|
@@ -163,6 +187,8 @@ AI-generated wikis for any public GitHub repo. No API key.
 
 | Need | Tool |
 |------|------|
+| Free scrape, no API key | `firecrawl scrape` (keyless) |
+| Free search, no API key | `firecrawl search` (keyless, 94.7% SimpleQA) |
 | Single page → clean Markdown | `firecrawl scrape --only-main-content` |
 | Search + scrape in one shot | `firecrawl search --scrape` |
 | Crawl entire site with progress | `firecrawl crawl --wait --progress` |

@@ -28,7 +28,7 @@ Usage:
     python firecrawl_api.py extract "https://example.com/*" --prompt "Find pricing"
     python firecrawl_api.py agent "Find YC W24 AI startups with funding info"
 
-Requires: FIRECRAWL_API_KEY environment variable
+Requires: FIRECRAWL_API_KEY environment variable (optional for keyless-eligible commands: search, scrape, parse, interact)
 Install: pip install firecrawl-py requests
 """
 
@@ -52,22 +52,33 @@ FIRECRAWL_API_KEY = os.environ.get("FIRECRAWL_API_KEY")
 BASE_URL = "https://api.firecrawl.dev/v1"
 BASE_URL_V2 = "https://api.firecrawl.dev/v2"
 
+KEYLESS_COMMANDS = {"search", "scrape", "parse", "interact", "interact-stop"}
 
-def _get_app() -> 'FirecrawlClient':
-    """Get Firecrawl client instance with API key."""
+
+def _require_api_key(command: str = "this command"):
+    """Raise if API key is missing and the command isn't keyless-eligible."""
+    if not FIRECRAWL_API_KEY and command not in KEYLESS_COMMANDS:
+        raise ValueError(
+            f"FIRECRAWL_API_KEY environment variable not set. "
+            f"'{command}' requires an API key. Keyless-eligible commands: {', '.join(sorted(KEYLESS_COMMANDS))}"
+        )
+
+
+def _get_app(command: str = "") -> 'FirecrawlClient':
+    """Get Firecrawl client instance. Keyless-eligible commands work without a key."""
+    _require_api_key(command)
     if not FIRECRAWL_API_KEY:
-        raise ValueError("FIRECRAWL_API_KEY environment variable not set")
+        return FirecrawlClient(api_key="")
     return FirecrawlClient(api_key=FIRECRAWL_API_KEY)
 
 
-def _headers() -> Dict[str, str]:
-    """Get headers for direct API calls."""
-    if not FIRECRAWL_API_KEY:
-        raise ValueError("FIRECRAWL_API_KEY environment variable not set")
-    return {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {FIRECRAWL_API_KEY}"
-    }
+def _headers(command: str = "") -> Dict[str, str]:
+    """Get headers for direct API calls. Omits Authorization for keyless mode."""
+    _require_api_key(command)
+    headers = {"Content-Type": "application/json"}
+    if FIRECRAWL_API_KEY:
+        headers["Authorization"] = f"Bearer {FIRECRAWL_API_KEY}"
+    return headers
 
 
 def search(
@@ -123,8 +134,8 @@ def search(
             "formats": scrape_formats or ["markdown"]
         }
 
-    if HAS_FIRECRAWL_SDK:
-        app = _get_app()
+    if HAS_FIRECRAWL_SDK and FIRECRAWL_API_KEY:
+        app = _get_app("search")
         result = app.search(query, limit=limit)
         # Convert SDK response to dict format
         # New SDK returns SearchData with .web attribute containing results
@@ -148,7 +159,7 @@ def search(
     else:
         response = requests.post(
             f"{BASE_URL}/search",
-            headers=_headers(),
+            headers=_headers("search"),
             json=payload
         )
         response.raise_for_status()
@@ -259,8 +270,8 @@ def scrape(
         and pdf_mode is None
         and pdf_max_pages is None
     )
-    if use_sdk:
-        app = _get_app()
+    if use_sdk and FIRECRAWL_API_KEY:
+        app = _get_app("scrape")
         # New SDK uses scrape() with keyword args
         result = app.scrape(
             url,
@@ -279,7 +290,7 @@ def scrape(
     else:
         response = requests.post(
             f"{BASE_URL}/scrape",
-            headers=_headers(),
+            headers=_headers("scrape"),
             json=payload
         )
         response.raise_for_status()
@@ -1021,9 +1032,9 @@ def parse_document(
     if path.stat().st_size > 50 * 1024 * 1024:
         raise ValueError(f"File exceeds 50 MB limit: {path.stat().st_size / 1024 / 1024:.1f} MB")
 
-    if HAS_FIRECRAWL_SDK and not zero_data_retention:
+    if HAS_FIRECRAWL_SDK and not zero_data_retention and FIRECRAWL_API_KEY:
         from firecrawl.v2.types import ScrapeOptions
-        app = _get_app()
+        app = _get_app("parse")
         opts_kwargs = {}
         if formats:
             opts_kwargs["formats"] = formats
@@ -1081,9 +1092,10 @@ def parse_document(
             data = {}
             if options:
                 data["options"] = json.dumps(options)
+            parse_headers = {"Authorization": f"Bearer {FIRECRAWL_API_KEY}"} if FIRECRAWL_API_KEY else {}
             response = requests.post(
                 f"{BASE_URL_V2}/parse",
-                headers={"Authorization": f"Bearer {FIRECRAWL_API_KEY}"},
+                headers=parse_headers,
                 files=files,
                 data=data
             )
@@ -1247,7 +1259,7 @@ def interact(
 
     response = requests.post(
         f"{BASE_URL_V2}/scrape/{scrape_id}/interact",
-        headers=_headers(),
+        headers=_headers("interact"),
         json=payload
     )
     response.raise_for_status()
@@ -1269,7 +1281,7 @@ def interact_stop(scrape_id: str) -> Dict[str, Any]:
     """
     response = requests.delete(
         f"{BASE_URL_V2}/scrape/{scrape_id}/interact",
-        headers=_headers()
+        headers=_headers("interact-stop")
     )
     response.raise_for_status()
     return response.json()

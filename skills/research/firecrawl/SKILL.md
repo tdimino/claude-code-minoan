@@ -1,6 +1,6 @@
 ---
 name: firecrawl
-description: Scrape web pages to clean markdown using Firecrawl v2 — handles JS-heavy pages, site crawls, URL mapping, document parsing (PDF/DOCX/XLSX), LLM-powered extraction, autonomous agent scraping, and post-scrape browser interaction (Interact API). Prefer over WebFetch for quality and completeness. Triggers on scrape URL, fetch page, crawl site, extract content, parse document, web to markdown, DeepWiki, Firecrawl.
+description: Scrape web pages to clean markdown using Firecrawl v2 — handles JS-heavy pages, site crawls, URL mapping, document parsing (PDF/DOCX/XLSX), LLM-powered extraction, autonomous agent scraping, and post-scrape browser interaction (Interact API). Free keyless mode available for search/scrape/parse/interact (no API key needed). Prefer over WebFetch for quality and completeness. Triggers on scrape URL, fetch page, crawl site, extract content, parse document, web to markdown, DeepWiki, Firecrawl.
 ---
 
 # Firecrawl & Jina Web Scraping
@@ -13,6 +13,34 @@ Prefer `firecrawl scrape URL --only-main-content` over the WebFetch tool—it pr
 # Preferred approach:
 firecrawl scrape https://docs.example.com/api --only-main-content
 ```
+
+## Keyless Mode (v2.11.0+)
+
+Firecrawl's core endpoints work **without an API key**, rate-limited per IP per day. No signup required.
+
+**Keyless-eligible commands:** Search, Scrape, Parse, Interact
+**Requires API key:** Crawl, Map, Batch Scrape, Agent, Extract, Monitor
+
+```bash
+# Quick start — no API key needed:
+firecrawl scrape https://example.com --only-main-content
+firecrawl search "query" --limit 10
+
+# Python script also works keyless for eligible commands:
+python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py scrape https://example.com
+```
+
+**Rate limits:** Per-IP daily cap on requests and credits (exact numbers unpublished, below 1,000 credits/day). Sign up for a free API key to get 1,000 credits and higher rate limits.
+
+**Keyless MCP endpoint:** `https://mcp.firecrawl.dev/v2/mcp` — exposes Search, Scrape, Parse without any key. Use for MCP-native integrations.
+
+**Full setup (recommended for heavier use):**
+```bash
+npx -y firecrawl-cli@latest init --all --browser
+# Installs CLI + skill segments into coding agents + opens browser for OAuth auth
+```
+
+**Search accuracy:** 94.7% on SimpleQA — custom relevance model scores paragraphs against your query, returning the most relevant excerpts with 10x fewer tokens than full-page processing.
 
 ## Token-Efficient Scraping
 
@@ -92,14 +120,16 @@ These have built-in dynamic filtering via code execution. Use them when building
 
 ### 1. Official Firecrawl CLI (`firecrawl`) — Primary
 
-**Setup:** `npm install -g firecrawl-cli && firecrawl login --api-key $FIRECRAWL_API_KEY`
+**Keyless setup:** `npm install -g firecrawl-cli@latest` (search/scrape/parse/interact work immediately)
+**Full setup:** `npm install -g firecrawl-cli@latest && firecrawl login --api-key $FIRECRAWL_API_KEY`
+**Agent setup:** `npx -y firecrawl-cli@latest init --all --browser` (installs CLI + skills + OAuth)
 
 | Command | Purpose | Quick Example |
 |---------|---------|---------------|
 | `scrape` | Single page → markdown | `firecrawl scrape URL --only-main-content` |
 | `crawl` | Entire site with progress | `firecrawl crawl URL --wait --progress --limit 50` |
 | `map` | Discover all URLs on a site | `firecrawl map URL --search "API"` |
-| `search` | Web search (+ optional scrape) | `firecrawl search "query" --limit 10` |
+| `search` | Web search, 94.7% SimpleQA accuracy (+ optional scrape) | `firecrawl search "query" --limit 10` |
 
 **Full CLI reference:** `references/cli-reference.md`
 
@@ -115,7 +145,7 @@ fc-save URL
 ### 3. Python API Script (`firecrawl_api.py`) — Advanced Features
 
 **Command:** `python3 ~/.claude/skills/firecrawl/scripts/firecrawl_api.py <command>`
-**Requires:** `FIRECRAWL_API_KEY` env var, `pip install firecrawl-py requests`
+**Requires:** `pip install firecrawl-py requests`. `FIRECRAWL_API_KEY` optional for keyless commands (search, scrape, parse, interact); required for all others.
 
 | Command | Purpose | Quick Example |
 |---------|---------|---------------|
@@ -171,6 +201,8 @@ jina https://x.com/username/status/123456
 
 | Need | Best Tool | Why |
 |------|-----------|-----|
+| Free scrape, no API key | `firecrawl scrape` (keyless) | Core commands work without auth |
+| Free search, no API key | `firecrawl search` (keyless) | 94.7% SimpleQA accuracy, keyless |
 | Single page → markdown | `firecrawl scrape --only-main-content` | Cleanest output |
 | Search + scrape in one shot | `firecrawl search --scrape` | Combined operation |
 | Crawl entire site | `firecrawl crawl --wait --progress` | Link following + progress |
