@@ -5,7 +5,7 @@ description: Generate and edit high-quality images using Google's Nano Banana Pr
 
 # Nano Banana Pro (Gemini 3 Pro Image)
 
-Generate and edit professional-quality images using Google's state-of-the-art Gemini 3 Pro Image model.
+Generate and edit professional-quality images using Google's state-of-the-art Gemini 3 Pro Image model. Gemini remains the default; Atlas Cloud is available as an optional provider for text-to-image generation.
 
 ## API Configuration
 
@@ -16,6 +16,15 @@ export GEMINI_API_KEY="your-api-key-here"
 ```
 
 Get your API key at: https://aistudio.google.com/apikey
+
+For optional Atlas Cloud text-to-image generation, set:
+
+```bash
+export ATLASCLOUD_API_KEY="your-api-key-here"
+python scripts/generate_image.py "A cinematic harbor at sunrise" --provider atlas
+```
+
+The Atlas path validates the configured model against the live catalog, submits one non-retried generation request, polls the prediction with bounded GET retries, and downloads the completed image. Override its live catalog model with `--atlas-model` when needed; Gemini behavior is unchanged when `--provider` is omitted.
 
 ## Quick Start
 
