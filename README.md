@@ -154,7 +154,7 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 
 | Agent | Model | Purpose |
 |-------|-------|---------|
-| `fable` | fable | Naos (ναός, √n-w-y)—visiting Mythos-class spirit for long-horizon tasks. 100-turn budget, full tool access, model self-report verification. Availability probed at invocation. |
+| `fable` | fable | Naos (ναός, √n-w-y)—visiting Mythos-class spirit for long-horizon tasks; `--opus` runs Opus 5 at half cost. 100-turn budget, full tool access, model self-report verification. Availability probed at invocation—permanent subscription access since July 2026, probe errors never reroute to Opus. |
 | `librarian` | sonnet | GitHub repo exploration via `gh` CLI. Caches to `/tmp/claude-librarian/`. |
 
 ---
