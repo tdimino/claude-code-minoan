@@ -2,8 +2,10 @@
 
 Production-grade frontend interfaces that avoid generic AI aesthetics. Bold typography, committed color palettes, unexpected layouts, meticulous detail.
 
-**Current version**: syncretic-v3 (947 words)
-**Eval record**: 70.0% vs wetch baseline (14-6, p=0.058) across 20 blind A/B comparisons
+**Creative core**: syncretic-v3 (907-word eval variant)
+**Production SKILL.md**: 1,623 words (expanded since the winning eval; not yet re-evaluated)
+**Reference sync**: Impeccable v3.1.0 (2026-05-14)
+**Eval record for syncretic-v3**: 70.0% vs wetch baseline (14-6, p=0.058) across 20 blind A/B comparisons
 
 ## Lineage
 
@@ -12,6 +14,8 @@ This skill descends from Anthropic's built-in `frontend-design` skill for Claude
 [Justin Wetch](https://www.linkedin.com/in/justinwetch/) rewrote it with clearer, more actionable instructions and validated the improvement with a 50-prompt blind A/B eval (75% win rate, p=0.006). His write-up: [Teaching Claude to Design Better](https://www.linkedin.com/pulse/teaching-claude-design-better-improving-anthropics-frontend-wetch-x45ec). His skill (`wetch.md`, 583 words) became our baseline—every win rate in this project is measured against it.
 
 [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) (2926 words) contributed ideas that were adapted into our reference files: design variance dials, a creative technique arsenal, and an anti-pattern catalog. The taste-skill itself scored 30.8% vs wetch in our eval (too long, too prescriptive), but its best ideas proved valuable when extracted into progressive disclosure files.
+
+[Impeccable](https://github.com/pbakaus/impeccable) contributed the QA, domain-craft, anti-pattern, and implementation-reference layers. Its guidance is selectively adapted rather than vendored wholesale.
 
 ## Evolution
 
@@ -30,7 +34,7 @@ syncretic-v2.md (69.2%, 849w)
   Added completeness mandate ("completeness is the floor, not the ceiling"),
   warm palette guidance, expanded anti-pattern blacklist.
     ↓
-syncretic-v3.md (70.0%, 907w) ← DEPLOYED
+syncretic-v3.md (70.0%, 907w) ← EVAL-PROVEN CREATIVE CORE
   Conceptual framing directive, statement typography (6xl-9xl), bold dark
   option, dashboard density, custom SVG illustration, taste-skill integration
   (design-dials and creative-arsenal as reference files).
@@ -48,6 +52,8 @@ Creative skill performance correlates inversely with instruction length past ~90
 
 More constraints produce more mechanical output. The SKILL.md body should contain creative philosophy and aesthetic principles. Specific techniques belong in reference files.
 
+The production file has since grown to 1,623 words. Its 70% result belongs to the 907-word syncretic-v3 variant, not automatically to the expanded file.
+
 ## Architecture
 
 ```
@@ -55,7 +61,7 @@ minoan-frontend-design/
 ├── SKILL.md                          syncretic-v3 creative core
 ├── README.md                         This file
 ├── LICENSE.txt                       Apache 2.0
-├── references/                       36 reference docs across 7 categories
+├── references/                       39 reference docs across 7 categories
 │   ├── Techniques
 │   │   ├── creative-arsenal.md           30+ named CSS techniques with code
 │   │   ├── design-dials.md               3 calibration scales (variance, motion, density)
@@ -117,7 +123,7 @@ The skill uses a three-level loading system:
 | Level | When Loaded | Content |
 |-------|-------------|---------|
 | **Metadata** | Always | Name + description (~100 tokens) |
-| **SKILL.md** | When triggered | Creative philosophy (~1200 tokens) |
+| **SKILL.md** | When triggered | Creative philosophy plus routing and QA (~1,623 words; pending re-evaluation) |
 | **References** | On demand | Specific techniques, engineering specs (unlimited) |
 
 SKILL.md contains the philosophy—what to do and why. Reference files contain the specifics—how to do it, with code examples and concrete values. Claude loads reference files only when relevant to the current task.
@@ -178,6 +184,7 @@ uv run --with anthropic,playwright,scipy,httpx eval/run_eval.py \
 - **[Anthropic](https://github.com/anthropics/claude-code)** — original `frontend-design` skill
 - **[Justin Wetch](https://www.linkedin.com/in/justinwetch/)** — rewrite, eval methodology, and baseline skill
 - **[Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill)** — design dials and creative arsenal concepts
+- **[Impeccable](https://github.com/pbakaus/impeccable)** — domain craft, QA, and anti-pattern guidance
 - **[Vercel](https://vercel.com/design/guidelines)** — Web Interface Guidelines and Geist design system
 
 ## License
