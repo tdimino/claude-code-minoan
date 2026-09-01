@@ -1,6 +1,6 @@
 # Advanced Compositions
 
-Composite animation patterns observed on ConductorAI.com that combine multiple base modes. Use these when building custom `--mode full-page` layouts or freeform compositions beyond the standard 8 modes.
+Composite animation patterns observed on ConductorAI.com that combine multiple base modes. Use these when building custom `--mode full-page` layouts or freeform compositions beyond the standard generator modes.
 
 ## 1. Workflow / Decision Tree Graph
 
@@ -820,7 +820,7 @@ For all four corners, add a wrapper element:
 
 ## Composition Guidance
 
-These patterns are designed to be combined with the base 8 modes:
+These patterns are designed to be combined with the base modes:
 
 | Advanced Pattern | Combines With | Example |
 |-----------------|---------------|---------|

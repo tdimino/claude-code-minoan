@@ -16,6 +16,7 @@
   --cm-brand: #4F7BF7;
   --cm-brand-40: rgba(79, 123, 247, 0.4);
   --cm-brand-20: rgba(79, 123, 247, 0.2);
+  --cm-brand-hover: #3D6BE5;
   --cm-text: #E8ECF4;
   --cm-text-70: rgba(232, 236, 244, 0.7);
   --cm-text-40: rgba(232, 236, 244, 0.4);
@@ -189,10 +190,15 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
 
 .progress-bar-fill {
   height: 100%;
-  width: 0%;
+  width: 100%;
   background: linear-gradient(90deg, var(--cm-brand), var(--cm-success));
   border-radius: 3px;
-  transition: width 200ms var(--cm-ease-out-cubic);
+  transform-origin: left center;
+}
+
+html.is-loaded .progress-bar-fill {
+  transform: scaleX(0);
+  transition: transform 200ms var(--cm-ease-out-cubic);
 }
 
 .progress-status {
@@ -240,12 +246,15 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
   border: 1px solid var(--cm-border-subtle);
   border-radius: 0.75rem;
   padding: 2rem;
+}
+
+html.is-loaded .feature-card {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 600ms var(--cm-ease-out-cubic), transform 600ms var(--cm-ease-out-cubic);
 }
 
-.feature-card.is-visible { opacity: 1; transform: none; }
+html.is-loaded .feature-card.is-visible { opacity: 1; transform: none; }
 
 .feature-card h3 {
   font-size: 1.125rem;
@@ -267,12 +276,15 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
   max-width: 36rem;
   margin: 0 auto;
   overflow: hidden;
+}
+
+html.is-loaded .review-panel {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 600ms var(--cm-ease-out-cubic), transform 600ms var(--cm-ease-out-cubic);
 }
 
-.review-panel.is-visible { opacity: 1; transform: none; }
+html.is-loaded .review-panel.is-visible { opacity: 1; transform: none; }
 
 .review-header {
   display: flex;
@@ -338,7 +350,7 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
   transition: background 200ms ease;
 }
 
-.cta-btn:hover { background: #3D6BE5; }
+.cta-btn:hover { background: var(--cm-brand-hover); }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-badge, .hero-heading, .hero-subtitle, .hero-demo,
@@ -349,7 +361,7 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
   }
   .rotator-type__cursor, .progress-cursor { animation: none; }
   .review-dot.is-processing { animation: none; }
-  .progress-bar-fill { transition: none; }
+  html.is-loaded .progress-bar-fill { transition: none; }
   .navbar { transition: none !important; }
 }
 </style>
@@ -370,17 +382,17 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
 <section class="hero">
   <span class="hero-badge">AI-Powered Review</span>
   <h1 class="hero-heading">
-    <span class="rotator-base">Accelerating</span> <span class="rotator-type__text"></span><span class="rotator-type__cursor" aria-hidden="true">|</span>
+    <span class="rotator-base">Accelerating</span> <span class="rotator-type__text">complex approvals</span><span class="rotator-type__cursor" aria-hidden="true">|</span>
   </h1>
   <p class="hero-subtitle">Distill complex policies and expertise into agentic decision trees to review and approve documents at mission speed.</p>
   <div class="hero-demo">
     <div class="progress-panel">
       <div class="progress-header">
         <span>search initialization</span>
-        <span class="progress-pct">0%</span>
+        <span class="progress-pct">100%</span>
       </div>
-      <div class="progress-bar-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar-fill"></div></div>
-      <div class="progress-status"><span class="progress-typed"></span><span class="progress-cursor" aria-hidden="true">|</span></div>
+      <div class="progress-bar-track" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar-fill"></div></div>
+      <div class="progress-status"><span class="progress-typed">ranking results...</span><span class="progress-cursor" aria-hidden="true">|</span></div>
     </div>
   </div>
 </section>
@@ -410,9 +422,14 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
   <div class="review-panel scroll-reveal">
     <div class="review-header">
       <span>Document Review</span>
-      <span class="review-count">0 / 4</span>
+      <span class="review-count">4 / 4</span>
     </div>
-    <div class="file-list"></div>
+    <div class="file-list">
+      <div class="file-item"><span class="file-icon"><svg width="12" height="15" viewBox="0 0 12 15" fill="none"><path opacity="0.4" d="M3.5 5.5H8.5M3.5 7.5H8.5M3.5 9.5H8.5M0.5 0.5H8.5L11.5 3.5V14.5H0.5V0.5Z" stroke="currentColor"/></svg></span><span class="file-name">Report_Q4.xlsx</span><div class="review-dot is-reviewed"></div><span class="file-status-label">Reviewed</span></div>
+      <div class="file-item"><span class="file-icon"><svg width="12" height="15" viewBox="0 0 12 15" fill="none"><path opacity="0.4" d="M3.5 5.5H8.5M3.5 7.5H8.5M3.5 9.5H8.5M0.5 0.5H8.5L11.5 3.5V14.5H0.5V0.5Z" stroke="currentColor"/></svg></span><span class="file-name">Contract_Draft.pdf</span><div class="review-dot is-reviewed"></div><span class="file-status-label">Reviewed</span></div>
+      <div class="file-item"><span class="file-icon"><svg width="12" height="15" viewBox="0 0 12 15" fill="none"><path opacity="0.4" d="M3.5 5.5H8.5M3.5 7.5H8.5M3.5 9.5H8.5M0.5 0.5H8.5L11.5 3.5V14.5H0.5V0.5Z" stroke="currentColor"/></svg></span><span class="file-name">Audit_Log.csv</span><div class="review-dot is-reviewed"></div><span class="file-status-label">Reviewed</span></div>
+      <div class="file-item"><span class="file-icon"><svg width="12" height="15" viewBox="0 0 12 15" fill="none"><path opacity="0.4" d="M3.5 5.5H8.5M3.5 7.5H8.5M3.5 9.5H8.5M0.5 0.5H8.5L11.5 3.5V14.5H0.5V0.5Z" stroke="currentColor"/></svg></span><span class="file-name">Compliance.docx</span><div class="review-dot is-reviewed"></div><span class="file-status-label">Reviewed</span></div>
+    </div>
   </div>
 </section>
 
@@ -449,56 +466,99 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
     });
   }, { passive: true });
 
+  function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+  // Visibility-aware timers — freeze while tab is hidden, resume on return
+  const _tm = new Map();
+  let _ti = 0;
+
+  function schedule(fn, ms) {
+    const id = _ti++;
+    if (document.hidden) {
+      _tm.set(id, { fn, rem: ms, t0: null, tid: null });
+    } else {
+      const t0 = performance.now();
+      const tid = setTimeout(() => { _tm.delete(id); fn(); }, ms);
+      _tm.set(id, { fn, rem: ms, t0, tid });
+    }
+    return id;
+  }
+
+  function unschedule(id) {
+    const e = _tm.get(id);
+    if (!e) return;
+    if (e.tid !== null) clearTimeout(e.tid);
+    _tm.delete(id);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    const now = performance.now();
+    if (document.hidden) {
+      for (const [, e] of _tm) {
+        if (e.tid !== null) {
+          clearTimeout(e.tid);
+          e.rem = Math.max(0, e.rem - (now - e.t0));
+          e.tid = null;
+        }
+      }
+    } else {
+      for (const [id, e] of _tm) {
+        e.t0 = performance.now();
+        e.tid = setTimeout(() => { _tm.delete(id); e.fn(); }, e.rem);
+      }
+    }
+  });
+
+  function wait(ms) { return new Promise(r => schedule(r, ms)); }
+
   // --- Typewriter rotator ---
   const WORDS = ['complex approvals', 'investigations', 'e-discovery', 'FOIA review'];
   const textEl = document.querySelector('.rotator-type__text');
   const TYPE_MIN = 35, TYPE_MAX = 65, DEL_MIN = 18, DEL_MAX = 35, HOLD = 1100, BETWEEN = 180;
 
-  function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-
   if (reducedMotion) {
     textEl.textContent = WORDS[0];
   } else {
-    let wIdx = 0, cIdx = 0, deleting = false, tid = null;
+    let wIdx = 0, cIdx = 0, deleting = false;
     function rotatorTick() {
       const word = WORDS[wIdx];
       if (!deleting) {
         cIdx++;
         textEl.textContent = word.slice(0, cIdx);
-        tid = cIdx < word.length
-          ? setTimeout(rotatorTick, rand(TYPE_MIN, TYPE_MAX))
-          : setTimeout(() => { deleting = true; rotatorTick(); }, HOLD);
+        cIdx < word.length
+          ? schedule(rotatorTick, rand(TYPE_MIN, TYPE_MAX))
+          : schedule(() => { deleting = true; rotatorTick(); }, HOLD);
       } else {
         cIdx--;
         textEl.textContent = word.slice(0, Math.max(0, cIdx));
         if (cIdx > 0) {
-          tid = setTimeout(rotatorTick, rand(DEL_MIN, DEL_MAX));
+          schedule(rotatorTick, rand(DEL_MIN, DEL_MAX));
         } else {
           deleting = false;
           wIdx = (wIdx + 1) % WORDS.length;
-          tid = setTimeout(rotatorTick, BETWEEN);
+          schedule(rotatorTick, BETWEEN);
         }
       }
     }
     rotatorTick();
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { clearTimeout(tid); }
-      else { rotatorTick(); }
-    });
   }
 
   // --- Progress bar simulation ---
+  const progressTrack = document.querySelector('.progress-bar-track');
   const progressFill = document.querySelector('.progress-bar-fill');
   const progressPct = document.querySelector('.progress-pct');
   const progressTyped = document.querySelector('.progress-typed');
   const STATUS = ['scanning repository...', 'parsing documents...', 'matching criteria...', 'ranking results...'];
 
-  function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+  progressPct.textContent = '0%';
+  progressTyped.textContent = '';
+  progressTrack.setAttribute('aria-valuenow', '0');
 
   if (reducedMotion) {
-    progressFill.style.width = '100%';
+    progressFill.style.transform = 'scaleX(1)';
     progressPct.textContent = '100%';
     progressTyped.textContent = STATUS[STATUS.length - 1];
+    progressTrack.setAttribute('aria-valuenow', '100');
   } else {
     (async () => {
       await wait(1200);
@@ -509,8 +569,9 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
           await wait(40 + Math.random() * 15);
         }
         const pct = Math.min(100, ((i + 1) / STATUS.length) * 100);
-        progressFill.style.width = pct + '%';
+        progressFill.style.transform = 'scaleX(' + (pct / 100) + ')';
         progressPct.textContent = Math.round(pct) + '%';
+        progressTrack.setAttribute('aria-valuenow', String(Math.round(pct)));
         await wait(1800);
         if (i < STATUS.length - 1) {
           for (let c = item.length - 1; c >= 0; c--) {
@@ -533,7 +594,7 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
         const grid = entry.target.closest('.feature-grid');
         if (grid) {
           const siblings = Array.from(grid.querySelectorAll('.scroll-reveal'));
-          entry.target.style.transitionDelay = `${siblings.indexOf(entry.target) * 150}ms`;
+          entry.target.style.transitionDelay = siblings.indexOf(entry.target) * 150 + 'ms';
         }
         entry.target.classList.add('is-visible');
         revealObs.unobserve(entry.target);
@@ -546,6 +607,9 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
   const FILES = ['Report_Q4.xlsx', 'Contract_Draft.pdf', 'Audit_Log.csv', 'Compliance.docx'];
   const fileList = document.querySelector('.file-list');
   const countEl = document.querySelector('.review-count');
+
+  if (!fileList) return;
+
   const svgTemplate = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svgTemplate.setAttribute('width', '12');
   svgTemplate.setAttribute('height', '15');
@@ -585,8 +649,6 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
     return row;
   }
 
-  if (!fileList) return;
-
   const reviewPanel = document.querySelector('.review-panel');
   const reviewObs = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -598,9 +660,12 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
   reviewObs.observe(reviewPanel);
 
   function startReviewAnimation() {
+    fileList.innerHTML = '';
+    countEl.textContent = '0 / ' + FILES.length;
+
     if (reducedMotion) {
       FILES.forEach(f => fileList.appendChild(makeFileRow(f, 'reviewed')));
-      countEl.textContent = `${FILES.length} / ${FILES.length}`;
+      countEl.textContent = FILES.length + ' / ' + FILES.length;
       return;
     }
 
@@ -611,7 +676,7 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
       row.style.transform = 'translateY(5px)';
       fileList.appendChild(row);
       r.el = row;
-      setTimeout(() => {
+      schedule(() => {
         row.style.transition = 'opacity 300ms ease, transform 300ms ease';
         row.style.opacity = '1';
         row.style.transform = 'none';
@@ -621,17 +686,17 @@ html.is-loaded .hero-demo     { opacity: 1; transform: none; transition-delay: c
     let reviewed = 0;
     rows.forEach((r, i) => {
       const t = 1200 + i * 800;
-      setTimeout(() => {
+      schedule(() => {
         const newRow = makeFileRow(r.name, 'processing');
         fileList.replaceChild(newRow, r.el);
         r.el = newRow;
       }, t);
-      setTimeout(() => {
+      schedule(() => {
         const newRow = makeFileRow(r.name, 'reviewed');
         fileList.replaceChild(newRow, r.el);
         r.el = newRow;
         reviewed++;
-        countEl.textContent = `${reviewed} / ${FILES.length}`;
+        countEl.textContent = reviewed + ' / ' + FILES.length;
       }, t + 2000);
     });
   }

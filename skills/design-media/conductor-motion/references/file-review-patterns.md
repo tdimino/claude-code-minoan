@@ -176,6 +176,37 @@ function transitionState(rowData, template, container) {
 }
 ```
 
+## View Transitions Variant
+
+`document.startViewTransition()` replaces the manual fade-out/replaceChild/fade-in choreography above — the browser snapshots the old row, swaps the DOM synchronously, and cross-fades. Same-document View Transitions are Baseline in every major browser (Chrome 111+, Safari 18+, Firefox 128+).
+
+```javascript
+function transitionState(rowData, template, container) {
+  const swap = () => {
+    const newRow = createRow(template, rowData.filename);
+    container.replaceChild(newRow, rowData.el);
+    rowData.el = newRow;
+  };
+
+  if (!document.startViewTransition || reducedMotion) {
+    swap(); // older browsers and reduced motion: instant state change
+    return;
+  }
+  document.startViewTransition(swap);
+}
+```
+
+Give each row a unique `view-transition-name` (set `row.style.viewTransitionName = 'file-' + i` at creation) so rows transition independently — without names, the whole page cross-fades as one group. Tune the browser default in CSS:
+
+```css
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 200ms;
+}
+```
+
+Keep the manual variant as the fallback body rather than a separate code path — `startViewTransition` takes the same swap callback either way, so the feature detect costs three lines.
+
 ## Reduced Motion
 
 Show all files in reviewed state immediately:

@@ -404,11 +404,20 @@ body {
   document.body.dataset.initDone = 'true';
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const LOTTIE_SRC = '';
+  const LOTTIE_LOOP = true;
+  const LOTTIE_AUTOPLAY = true;
+  const lottieInstances = [];
 
   let paused = false;
   document.addEventListener('visibilitychange', () => {
     paused = document.hidden;
     if (!paused && scrubRunning) requestAnimationFrame(updateScrub);
+    lottieInstances.forEach(anim => {
+      if (reducedMotion) return;
+      if (paused) anim.pause();
+      else if (anim._cmInView) anim.play();
+    });
   });
 
   // Scroll-synced ring
@@ -438,19 +447,57 @@ body {
     }
   }
 
-  // Viewport-triggered playback demo (IntersectionObserver on slots)
+  // Viewport-triggered playback (drives data-playing toggle + Lottie when loaded)
   const slotObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const slot = entry.target;
-      if (entry.isIntersecting) {
-        slot.dataset.playing = 'true';
-      } else {
-        slot.dataset.playing = 'false';
-      }
+      const inView = entry.isIntersecting;
+      slot.dataset.playing = inView ? 'true' : 'false';
+      const anim = slot._lottieAnim;
+      if (!anim) return;
+      anim._cmInView = inView;
+      if (reducedMotion) return;
+      if (inView && !paused) anim.play();
+      else anim.pause();
     });
   }, { threshold: 0.3 });
 
   document.querySelectorAll('[data-lottie-slot]').forEach(el => slotObserver.observe(el));
+
+  // Lottie integration (lazy-loaded when LOTTIE_SRC is set)
+  if (LOTTIE_SRC) {
+    function initLottieSlots() {
+      document.querySelectorAll('[data-lottie-slot]').forEach(container => {
+        if (container.dataset.lottieSlot === 'scrub-target') return;
+        const placeholder = container.querySelector('svg');
+        const anim = lottie.loadAnimation({
+          container: container,
+          renderer: 'svg',
+          loop: LOTTIE_LOOP,
+          autoplay: false,
+          path: LOTTIE_SRC
+        });
+        if (placeholder) placeholder.style.display = 'none';
+        container._lottieAnim = anim;
+        lottieInstances.push(anim);
+        anim._cmInView = container.dataset.playing === 'true';
+        if (reducedMotion) {
+          anim.goToAndStop(0, true);
+        } else if (anim._cmInView && !paused) {
+          anim.play();
+        }
+      });
+    }
+
+    if (window.lottie) {
+      initLottieSlots();
+    } else {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+      s.onload = initLottieSlots;
+      document.head.appendChild(s);
+    }
+  }
 })();
 </script>
 </body>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -89,10 +89,10 @@ body {
 
 .progress-bar-fill {
   height: 100%;
-  width: 5%;
+  width: 100%;
   background: var(--cm-brand);
   border-radius: 2px;
-  transition: none;
+  transform-origin: left center;
 }
 
 .progress-percent {
@@ -111,7 +111,7 @@ body {
 }
 
 .data-row {
-  display: none;
+  display: flex;
   align-items: baseline;
   width: 100%;
   gap: 0;
@@ -120,7 +120,11 @@ body {
   padding: 0.35rem 0;
 }
 
-.data-row.is-reveal {
+html.is-loaded .data-row {
+  display: none;
+}
+
+html.is-loaded .data-row.is-reveal {
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 420ms ease, transform 420ms ease;
@@ -187,6 +191,8 @@ body {
     border-color: var(--cm-brand);
   }
 }
+
+html.no-js .data-processing .spinner { display: none; }
 </style>
 </head>
 <body>
@@ -194,14 +200,14 @@ body {
 <div class="progress-panel" data-progress-root>
   <div class="progress-header">
     <span class="progress-title">search initialization</span>
-    <span class="progress-counter">0 documents</span>
+    <span class="progress-counter">1,324 documents</span>
   </div>
   <div class="progress-bar-wrap">
-    <div class="progress-bar-track" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress-bar-track" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
       <div class="progress-bar-fill"></div>
     </div>
   </div>
-  <div class="progress-percent">5%</div>
+  <div class="progress-percent">100%</div>
   <div class="data-stack">
     <div class="data-row">
       <span class="data-time">[10:14:02]</span>
@@ -225,7 +231,7 @@ body {
     </div>
     <div class="data-processing">
       <span class="spinner" aria-hidden="true"></span>
-      <span class="processing-text">PROCESSING</span>
+      <span class="processing-text">COMPLETE</span>
     </div>
   </div>
 </div>
@@ -242,6 +248,7 @@ body {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+  const ease = easeOutCubic;
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
   function formatNumber(num) {
@@ -252,6 +259,9 @@ body {
     if (!root || root.dataset.progressInit === 'true') return;
     root.dataset.progressInit = 'true';
 
+    document.documentElement.classList.remove('no-js');
+    document.documentElement.classList.add('is-loaded');
+
     let paused = false;
     document.addEventListener('visibilitychange', () => {
       paused = document.hidden;
@@ -260,13 +270,15 @@ body {
     const counterEl = root.querySelector('.progress-counter');
     const fillEl = root.querySelector('.progress-bar-fill');
     const percentEl = root.querySelector('.progress-percent');
+    const trackEl = root.querySelector('.progress-bar-track');
     const processingTextEl = root.querySelector('.processing-text');
     const rows = Array.from(root.querySelectorAll('.data-row'));
 
     if (reducedMotion) {
-      if (fillEl) fillEl.style.width = '100%';
+      if (fillEl) fillEl.style.transform = 'scaleX(1)';
       if (percentEl) percentEl.textContent = '100%';
       if (counterEl) counterEl.textContent = `${formatNumber(TARGET_DOC_COUNT)} documents`;
+      if (trackEl) trackEl.setAttribute('aria-valuenow', '100');
       rows.forEach(row => {
         row.style.display = 'flex';
         row.style.opacity = '1';
@@ -275,6 +287,12 @@ body {
       if (processingTextEl) processingTextEl.textContent = 'COMPLETE';
       return;
     }
+
+    if (counterEl) counterEl.textContent = '0 documents';
+    if (percentEl) percentEl.textContent = START_PROGRESS + '%';
+    if (fillEl) fillEl.style.transform = 'scaleX(' + (START_PROGRESS / 100) + ')';
+    if (trackEl) trackEl.setAttribute('aria-valuenow', String(START_PROGRESS));
+    if (processingTextEl) processingTextEl.textContent = 'PROCESSING';
 
     rows.forEach(row => {
       row.classList.add('is-reveal');
@@ -331,20 +349,19 @@ body {
       if (paused) { if (!pauseStart) pauseStart = now; requestAnimationFrame(tick); return; }
       if (pauseStart) { start += now - pauseStart; pauseStart = 0; }
       const rawT = clamp((now - start) / TOTAL_MS, 0, 1);
-      const eased = easeOutCubic(rawT);
+      const eased = ease(rawT);
 
       const progressValue = START_PROGRESS + ((END_PROGRESS - START_PROGRESS) * eased);
 
-      if (fillEl) fillEl.style.width = progressValue + '%';
+      if (fillEl) fillEl.style.transform = 'scaleX(' + (progressValue / 100) + ')';
       if (percentEl) percentEl.textContent = Math.round(progressValue) + '%';
       if (counterEl) counterEl.textContent = `${formatNumber(TARGET_DOC_COUNT * eased)} documents`;
-      const track = root.querySelector('.progress-bar-track');
-      if (track) track.setAttribute('aria-valuenow', Math.round(progressValue));
+      if (trackEl) trackEl.setAttribute('aria-valuenow', Math.round(progressValue));
 
       if (rawT < 1) {
         requestAnimationFrame(tick);
       } else {
-        if (fillEl) fillEl.style.width = '100%';
+        if (fillEl) fillEl.style.transform = 'scaleX(1)';
         if (percentEl) percentEl.textContent = '100%';
         if (counterEl) counterEl.textContent = `${formatNumber(TARGET_DOC_COUNT)} documents`;
         clearInterval(dotsInterval);

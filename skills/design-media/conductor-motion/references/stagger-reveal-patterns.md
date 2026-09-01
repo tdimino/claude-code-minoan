@@ -6,12 +6,43 @@ Cascading content entrance animations — hero reveals, section reveals, and scr
 
 Page-load entrance: elements cascade in with staggered delay.
 
-### Technique: CSS Transitions + JS Class Toggle
+### Technique: `@starting-style` (Preferred)
+
+`@starting-style` defines the state an element transitions *from* on first render — the browser handles the initial-to-final transition natively, no JS trigger at all. Chrome 117+, Safari 17.5+, Firefox 129+ (86%+ global support).
+
+```css
+.hero-item {
+  opacity: 1;
+  transform: none;
+  transition: opacity 1.3s ease-in-out, transform 1.3s ease-in-out;
+}
+
+@starting-style {
+  .hero-item {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Stagger stays in CSS: */
+.hero-item:nth-child(1) { transition-delay: 0ms; }
+.hero-item:nth-child(2) { transition-delay: calc(1 * var(--cm-stagger)); }
+.hero-item:nth-child(3) { transition-delay: calc(2 * var(--cm-stagger)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-item { transition: none !important; }
+}
+```
+
+Content is visible by default (`opacity: 1` is the resting rule), so a JS failure or JS-disabled browser shows the finished page — no gating class required. One cascade caveat: an `animation` with `fill-mode: both` on the same element overrides `@starting-style` (animations sit in a higher cascade origin). Use `animation-fill-mode: backwards` when mixing, or keep entry transitions and keyframe animations on separate elements.
+
+### Technique: CSS Transitions + JS Class Toggle (Fallback)
 
 ```css
 .hero-item {
   transition: opacity 1.3s ease-in-out, transform 1.3s ease-in-out;
-  will-change: opacity, transform;
+  /* will-change is set from JS just before the reveal and removed on
+     transitionend — never left in resting CSS (reserves GPU memory) */
 }
 
 html:not(.reveal-ready) .hero-item {
@@ -62,17 +93,22 @@ function initHeroReveal() {
 
 Why two nested `requestAnimationFrame` calls? The first schedules the callback for the next paint. The second ensures the initial styles (opacity: 0, translateY) have been computed and applied before toggling the class. Without this, the browser may batch the style changes and skip the transition.
 
+This trick exists to fake what `@starting-style` now does natively. Reach for it only when supporting browsers older than Chrome 117 / Safari 17.5 / Firefox 129, or when the reveal must be triggered by something other than first render.
+
 ### Fade-Only Elements
 
 Some elements only fade (no transform):
 ```css
-.hero-visual {
-  will-change: opacity; /* no transform needed */
-}
 html:not(.reveal-ready) .hero-visual {
   opacity: 0;
   /* no translateY — just fades in place */
 }
+```
+
+```javascript
+// will-change lifecycle: add just before animating, remove after
+el.style.willChange = 'opacity, transform';
+el.addEventListener('transitionend', () => { el.style.willChange = ''; }, { once: true });
 ```
 
 ## Section Reveal (IntersectionObserver)
@@ -160,12 +196,12 @@ function initParallax(selector, speed = 0.3) {
 }
 ```
 
-### CSS Scroll-Driven (Progressive Enhancement)
+### CSS Scroll-Driven (Primary — Baseline all browsers)
 
 ```css
 @supports (animation-timeline: view()) {
   .scroll-reveal {
-    animation: fade-in-up linear both;
+    animation: fade-in-up linear backwards;
     animation-timeline: view();
     animation-range: entry 0% entry 30%;
   }
@@ -174,6 +210,27 @@ function initParallax(selector, speed = 0.3) {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: none; }
   }
+}
+```
+
+Prefer this over IntersectionObserver for section reveals — it runs on the compositor thread and costs nothing at interaction time. Gate the observer path in JS so the two never fight:
+
+```javascript
+if (!CSS.supports('animation-timeline: view()')) {
+  initSectionReveals(); // IO fallback for older browsers
+}
+```
+
+Fill mode is `backwards`, not `both` — `both` overrides `@starting-style` entry transitions on the same element.
+
+### `content-visibility` for Long Pages
+
+Multi-section pages benefit from skipping layout and paint for off-screen sections:
+
+```css
+.below-fold-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px; /* reserve space, prevent scrollbar jumps */
 }
 ```
 

@@ -44,9 +44,10 @@ async function runStatusSequence(items, textEl, progressBar, percentEl) {
       await wait(TYPE_SPEED + Math.random() * TYPE_VARIANCE);
     }
 
-    // Update progress
+    // Update progress (full-width fill scaled from the left — compositor-only)
     const percent = Math.min(100, ((i + 1) / totalSteps) * 100);
-    progressBar.style.width = percent + '%';
+    progressBar.style.transform = `scaleX(${percent / 100})`;
+    progressBar.parentElement.setAttribute('aria-valuenow', Math.round(percent));
     percentEl.textContent = Math.round(percent) + '%';
 
     await wait(HOLD_FULL_MS);
@@ -198,7 +199,7 @@ Show final state with all items visible:
 ```javascript
 if (reducedMotion) {
   textEl.textContent = items[items.length - 1];
-  progressBar.style.width = '100%';
+  progressBar.style.transform = 'scaleX(1)';
   percentEl.textContent = '100%';
   matchesEl.textContent = `${formatNumber(1234)}..MATCHES`;
   similarEl.textContent = `${formatNumber(2356)}..SIMILAR`;

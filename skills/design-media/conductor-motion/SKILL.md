@@ -1,7 +1,7 @@
 ---
 name: conductor-motion
-description: "Generate hand-crafted web animation patterns as self-contained HTML: typewriter/rotator effects, progress bar simulations, file review state machines, staggered reveals, terminal status displays, Lottie orchestration, scroll-driven sequences. Behavioral animations that simulate live software. Triggers on typewriter effect, progress animation, stagger reveal, terminal animation, data simulation, product demo animation, loading sequence, conductor motion."
-argument-hint: "[--mode typewriter|progress|file-review|stagger-reveal|terminal|lottie-compose|full-page|catalog] [--pacing slow|medium|fast] [content args]"
+description: "Generate hand-crafted web animation patterns as self-contained HTML: typewriter/rotator effects, progress bar simulations, file review state machines, staggered reveals, terminal status displays, streaming AI-response demos, popover/dialog/toast lifecycles, Lottie orchestration, scroll-driven sequences. Behavioral animations that simulate live software. Triggers on typewriter effect, progress animation, stagger reveal, terminal animation, streaming text, AI demo animation, toast animation, data simulation, product demo animation, loading sequence, conductor motion."
+argument-hint: "[--mode typewriter|progress|file-review|stagger-reveal|terminal|lottie-compose|streaming-text|top-layer|full-page|catalog] [--pacing slow|medium|fast] [content args]"
 ---
 
 # Conductor Motion
@@ -66,9 +66,11 @@ If `.design-context.md` exists with MOTION_INTENSITY dial set, skip the pacing q
 | `file-review` | `assets/templates/file-review.html` | File list + state machine (unreviewed→processing→reviewed) + status indicators |
 | `stagger-reveal` | `assets/templates/stagger-reveal.html` | Hero cascade + section reveals + IntersectionObserver scroll triggers |
 | `terminal` | `assets/templates/terminal.html` | Timestamps + status typing + search result counters + progress sync |
-| `lottie-compose` | `assets/templates/lottie-compose.html` | Lottie player + responsive variants + scroll-synced playback |
-| `full-page` | `assets/templates/full-page.html` | All patterns composed into a coherent landing section |
-| `catalog` | `assets/templates/catalog.html` | Visual reference with live demos of each pattern |
+| `lottie-compose` | `assets/templates/lottie-compose.html` | Lottie player (via `--lottie-src`) + responsive variants + scroll-synced playback; SVG slot placeholders when no source is set |
+| `streaming-text` | `assets/templates/streaming-text.html` | AI-response streaming: chunk-buffered text + scroll anchoring + stop/regenerate + polite announcements |
+| `top-layer` | `assets/templates/top-layer.html` | Popover + dialog + toast lifecycles via @starting-style, allow-discrete, and overlay transitions |
+| `full-page` | `assets/templates/full-page.html` | Typewriter hero + progress + stagger reveals + file review composed into a landing section |
+| `catalog` | `assets/templates/catalog.html` | Visual reference: live demos of typewriter, progress, file review, stagger, terminal, and Lottie slots |
 
 ## Color System
 
@@ -84,22 +86,24 @@ Full token reference (dark, light, easing, timing): `references/design-tokens.md
 | `--stagger` | `100–400` | `200` | Milliseconds between sequential reveals |
 | `--typing-speed` | `20–80` | `45` | Base ms per character typed |
 | `--typing-variance` | `0–40` | `18` | Random variance added to typing speed |
-| `--easing` | `cubic \| quart \| linear` | `cubic` | Primary easing: easeOutCubic, easeOutQuart, or linear |
-| `--progress-duration` | `2000–10000` | `6000` | Total progress animation ms |
-| `--hold-duration` | `500–3000` | `1100` | Ms to hold typed word before deleting |
+| `--easing` | `cubic \| quart \| linear` | `cubic` | Swaps the rAF `ease` alias: easeOutCubic, easeOutQuart, or linear |
+| `--hold-duration` | `500–3000` | `1100` | Ms to hold typed word before deleting (typewriter/terminal) |
 | `--color-scheme` | `dark \| light` | `dark` | Background/foreground polarity |
 | `--font` | font name | `Geist` | Primary font (loaded via Google Fonts CDN) |
 | `--accent` | hex color | `#4F7BF7` | Override `--cm-brand` |
-| `--lottie-cdn` | `boolean` | `false` | Include Lottie player CDN (lottie-compose mode only) |
+| `--lottie-cdn` | `boolean` | `false` | Include lottie-web CDN script in `<head>` |
 
 ### Content Parameters (per mode)
 
-**typewriter**: `--base-text`, `--words` (comma-separated), `--cursor` (char, default `|`), `--loop` (boolean)
-**progress**: `--title`, `--doc-count`, `--rows` (comma-separated labels), `--start-percent` (default 5)
+**typewriter**: `--base-text`, `--words` (comma-separated), `--cursor` (char, default `|`), `--no-loop` (type the list once, settle on the last word)
+**progress**: `--title`, `--doc-count`, `--rows` (comma-separated labels), `--progress-duration` (total ms, default 6000), `--start-percent` (default 5)
 **file-review**: `--files` (comma-separated filenames with extensions), `--review-speed` (ms per file)
-**stagger-reveal**: `--items` (comma-separated selectors or text blocks), `--direction` (up|down|left|right)
-**terminal**: `--status-items` (comma-separated), `--result-count`, `--result-label`, `--timestamps` (boolean)
-**lottie-compose**: `--lottie-src` (URL to .json), `--lottie-loop`, `--lottie-autoplay`, `--responsive` (boolean)
+**terminal**: `--status-items` (comma-separated), `--result-count`, `--result-label`, `--no-timestamps` (hide the timestamp column)
+**lottie-compose**: `--lottie-src` (URL to .json, loaded into `data-lottie-slot` containers), `--no-lottie-loop`, `--no-lottie-autoplay`
+**streaming-text**: `--prompt` (user message), `--response` (response text; `||` separates paragraphs)
+**top-layer**: `--toast-messages` (comma-separated)
+
+Every flag above is implemented in the generator and covered by the eval suite — a flag that doesn't change output is a bug, not a placeholder. Stagger-reveal content (items, directions) is authored directly in the template rather than injected via CLI; direction variants are documented in `references/stagger-reveal-patterns.md`.
 
 ## Architecture
 
@@ -151,7 +155,7 @@ Key: `easeOutCubic` (`t => 1 - Math.pow(1-t, 3)`) is the default. Pacing multipl
 5. **Hardcodes colors instead of CSS custom properties.** Makes re-theming impossible. All colors must go through `--cm-*` tokens.
 6. **Leaves `will-change` on permanently.** Reserves GPU memory for the life of the element. Add before animation, remove after.
 7. **Generates typing effects without a cursor.** The blinking cursor is what sells the illusion of a human typing. Without it, it looks like a broken render.
-8. **Animates `width` for progress bars via JS.** CSS `transition: width` on the fill element handles this. JS should only set the target percentage.
+8. **Animates `width` for progress bars.** The fill is a full-width element scaled with `transform: scaleX()` from `transform-origin: left` — compositor-only, no reflow per frame. Sync `aria-valuenow` in the same tick.
 9. **Puts stagger delays in JS `setTimeout` chains.** Use CSS `transition-delay: calc(N * var(--cm-stagger))` so pacing changes propagate from one token.
 10. **Builds file review UI with `innerHTML`.** XSS vector when filenames come from user input. Use `textContent` + DOM construction.
 
@@ -168,7 +172,7 @@ Key: `easeOutCubic` (`t => 1 - Math.pow(1-t, 3)`) is the default. Pacing multipl
 9. **Guard double-initialization.** Every init function checks `dataset.{name}Init === "true"` before proceeding. Without this, hot-reload in dev tools or Webflow's live preview runs init twice, doubling all animations.
 10. **Viewport meta required.** `<meta name="viewport" content="width=device-width, initial-scale=1">`. Without it, mobile browsers zoom to 980px default, breaking all clamp() sizing.
 11. **Touch and resize handlers.** Responsive recalculation on `resize` (debounced 80ms). Touch-friendly interaction targets.
-12. **Accessible by default.** `aria-hidden="true"` on decorative elements (cursors, spinners). `role="progressbar"` with `aria-valuenow` on progress bars. All content readable without JS.
+12. **Accessible by default.** `aria-hidden="true"` on decorative elements (cursors, spinners). `role="progressbar"` with `aria-valuenow` synced on every visual update. All content readable without JS: templates ship `<html class="no-js">`, JS swaps it for `is-loaded`, and initial-hidden styles apply only under the loaded class — JS-built sections carry static final-state markup that init clears.
 13. **Font: Geist + Geist Mono.** Via Google Fonts CDN. `-webkit-font-smoothing: antialiased`. Geist's monospace numerals and tight letter-spacing match the ConductorAI source. The mono variant is essential for terminal displays and dot-leader alignment.
 
 ## Anti-Patterns
@@ -210,7 +214,7 @@ Mode-specific content flags documented under Composition Parameters.
 python3 scripts/validate_conductor_motion.py output.html
 ```
 
-Checks: viewport meta, `--cm-*` properties, no framework imports, `requestAnimationFrame` present, `prefers-reduced-motion` media query, `performance.now()` in animation code, font-smoothing, `aria-hidden` on cursors, `document.hidden` visibility check, no `transition: all`, no `setInterval` for animation (warning for any `setInterval`), no layout-triggering property animation.
+Checks: viewport meta, `--cm-*` properties, no framework imports, `requestAnimationFrame` present, `prefers-reduced-motion` media query, `performance.now()` in animation code, font-smoothing, `aria-hidden` on cursors, `document.hidden` visibility check, no `transition: all`, no `setInterval` for animation, no layout-triggering property animation, no `.style.width` assignment in JS, `aria-valuenow` synced when a progress fill animates, visibility pause flags actually consulted by their loops, and no-js/is-loaded gating wherever content starts at `opacity: 0`.
 
 ## References
 
@@ -225,7 +229,9 @@ Load on-demand when implementing specific patterns:
 | `references/file-review-patterns.md` | State machine (unreviewed→processing→reviewed), template cloning, status indicators, SVG icons |
 | `references/terminal-display-patterns.md` | Status typing, timestamps, dot-leaders, search result counters, progress sync |
 | `references/lottie-orchestration.md` | Lottie player setup, responsive variants, scroll-synced playback, data attributes |
-| `references/scroll-driven-animations.md` | CSS animation-timeline, GSAP ScrollTrigger fallback, IntersectionObserver patterns |
+| `references/streaming-text-patterns.md` | Chunk-buffered streaming, scroll anchoring, stop/regenerate, polite screen-reader announcements |
+| `references/top-layer-patterns.md` | Popover/dialog/toast entry+exit via @starting-style, allow-discrete, overlay; toast lifetime freezing |
+| `references/scroll-driven-animations.md` | CSS animation-timeline (primary, Baseline), IntersectionObserver fallback, GSAP ScrollTrigger option |
 | `references/anti-patterns.md` | Banned patterns with wrong/right code examples and rationale |
 | `references/advanced-compositions.md` | Workflow graphs, multi-agent review, reviewer sidebar, search input sim, comparison bars, dot-matrix numbers, corner brackets |
 
@@ -238,6 +244,8 @@ Load on-demand when implementing specific patterns:
 - **threejs-particle-canvas**: Boundary at "2D behavioral vs 3D visual." Loading spinners with parametric curves → threejs-particle-canvas. Progress bar simulations → conductor-motion.
 - **rocaille-shader**: No overlap. Shaders are visual treatments, not behavioral simulations.
 - **shape**: Upstream. Produces `.design-context.md` that conductor-motion consumes for pacing and token context.
+- **component-gallery**: Research arm. Before animating a component that has production precedent (progress indicators, skeletons, toasts), query component-gallery for how the 60 canonical types handle states and accessibility — conductor-motion animates what the research grounds.
+- **overwatch-slidedeck**: Sibling output format. Overwatch decks implement comparable patterns (TerminalTyper, ProgressBar, typewriter hooks) inside React/Framer Motion; conductor-motion is the vanilla single-file counterpart. Patterns transfer, code does not — don't port implementations across the boundary.
 
 ## Attribution
 

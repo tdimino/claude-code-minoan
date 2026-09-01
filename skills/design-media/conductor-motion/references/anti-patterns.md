@@ -281,3 +281,45 @@ const ext = (filename.match(/(\.[a-z0-9]+)$/i) || [''])[0];
 ```
 
 **Why:** Hardcoding extensions means every new file type needs a code change. The regex pattern handles any extension automatically.
+
+---
+
+### 13. Blocking Scroll and Pointer Handlers
+
+**Don't:**
+```javascript
+window.addEventListener('scroll', () => {
+  els.forEach(el => el.style.transform = computeParallax(el));
+});
+window.addEventListener('touchstart', handler);
+```
+
+**Do:**
+```javascript
+window.addEventListener('scroll', onScroll, { passive: true });
+window.addEventListener('touchstart', handler, { passive: true });
+```
+
+**Why:** A non-passive listener forces the browser to wait for the handler before it can scroll — every animation frame of jank lands on INP, the Core Web Vital that measures responsiveness across the whole visit. Handlers that never call `preventDefault()` should always declare `{ passive: true }`. Better still, move scroll-linked motion to CSS `animation-timeline` — compositor-thread, zero INP cost.
+
+---
+
+### 14. Unbudgeted Main-Thread Motion
+
+**Don't:**
+```javascript
+// Three rAF loops, each recomputing layout reads, running forever
+initParallax('.a'); initParallax('.b'); initCounters('.c');
+```
+
+**Do:**
+```javascript
+// One loop, reads batched before writes, exits when done
+function tick(now) {
+  const readings = els.map(el => el.getBoundingClientRect()); // reads first
+  readings.forEach((r, i) => els[i].style.transform = calc(r)); // then writes
+  if (anyActive) requestAnimationFrame(tick);
+}
+```
+
+**Why:** Treat animation JS like a performance budget. Every live rAF loop competes with input handling — a user clicking a CTA mid-animation eats the delay as INP. Consolidate loops, interleave no reads between writes (layout thrashing), stop loops that have finished, and defer heavy initialization (Lottie, canvas) behind `requestIdleCallback` or first interaction. Effects that can run in CSS (scroll timelines, `@starting-style` entries, `linear()` springs) are free — they never touch the main thread.

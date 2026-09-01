@@ -1,7 +1,12 @@
 {
   "url_formula": "https://component.gallery/components/{slug}/",
-  "scraped_date": "2026-03-02",
+  "scraped_date": "2026-09-01",
   "source": "https://component.gallery/",
+  "counts": {
+    "components": 60,
+    "design_systems": 95,
+    "total_examples": 2671
+  },
   "components": [
     {
       "slug": "accordion",
@@ -19,7 +24,7 @@
         "ShowyHideyThing"
       ],
       "example_count": 101,
-      "description": "An accordion is a vertical stack of interactive headings used to toggle the display of further information; each item can be 'collapsed' with just a short label visible or 'expanded' to show the full "
+      "description": "An accordion is a vertical stack of interactive headings used to toggle the display of further information; each item can be 'collapsed' with just a short label visible or 'expanded' to show the full…"
     },
     {
       "slug": "alert",
@@ -40,7 +45,7 @@
       "name": "Avatar",
       "url": "https://component.gallery/components/avatar/",
       "alt_names": [],
-      "example_count": 37,
+      "example_count": 38,
       "description": "A graphical representation of a user: usually a photo, illustration, or initial."
     },
     {
@@ -52,7 +57,7 @@
         "Label",
         "Chip"
       ],
-      "example_count": 122,
+      "example_count": 123,
       "description": "A small label, generally appearing inside or in close proximity to another larger interface component, representing a status, property, or some other metadata."
     },
     {
@@ -80,7 +85,7 @@
       "alt_names": [
         "Toolbar"
       ],
-      "example_count": 36,
+      "example_count": 35,
       "description": "A wrapper for multiple, related buttons."
     },
     {
@@ -90,7 +95,7 @@
       "alt_names": [
         "Tile"
       ],
-      "example_count": 79,
+      "example_count": 77,
       "description": "A container for content representing a single entity. e.g. a contact, article, or task."
     },
     {
@@ -116,7 +121,7 @@
       "name": "Color picker",
       "url": "https://component.gallery/components/color-picker/",
       "alt_names": [],
-      "example_count": 16,
+      "example_count": 18,
       "description": "An input for choosing a color."
     },
     {
@@ -135,8 +140,8 @@
       "name": "Date input",
       "url": "https://component.gallery/components/date-input/",
       "alt_names": [],
-      "example_count": 17,
-      "description": "A means of inputting a date \u2013 often separated into multiple individual fields for day/month/year."
+      "example_count": 18,
+      "description": "A means of inputting a date – often separated into multiple individual fields for day/month/year."
     },
     {
       "slug": "datepicker",
@@ -146,7 +151,7 @@
         "Calendar",
         "Datetime picker"
       ],
-      "example_count": 43,
+      "example_count": 44,
       "description": "A visual way to choose a date using a calendar view."
     },
     {
@@ -168,7 +173,7 @@
       "alt_names": [
         "Select menu"
       ],
-      "example_count": 48,
+      "example_count": 49,
       "description": "A menu in which options are hidden by default but can be shown by interacting with a button; it differs from a select in that it shows actions or navigation options and is not a form input."
     },
     {
@@ -184,7 +189,7 @@
       "name": "Fieldset",
       "url": "https://component.gallery/components/fieldset/",
       "alt_names": [],
-      "example_count": 31,
+      "example_count": 32,
       "description": "A wrapper for related form fields."
     },
     {
@@ -223,7 +228,7 @@
       "name": "Form",
       "url": "https://component.gallery/components/form/",
       "alt_names": [],
-      "example_count": 22,
+      "example_count": 21,
       "description": "A grouping of input controls that allow a user to submit information to a server."
     },
     {
@@ -231,8 +236,16 @@
       "name": "Header",
       "url": "https://component.gallery/components/header/",
       "alt_names": [],
-      "example_count": 41,
+      "example_count": 38,
       "description": "An element that appears across the top of all pages on a website or application; it usually contains the site name and main navigation."
+    },
+    {
+      "slug": "heading",
+      "name": "Heading",
+      "url": "https://component.gallery/components/heading/",
+      "alt_names": [],
+      "example_count": 29,
+      "description": "A title or caption used to introduce a new section."
     },
     {
       "slug": "hero",
@@ -260,7 +273,7 @@
       "alt_names": [
         "Picture"
       ],
-      "example_count": 27,
+      "example_count": 29,
       "description": "An element for embedding images."
     },
     {
@@ -289,7 +302,7 @@
       "name": "List",
       "url": "https://component.gallery/components/list/",
       "alt_names": [],
-      "example_count": 69,
+      "example_count": 67,
       "description": "Lists are used for grouping a collection of related items. In HTML there are three types:"
     },
     {
@@ -312,7 +325,7 @@
         "Nav",
         "Menu"
       ],
-      "example_count": 63,
+      "example_count": 62,
       "description": "A container for navigation links; these can be to other pages (e.g. main site navigation) or to elements within the current page (e.g. a table of contents)."
     },
     {
@@ -320,7 +333,7 @@
       "name": "Pagination",
       "url": "https://component.gallery/components/pagination/",
       "alt_names": [],
-      "example_count": 49,
+      "example_count": 48,
       "description": "Pagination is the process of splitting information over multiple pages instead of showing it all on a single page; also the name for the interface component used for navigating between these pages."
     },
     {
@@ -338,7 +351,7 @@
       "alt_names": [
         "Progress"
       ],
-      "example_count": 41,
+      "example_count": 40,
       "description": "A horizontal bar indicating the current completion status of a long-running task, usually updated continuously as the task progresses, instead of in discrete steps."
     },
     {
@@ -353,7 +366,7 @@
         "Meter"
       ],
       "example_count": 38,
-      "description": "A representation of a user\u2019s progress through a series of discrete steps."
+      "description": "A representation of a user’s progress through a series of discrete steps."
     },
     {
       "slug": "quote",
@@ -374,7 +387,7 @@
         "Radio",
         "Radio group"
       ],
-      "example_count": 86,
+      "example_count": 85,
       "description": "Radio buttons allow a user to select a single option from a list of predefined options."
     },
     {
@@ -394,7 +407,7 @@
         "wysiwyg editor"
       ],
       "example_count": 5,
-      "description": "An interface for editing \u201crich text\u201d content (i.e. with formatting), usually through a WYSIWYG interface."
+      "description": "An interface for editing “rich text” content (i.e. with formatting), usually through a WYSIWYG interface."
     },
     {
       "slug": "search-input",
@@ -403,7 +416,7 @@
       "alt_names": [
         "Search"
       ],
-      "example_count": 29,
+      "example_count": 30,
       "description": "Search inputs allow users to find content by entering a search term."
     },
     {
@@ -433,10 +446,10 @@
       "url": "https://component.gallery/components/separator/",
       "alt_names": [
         "Divider",
-        "Horizontal rule",
+        "Horizonal rule",
         "Vertical rule"
       ],
-      "example_count": 33,
+      "example_count": 34,
       "description": "A separator between two elements, usually consisting of a horizontal line."
     },
     {
@@ -446,7 +459,7 @@
       "alt_names": [
         "Skeleton loader"
       ],
-      "example_count": 35,
+      "example_count": 30,
       "description": "A placeholder layout for content which hasn't yet loaded, usually built up of grey boxes."
     },
     {
@@ -464,7 +477,7 @@
       "alt_names": [
         "Range input"
       ],
-      "example_count": 39,
+      "example_count": 38,
       "description": "A form control for choosing a value within a preset range of values."
     },
     {
@@ -483,7 +496,7 @@
       "name": "Stack",
       "url": "https://component.gallery/components/stack/",
       "alt_names": [],
-      "example_count": 9,
+      "example_count": 10,
       "description": "A wrapper component for adding a consistent margin between components."
     },
     {
@@ -495,7 +508,7 @@
         "Quantity",
         "Counter"
       ],
-      "example_count": 19,
+      "example_count": 20,
       "description": "A control for editing a numeric value with buttons for decrementing / incrementing."
     },
     {
@@ -503,7 +516,7 @@
       "name": "Table",
       "url": "https://component.gallery/components/table/",
       "alt_names": [],
-      "example_count": 74,
+      "example_count": 73,
       "description": "A component for displaying large amounts of data in rows and columns; commonly referred to as a 'Data Table' when it includes sorting and/ or filtering functionality."
     },
     {
@@ -513,7 +526,7 @@
       "alt_names": [
         "Tabbed interface"
       ],
-      "example_count": 81,
+      "example_count": 80,
       "description": "Tabbed interfaces are a way of navigating between multiple panels, reducing clutter and fitting more into a smaller space."
     },
     {
@@ -532,7 +545,7 @@
         "Textbox",
         "Text box"
       ],
-      "example_count": 51,
+      "example_count": 52,
       "description": "A form control for editing multi-line text."
     },
     {
@@ -542,7 +555,7 @@
       "alt_names": [
         "Snackbar"
       ],
-      "example_count": 42,
+      "example_count": 41,
       "description": "A type of alert which appears in a layer above other content, visually similar to a mobile or desktop push notification."
     },
     {
@@ -554,7 +567,7 @@
         "Lightswitch",
         "Toggle button"
       ],
-      "example_count": 59,
+      "example_count": 60,
       "description": "A control used to switch between two states: often on or off."
     },
     {
@@ -574,14 +587,6 @@
       "alt_names": [],
       "example_count": 14,
       "description": "A component for displaying nested hierarchical information, such as a table of contents or directory structure."
-    },
-    {
-      "slug": "heading",
-      "name": "Heading",
-      "url": "https://component.gallery/components/heading/",
-      "alt_names": [],
-      "example_count": 28,
-      "description": "A title or caption used to introduce a new section."
     },
     {
       "slug": "video",
@@ -608,476 +613,1273 @@
     {
       "name": "98.css",
       "url": "https://jdan.github.io/98.css/",
+      "tech": [
+        "CSS"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "A11Y Style Guide",
       "url": "https://a11y-style-guide.com/style-guide/",
+      "tech": [
+        "jQuery"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility",
+        "Unmaintained",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Ant Design",
       "url": "https://ant.design/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Accessibility issues",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Ariakit",
       "url": "https://ariakit.org/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Open source",
+        "Accessibility"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Atlassian Design System",
       "url": "https://atlassian.design/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Tone of voice",
+        "Accessibility"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Auro",
       "url": "https://auro.alaskaair.com/",
+      "tech": [
+        "Web Components",
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Aurora",
       "url": "https://design.gccollab.ca/",
+      "tech": [
+        "CSS"
+      ],
+      "features": [
+        "Code examples",
+        "Tone of voice",
+        "Open source",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Backpack",
       "url": "https://www.skyscanner.design/",
+      "tech": [
+        "Mobile",
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source",
+        "Tone of voice"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Base Web",
       "url": "https://baseweb.design/",
+      "tech": [
+        "React",
+        "CSS-in-JS"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "BBC Global Experience Language",
       "url": "https://www.bbc.co.uk/gel/guidelines/category/design-patterns",
+      "tech": [],
+      "features": [
+        "Accessibility",
+        "Usage guidelines",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Blueprint",
       "url": "https://blueprintjs.com/",
+      "tech": [
+        "React",
+        "Sass"
+      ],
+      "features": [
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Bolt Design System",
       "url": "https://boltdesignsystem.com/",
+      "tech": [
+        "Sass",
+        "Twig",
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Tone of voice",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Bootstrap",
       "url": "https://getbootstrap.com/",
+      "tech": [
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Brighton & Hove City Council Website pattern library",
       "url": "http://design.brighton-hove.gov.uk/website-pattern-library.php?p=service-icons",
+      "tech": [],
+      "features": [
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Bulma",
       "url": "https://bulma.io/",
+      "tech": [
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Accessibility issues",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Carbon Design System",
       "url": "https://www.carbondesignsystem.com/",
+      "tech": [
+        "React",
+        "Vanilla JS",
+        "Angular",
+        "Vue",
+        "Svelte",
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Cauldron",
       "url": "https://cauldron.dequelabs.com/",
+      "tech": [
+        "React",
+        "CSS"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Cedar",
       "url": "https://cedar.rei.com/",
+      "tech": [
+        "Vue",
+        "Sass",
+        "CSS Modules"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Chakra UI",
       "url": "https://chakra-ui.com/",
+      "tech": [
+        "React",
+        "CSS-in-JS"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Clarity Design System",
       "url": "https://clarity.design/",
+      "tech": [
+        "CSS",
+        "Angular",
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Coral",
       "url": "https://design.talend.com/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Tone of voice",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Crayons",
       "url": "https://crayons.freshworks.com/",
+      "tech": [
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Decathlon Design System",
       "url": "https://www.decathlon.design/",
+      "tech": [
+        "CSS",
+        "React",
+        "Svelte",
+        "Vue",
+        "Web Components"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Code examples",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Dell Design System",
       "url": "https://www.delldesignsystem.com/",
+      "tech": [
+        "Vanilla JS"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Duet Design System",
       "url": "https://www.duetds.com/",
+      "tech": [
+        "Angular",
+        "Vue",
+        "React"
+      ],
+      "features": [
+        "Code examples"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "eBay MIND Patterns",
       "url": "https://ebay.gitbook.io/mindpatterns/",
+      "tech": [],
+      "features": [
+        "Accessibility",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "eBay Playbook",
       "url": "https://playbook.ebay.com/",
+      "tech": [
+        "HTML",
+        "React"
+      ],
+      "features": [
+        "Code examples"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Elastic UI framework",
       "url": "https://eui.elastic.co/",
+      "tech": [
+        "React",
+        "CSS-in-JS"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Elisa Design System",
       "url": "https://designsystem.elisa.fi/9b207b2c3/p/155e65-elisa-design-system",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Code examples",
+        "Accessibility"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Evergreen",
       "url": "https://evergreen.segment.com/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Flowbite",
       "url": "https://flowbite.com/",
+      "tech": [
+        "Tailwind CSS"
+      ],
+      "features": [
+        "Open source",
+        "Code examples"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Fluent UI",
-      "url": "https://developer.microsoft.com/en-us/fluentui\\#/",
+      "url": "https://developer.microsoft.com/en-us/fluentui#/",
+      "tech": [
+        "React",
+        "Web Components",
+        "Mobile"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Code examples",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Forma 36",
       "url": "https://f36.contentful.com/",
+      "tech": [
+        "React",
+        "CSS-in-JS"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "FutureLearn design system",
       "url": "https://design-system.futurelearn.com/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Tone of voice"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Geist Design System",
       "url": "https://vercel.com/geist",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "generic-components",
-      "url": "https://genericcomponents.netlify.app/",
+      "url": "https://genericcomponents.netlify.app/index.html",
+      "tech": [
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Gestalt",
       "url": "https://gestalt.pinterest.systems/",
+      "tech": [
+        "React",
+        "CSS"
+      ],
+      "features": [
+        "Code examples",
+        "Open source",
+        "Usage guidelines"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "giffgaff design system",
       "url": "https://www.giffgaff.design/",
+      "tech": [],
+      "features": [
+        "Usage guidelines",
+        "Code examples"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "GOLD Design System",
       "url": "https://gold.designsystemau.org/",
+      "tech": [
+        "React",
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility",
+        "Open source",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "GOV.UK Design System",
       "url": "https://design-system.service.gov.uk/",
+      "tech": [
+        "Nunjucks"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Research",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Grommet",
       "url": "https://v2.grommet.io/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Headless UI",
       "url": "https://headlessui.com/",
+      "tech": [
+        "React",
+        "Vue"
+      ],
+      "features": [
+        "Code examples",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Helios",
       "url": "https://helios.hashicorp.design/",
+      "tech": [
+        "Ember",
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Helsinki Design System",
       "url": "https://hds.hel.fi/",
+      "tech": [
+        "React",
+        "CSS"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "HeroUI",
       "url": "https://www.heroui.com/",
+      "tech": [
+        "React",
+        "Tailwind CSS"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Inclusive Components",
       "url": "https://inclusive-components.design/",
+      "tech": [],
+      "features": [
+        "Code examples",
+        "Accessibility",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Instructure-UI",
       "url": "https://instructure.design/",
+      "tech": [
+        "React",
+        "CSS-in-JS"
+      ],
+      "features": [
+        "Code examples",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
-      "name": "J\u00f8kul Designsystem",
+      "name": "Jøkul Designsystem",
       "url": "https://jokul.fremtind.no/",
+      "tech": [
+        "React",
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Lightning Design System",
       "url": "https://www.lightningdesignsystem.com/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Tone of voice",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Material Design",
       "url": "https://m3.material.io/",
+      "tech": [
+        "Mobile",
+        "Web Components",
+        "Sass"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Open source",
+        "Accessibility"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Momentum Design",
       "url": "https://momentum.design/",
+      "tech": [
+        "React",
+        "Web Components"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Morningstar Product System",
       "url": "https://design.morningstar.com/systems/product",
+      "tech": [
+        "Vue"
+      ],
+      "features": [
+        "Usage guidelines"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Mozilla Protocol",
       "url": "https://protocol.mozilla.org/",
+      "tech": [
+        "Handlebars",
+        "Sass"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Nessie",
       "url": "https://design.ns.nl/4a05a30ad/p/04b3ac-nessie--ns-design-system",
+      "tech": [
+        "Web Components",
+        "Tailwind CSS"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Code examples"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "NewsKit",
       "url": "https://www.newskit.co.uk/",
+      "tech": [
+        "React",
+        "CSS-in-JS"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "NHS Digital service manual",
       "url": "https://service-manual.nhs.uk/",
+      "tech": [
+        "Nunjucks"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Research",
+        "Tone of voice",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "No Style Design System",
       "url": "https://nostyle.onrender.com/",
+      "tech": [
+        "Sass",
+        "jQuery"
+      ],
+      "features": [
+        "Open source",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Nord Design System",
       "url": "https://nordhealth.design/",
+      "tech": [
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Nucleus Design System",
       "url": "https://britishgas.design/",
+      "tech": [
+        "Web Components"
+      ],
+      "features": [
+        "Usage guidelines"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "ONS Design System",
       "url": "https://ons-design-system.netlify.app/",
+      "tech": [
+        "HTML",
+        "Nunjucks",
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Ontario Design System",
       "url": "https://designsystem.ontario.ca/",
+      "tech": [
+        "HTML",
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Orbit",
       "url": "https://orbit.kiwi/",
+      "tech": [
+        "React",
+        "CSS-in-JS"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Open source",
+        "Code examples",
+        "Tone of voice"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Pajamas",
       "url": "https://design.gitlab.com/",
+      "tech": [
+        "Vue"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Paste",
       "url": "https://paste.twilio.design/",
+      "tech": [
+        "React",
+        "CSS-in-JS"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Code examples",
+        "Tone of voice",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "PatternFly",
       "url": "https://www.patternfly.org/",
+      "tech": [
+        "React",
+        "Sass"
+      ],
+      "features": [
+        "Tone of voice",
+        "Open source",
+        "Usage guidelines"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Pharos",
       "url": "https://pharos.jstor.org/",
+      "tech": [
+        "Web Components",
+        "Sass"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Open source",
+        "Code examples",
+        "Accessibility",
+        "Tone of voice"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Polaris",
-      "url": "https://polaris.shopify.com/",
+      "url": "https://shopify.dev/docs/api/app-home/web-components",
+      "tech": [
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility",
+        "Tone of voice"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Porsche Design System",
       "url": "https://designsystem.porsche.com/v3/",
+      "tech": [
+        "Web Components",
+        "Angular",
+        "React",
+        "Vue"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Primer",
       "url": "https://primer.style/design/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Purple3",
       "url": "https://design.herokai.com/purple3",
+      "tech": [
+        "CSS"
+      ],
+      "features": [
+        "Code examples",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Quasar Framework",
       "url": "https://quasar.dev/",
+      "tech": [
+        "Vue"
+      ],
+      "features": [
+        "Accessibility issues",
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Radix Primitives",
       "url": "https://radix-ui.com/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Reach UI",
       "url": "https://reach.tech/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Accessibility",
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Red Hat design system",
       "url": "https://ux.redhat.com/",
+      "tech": [
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Ruter Components",
       "url": "https://components.ruter.as/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Sainsbury's Design System",
       "url": "https://design-systems.sainsburys.co.uk/",
+      "tech": [
+        "React",
+        "Sass"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Code examples",
+        "Tone of voice"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "SEB Design Library",
       "url": "https://designlibrary.sebgroup.com/",
+      "tech": [
+        "Sass",
+        "React",
+        "Angular"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Seeds",
       "url": "https://sproutsocial.com/seeds/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Tone of voice"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Seek style guide",
       "url": "https://seek-oss.github.io/seek-style-guide/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "shadcn/ui",
       "url": "https://ui.shadcn.com/",
+      "tech": [
+        "React",
+        "Tailwind CSS"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Shoelace",
       "url": "https://shoelace.style/",
+      "tech": [
+        "Web Components"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Source",
       "url": "https://theguardian.design/2a1e5182b/p/300696-",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Spectrum",
       "url": "https://spectrum.adobe.com/",
+      "tech": [
+        "CSS",
+        "Web Components",
+        "React"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Tone of voice",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Stacks",
       "url": "https://stackoverflow.design/",
+      "tech": [
+        "Stimulus"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Tone of voice",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "SubZero",
       "url": "https://www.subzero.axis.bank.in/",
+      "tech": [],
+      "features": [
+        "Accessibility issues"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Thumbprint",
       "url": "https://thumbprint.design/",
+      "tech": [
+        "React",
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "United States Web Design System",
       "url": "https://designsystem.digital.gov/",
+      "tech": [
+        "Nunjucks"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "uStyle",
       "url": "https://ustyle.guide/",
+      "tech": [
+        "Sass"
+      ],
+      "features": [
+        "Tone of voice",
+        "Code examples",
+        "Usage guidelines",
+        "Open source",
+        "Unmaintained"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Visa Product Design System",
       "url": "https://design.visa.com/welcome/",
+      "tech": [
+        "Angular",
+        "React",
+        "CSS",
+        "Mobile"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Accessibility",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "W3C design system",
       "url": "https://design-system.w3.org/",
+      "tech": [
+        "Sass",
+        "Vanilla JS"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source",
+        "Accessibility"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Wanda",
       "url": "https://design.wonderflow.ai/",
+      "tech": [
+        "React",
+        "CSS Modules"
+      ],
+      "features": [
+        "Code examples",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Web Awesome",
       "url": "https://webawesome.com/",
+      "tech": [
+        "Web Components"
+      ],
+      "features": [
+        "Open source",
+        "Code examples"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "West Midlands Network Design System",
       "url": "https://designsystem.tfwm.org.uk/",
+      "tech": [
+        "HTML",
+        "Nunjucks",
+        "Sass"
+      ],
+      "features": [
+        "Code examples",
+        "Usage guidelines",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Wise Design",
       "url": "https://wise.design/",
+      "tech": [
+        "Mobile"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Tone of voice"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     },
     {
       "name": "Workday Canvas Design System",
       "url": "https://design.workday.com/",
+      "tech": [
+        "React"
+      ],
+      "features": [
+        "Usage guidelines",
+        "Accessibility",
+        "Tone of voice",
+        "Open source"
+      ],
       "gallery_url": "https://component.gallery/design-systems/"
     }
   ]

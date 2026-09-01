@@ -1,8 +1,10 @@
 # Scroll-Driven Animations
 
-Three tiers: CSS-native (modern), IntersectionObserver (universal), GSAP ScrollTrigger (optional enhancement).
+Three tiers: CSS-native (Baseline, prefer it), IntersectionObserver (legacy fallback), GSAP ScrollTrigger (optional enhancement).
 
-## Tier 1: CSS Scroll-Driven (Chrome 115+, Edge 115+)
+## Tier 1: CSS Scroll-Driven (Baseline — all major browsers)
+
+Chrome 115+, Edge 115+, Firefox 128+, Safari 18+. This is no longer a progressive enhancement — it is the default scroll mechanism, with IntersectionObserver as the fallback for older browsers. CSS timelines run on the compositor thread: zero main-thread work, zero INP cost, immune to jank from busy JS. An IntersectionObserver reveal can block on the main thread; `animation-timeline` cannot.
 
 ```css
 @keyframes fade-in-up {
@@ -11,11 +13,13 @@ Three tiers: CSS-native (modern), IntersectionObserver (universal), GSAP ScrollT
 }
 
 .scroll-reveal {
-  animation: fade-in-up linear both;
+  animation: fade-in-up linear backwards;
   animation-timeline: view();
   animation-range: entry 0% entry 30%;
 }
 ```
+
+Use `animation-fill-mode: backwards`, not `both` — `both` sits in a higher cascade origin than `@starting-style`, so a `both` fill silently overrides any entry transition on the same element (Bramus, Nov 2025). `backwards` composes cleanly.
 
 ### `animation-timeline` Values
 
@@ -128,7 +132,8 @@ gsap.from('.feature-card', {
 
 ```javascript
 gsap.to('.progress-fill', {
-  width: '100%',
+  scaleX: 1,
+  transformOrigin: 'left center',
   scrollTrigger: {
     trigger: '.progress-section',
     start: 'top center',
@@ -140,7 +145,7 @@ gsap.to('.progress-fill', {
 
 ### License Note
 
-GSAP is free for standard websites. SaaS products embedding GSAP require a Business license. For self-contained skill output, this is fine — but document the constraint.
+GSAP is fully free since 3.13 (April 2025, post-Webflow acquisition) — every plugin included, the formerly-paid Club plugins among them (SplitText, ScrambleText, MorphSVG, Flip, ScrollSmoother). No Business license for SaaS, no registration, no keys. SplitText and ScrambleText are directly relevant here: they cover per-character splitting and decode effects that the typewriter and terminal patterns build by hand — reach for them only when a page already loads GSAP; the vanilla implementations stay the default.
 
 ## Progressive Enhancement Strategy
 
@@ -148,18 +153,20 @@ GSAP is free for standard websites. SaaS products embedding GSAP require a Busin
 Base layer (no-JS / reduced-motion):
   All content visible, no animation
 
-Enhanced layer (IntersectionObserver):
+Primary layer (CSS scroll-driven):
+  @supports (animation-timeline: view()) { ... }
+  Compositor-thread, zero JS, zero INP cost
+
+Fallback layer (IntersectionObserver, older browsers):
   .scroll-reveal { opacity: 0; transform: translateY(20px); }
   .scroll-reveal.is-visible { opacity: 1; transform: none; }
-
-Premium layer (CSS scroll-driven):
-  @supports (animation-timeline: view()) { ... }
+  Gate in JS: if (CSS.supports('animation-timeline: view()')) skip attaching
 
 Optional layer (GSAP):
   Complex choreography, pin-and-scrub, multi-element timelines
 ```
 
-Implementation order: always start with the base layer, add IntersectionObserver for universal animation, then layer CSS scroll-driven and GSAP on top.
+Implementation order: start with the base layer, write the CSS scroll-driven path as primary, attach IntersectionObserver only where `animation-timeline` is unsupported, and reach for GSAP only when choreography outgrows both.
 
 ## Parallax
 

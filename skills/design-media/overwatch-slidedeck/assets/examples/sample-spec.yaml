@@ -1,0 +1,48 @@
+meta:
+  title: "Forge Analytics"
+  author: "Demo"
+  password: ""
+
+design:
+  primaryColor: "#2563eb"
+  fontHeading: "DM Serif Display"
+  transition: "fade"
+  transitionDuration: 350
+
+slides:
+  - type: shader-cover
+    id: "01-cover"
+    mode: dark
+    shader: "lava-nebula"
+    title: "FORGE ANALYTICS"
+    subtitle: "Insight engines for the modern data stack"
+
+  - type: split-text-list
+    id: "02-features"
+    mode: white
+    eyebrow: "Platform"
+    headline: "What We Build"
+    notes: "Emphasize the 10x speed improvement over legacy BI tools"
+    callout:
+      label: "THE RESULT"
+      text: "10x faster queries on petabyte-scale data"
+    items:
+      - title: "Streaming Pipelines"
+        description: "Real-time ingestion from any source."
+      - title: "Semantic Layer"
+        description: "Business logic defined once, used everywhere."
+
+  - type: full-bleed-quote
+    id: "03-quote"
+    mode: orange
+    quote: "The best dashboard is the one nobody has to build."
+    attribution: "VP Engineering, Forge Analytics"
+    transition: "scale"
+    transitionDuration: 500
+
+  - type: section-divider
+    id: "04-appendix"
+    mode: dark
+    text: "APPENDIX"
+    fontSize: 120
+    opacity: 0.15

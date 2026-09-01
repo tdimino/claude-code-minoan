@@ -1,0 +1,10 @@
+{
+  "name": "overwatch-deck-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.48.0",
+    "pdf-lib": "^1.17.1",
+    "yaml": "^2.5.0"
+  }
+}

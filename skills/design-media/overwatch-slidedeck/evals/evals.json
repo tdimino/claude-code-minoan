@@ -1,0 +1,60 @@
+{
+  "skill_name": "overwatch-slidedeck",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Scaffold a new Overwatch deck project and confirm it builds.",
+      "expected_output": "A copy of assets/scaffold with npm install && npm run build completing cleanly and /deck/1 rendering the shader cover.",
+      "expectations": [
+        "The scaffold is copied rather than modified in place",
+        "npm run build exits 0 with no TypeScript errors",
+        "/deck/1 renders the cover slide with WebGPU shader or CSS gradient fallback",
+        "Keyboard navigation advances slides and ignores keypresses inside interactive elements"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Generate a 5-slide deck from this YAML spec with a custom brand color and heading font, then build it.",
+      "expected_output": "init-deck-from-spec.mjs produces a project whose config.ts matches the scaffold API, compiles without repair, and shows the brand color and fonts from the spec.",
+      "expectations": [
+        "The generated config.ts exports totalSlides, getSlideComponent, preloadSlide, and slideList",
+        "npm run build on the generated project exits 0 without manual fixes",
+        "design.primaryColor from the YAML appears in src/styles/globals.css",
+        "fontHeading and fontBody from the YAML are applied",
+        "An invalid slide type or unsafe slide id in the spec fails validation with a clear message before any files are written"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Add slide transitions and speaker notes, then present with a presenter window.",
+      "expected_output": "Direction-aware fade/slide transitions between slides; /presenter/N shows current slide, next-slide preview, notes, and timer, synced to the audience window over BroadcastChannel.",
+      "expectations": [
+        "Navigating forward and backward animates in opposite directions",
+        "prefers-reduced-motion disables slide transitions and auto-cycling components",
+        "Notes written in config or YAML appear in the presenter view",
+        "Navigating in the presenter window navigates the audience window, and vice versa"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Export the deck to PNGs and a PDF for the board packet.",
+      "expected_output": "scripts/export-deck.mjs captures every slide at 1920x1080 with animations settled and merges them into deck.pdf.",
+      "expectations": [
+        "One PNG per slide at 1920x1080",
+        "Slides render final-state content, not mid-entrance frames",
+        "The --pdf flag produces a single merged deck.pdf",
+        "The live deck remains the primary artifact; export is derived output"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Deploy the deck to Cloudflare and share the link.",
+      "expected_output": "A deployed SPA where /deck/7 opened directly does not 404, with the access gate configured and described honestly.",
+      "expectations": [
+        "Deep links to /deck/N work on the deployed host (SPA rewrites present for Cloudflare, Vercel, and Netlify)",
+        "The wrangler config in the scaffold deploys without hand-authoring",
+        "Any password requirement is described as a client-side access gate, not security"
+      ]
+    }
+  ]
+}

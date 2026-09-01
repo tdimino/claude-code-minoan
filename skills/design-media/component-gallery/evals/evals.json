@@ -1,0 +1,68 @@
+{
+  "skill_name": "component-gallery",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "What's the canonical name for the component people call a flyout or sheet, and which design systems have strong examples?",
+      "expected_output": "Alt-name resolution to Drawer via the static index, with named design-system examples — no RAG query needed for the lookup itself.",
+      "expectations": [
+        "The component-index reference is read before any RAG query",
+        "Flyout/Sheet/Tray resolve to Drawer",
+        "At least three specific design systems are named as precedent",
+        "The answer does not invent example counts absent from the index"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I'm building a date picker — how do production design systems handle its accessibility?",
+      "expected_output": "A synthesis of 3-5 systems' approaches from RAG chunks covering keyboard navigation, ARIA roles, and focus management, distinguishing convergent from divergent patterns.",
+      "expectations": [
+        "query.py is used with a semantic query about datepicker accessibility",
+        "Retrieved chunks are coherent passages, not sentence fragments",
+        "The synthesis separates convergent patterns from system-specific divergences",
+        "Accessibility findings cite which system they came from"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "How should I structure a tool-call display for our agent product's chat UI?",
+      "expected_output": "The ai-components overlay's tool-call-card pattern: composed atoms named, unique behaviors (streaming args, state progression, expandable payload, approval gate) enumerated, sources cited.",
+      "expectations": [
+        "references/ai-components.md is consulted",
+        "The answer names the canonical atoms the pattern composes (card, badge, progress-indicator, accordion)",
+        "The pending/running/succeeded/failed progression is described",
+        "Primary sources (AI Elements, assistant-ui, or CopilotKit) are referenced"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Find me WebGL portfolio sites built with Three.js by notable studios for inspiration.",
+      "expected_output": "fetch_mesh3d.py results filtered by technology, with real site entries — no section-heading pseudo-records.",
+      "expectations": [
+        "fetch_mesh3d.py is invoked with a --tech or --maker filter",
+        "Every returned entry has a URL",
+        "The output reports the directory's declared total and fetch timestamp"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Compare how design systems implement command palettes.",
+      "expected_output": "The composite-patterns reference resolves command palette to its constituent atoms (search input, combobox, modal, list, badge), each researched in the corpus, since no canonical command-palette type exists upstream.",
+      "expectations": [
+        "references/composite-patterns.md is consulted for the composite's structure",
+        "Constituent canonical components are researched rather than the answer being invented from scratch",
+        "The answer notes command palette is a composite, not one of the canonical upstream types"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "With Ollama stopped: what patterns exist for empty states?",
+      "expected_output": "A useful answer via the lexical fallback and static indexes, with the degraded mode acknowledged — not an error trace.",
+      "expectations": [
+        "query.py degrades to lexical fallback instead of erroring",
+        "The output states that semantic retrieval was unavailable",
+        "Empty state findings still cite staged corpus content"
+      ]
+    }
+  ]
+}

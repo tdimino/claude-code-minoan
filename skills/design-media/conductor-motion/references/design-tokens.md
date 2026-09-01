@@ -38,6 +38,8 @@ Complete token reference for the `--cm-*` CSS custom property system.
   --cm-ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
   --cm-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --cm-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --cm-ease-spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);
+  --cm-ease-bounce: linear(0, 0.004, 0.016, 0.035, 0.063, 0.098, 0.141, 0.191, 0.25, 0.316, 0.391 36.8%, 0.563, 0.766, 1 58.8%, 0.946, 0.908 69.1%, 0.895, 0.885, 0.879, 0.878, 0.879, 0.885, 0.895, 0.908 89.7%, 0.946, 1);
 
   /* Timing */
   --cm-stagger: 200ms;
@@ -80,6 +82,23 @@ const EASING = {
   linear:       t => t
 };
 ```
+
+Templates route rAF easing through a single alias — `const ease = easeOutCubic;` — so the generator's `--easing` flag swaps one line, not every call site.
+
+### CSS `linear()` Easing
+
+`cubic-bezier()` holds four control points; `linear()` holds as many stops as the curve needs. That makes spring and bounce curves expressible in pure CSS — no rAF loop, no JS easing function. `--cm-ease-spring` and `--cm-ease-bounce` above are sampled approximations (generate custom curves with Jake Archibald's [linear() generator](https://linear-easing-generator.netlify.app/)). Baseline since late 2023 (Chrome 113+, Firefox 112+, Safari 17.2+). Note the keyword `linear` and the function `linear()` are different things — the tokens use the function.
+
+Use spring/bounce sparingly: one springy element per composition, on the element that answers the user (a card settling, a toggle landing) — never on ambient motion.
+
+### Two Curves, Two Meanings
+
+Easing carries semantics, not just feel:
+
+- **`ease-out`** (fast in, slow settle) reads as *response to the user*. Reveals, state changes, anything a click or scroll caused.
+- **`ease-in-out`** reads as *the system moving on its own*. Auto-cycling rotators, ambient loops, processing indicators.
+
+Hold this distinction and viewers intuit causality without reading a word. Frigade's zero-dependency marketing site runs on exactly two curves plus two rAF loops — independent confirmation that the vanilla approach and a small easing vocabulary cover a full production site.
 
 ## Timing Constants (medium pacing)
 

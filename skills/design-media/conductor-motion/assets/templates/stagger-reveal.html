@@ -274,6 +274,34 @@ html.is-loaded .hero-cta      { opacity: 1; transform: none; transition-delay: c
   color: var(--cm-text);
 }
 
+html.no-js .hero-badge,
+html.no-js .hero-heading,
+html.no-js .hero-subtitle,
+html.no-js .hero-cta,
+html.no-js .feature-card,
+html.no-js .stat {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+
+@supports (animation-timeline: view()) {
+  .feature-card,
+  .stat {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    animation-name: reveal-up;
+    animation-fill-mode: backwards;
+    animation-timeline: view();
+    animation-range: entry 0% entry 40%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-badge,
   .hero-heading,
@@ -288,6 +316,7 @@ html.is-loaded .hero-cta      { opacity: 1; transform: none; transition-delay: c
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
+    animation: none !important;
   }
   .navbar {
     transition: none !important;
@@ -375,6 +404,9 @@ html.is-loaded .hero-cta      { opacity: 1; transform: none; transition-delay: c
   document.documentElement.dataset.initDone = 'true';
 
   let paused = false;
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+  const ease = easeOutCubic;
+
   document.addEventListener('visibilitychange', () => {
     paused = document.hidden;
   });
@@ -414,22 +446,26 @@ html.is-loaded .hero-cta      { opacity: 1; transform: none; transition-delay: c
     return;
   }
 
-  // Scroll-triggered reveals with stagger
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const parent = entry.target.closest('.feature-grid, .stats-row');
-      if (parent) {
-        const siblings = Array.from(parent.querySelectorAll('.scroll-reveal'));
-        const idx = siblings.indexOf(entry.target);
-        entry.target.style.transitionDelay = `${idx * 150}ms`;
-      }
-      entry.target.classList.add('is-visible');
-      revealObserver.unobserve(entry.target);
-    });
-  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+  // Scroll-triggered reveals with stagger (IO fallback; CSS scroll-driven preferred)
+  const cssScrollDriven = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('animation-timeline', 'view()');
 
-  document.querySelectorAll('.scroll-reveal').forEach(el => revealObserver.observe(el));
+  if (!cssScrollDriven) {
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const parent = entry.target.closest('.feature-grid, .stats-row');
+        if (parent) {
+          const siblings = Array.from(parent.querySelectorAll('.scroll-reveal'));
+          const idx = siblings.indexOf(entry.target);
+          entry.target.style.transitionDelay = `${idx * 150}ms`;
+        }
+        entry.target.classList.add('is-visible');
+        revealObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.scroll-reveal').forEach(el => revealObserver.observe(el));
+  }
 
   // Animated stat counters
   function animateCounter(el) {
@@ -437,15 +473,14 @@ html.is-loaded .hero-cta      { opacity: 1; transform: none; transition-delay: c
     const target = parseInt(el.dataset.target, 10);
     const suffix = el.dataset.suffix || '';
     const duration = 2000;
-    const start = performance.now();
+    let start = performance.now();
     let pauseOffset = 0;
 
     function tick(now) {
-      if (paused) { pauseOffset = now; requestAnimationFrame(tick); return; }
-      if (pauseOffset) { const delta = now - pauseOffset; pauseOffset = 0; start + delta; }
+      if (paused) { if (!pauseOffset) pauseOffset = now; requestAnimationFrame(tick); return; }
+      if (pauseOffset) { start += now - pauseOffset; pauseOffset = 0; }
       const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      valueEl.textContent = Intl.NumberFormat('en-US').format(Math.round(target * eased)) + suffix;
+      valueEl.textContent = Intl.NumberFormat('en-US').format(Math.round(target * ease(t))) + suffix;
       if (t < 1) requestAnimationFrame(tick);
     }
 

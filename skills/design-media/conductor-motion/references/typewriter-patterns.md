@@ -22,6 +22,7 @@ START → TYPE_CHAR → (word complete?) → HOLD → DELETE_CHAR → (empty?) �
 | `DELETE_MAX_MS` | 35 | Maximum ms per delete |
 | `HOLD_MS` | 1100 | Hold complete word before deleting |
 | `BETWEEN_WORDS_MS` | 180 | Pause between words |
+| `LOOP` | true | `false` types the list once and settles on the last word (cursor keeps blinking) |
 
 Random per-character delay: `Math.floor(Math.random() * (max - min + 1)) + min`
 

@@ -1,6 +1,6 @@
 # Component Gallery
 
-UI pattern research skill backed by a local RAG collection of [component.gallery](https://component.gallery/)—60 component types, 95 design systems, 2,676+ real-world examples.
+UI pattern research skill backed by a local RAG collection of [component.gallery](https://component.gallery/)—60 component types, 95 design systems, 2,671 real-world examples (counts derived from the crawl; regenerated 2026-09-01).
 
 Pairs with **minoan-frontend-design**: Component Gallery provides the *what* (pattern research, implementation precedent, accessibility requirements), minoan-frontend-design provides the *how* (creative direction, typography, color, spatial composition).
 
@@ -8,9 +8,10 @@ Pairs with **minoan-frontend-design**: Component Gallery provides the *what* (pa
 
 | Layer | Contents |
 |-------|----------|
-| **Static indexes** | 3 markdown reference files for instant lookup (no RAG needed) |
-| **RAG collection** | 8,692 semantic chunks via RLAMA + nomic-embed-text |
-| **Deep dives** | 12 long-form component analyses fetched from GitHub |
+| **Static indexes** | 3 markdown reference files + index.json for instant lookup (no RAG needed) |
+| **RAG collection** | 1,285 coherent ~1KB chunks via RLAMA + nomic-embed-text (fixed 1000/200 chunking) |
+| **Deep dives** | 12 long-form component analyses fetched from GitHub with commit-SHA provenance |
+| **Curated patterns** | 7 reference files (AI overlay, composites, site-specific patterns) ingested alongside the crawl |
 
 ### Static References
 
@@ -41,8 +42,12 @@ cat references/design-system-index.md | grep -i vue
 # How do production systems implement date picker accessibility?
 python3 scripts/query.py "date picker accessibility patterns"
 
-# Compare sidebar navigation across design systems
-python3 scripts/query.py "compare sidebar navigation patterns"
+# Filter by component, system, or source (mesh3d, component.gallery, curated, pages, deep-dives)
+python3 scripts/query.py "tool call states" --source curated
+python3 scripts/query.py "focus management" --component modal
+
+# Force the lexical fallback (also automatic when Ollama is down)
+python3 scripts/query.py "empty state guidance" --lexical
 
 # Broader queries benefit from more chunks
 python3 scripts/query.py "responsive table patterns" -k 20
@@ -51,15 +56,20 @@ python3 scripts/query.py "responsive table patterns" -k 20
 ### Ingestion
 
 ```bash
-# Full pipeline: crawl site + fetch deep-dives + build RLAMA collection
+# Full transactional pipeline: crawl → deep-dives → curated → validate → RAG → swap
 python3 scripts/ingest.py --full
 
-# Rebuild RAG from existing scraped files
+# Rebuild RAG from existing .staging/ (fixed chunking, ~1000 char chunks)
 python3 scripts/ingest.py --rebuild-rag
+
+# Dry-run: staging swap + provenance + deep-dive discovery, no crawl or RAG
+python3 scripts/ingest.py --skip-crawl --skip-rag
 
 # Regenerate static indexes from scraped data
 python3 scripts/build_indexes.py
 ```
+
+The pipeline is transactional: crawl output lands in `.staging-next/`, passes validation (page count sanity, frontmatter integrity, components/design-systems presence), then the RLAMA collection is rebuilt and `.staging-next/` swaps to `.staging/` (previous kept as `.staging-prev/`). RLAMA has no rename, so the embedding step itself is the remaining failure window after validation. Provenance is recorded in `.staging/crawl-meta.json` (crawl timestamp, page count, GitHub commit SHA per deep-dive file). Deep-dive files are auto-discovered from the GitHub repo tree, not hardcoded. Curated pattern references from `references/` are included in the RAG build via `curated/`.
 
 ## Components Covered
 
@@ -96,14 +106,21 @@ component-gallery/
 │   ├── component-taxonomy.md
 │   ├── design-system-index.md
 │   ├── index.json
-│   ├── astryx-hero-pattern.md        Depth-parallax editorial hero pattern
-│   ├── fluid-dom-pattern.md          Stable fluid simulation over live DOM
-│   ├── composio-glitch-hero-pattern.md   Generative pixel-glitch canvas hero
+│   ├── ai-components.md                AI-era interface pattern overlay
+│   ├── composite-patterns.md           Multi-component composition patterns
+│   ├── mesh3d-gallery.md               3D mesh gallery patterns
+│   ├── astryx-hero-pattern.md          Depth-parallax editorial hero pattern
+│   ├── fluid-dom-pattern.md            Stable fluid simulation over live DOM
+│   ├── composio-glitch-hero-pattern.md Generative pixel-glitch canvas hero
 │   └── composio-agent-console-pattern.md Product diorama of tool-call panels
+├── evals/evals.json       # 6 skill evals
 └── scripts/
-    ├── ingest.py          # Crawl + build RAG collection
-    ├── build_indexes.py   # Generate static reference files
-    └── query.py           # Semantic search wrapper
+    ├── ingest.py          # Transactional crawl + validate + RAG build
+    ├── build_indexes.py   # Generate static reference files (derived counts)
+    ├── test_build_indexes.py  # Parser fixtures (15 tests)
+    ├── query.py           # Semantic search + filters + lexical fallback
+    ├── fetch_mesh3d.py    # mesh3d.gallery directory (24h cache in .staging/)
+    └── validate_links.py  # Link health check over index.json
 ```
 
 `.staging/` (not committed) holds raw crawl output and per-page markdown files used by `build_indexes.py` and RLAMA ingestion.

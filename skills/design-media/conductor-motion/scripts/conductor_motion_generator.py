@@ -22,7 +22,8 @@ TEMPLATES_DIR = SKILL_DIR / "assets" / "templates"
 
 MODES = [
     "typewriter", "progress", "file-review", "stagger-reveal",
-    "terminal", "lottie-compose", "full-page", "catalog"
+    "terminal", "lottie-compose", "streaming-text", "top-layer",
+    "full-page", "catalog"
 ]
 
 PACING_MULTIPLIERS = {"slow": 1.5, "medium": 1.0, "fast": 0.6}
@@ -186,9 +187,10 @@ def apply_typewriter_content(html: str, base_text: str | None, words: str | None
         items = [w.strip() for w in words.split(",")]
         li_block = "\n".join(f"      <li>{escape_html(w)}</li>" for w in items)
         html = re.sub(
-            r"<ul[^>]*style=['\"]display:none['\"][^>]*>.*?</ul>",
-            f'<ul style="display:none">\n{li_block}\n    </ul>',
+            r"(<ul[^>]*>).*?(</ul>)",
+            lambda m: f"{m.group(1)}\n{li_block}\n    {m.group(2)}",
             html,
+            count=1,
             flags=re.DOTALL,
         )
         js_array = "[" + ", ".join(f"'{escape_js_string(w)}'" for w in items) + "]"
@@ -261,6 +263,103 @@ def apply_terminal_content(html: str, status_items: str | None, result_count: in
     return html
 
 
+EASING_BODIES = {
+    "cubic": "easeOutCubic",
+    "quart": "t => 1 - Math.pow(1 - t, 4)",
+    "linear": "t => t",
+}
+
+
+def apply_easing(html: str, easing: str) -> str:
+    body = EASING_BODIES[easing]
+    return re.sub(r"(const ease\s*=\s*)[^;]+;", lambda m: f"{m.group(1)}{body};", html)
+
+
+def apply_progress_timing(html: str, duration: int | None, start_percent: int | None) -> str:
+    if duration is not None:
+        d = str(int(duration))
+        html = re.sub(r"(TOTAL_MS\s*=\s*)\d+", lambda m: m.group(1) + d, html)
+    if start_percent is not None:
+        sp = int(start_percent)
+        html = re.sub(r"(START_PROGRESS\s*=\s*)\d+", lambda m: m.group(1) + str(sp), html)
+        html = re.sub(r'(aria-valuenow=")\d+(")', lambda m: f"{m.group(1)}{sp}{m.group(2)}", html, count=1)
+        html = re.sub(r"scaleX\(0\.05\)", f"scaleX({sp / 100})", html)
+    return html
+
+
+def apply_hold_duration(html: str, hold: int) -> str:
+    h = str(int(hold))
+    html = re.sub(r"(HOLD_MS\s*=\s*)\d+", lambda m: m.group(1) + h, html)
+    html = re.sub(r"(HOLD_FULL_MS\s*=\s*)\d+", lambda m: m.group(1) + h, html)
+    return html
+
+
+def apply_bool_const(html: str, const_name: str, value: bool) -> str:
+    js_value = "true" if value else "false"
+    return re.sub(
+        rf"(const {const_name}\s*=\s*)(?:true|false)",
+        lambda m: m.group(1) + js_value,
+        html,
+    )
+
+
+def apply_lottie_config(html: str, src: str | None, loop: bool, autoplay: bool) -> str:
+    if src:
+        safe_src = escape_js_string(src)
+        html = re.sub(r"(const LOTTIE_SRC\s*=\s*)'[^']*'", lambda m: f"{m.group(1)}'{safe_src}'", html)
+    if not loop:
+        html = apply_bool_const(html, "LOTTIE_LOOP", False)
+    if not autoplay:
+        html = apply_bool_const(html, "LOTTIE_AUTOPLAY", False)
+    return html
+
+
+LOTTIE_CDN_TAG = (
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" '
+    'integrity="sha512-jEnuIl4gMBNAxt8KPXGOO7TWnGfMCDkLfVKEME5WGqa/RjiVpKmQdv0YNGfDcCNnMg2iy9If3JOqYkIaW0GRQ==" '
+    'crossorigin="anonymous" referrerpolicy="no-referrer"></script>'
+)
+
+
+def apply_lottie_cdn(html: str) -> str:
+    if re.search(r'<script[^>]+lottie[^>]*\.js', html, re.IGNORECASE):
+        return html
+    return html.replace("</head>", f"{LOTTIE_CDN_TAG}\n</head>")
+
+
+def apply_streaming_content(html: str, prompt: str | None, response: str | None) -> str:
+    if prompt:
+        safe_prompt = escape_html(prompt)
+        html = re.sub(
+            r'(id="stream-prompt">)[^<]*',
+            lambda m: m.group(1) + safe_prompt,
+            html,
+        )
+    if response:
+        paragraphs = [p.strip() for p in response.split("||") if p.strip()]
+        p_block = "".join(f"<p>{escape_html(p)}</p>" for p in paragraphs)
+        html = re.sub(
+            r'(id="stream-response">).*?(</div>)',
+            lambda m: m.group(1) + p_block + m.group(2),
+            html,
+            flags=re.DOTALL,
+        )
+    return html
+
+
+def apply_toast_messages(html: str, messages: str | None) -> str:
+    if not messages:
+        return html
+    items = [m.strip() for m in messages.split(",")]
+    js_array = "[\n    " + ",\n    ".join(f"'{escape_js_string(m)}'" for m in items) + ",\n  ]"
+    html = re.sub(
+        r"(const TOAST_MESSAGES\s*=\s*)\[[^\]]+\]",
+        lambda m: m.group(1) + js_array,
+        html,
+    )
+    return html
+
+
 def apply_font(html: str, font: str) -> str:
     if font == "Geist":
         return html
@@ -292,15 +391,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--color-scheme", choices=["dark", "light"], default="dark")
     p.add_argument("--accent", default="#4F7BF7", help="Brand accent hex color")
     p.add_argument("--font", default="Geist", help="Primary font name")
+    p.add_argument("--easing", choices=["cubic", "quart", "linear"], default="cubic",
+                   help="Primary rAF easing: easeOutCubic, easeOutQuart, or linear")
+    p.add_argument("--typing-variance", type=int, help="Random ms variance added per typed char (0-40)")
 
     p.add_argument("--base-text", help="[typewriter] Static text before rotating words")
     p.add_argument("--words", help="[typewriter] Comma-separated rotating words")
     p.add_argument("--cursor", default="|", help="[typewriter] Cursor character")
-    p.add_argument("--no-loop", action="store_true", help="[typewriter] Disable word rotation loop")
+    p.add_argument("--no-loop", action="store_true", help="[typewriter] Type the word list once, settle on the last word")
+    p.add_argument("--hold-duration", type=int, help="[typewriter/terminal] Ms to hold a typed word before deleting")
 
     p.add_argument("--title", help="[progress] Header title text")
     p.add_argument("--doc-count", type=int, help="[progress] Document count target")
     p.add_argument("--rows", help="[progress/terminal] Comma-separated status labels")
+    p.add_argument("--progress-duration", type=int, help="[progress] Total progress animation ms")
+    p.add_argument("--start-percent", type=int, help="[progress] Initial bar percentage")
 
     p.add_argument("--files", help="[file-review] Comma-separated filenames")
     p.add_argument("--review-speed", type=int, default=2000, help="[file-review] Ms per file review")
@@ -308,11 +413,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--status-items", help="[terminal] Comma-separated status items")
     p.add_argument("--result-count", type=int, help="[terminal] Result counter target")
     p.add_argument("--result-label", help="[terminal] Result label text")
+    p.add_argument("--no-timestamps", action="store_true", help="[terminal] Hide the timestamp column")
 
-    p.add_argument("--lottie-src", help="[lottie-compose] Lottie JSON URL")
+    p.add_argument("--prompt", help="[streaming-text] User message shown above the streamed response")
+    p.add_argument("--response", help="[streaming-text] Response text; separate paragraphs with ||")
+    p.add_argument("--toast-messages", help="[top-layer] Comma-separated toast messages")
+
+    p.add_argument("--lottie-src", help="[lottie-compose] Lottie JSON URL loaded into data-lottie-slot containers")
     p.add_argument("--no-lottie-loop", action="store_true", help="[lottie-compose] Disable Lottie loop")
     p.add_argument("--no-lottie-autoplay", action="store_true", help="[lottie-compose] Disable autoplay")
-    p.add_argument("--lottie-cdn", action="store_true", help="Include lottie-web CDN script")
+    p.add_argument("--lottie-cdn", action="store_true", help="Include lottie-web CDN script in <head>")
 
     return p
 
@@ -340,10 +450,27 @@ def main():
     if args.stagger != 200:
         html = apply_stagger(html, args.stagger)
 
+    if args.easing != "cubic":
+        html = apply_easing(html, args.easing)
+
+    if args.typing_variance is not None:
+        tv = str(int(args.typing_variance))
+        html = re.sub(r"(TYPE_VARIANCE\s*=\s*)\d+", lambda m: m.group(1) + tv, html)
+
+    if args.hold_duration is not None:
+        html = apply_hold_duration(html, args.hold_duration)
+
+    if args.no_loop:
+        html = apply_bool_const(html, "LOOP", False)
+
+    if args.no_timestamps:
+        html = apply_bool_const(html, "SHOW_TIMESTAMPS", False)
+
     if args.mode == "typewriter":
         html = apply_typewriter_content(html, args.base_text, args.words, args.cursor)
     elif args.mode == "progress":
         html = apply_progress_content(html, args.title, args.doc_count, args.rows)
+        html = apply_progress_timing(html, args.progress_duration, args.start_percent)
     elif args.mode == "file-review":
         html = apply_file_review_content(html, args.files)
         if args.review_speed != 2000:
@@ -351,16 +478,19 @@ def main():
             html = re.sub(r"(PROCESS_DURATION\s*=\s*)\d+", lambda m: m.group(1) + rs, html)
     elif args.mode == "terminal":
         html = apply_terminal_content(html, args.status_items, args.result_count, args.result_label)
+    elif args.mode == "lottie-compose":
+        html = apply_lottie_config(html, args.lottie_src, not args.no_lottie_loop, not args.no_lottie_autoplay)
+    elif args.mode == "streaming-text":
+        html = apply_streaming_content(html, args.prompt, args.response)
+    elif args.mode == "top-layer":
+        html = apply_toast_messages(html, args.toast_messages)
     elif args.mode == "full-page":
         html = apply_typewriter_content(html, args.base_text, args.words, args.cursor)
         html = apply_progress_content(html, args.title, args.doc_count, args.rows)
         html = apply_file_review_content(html, args.files)
 
-    if args.lottie_cdn and "lottie" not in html.lower().split("script")[0] if "script" in html.lower() else True:
-        html = html.replace(
-            "</head>",
-            '<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" integrity="sha512-jEnuIl4gMBNAxt8KPXGOO7TWnGfMCDkLfVKEME5WGqa/RjiVpKmQdv0YNGfDcCNnMg2iy9If3JOqYkIaW0GRQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>\n</head>',
-        )
+    if args.lottie_cdn:
+        html = apply_lottie_cdn(html)
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)

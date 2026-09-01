@@ -1,0 +1,24 @@
+import type { CSSProperties, ReactNode } from "react";
+
+interface BodyTextProps {
+  children: ReactNode;
+  className?: string;
+  size?: "sm" | "md" | "lg";
+  style?: CSSProperties;
+}
+
+export function BodyText({ children, className = "", size = "md", style }: BodyTextProps) {
+  const sizes = {
+    sm: "text-[20px] leading-[1.5]",
+    md: "text-[24px] leading-[1.6]",
+    lg: "text-[28px] leading-[1.6]",
+  };
+  return (
+    <p
+      className={`${sizes[size]} ${className}`}
+      style={{ fontFamily: "var(--font-body)", color: "var(--color-text-secondary)", ...style }}
+    >
+      {children}
+    </p>
+  );
+}

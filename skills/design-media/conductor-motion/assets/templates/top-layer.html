@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conductor Motion — Top Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cm-bg: #0B0F1A;
+  --cm-surface: #141824;
+  --cm-elevated: #1C2133;
+  --cm-card: #242A3D;
+  --cm-brand: #4F7BF7;
+  --cm-brand-40: rgba(79, 123, 247, 0.4);
+  --cm-text: #E8ECF4;
+  --cm-text-70: rgba(232, 236, 244, 0.7);
+  --cm-text-40: rgba(232, 236, 244, 0.4);
+  --cm-success: #34D399;
+  --cm-border: rgba(232, 236, 244, 0.15);
+  --cm-border-subtle: rgba(232, 236, 244, 0.08);
+  --cm-ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+  --cm-font: 'Geist', system-ui, sans-serif;
+  --cm-font-mono: 'Geist Mono', 'SF Mono', monospace;
+  --cm-body-size: clamp(0.875rem, 0.5vw + 0.75rem, 1rem);
+  --cm-mono-size: clamp(0.75rem, 0.4vw + 0.65rem, 0.875rem);
+  --cm-layer-duration: 240ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--cm-bg);
+  color: var(--cm-text);
+  font-family: var(--cm-font);
+  font-size: var(--cm-body-size);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.layer-demo {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.layer-btn {
+  font-family: var(--cm-font-mono);
+  font-size: var(--cm-mono-size);
+  color: var(--cm-text-70);
+  background: var(--cm-surface);
+  border: 1px solid var(--cm-border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  cursor: pointer;
+  transition: border-color 200ms var(--cm-ease-out-cubic), color 200ms var(--cm-ease-out-cubic);
+}
+
+.layer-btn:hover {
+  border-color: var(--cm-brand-40);
+  color: var(--cm-text);
+}
+
+/* ── Popover ─────────────────────────────────────────────
+   Entry via @starting-style, exit via transition-behavior:
+   allow-discrete + the overlay transition. No JS timing —
+   the browser owns the whole lifecycle. */
+
+.layer-popover {
+  position: fixed;
+  inset: auto;
+  margin: auto;
+  min-width: 16rem;
+  background: var(--cm-elevated);
+  border: 1px solid var(--cm-border);
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  color: var(--cm-text-70);
+
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--cm-layer-duration) var(--cm-ease-out-cubic),
+    transform var(--cm-layer-duration) var(--cm-ease-out-cubic),
+    overlay var(--cm-layer-duration) allow-discrete,
+    display var(--cm-layer-duration) allow-discrete;
+}
+
+.layer-popover:not(:popover-open) {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@starting-style {
+  .layer-popover:popover-open {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.popover-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--cm-font-mono);
+  font-size: var(--cm-mono-size);
+  color: var(--cm-text-70);
+  background: none;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  cursor: pointer;
+  transition: background-color 150ms var(--cm-ease-out-cubic);
+}
+
+.popover-item:hover {
+  background: var(--cm-card);
+  color: var(--cm-text);
+}
+
+/* ── Dialog ────────────────────────────────────────────── */
+
+.layer-dialog {
+  margin: auto;
+  max-width: 26rem;
+  background: var(--cm-surface);
+  border: 1px solid var(--cm-border);
+  border-radius: 0.75rem;
+  padding: 1.75rem;
+  color: var(--cm-text-70);
+
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity var(--cm-layer-duration) var(--cm-ease-out-cubic),
+    transform var(--cm-layer-duration) var(--cm-ease-out-cubic),
+    overlay var(--cm-layer-duration) allow-discrete,
+    display var(--cm-layer-duration) allow-discrete;
+}
+
+.layer-dialog:not([open]) {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+@starting-style {
+  .layer-dialog[open] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.layer-dialog::backdrop {
+  background: rgba(11, 15, 26, 0);
+  transition:
+    background-color var(--cm-layer-duration) var(--cm-ease-out-cubic),
+    overlay var(--cm-layer-duration) allow-discrete,
+    display var(--cm-layer-duration) allow-discrete;
+}
+
+.layer-dialog[open]::backdrop {
+  background: rgba(11, 15, 26, 0.65);
+}
+
+@starting-style {
+  .layer-dialog[open]::backdrop {
+    background: rgba(11, 15, 26, 0);
+  }
+}
+
+.dialog-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--cm-text);
+  margin-bottom: 0.625rem;
+}
+
+.dialog-body { line-height: 1.6; }
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  margin-top: 1.5rem;
+}
+
+/* ── Toast ─────────────────────────────────────────────── */
+
+.toast-stack {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  z-index: 10;
+}
+
+.layer-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: var(--cm-elevated);
+  border: 1px solid var(--cm-border);
+  border-radius: 0.625rem;
+  padding: 0.75rem 1.125rem;
+  font-family: var(--cm-font-mono);
+  font-size: var(--cm-mono-size);
+  color: var(--cm-text-70);
+
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity var(--cm-layer-duration) var(--cm-ease-out-cubic),
+    transform var(--cm-layer-duration) var(--cm-ease-out-cubic);
+}
+
+@starting-style {
+  .layer-toast {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+.layer-toast.is-leaving {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+.toast-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cm-success);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer-popover,
+  .layer-dialog,
+  .layer-dialog::backdrop,
+  .layer-toast {
+    transition: none !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="layer-demo">
+  <button class="layer-btn" popovertarget="demo-popover" type="button">Open popover</button>
+  <button class="layer-btn" id="dialog-open" type="button">Open dialog</button>
+  <button class="layer-btn" id="toast-spawn" type="button">Queue toast</button>
+</div>
+
+<div class="layer-popover" id="demo-popover" popover>
+  <button class="popover-item" type="button">Export as PDF</button>
+  <button class="popover-item" type="button">Duplicate review</button>
+  <button class="popover-item" type="button">Archive</button>
+</div>
+
+<dialog class="layer-dialog" id="demo-dialog" aria-labelledby="dialog-title">
+  <h2 class="dialog-title" id="dialog-title">Approve 3 documents?</h2>
+  <p class="dialog-body">Report_Q4.xlsx, Contract_Draft.pdf, and Audit_Log.csv will move to the approved queue. This action is logged.</p>
+  <div class="dialog-actions">
+    <button class="layer-btn" id="dialog-cancel" type="button">Cancel</button>
+    <button class="layer-btn" id="dialog-confirm" type="button">Approve</button>
+  </div>
+</dialog>
+
+<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+<script>
+(() => {
+  const TOAST_LIFETIME_MS = 3200;
+  const TOAST_EXIT_MS = 240;
+  const TOAST_MESSAGES = [
+    '3 documents approved',
+    'Review queue updated',
+    'Audit log written',
+  ];
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.documentElement.classList.remove('no-js');
+  document.documentElement.classList.add('is-loaded');
+
+  const dialog = document.getElementById('demo-dialog');
+  const stack = document.getElementById('toast-stack');
+  if (!dialog || !stack || stack.dataset.layerInit === 'true') return;
+  stack.dataset.layerInit = 'true';
+
+  document.getElementById('dialog-open').addEventListener('click', () => dialog.showModal());
+  document.getElementById('dialog-cancel').addEventListener('click', () => dialog.close());
+  document.getElementById('dialog-confirm').addEventListener('click', () => {
+    dialog.close();
+    spawnToast(TOAST_MESSAGES[0]);
+  });
+
+  // Popover and dialog entry/exit are pure CSS (@starting-style + allow-discrete);
+  // JS here only opens/closes. Toasts are stacked flow elements, not top-layer,
+  // so their exit needs the one class + timeout below.
+  let toastIndex = 0;
+  const timers = new Map();
+
+  function spawnToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'layer-toast';
+
+    const dot = document.createElement('span');
+    dot.className = 'toast-dot';
+    dot.setAttribute('aria-hidden', 'true');
+
+    const text = document.createElement('span');
+    text.textContent = message;
+
+    toast.appendChild(dot);
+    toast.appendChild(text);
+    stack.appendChild(toast);
+
+    scheduleDismiss(toast, TOAST_LIFETIME_MS);
+  }
+
+  function scheduleDismiss(toast, delay) {
+    const startedAt = performance.now();
+    const id = setTimeout(() => dismiss(toast), delay);
+    timers.set(toast, { id, startedAt, remaining: delay });
+  }
+
+  function dismiss(toast) {
+    timers.delete(toast);
+    if (reducedMotion) {
+      toast.remove();
+      return;
+    }
+    toast.classList.add('is-leaving');
+    setTimeout(() => toast.remove(), TOAST_EXIT_MS);
+  }
+
+  // A hidden tab must not silently expire toasts — freeze remaining lifetime, resume on return
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      timers.forEach((t, toast) => {
+        clearTimeout(t.id);
+        t.remaining -= performance.now() - t.startedAt;
+      });
+    } else {
+      timers.forEach((t, toast) => {
+        t.startedAt = performance.now();
+        t.id = setTimeout(() => dismiss(toast), Math.max(0, t.remaining));
+      });
+    }
+  });
+
+  document.getElementById('toast-spawn').addEventListener('click', () => {
+    spawnToast(TOAST_MESSAGES[toastIndex % TOAST_MESSAGES.length]);
+    toastIndex += 1;
+  });
+})();
+</script>
+</body>
+</html>

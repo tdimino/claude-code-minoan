@@ -148,6 +148,47 @@ def check_innerhtml(html):
                     return "String concatenation with HTML assigned to innerHTML — use textContent + DOM construction"
 
 
+@check("no-style-width-animation", severity="error")
+def check_style_width(html):
+    script_sections = re.findall(r"<script[^>]*>(.*?)</script>", html, re.DOTALL)
+    for script in script_sections:
+        if re.search(r"\.style\.width\s*=", script):
+            return "Assigning .style.width in JS — animate with transform: scaleX() instead"
+
+
+@check("aria-progress-sync", severity="warning")
+def check_aria_progress_sync(html):
+    if 'role="progressbar"' not in html:
+        return
+    script_sections = re.findall(r"<script[^>]*>(.*?)</script>", html, re.DOTALL)
+    animates_fill = any(re.search(r"scaleX\(", s) for s in script_sections)
+    syncs_aria = any("aria-valuenow" in s for s in script_sections)
+    if animates_fill and not syncs_aria:
+        return "Progress fill animated in JS but aria-valuenow never updated — screen readers see a frozen bar"
+
+
+@check("paused-flag-consulted", severity="warning")
+def check_paused_consulted(html):
+    script_sections = re.findall(r"<script[^>]*>(.*?)</script>", html, re.DOTALL)
+    for script in script_sections:
+        for m in re.finditer(r"visibilitychange[^}]*?\b(\w*[Pp]aused\w*)\s*=", script, re.DOTALL):
+            flag = m.group(1)
+            reads = len(re.findall(rf"\b{re.escape(flag)}\b", script))
+            assigns = len(re.findall(rf"\b{re.escape(flag)}\b\s*=[^=]", script))
+            if reads <= assigns:
+                return f"Visibility pause flag '{flag}' is assigned but never consulted — loops keep running while hidden"
+
+
+@check("no-js-gating", severity="warning")
+def check_no_js_gating(html):
+    style_sections = re.findall(r"<style[^>]*>(.*?)</style>", html, re.DOTALL)
+    for style in style_sections:
+        without_keyframes = re.sub(r"@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}", "", style)
+        if re.search(r"opacity:\s*0\s*[;}]", without_keyframes):
+            if "no-js" not in html and "is-loaded" not in html:
+                return "Content starts at opacity: 0 with no no-js/is-loaded gating — page is blank when JS is disabled"
+
+
 @check("no-pure-white-text", severity="warning")
 def check_pure_white(html):
     style_sections = re.findall(r"<style[^>]*>(.*?)</style>", html, re.DOTALL)

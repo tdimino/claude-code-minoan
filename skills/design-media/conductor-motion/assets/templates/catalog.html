@@ -160,10 +160,15 @@ body {
 
 .prog-fill {
   height: 100%;
-  width: 0%;
+  width: 100%;
   background: linear-gradient(90deg, var(--cm-brand), var(--cm-success));
   border-radius: 3px;
-  transition: width 200ms var(--cm-ease-out-cubic);
+  transform-origin: left center;
+}
+
+html.is-loaded .prog-fill {
+  transform: scaleX(0);
+  transition: transform 200ms var(--cm-ease-out-cubic);
 }
 
 .prog-status {
@@ -227,12 +232,15 @@ body {
   border-radius: 0.5rem;
   padding: 1.5rem;
   text-align: center;
+}
+
+html.is-loaded .stagger-card {
   opacity: 0;
   transform: translateY(15px);
   transition: opacity 600ms var(--cm-ease-out-cubic), transform 600ms var(--cm-ease-out-cubic);
 }
 
-.stagger-card.is-visible {
+html.is-loaded .stagger-card.is-visible {
   opacity: 1;
   transform: none;
 }
@@ -308,7 +316,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .tw-cursor { animation: none; }
   .fr-dot.processing { animation: none; }
-  .prog-fill { transition: none; }
+  html.is-loaded .prog-fill { transition: none; }
   .stagger-card {
     opacity: 1 !important;
     transform: none !important;
@@ -323,7 +331,7 @@ body {
 
   <div class="catalog-header">
     <h1>Effects Catalog</h1>
-    <p>Every animation pattern in the conductor-motion system, demonstrated in isolation.</p>
+    <p>Six core animation patterns from the conductor-motion system, demonstrated in isolation.</p>
   </div>
 
   <!-- 1. Typewriter -->
@@ -336,7 +344,7 @@ body {
     <div class="demo-box">
       <div class="demo-box-inner">
         <div class="tw-heading">
-          <span>Accelerating </span><span class="tw-text" id="tw-text"></span><span class="tw-cursor" aria-hidden="true">|</span>
+          <span>Accelerating </span><span class="tw-text" id="tw-text">complex approvals</span><span class="tw-cursor" aria-hidden="true">|</span>
         </div>
       </div>
     </div>
@@ -353,10 +361,10 @@ body {
       <div class="demo-box-mono">
         <div class="prog-header">
           <span>search initialization</span>
-          <span id="prog-pct">0%</span>
+          <span id="prog-pct">100%</span>
         </div>
-        <div class="prog-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div class="prog-fill" id="prog-fill"></div></div>
-        <div class="prog-status"><span id="prog-typed"></span><span class="tw-cursor" aria-hidden="true">|</span></div>
+        <div class="prog-track" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"><div class="prog-fill" id="prog-fill"></div></div>
+        <div class="prog-status"><span id="prog-typed">ranking results...</span><span class="tw-cursor" aria-hidden="true">|</span></div>
       </div>
     </div>
   </div>
@@ -371,9 +379,13 @@ body {
     <div class="demo-box">
       <div class="fr-header">
         <span>Document Review</span>
-        <span id="fr-count">0 / 3</span>
+        <span id="fr-count">3 / 3</span>
       </div>
-      <div id="fr-list"></div>
+      <div id="fr-list">
+        <div class="fr-item"><span class="fr-icon"><svg width="12" height="15" viewBox="0 0 12 15" fill="none"><path opacity="0.4" d="M3.5 5.5H8.5M3.5 7.5H8.5M3.5 9.5H8.5M0.5 0.5H8.5L11.5 3.5V14.5H0.5V0.5Z" stroke="currentColor"/></svg></span><span class="fr-name">Report_Q4.xlsx</span><div class="fr-dot reviewed"></div><span class="fr-label">Reviewed</span></div>
+        <div class="fr-item"><span class="fr-icon"><svg width="12" height="15" viewBox="0 0 12 15" fill="none"><path opacity="0.4" d="M3.5 5.5H8.5M3.5 7.5H8.5M3.5 9.5H8.5M0.5 0.5H8.5L11.5 3.5V14.5H0.5V0.5Z" stroke="currentColor"/></svg></span><span class="fr-name">Contract.pdf</span><div class="fr-dot reviewed"></div><span class="fr-label">Reviewed</span></div>
+        <div class="fr-item"><span class="fr-icon"><svg width="12" height="15" viewBox="0 0 12 15" fill="none"><path opacity="0.4" d="M3.5 5.5H8.5M3.5 7.5H8.5M3.5 9.5H8.5M0.5 0.5H8.5L11.5 3.5V14.5H0.5V0.5Z" stroke="currentColor"/></svg></span><span class="fr-name">Audit_Log.csv</span><div class="fr-dot reviewed"></div><span class="fr-label">Reviewed</span></div>
+      </div>
     </div>
   </div>
 
@@ -402,8 +414,12 @@ body {
     <p class="demo-desc">Timestamped status rows with dot-leader fills and a typing status line. Simulates a command-line interface running a search.</p>
     <div class="demo-box">
       <div class="demo-box-mono">
-        <div id="term-rows"></div>
-        <div class="term-status-line"><span id="term-typed"></span><span class="tw-cursor" aria-hidden="true">|</span></div>
+        <div id="term-rows">
+          <div class="term-row"><span class="term-ts">[10:14:02]</span><span class="term-dots">..............................</span><span class="term-label">QUERY_RECEIVED</span></div>
+          <div class="term-row"><span class="term-ts">[10:14:31]</span><span class="term-dots">.........................</span><span class="term-label">SEARCH_ACTIVE</span></div>
+          <div class="term-row"><span class="term-ts">[10:14:58]</span><span class="term-dots">....................</span><span class="term-label">COMPLETE</span></div>
+        </div>
+        <div class="term-status-line"><span id="term-typed">scanning documents...</span><span class="tw-cursor" aria-hidden="true">|</span></div>
       </div>
     </div>
   </div>
@@ -440,14 +456,54 @@ body {
   if (document.body.dataset.initDone === 'true') return;
   document.body.dataset.initDone = 'true';
 
+  document.documentElement.classList.remove('no-js');
+  document.documentElement.classList.add('is-loaded');
+
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-  let paused = false;
+  // Visibility-aware timers — freeze while tab is hidden, resume on return
+  const _tm = new Map();
+  let _ti = 0;
+
+  function schedule(fn, ms) {
+    const id = _ti++;
+    if (document.hidden) {
+      _tm.set(id, { fn, rem: ms, t0: null, tid: null });
+    } else {
+      const t0 = performance.now();
+      const tid = setTimeout(() => { _tm.delete(id); fn(); }, ms);
+      _tm.set(id, { fn, rem: ms, t0, tid });
+    }
+    return id;
+  }
+
+  function unschedule(id) {
+    const e = _tm.get(id);
+    if (!e) return;
+    if (e.tid !== null) clearTimeout(e.tid);
+    _tm.delete(id);
+  }
+
   document.addEventListener('visibilitychange', () => {
-    paused = document.hidden;
+    const now = performance.now();
+    if (document.hidden) {
+      for (const [, e] of _tm) {
+        if (e.tid !== null) {
+          clearTimeout(e.tid);
+          e.rem = Math.max(0, e.rem - (now - e.t0));
+          e.tid = null;
+        }
+      }
+    } else {
+      for (const [id, e] of _tm) {
+        e.t0 = performance.now();
+        e.tid = setTimeout(() => { _tm.delete(id); e.fn(); }, e.rem);
+      }
+    }
   });
+
+  function wait(ms) { return new Promise(r => schedule(r, ms)); }
 
   // 1. Typewriter
   const twEl = document.getElementById('tw-text');
@@ -455,33 +511,39 @@ body {
   if (reducedMotion) {
     twEl.textContent = TW_WORDS[0];
   } else {
-    let wi = 0, ci = 0, del = false, ttid;
+    let wi = 0, ci = 0, del = false;
     function twTick() {
       const w = TW_WORDS[wi];
       if (!del) {
         ci++;
         twEl.textContent = w.slice(0, ci);
-        ttid = ci < w.length ? setTimeout(twTick, rand(35, 65)) : setTimeout(() => { del = true; twTick(); }, 1100);
+        ci < w.length ? schedule(twTick, rand(35, 65)) : schedule(() => { del = true; twTick(); }, 1100);
       } else {
         ci--;
         twEl.textContent = w.slice(0, Math.max(0, ci));
-        if (ci > 0) { ttid = setTimeout(twTick, rand(18, 35)); }
-        else { del = false; wi = (wi + 1) % TW_WORDS.length; ttid = setTimeout(twTick, 180); }
+        if (ci > 0) schedule(twTick, rand(18, 35));
+        else { del = false; wi = (wi + 1) % TW_WORDS.length; schedule(twTick, 180); }
       }
     }
     twTick();
-    document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(ttid); else twTick(); });
   }
 
   // 2. Progress
+  const progTrack = document.querySelector('.prog-track');
   const progFill = document.getElementById('prog-fill');
   const progPct = document.getElementById('prog-pct');
   const progTyped = document.getElementById('prog-typed');
   const PROG_ITEMS = ['scanning repository...', 'parsing documents...', 'matching criteria...', 'ranking results...'];
+
+  progPct.textContent = '0%';
+  progTyped.textContent = '';
+  progTrack.setAttribute('aria-valuenow', '0');
+
   if (reducedMotion) {
-    progFill.style.width = '100%';
+    progFill.style.transform = 'scaleX(1)';
     progPct.textContent = '100%';
     progTyped.textContent = PROG_ITEMS[PROG_ITEMS.length - 1];
+    progTrack.setAttribute('aria-valuenow', '100');
   } else {
     (async () => {
       await wait(800);
@@ -491,8 +553,9 @@ body {
           await wait(40 + Math.random() * 15);
         }
         const pct = Math.min(100, ((i + 1) / PROG_ITEMS.length) * 100);
-        progFill.style.width = pct + '%';
+        progFill.style.transform = 'scaleX(' + (pct / 100) + ')';
         progPct.textContent = Math.round(pct) + '%';
+        progTrack.setAttribute('aria-valuenow', String(Math.round(pct)));
         await wait(1800);
         if (i < PROG_ITEMS.length - 1) {
           for (let c = PROG_ITEMS[i].length - 1; c >= 0; c--) {
@@ -509,6 +572,10 @@ body {
   const frList = document.getElementById('fr-list');
   const frCount = document.getElementById('fr-count');
   const FR_FILES = ['Report_Q4.xlsx', 'Contract.pdf', 'Audit_Log.csv'];
+
+  frList.innerHTML = '';
+  frCount.textContent = '0 / ' + FR_FILES.length;
+
   const frSvgTemplate = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   frSvgTemplate.setAttribute('width', '12');
   frSvgTemplate.setAttribute('height', '15');
@@ -550,7 +617,7 @@ body {
 
   if (reducedMotion) {
     FR_FILES.forEach(f => frList.appendChild(frRow(f, 'reviewed')));
-    frCount.textContent = `${FR_FILES.length} / ${FR_FILES.length}`;
+    frCount.textContent = FR_FILES.length + ' / ' + FR_FILES.length;
   } else {
     const frRows = FR_FILES.map(f => ({ name: f, el: null }));
     frRows.forEach((r, i) => {
@@ -558,18 +625,18 @@ body {
       row.style.opacity = '0';
       frList.appendChild(row);
       r.el = row;
-      setTimeout(() => { row.style.transition = 'opacity 300ms ease'; row.style.opacity = '1'; }, i * 200);
+      schedule(() => { row.style.transition = 'opacity 300ms ease'; row.style.opacity = '1'; }, i * 200);
     });
     let frReviewed = 0;
     frRows.forEach((r, i) => {
       const t = 1200 + i * 800;
-      setTimeout(() => { const n = frRow(r.name, 'processing'); frList.replaceChild(n, r.el); r.el = n; }, t);
-      setTimeout(() => {
+      schedule(() => { const n = frRow(r.name, 'processing'); frList.replaceChild(n, r.el); r.el = n; }, t);
+      schedule(() => {
         const n = frRow(r.name, 'reviewed');
         frList.replaceChild(n, r.el);
         r.el = n;
         frReviewed++;
-        frCount.textContent = `${frReviewed} / ${FR_FILES.length}`;
+        frCount.textContent = frReviewed + ' / ' + FR_FILES.length;
       }, t + 2000);
     });
   }
@@ -583,7 +650,7 @@ body {
         if (!entry.isIntersecting) return;
         const cards = Array.from(entry.target.closest('.stagger-grid').querySelectorAll('.stagger-card'));
         const idx = cards.indexOf(entry.target);
-        entry.target.style.transitionDelay = `${idx * 150}ms`;
+        entry.target.style.transitionDelay = idx * 150 + 'ms';
         entry.target.classList.add('is-visible');
         staggerObs.unobserve(entry.target);
       });
@@ -596,6 +663,9 @@ body {
   const termTyped = document.getElementById('term-typed');
   const TERM_TS = ['10:14:02', '10:14:31', '10:14:58'];
   const TERM_LABELS = ['QUERY_RECEIVED', 'SEARCH_ACTIVE', 'COMPLETE'];
+
+  termRows.innerHTML = '';
+  termTyped.textContent = '';
 
   function makeDots(count) { return '.'.repeat(Math.max(0, count)); }
 
@@ -622,7 +692,7 @@ body {
     if (!reducedMotion) {
       row.style.opacity = '0';
       row.style.transition = 'opacity 300ms ease';
-      setTimeout(() => { row.style.opacity = '1'; }, i * 500);
+      schedule(() => { row.style.opacity = '1'; }, i * 500);
     }
     termRows.appendChild(row);
   });

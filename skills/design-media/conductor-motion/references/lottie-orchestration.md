@@ -2,6 +2,22 @@
 
 Lottie player setup, responsive variants, scroll-synced playback, and configuration patterns.
 
+## Template Contract
+
+The `lottie-compose` template ships with SVG slot placeholders and three consts the generator rewrites:
+
+```javascript
+const LOTTIE_SRC = '';       // ← --lottie-src; empty keeps the placeholder demo
+const LOTTIE_LOOP = true;    // ← --no-lottie-loop flips to false
+const LOTTIE_AUTOPLAY = true; // ← --no-lottie-autoplay flips to false
+```
+
+With a source set, lottie-web lazy-loads (only if `window.lottie` is absent), each `[data-lottie-slot]` receives a `loadAnimation` instance, playback is viewport-gated through the existing IntersectionObserver, and reduced motion pins the first frame with `goToAndStop(0, true)`. Without one, the placeholders demonstrate composition and layout with zero network weight.
+
+## When Not to Use Lottie
+
+Hand-written SVG + CSS is the right answer for roughly 90% of icon-scale animation — Lottie earns its 80-250KB runtime only for designer-authored compositions too complex to hand-build. For *interactive* animation (state machines responding to input), Rive is the purpose-built tool; for behavioral software simulation, this skill's vanilla state machines beat both. Lottie's lane is playback of authored motion.
+
 ## Player Setup
 
 ### CDN Options

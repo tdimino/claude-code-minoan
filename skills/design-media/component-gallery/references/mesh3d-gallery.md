@@ -1,27 +1,28 @@
 # mesh3d.gallery — 3D Interactive Website Directory
 
-Curated gallery of 207+ interactive WebGL/3D websites. Hand-picked by human curators. Filterable by tags, makers, and technology. Think Awwwards for 3D web experiences.
+Curated gallery of 401+ interactive WebGL/3D websites. Hand-picked by human curators. Filterable by tags, makers, and technology. Think Awwwards for 3D web experiences.
 
 **URL**: https://mesh3d.gallery/
 **LLM data endpoint**: https://mesh3d.gallery/llms-full.txt
 
 ## What It Contains
 
-Each entry includes:
+The feed is split into sections: Websites (401 entries), Experiments (101), and Makers (254). The fetch script indexes the Websites section. Each entry includes:
 - Website title and URL
-- Studio/maker name and website
+- Studio/maker name
 - Description
 - Technologies used (Three.js, WebGL, Spline, Rive, Babylon.js, GSAP, etc.)
 - Tags (Interactive, Agency, Landing Page, Portfolio, Experiment, etc.)
-- Featured/hero status
-- Date added
+- Featured/hero status (when applicable)
+
+Not all fields are present on every entry — description and technologies are sometimes omitted.
 
 ## Top Makers (by entry count)
 
 | Studio | Entries | Website |
 |--------|---------|---------|
-| Unseen Studio | 22 | unseen.co |
-| PeachWeb | 15 | peachweb.io |
+| Unseen Studio | 22+ | unseen.co |
+| PeachWeb | 15+ | peachweb.io |
 | Lusion | 13+ | lusion.co |
 | Monopo | ~10 | monopo.co.jp |
 
@@ -35,17 +36,22 @@ Use the fetch script for structured queries:
 
 ```bash
 # Fetch and cache the full directory
-python3 ~/.claude/skills/component-gallery/scripts/fetch_mesh3d.py
+python3 scripts/fetch_mesh3d.py
+
+# Force a fresh fetch (bypasses cache)
+python3 scripts/fetch_mesh3d.py --no-cache
 
 # Filter by technology
-python3 ~/.claude/skills/component-gallery/scripts/fetch_mesh3d.py --tech "Three.js"
+python3 scripts/fetch_mesh3d.py --tech "Three.js"
 
 # Filter by maker
-python3 ~/.claude/skills/component-gallery/scripts/fetch_mesh3d.py --maker "Lusion"
+python3 scripts/fetch_mesh3d.py --maker "Lusion"
 
 # Search by keyword
-python3 ~/.claude/skills/component-gallery/scripts/fetch_mesh3d.py --search "portfolio"
+python3 scripts/fetch_mesh3d.py --search "portfolio"
 ```
+
+The cache file at `.staging/mesh3d-entries.json` records the endpoint's declared entry count and the fetch timestamp. Use `--no-cache` (or `--refresh`) to force a fresh pull.
 
 The `/llms-full.txt` endpoint is explicitly designed for LLM consumption — structured plain text with consistent field formatting.
 

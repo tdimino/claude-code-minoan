@@ -16,20 +16,32 @@ Animated progress bar with document counter, dot-leader data rows, and processin
 
 ```javascript
 const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const ease = easeOutCubic; // single alias — the generator's --easing flag swaps this line
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 ```
 
 ### rAF Tick Loop
+
+The fill is a full-width element scaled with `transform: scaleX()` — compositor-only, no layout work per frame. CSS:
+
+```css
+.progress-fill {
+  width: 100%;
+  transform: scaleX(0.05); /* START_PROGRESS / 100 */
+  transform-origin: left center;
+}
+```
 
 ```javascript
 const start = performance.now();
 
 function tick(now) {
   const rawT = clamp((now - start) / TOTAL_MS, 0, 1);
-  const eased = easeOutCubic(rawT);
+  const eased = ease(rawT);
   const progressValue = START_PROGRESS + ((END_PROGRESS - START_PROGRESS) * eased);
 
-  fillEl.style.width = progressValue + '%';
+  fillEl.style.transform = `scaleX(${progressValue / 100})`;
+  trackEl.setAttribute('aria-valuenow', Math.round(progressValue));
   percentEl.textContent = Math.round(progressValue) + '%';
 
   if (rawT < 1) requestAnimationFrame(tick);
@@ -38,6 +50,8 @@ function tick(now) {
 
 requestAnimationFrame(tick);
 ```
+
+`scaleX` stretches a rounded end cap slightly during the fill — invisible on 2-4px bars. Sync `aria-valuenow` in the same tick that moves the bar, or screen readers narrate a bar frozen at its initial value.
 
 ## Document Counter
 
@@ -154,7 +168,7 @@ root.dataset.progressInit = 'true';
 Show final state immediately:
 ```javascript
 if (reducedMotion) {
-  fillEl.style.width = '100%';
+  fillEl.style.transform = 'scaleX(1)';
   percentEl.textContent = '100%';
   counterEl.textContent = `${formatNumber(TARGET_DOC_COUNT)} documents`;
   rows.forEach(row => { row.style.display = 'flex'; row.style.opacity = '1'; });

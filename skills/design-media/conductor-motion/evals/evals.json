@@ -1,0 +1,65 @@
+{
+  "skill_name": "conductor-motion",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Generate a typewriter hero that types 'Shipping', cycles through 'faster releases, cleaner diffs, calmer reviews', and stops on the last phrase instead of looping.",
+      "expected_output": "A single self-contained HTML file generated via --mode typewriter with --no-loop, cycling the three phrases and settling on 'calmer reviews'.",
+      "expectations": [
+        "The generator is invoked with --mode typewriter and --no-loop",
+        "The output HTML contains const LOOP = false",
+        "The output passes validate_conductor_motion.py with 0 errors",
+        "The rotator words in the output match the three requested phrases",
+        "The output contains a prefers-reduced-motion media query"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I need an AI-assistant demo panel: user asks a question, the answer streams in like a real model response, with a stop button.",
+      "expected_output": "streaming-text mode output with chunk-buffered streaming, scroll anchoring, a stop/regenerate button, and a polite aria-live completion announcement.",
+      "expectations": [
+        "The streaming-text mode/template is used",
+        "The output contains overflow-anchor: none on the streaming message",
+        "The output contains aria-live=\"polite\" and does not use aria-live=\"assertive\"",
+        "Streaming flushes at word boundaries rather than per character",
+        "The output passes validate_conductor_motion.py with 0 errors"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Give me a demo of animated popovers, a confirmation dialog, and toasts that slide in — pure CSS transitions where possible.",
+      "expected_output": "top-layer mode output where popover and dialog entry/exit are driven by @starting-style + transition-behavior: allow-discrete + overlay, with JS only for showModal/close and toast lifetimes.",
+      "expectations": [
+        "The output contains @starting-style rules",
+        "The output transitions list both overlay and display with allow-discrete",
+        "The dialog ::backdrop is animated via background-color, not backdrop-filter",
+        "Toast lifetimes freeze while document.hidden and resume on return",
+        "The output passes validate_conductor_motion.py with 0 errors"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Generate the progress simulation but slower — 9 seconds total, starting at 12 percent, with quart easing.",
+      "expected_output": "progress mode output where --progress-duration 9000, --start-percent 12, and --easing quart each demonstrably change the generated file.",
+      "expectations": [
+        "TOTAL_MS = 9000 appears in the output",
+        "START_PROGRESS = 12 appears in the output",
+        "The ease alias is swapped to a quart function (Math.pow(1 - t, 4))",
+        "The generated file differs from a default-flags generation of the same mode",
+        "The progress fill animates transform: scaleX, never .style.width, and aria-valuenow updates each tick"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Build a scroll-triggered section reveal for a long marketing page — modern browsers first, older ones still covered.",
+      "expected_output": "Reveals driven by CSS animation-timeline: view() inside @supports as the primary path, with IntersectionObserver attached only when CSS.supports reports no animation-timeline support, and @starting-style (not double-rAF) for the load-time cascade.",
+      "expectations": [
+        "The output contains animation-timeline: view() inside an @supports block",
+        "IntersectionObserver attachment is gated on !CSS.supports('animation-timeline: view()')",
+        "The scroll-driven animation uses animation-fill-mode backwards, not both",
+        "The load-time hero cascade uses @starting-style or documents double-rAF as the legacy fallback",
+        "Content is visible with JavaScript disabled"
+      ]
+    }
+  ]
+}

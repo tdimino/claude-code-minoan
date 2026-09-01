@@ -5,7 +5,9 @@ import argparse
 import json
 import re
 import sys
+import time
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 CACHE_DIR = Path(__file__).parent.parent / ".staging"
@@ -21,82 +23,161 @@ def fetch_raw() -> str:
         return resp.read().decode("utf-8")
 
 
-def parse_entries(raw: str) -> list[dict]:
-    """Parse the llms-full.txt Markdown format into structured entries.
+def parse_entries(raw: str) -> tuple[list[dict], int | None]:
+    """Parse ### website entries under the '## Websites' section.
 
-    Format: ### Title headings with - Key: Value bullet lists.
+    Returns (entries, declared_total). Only ### headings with a URL field
+    are counted as valid entries. Section headings (H1/H2) are skipped.
     """
+    declared_total = None
     entries = []
-    current = {}
+    current: dict = {}
+    in_websites = False
 
     for line in raw.splitlines():
         stripped = line.strip()
 
-        # New entry: ### Title
-        heading_match = re.match(r"^#{1,4}\s+(.+)$", stripped)
-        if heading_match:
-            if current:
+        h2_match = re.match(r"^##\s+(.+)$", stripped)
+        if h2_match:
+            title = h2_match.group(1).strip()
+            if current and "url" in current:
                 entries.append(current)
-            current = {"title": heading_match.group(1).strip()}
+                current = {}
+            websites_match = re.match(
+                r"Websites\s*\((\d+)\s+entries?\)", title
+            )
+            if websites_match:
+                in_websites = True
+                declared_total = int(websites_match.group(1))
+            elif title.startswith("Websites"):
+                in_websites = True
+            else:
+                in_websites = False
+            continue
+
+        if re.match(r"^#\s+", stripped):
+            continue
+
+        if not in_websites:
+            continue
+
+        h3_match = re.match(r"^###\s+(.+)$", stripped)
+        if h3_match:
+            if current and "url" in current:
+                entries.append(current)
+            current = {"title": h3_match.group(1).strip()}
             continue
 
         if not stripped:
             continue
 
-        # Bullet field: - Key: Value
         bullet_match = re.match(r"^-\s+([A-Za-z_\- ]+):\s*(.+)$", stripped)
-        if bullet_match:
-            key = bullet_match.group(1).strip().lower().replace(" ", "_").replace("-", "_")
+        if bullet_match and current:
+            key = (
+                bullet_match.group(1)
+                .strip()
+                .lower()
+                .replace(" ", "_")
+                .replace("-", "_")
+            )
             value = bullet_match.group(2).strip()
             current[key] = value
             continue
 
-        # Plain key: value (fallback)
         kv_match = re.match(r"^([A-Za-z_\- ]+):\s*(.+)$", stripped)
-        if kv_match:
-            key = kv_match.group(1).strip().lower().replace(" ", "_").replace("-", "_")
+        if kv_match and current:
+            key = (
+                kv_match.group(1)
+                .strip()
+                .lower()
+                .replace(" ", "_")
+                .replace("-", "_")
+            )
             value = kv_match.group(2).strip()
             current[key] = value
 
-    if current:
+    if current and "url" in current:
         entries.append(current)
 
-    return entries
+    return entries, declared_total
 
 
 def load_cached() -> list[dict] | None:
     """Load cached entries if fresh enough."""
     if not CACHE_FILE.exists():
         return None
-    import time
     age_hours = (time.time() - CACHE_FILE.stat().st_mtime) / 3600
     if age_hours > MAX_AGE_HOURS:
         return None
-    return json.loads(CACHE_FILE.read_text())
+    data = json.loads(CACHE_FILE.read_text())
+    if isinstance(data, dict):
+        return data.get("entries", data.get("data", []))
+    return data
 
 
-def save_cache(entries: list[dict]) -> None:
-    """Save entries to cache."""
+def save_cache(
+    entries: list[dict],
+    declared_total: int | None = None,
+) -> None:
+    """Save entries to cache with metadata."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    CACHE_FILE.write_text(json.dumps(entries, indent=2))
+    cache_data = {
+        "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "declared_total": declared_total,
+        "entry_count": len(entries),
+        "entries": entries,
+    }
+    CACHE_FILE.write_text(json.dumps(cache_data, indent=2))
 
 
-def get_entries(force_refresh: bool = False) -> list[dict]:
-    """Get entries, using cache if available."""
+def get_entries(force_refresh: bool = False) -> tuple[list[dict], dict]:
+    """Get entries, using cache if available.
+
+    Returns (entries, meta) where meta has fetched_at, declared_total, entry_count.
+    """
     if not force_refresh:
         cached = load_cached()
         if cached is not None:
-            return cached
+            if CACHE_FILE.exists():
+                try:
+                    raw_cache = json.loads(CACHE_FILE.read_text())
+                    if isinstance(raw_cache, dict):
+                        meta = {
+                            "fetched_at": raw_cache.get("fetched_at", "unknown"),
+                            "declared_total": raw_cache.get("declared_total"),
+                            "entry_count": raw_cache.get("entry_count", len(cached)),
+                        }
+                        return cached, meta
+                except (json.JSONDecodeError, KeyError):
+                    pass
+            return cached, {
+                "fetched_at": "unknown",
+                "declared_total": None,
+                "entry_count": len(cached),
+            }
 
     print("Fetching mesh3d.gallery directory...", file=sys.stderr)
     raw = fetch_raw()
-    entries = parse_entries(raw)
-    save_cache(entries)
-    print(f"Cached {len(entries)} entries", file=sys.stderr)
-    return entries
+    entries, declared_total = parse_entries(raw)
+    save_cache(entries, declared_total)
+    meta = {
+        "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "declared_total": declared_total,
+        "entry_count": len(entries),
+    }
+    print(
+        f"Cached {len(entries)} entries (endpoint declares {declared_total})",
+        file=sys.stderr,
+    )
+    return entries, meta
 
 
-def filter_entries(entries: list[dict], tech: str = None, maker: str = None, search: str = None) -> list[dict]:
+def filter_entries(
+    entries: list[dict],
+    tech: str = None,
+    maker: str = None,
+    search: str = None,
+) -> list[dict]:
     """Filter entries by criteria."""
     results = entries
 
@@ -106,7 +187,11 @@ def filter_entries(entries: list[dict], tech: str = None, maker: str = None, sea
 
     if maker:
         maker_lower = maker.lower()
-        results = [e for e in results if any(maker_lower in str(v).lower() for v in e.values())]
+        results = [
+            e
+            for e in results
+            if any(maker_lower in str(v).lower() for v in e.values())
+        ]
 
     if search:
         search_lower = search.lower()
@@ -144,24 +229,40 @@ def main():
     parser.add_argument("--tech", help="Filter by technology (e.g., 'Three.js')")
     parser.add_argument("--maker", help="Filter by maker/studio name")
     parser.add_argument("--search", help="Search all fields by keyword")
-    parser.add_argument("--refresh", action="store_true", help="Force refresh from web")
+    parser.add_argument(
+        "--refresh", action="store_true", help="Force refresh from web"
+    )
+    parser.add_argument(
+        "--no-cache", action="store_true", help="Force refresh (alias for --refresh)"
+    )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
-    parser.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
+    parser.add_argument(
+        "--limit", type=int, default=20, help="Max results (default: 20)"
+    )
     args = parser.parse_args()
 
-    entries = get_entries(force_refresh=args.refresh)
+    force = args.refresh or args.no_cache
+    entries, meta = get_entries(force_refresh=force)
 
     if args.tech or args.maker or args.search:
-        results = filter_entries(entries, tech=args.tech, maker=args.maker, search=args.search)
+        results = filter_entries(
+            entries, tech=args.tech, maker=args.maker, search=args.search
+        )
     else:
         results = entries
 
-    results = results[:args.limit]
+    results = results[: args.limit]
 
     if args.json:
         print(json.dumps(results, indent=2))
     else:
-        print(f"mesh3d.gallery: {len(results)} results (of {len(entries)} total)\n")
+        declared = meta.get("declared_total")
+        fetched = meta.get("fetched_at", "unknown")
+        total_line = f"{len(results)} results (of {len(entries)} cached"
+        if declared:
+            total_line += f", endpoint declares {declared}"
+        total_line += f", fetched {fetched})"
+        print(f"mesh3d.gallery: {total_line}\n")
         for entry in results:
             print(format_entry(entry))
             print()

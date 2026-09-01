@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conductor Motion — Streaming Text</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cm-bg: #0B0F1A;
+  --cm-surface: #141824;
+  --cm-elevated: #1C2133;
+  --cm-card: #242A3D;
+  --cm-brand: #4F7BF7;
+  --cm-brand-40: rgba(79, 123, 247, 0.4);
+  --cm-brand-20: rgba(79, 123, 247, 0.2);
+  --cm-text: #E8ECF4;
+  --cm-text-70: rgba(232, 236, 244, 0.7);
+  --cm-text-40: rgba(232, 236, 244, 0.4);
+  --cm-success: #34D399;
+  --cm-border: rgba(232, 236, 244, 0.15);
+  --cm-border-subtle: rgba(232, 236, 244, 0.08);
+  --cm-ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+  --cm-stagger: 200ms;
+  --cm-font: 'Geist', system-ui, sans-serif;
+  --cm-font-mono: 'Geist Mono', 'SF Mono', monospace;
+  --cm-body-size: clamp(0.875rem, 0.5vw + 0.75rem, 1rem);
+  --cm-mono-size: clamp(0.75rem, 0.4vw + 0.65rem, 0.875rem);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--cm-bg);
+  color: var(--cm-text);
+  font-family: var(--cm-font);
+  font-size: var(--cm-body-size);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.stream-panel {
+  width: 100%;
+  max-width: 40rem;
+  background: var(--cm-surface);
+  border: 1px solid var(--cm-border-subtle);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.stream-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--cm-border-subtle);
+  font-family: var(--cm-font-mono);
+  font-size: var(--cm-mono-size);
+  color: var(--cm-text-40);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.stream-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stream-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cm-text-40);
+}
+
+.stream-status[data-state="streaming"] .stream-status-dot {
+  background: var(--cm-brand);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.stream-status[data-state="done"] .stream-status-dot {
+  background: var(--cm-success);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Scroll management: the container anchors, the streaming message opts out.
+   Without the split, browser scroll anchoring fights programmatic pinning. */
+.stream-messages {
+  max-height: 20rem;
+  overflow-y: auto;
+  overflow-anchor: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.msg-user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 0.625rem 1rem;
+  background: var(--cm-brand-20);
+  border: 1px solid var(--cm-brand-40);
+  border-radius: 0.75rem 0.75rem 0.25rem 0.75rem;
+  color: var(--cm-text);
+}
+
+.msg-assistant {
+  align-self: flex-start;
+  max-width: 92%;
+  overflow-anchor: none;
+  line-height: 1.65;
+  color: var(--cm-text-70);
+}
+
+.msg-assistant p + p { margin-top: 0.75em; }
+
+.stream-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 0.1em;
+  vertical-align: text-bottom;
+  background: var(--cm-text-40);
+  animation: blink 530ms step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.stream-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--cm-border-subtle);
+}
+
+.stream-meta {
+  font-family: var(--cm-font-mono);
+  font-size: var(--cm-mono-size);
+  color: var(--cm-text-40);
+  font-variant-numeric: tabular-nums;
+}
+
+.stream-btn {
+  font-family: var(--cm-font-mono);
+  font-size: var(--cm-mono-size);
+  color: var(--cm-text-70);
+  background: var(--cm-elevated);
+  border: 1px solid var(--cm-border);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  cursor: pointer;
+  transition: border-color 200ms var(--cm-ease-out-cubic), color 200ms var(--cm-ease-out-cubic);
+}
+
+.stream-btn:hover {
+  border-color: var(--cm-brand-40);
+  color: var(--cm-text);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-cursor,
+  .stream-status-dot {
+    animation: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="stream-panel">
+  <div class="stream-header">
+    <span>assistant</span>
+    <span class="stream-status" data-state="idle">
+      <span class="stream-status-dot" aria-hidden="true"></span>
+      <span class="stream-status-label">idle</span>
+    </span>
+  </div>
+
+  <div class="stream-messages" id="stream-messages">
+    <div class="msg-user" id="stream-prompt">Summarize the compliance findings across the Q4 document set.</div>
+    <div class="msg-assistant" id="stream-response"><p>Across 1,324 documents reviewed, three findings recur. Retention schedules are inconsistently applied in 12% of contracts, signature authority is undocumented in 31 files, and jurisdiction clauses in the EU subset predate the current data-transfer framework. Each finding links to its source documents below.</p></div>
+  </div>
+
+  <div class="stream-footer">
+    <span class="stream-meta" id="stream-meta">0 words</span>
+    <button class="stream-btn" id="stream-btn" type="button">Regenerate</button>
+  </div>
+
+  <span class="visually-hidden" aria-live="polite" id="stream-announce"></span>
+</div>
+
+<script>
+(() => {
+  const FLUSH_MS = 90;
+  const CHARS_PER_FLUSH = 7;
+  const THINKING_MS = 700;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.documentElement.classList.remove('no-js');
+  document.documentElement.classList.add('is-loaded');
+
+  const messagesEl = document.getElementById('stream-messages');
+  const responseEl = document.getElementById('stream-response');
+  const statusEl = document.querySelector('.stream-status');
+  const statusLabel = document.querySelector('.stream-status-label');
+  const metaEl = document.getElementById('stream-meta');
+  const btnEl = document.getElementById('stream-btn');
+  const announceEl = document.getElementById('stream-announce');
+
+  if (!messagesEl || !responseEl || messagesEl.dataset.streamInit === 'true') return;
+  messagesEl.dataset.streamInit = 'true';
+
+  // Static markup holds the finished response; capture it as the source, then stream it back
+  const paragraphs = Array.from(responseEl.querySelectorAll('p')).map(p => p.textContent);
+
+  let stopped = false;
+  let running = false;
+  let pausedByVisibility = false;
+  let timeoutId = null;
+
+  function setStatus(state, label) {
+    statusEl.dataset.state = state;
+    statusLabel.textContent = label;
+  }
+
+  function wordCount(text) {
+    return text.split(/\s+/).filter(Boolean).length;
+  }
+
+  // Pin to bottom only while the reader is already there — never yank a scrolled-up reader down
+  function isPinned() {
+    return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 40;
+  }
+
+  function scrollIfPinned(wasPinned) {
+    if (wasPinned) messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function wait(ms) {
+    return new Promise(r => { timeoutId = setTimeout(r, ms); });
+  }
+
+  async function streamResponse() {
+    if (running) return;
+    running = true;
+    stopped = false;
+
+    responseEl.textContent = '';
+    setStatus('streaming', 'thinking');
+    metaEl.textContent = '0 words';
+    btnEl.textContent = 'Stop';
+    await wait(THINKING_MS);
+
+    setStatus('streaming', 'streaming');
+    let totalText = '';
+
+    for (const para of paragraphs) {
+      if (stopped) break;
+      const p = document.createElement('p');
+      responseEl.appendChild(p);
+
+      const cursor = document.createElement('span');
+      cursor.className = 'stream-cursor';
+      cursor.setAttribute('aria-hidden', 'true');
+      p.after(cursor);
+
+      // Chunk-buffered flush: advance by CHARS_PER_FLUSH, then extend to the next
+      // word boundary. Word-boundary flushes keep line wrapping stable — per-char
+      // rendering reflows mid-word and shimmers.
+      let pos = 0;
+      while (pos < para.length) {
+        if (stopped) break;
+        while (pausedByVisibility && !stopped) await wait(200);
+
+        let next = Math.min(pos + CHARS_PER_FLUSH, para.length);
+        while (next < para.length && para[next] !== ' ') next += 1;
+
+        const wasPinned = isPinned();
+        p.textContent = para.slice(0, next);
+        scrollIfPinned(wasPinned);
+
+        totalText = paragraphs.slice(0, paragraphs.indexOf(para)).join(' ') + ' ' + para.slice(0, next);
+        metaEl.textContent = wordCount(totalText) + ' words';
+
+        pos = next;
+        await wait(FLUSH_MS);
+      }
+
+      cursor.remove();
+    }
+
+    running = false;
+    btnEl.textContent = 'Regenerate';
+
+    if (stopped) {
+      setStatus('idle', 'stopped');
+      announceEl.textContent = 'Response stopped.';
+    } else {
+      setStatus('done', 'done');
+      // One completion announcement — announcing every chunk spams screen readers
+      announceEl.textContent = 'Response complete. ' + wordCount(totalText) + ' words.';
+    }
+  }
+
+  function showFinal() {
+    responseEl.textContent = '';
+    for (const para of paragraphs) {
+      const p = document.createElement('p');
+      p.textContent = para;
+      responseEl.appendChild(p);
+    }
+    setStatus('done', 'done');
+    metaEl.textContent = wordCount(paragraphs.join(' ')) + ' words';
+  }
+
+  btnEl.addEventListener('click', () => {
+    if (running) {
+      stopped = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    } else if (reducedMotion) {
+      showFinal();
+    } else {
+      streamResponse();
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    pausedByVisibility = document.hidden;
+  });
+
+  if (reducedMotion) {
+    showFinal();
+  } else {
+    streamResponse();
+  }
+})();
+</script>
+</body>
+</html>
