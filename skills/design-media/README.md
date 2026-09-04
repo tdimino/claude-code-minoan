@@ -65,8 +65,9 @@ The satellite skills adapt patterns from [Impeccable](https://github.com/pbakaus
 | `mindnode-ui` | MindNode-inspired mind mapping interfaces (ReactFlow, D3, 27+ themes) |
 | `vellum-editorial` | Deploy-ready editorial documentation sites. Two visual styles: `editorial` (Bodoni Moda / Source Serif 4, crosshatch texture) and `instrument` (Manrope, grid dots). Two content templates: `landing` (3-section starter) and `one-pager` (8-section TOC with state cards, matrix, phase timeline). OKLCH palette with warm/dark themes + runtime light/dark toggle. 35 semantic components, 6 page patterns. Auth gate with custom passwords, CF Pages security headers, robots.txt, OG/Twitter social meta tags. Static HTML, zero build step. Scaffold with `init_project.py --style instrument --template one-pager --theme dark --password <pw>` |
 
-## Recording & Presentation
+## Slide Decks & Presentation
 
 | Skill | Description |
 |-------|-------------|
+| `overwatch-slidedeck` | Interactive live slide decks: Vite + React 19, TanStack Router, WebGPU shaders, Framer Motion, 1920x1080, password-protected SPA. 39 components, YAML-driven authoring, Cloudflare/Vercel/Netlify deploy |
 | `recordly` | Screen recording polish (auto-zoom, cursor animations, webcam overlays) + Slant 3D perspective renderer (12 presets, HDRI reflections, DOF, MP4/GIF export). Open-source Screen Studio alternative |

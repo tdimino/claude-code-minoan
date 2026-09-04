@@ -1,3 +1,8 @@
+---
+name: photo-to-slack-emoji
+description: "Convert photos into Slack-optimized custom emojis using Nano Banana Pro (Gemini 3 Pro Image) with automatic subject identification, style transformation, and image editing. 64KB/128px compliant. Triggers on: slack emoji, photo to emoji, convert to emoji, edit emoji, emoji maker."
+---
+
 # Photo to Slack Emoji Converter & Image Editor
 
 Transform any photo into a classic Slack-optimized emoji using Google's **Nano Banana Pro (Gemini 3 Pro Image)** model with automatic subject identification and style transformation. **NEW:** Edit existing images with natural language prompts!
