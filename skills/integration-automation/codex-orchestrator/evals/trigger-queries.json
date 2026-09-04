@@ -1,0 +1,22 @@
+[
+  {"query": "Have Codex Astra review this patch at high reasoning", "should_trigger": true},
+  {"query": "Spawn an Astra architect on the priority tier", "should_trigger": true},
+  {"query": "Delegate this migration to Codex with GPT-6-Astra ultra", "should_trigger": true},
+  {"query": "Use a Codex subagent to debug this race condition", "should_trigger": true},
+  {"query": "Run the security persona with Astra max", "should_trigger": true},
+  {"query": "Ask Codex to weigh these rival hypotheses", "should_trigger": true},
+  {"query": "Launch an autonomous Codex goal for this refactor", "should_trigger": true},
+  {"query": "Can Astra's reviewer inspect the repository read-only?", "should_trigger": true},
+  {"query": "List the supported Astra reasoning and service-tier permutations", "should_trigger": true},
+  {"query": "Run a fast Astra builder subagent for this feature", "should_trigger": true},
+  {"query": "Explain the Astra theme used by this WordPress site", "should_trigger": false},
+  {"query": "Find the Opel Astra owner's manual", "should_trigger": false},
+  {"query": "Generate an image of the Astra constellation", "should_trigger": false},
+  {"query": "Review this code yourself", "should_trigger": false},
+  {"query": "What does the word astra mean in Latin?", "should_trigger": false},
+  {"query": "Use Claude subagents to review these files", "should_trigger": false},
+  {"query": "Run the local test suite", "should_trigger": false},
+  {"query": "Which OpenAI model should I choose for a chatbot?", "should_trigger": false},
+  {"query": "Update my Codex configuration file", "should_trigger": false},
+  {"query": "Compare priority queues with standard queues", "should_trigger": false}
+]

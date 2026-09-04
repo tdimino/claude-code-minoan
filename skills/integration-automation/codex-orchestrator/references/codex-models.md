@@ -1,8 +1,27 @@
 # Codex CLI Model Reference
 
-Last updated: 2026-07-09
+Last updated: 2026-09-04
 
 ## Current Models
+
+### GPT-6-Astra
+
+| Model | ID | Default reasoning | Supported reasoning | Service tiers |
+|-------|----|-------------------|---------------------|---------------|
+| **GPT-6-Astra** | `gpt-6-astra` | `medium` | `low`, `medium`, `high`, `xhigh`, `max`, `ultra` | `default`, `priority` |
+
+GPT-6-Astra is the most capable option for complex, demanding work. The priority tier provides faster generation while consuming usage faster. Ultra effort adds automatic task delegation and is best reserved for work with genuinely independent parallel workstreams.
+
+Use the dedicated launcher to keep Astra's model-specific defaults and validation explicit:
+
+```bash
+codex-astra.sh reviewer "Review this patch"
+codex-astra.sh architect "Design the migration" --reasoning max --service-tier priority
+codex-astra.sh builder "Implement the plan" --reasoning ultra
+codex-astra.sh list
+```
+
+The six efforts and two tiers form 12 supported runtime permutations for every persona profile.
 
 ### GPT-5.6 Family
 
@@ -81,7 +100,8 @@ Reasoning effort controls how much "thinking" the model does before responding. 
 | Low | `low` | Simple reads, formatting |
 | Medium | `medium` | Research, read-only Q&A (speed/quality balance) |
 | High | `high` | Default for most coding and planning tasks |
-| Max | `max` | Deepest reasoning. GPT-5.6 Sol only. Use for the hardest problems. |
+| Max | `max` | Deepest single-agent reasoning on supported models. Use for the hardest problems. |
+| Ultra | `ultra` | Maximum reasoning with automatic task delegation on supported models. |
 
 > **Legacy level:** `xhigh` from the GPT-5.3-Codex era still works but `high` on GPT-5.5+ achieves equivalent depth.
 
@@ -137,6 +157,8 @@ codex exec --model gpt-5.5 "Use previous flagship for comparison"
 ```
 
 Both `codex-orchestrator` and `codex-cto` skills pass `--model` and `-c model_reasoning_effort` through to `codex exec`. Any model ID that Codex CLI accepts will work.
+
+For service-tier selection, the public launcher values are `default` and `priority`. The orchestrator maps them to Codex CLI config values `service_tier="default"` and `service_tier="fast"`; Codex maps `fast` to the request/API value `priority`.
 
 ## Selection Guide
 

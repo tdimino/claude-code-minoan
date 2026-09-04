@@ -1,6 +1,6 @@
 ---
 name: codex-orchestrator
-description: "Spawn specialized OpenAI Codex CLI subagents for code review, debugging, architecture analysis, security audits, refactoring, documentation, comparative evidence adjudication, and autonomous /goal runs via AGENTS.md persona injection (gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5). Triggers on 'delegate to Codex', 'Codex subagent', 'code review agent', 'security audit', 'refactor with Codex', 'goal run', 'autonomous goal', 'have Codex weigh this'."
+description: "This skill should be used to spawn specialized OpenAI Codex CLI subagents for code review, debugging, architecture analysis, security audits, refactoring, documentation, comparative evidence adjudication, and autonomous /goal runs via AGENTS.md persona injection. Supports GPT-6-Astra across low, medium, high, xhigh, max, and ultra reasoning with default or priority service tiers, plus GPT-5.6 and GPT-5.5 models. Triggers on 'delegate to Codex', 'Codex Astra', 'Astra subagent', 'Codex subagent', 'code review agent', 'security audit', 'refactor with Codex', 'goal run', 'autonomous goal', 'have Codex weigh this'."
 ---
 
 # Codex Orchestrator
@@ -132,6 +132,17 @@ Examples:
 # JSONL output for structured capture
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "What is 2+2?" --json | head -5
 ```
+
+## GPT-6-Astra Subagents
+
+Use `codex-astra.sh` to run any existing persona on GPT-6-Astra. The launcher defaults to `medium` reasoning on the standard tier and validates Astra-specific choices.
+
+```bash
+~/.claude/skills/codex-orchestrator/scripts/codex-astra.sh list
+~/.claude/skills/codex-orchestrator/scripts/codex-astra.sh architect "Design a fault-tolerant queue" --reasoning max --service-tier priority
+```
+
+Astra exposes 12 effort/tier permutations per persona. Use `priority` when latency materially matters and `ultra` only for independent parallel workstreams. See `references/codex-models.md` for the matrix and CLI mapping.
 
 ## Session Management
 
@@ -353,7 +364,9 @@ See `references/goal-command.md` for the full `/goal` command reference.
 | Option | Description |
 |--------|-------------|
 | `--model <model>` | Override model (default: per-profile, see below) |
-| `--reasoning <level>` | Override reasoning effort: `minimal`, `low`, `medium`, `high`, `xhigh` |
+| `--astra` | Shortcut for `--model gpt-6-astra` |
+| `--reasoning <level>` | Override reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra` |
+| `--service-tier <tier>` | Override Codex CLI service tier: `default` or `priority` (not API mode) |
 | `--sandbox <mode>` | read-only, workspace-write, danger-full-access |
 | `--no-approve` | Force read-only sandbox (no file writes) |
 | `--web-search` | Enable Exa web search (injects guide into AGENTS.md) |
@@ -379,7 +392,7 @@ Each profile has a default model and reasoning effort. User flags override these
 | **Adjudication** | adjudicator | `gpt-5.6-sol` | `high` |
 | **Chat** | chat | `gpt-5.6-terra` | `medium` |
 
-**Reasoning effort levels**: `none` < `minimal` < `low` < `medium` < `high` < `max`
+**General reasoning effort levels**: `none` < `minimal` < `low` < `medium` < `high` < `xhigh` < `max` < `ultra`. Model support varies; Astra accepts `low` through `ultra`.
 
 ```bash
 # Uses profile defaults (builder → gpt-5.6-sol + high)
@@ -396,6 +409,9 @@ Each profile has a default model and reasoning effort. User flags override these
 
 # Override both
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Design distributed cache" --model gpt-5.6-sol --reasoning max
+
+# Astra at maximum depth on the priority tier
+~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh planner "Design distributed cache" --astra --reasoning max --service-tier priority
 ```
 
 ## API Mode (Direct OpenAI API)
@@ -426,7 +442,7 @@ The `--api` flag bypasses Codex CLI entirely and calls the OpenAI API directly v
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "What are the latest React patterns?" --api --model gpt-5.6-sol
 ```
 
-**Supported models:** `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5-mini`
+**Supported API-mode models:** `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5-mini`. Use `codex-astra.sh` for Astra subagents.
 
 **Three-way mode (Claude + GPT):** Within a Claude Code session, invoke `gpt-api-chat.py` via Bash, read GPT's response, synthesize perspectives, and steer the conversation. Use `--session` to maintain GPT's context across turns.
 
@@ -446,6 +462,7 @@ Run the test suite to verify installation:
 For detailed information:
 
 - `references/codex-cli.md` - Complete CLI command reference
+- `references/codex-models.md` - Model, reasoning-effort, and service-tier matrix
 - `references/agents-md-format.md` - AGENTS.md syntax and best practices
 - `references/subagent-patterns.md` - Delegation patterns and examples
 - `references/goal-command.md` - /goal command reference and best practices
@@ -465,7 +482,7 @@ codex login
 ```
 
 ### "Model not supported with ChatGPT account"
-Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models: `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.5-pro`, `gpt-5-mini`. Previous generation (`gpt-5.4`, `gpt-5.4-pro`, `gpt-5.3-codex`, `gpt-5.2`) still works but is superseded.
+Older model names (`codex-mini`, `o3`, `o4-mini`) have been deprecated. Current models include `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.5-pro`, and `gpt-5-mini`. Previous generation (`gpt-5.4`, `gpt-5.4-pro`, `gpt-5.3-codex`, `gpt-5.2`) still works but is superseded.
 Set an API key instead of using `codex login`:
 ```bash
 export OPENAI_API_KEY=sk-...

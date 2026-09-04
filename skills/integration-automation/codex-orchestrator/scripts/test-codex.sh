@@ -54,7 +54,7 @@ done
 
 # Test 3: Check scripts are executable
 echo -e "\n${YELLOW}Test 3: Script Permissions${NC}"
-for script in codex-exec.sh codex-status.sh test-codex.sh codex-goal.sh; do
+for script in codex-exec.sh codex-astra.sh codex-status.sh test-codex.sh codex-goal.sh; do
     if [ -x "$SKILL_DIR/scripts/$script" ]; then
         test_pass "Script '$script' is executable"
     else
@@ -64,7 +64,7 @@ done
 
 # Test 4: Check Python script syntax
 echo -e "\n${YELLOW}Test 4: Python Syntax${NC}"
-if python3 -m py_compile "$SKILL_DIR/scripts/codex-session.py" 2>/dev/null; then
+if PYTHONPYCACHEPREFIX="${TMPDIR:-/tmp}/codex-orchestrator-pycache" python3 -m py_compile "$SKILL_DIR/scripts/codex-session.py" 2>/dev/null; then
     test_pass "codex-session.py has valid syntax"
 else
     test_fail "codex-session.py has syntax errors"
@@ -183,9 +183,121 @@ else
     test_fail "codex-session.py missing PID-scoped backup name"
 fi
 
-# Test 11: Quick API test (optional, skipped in quick mode)
+# Test 11: GPT-6-Astra permutations
+echo -e "\n${YELLOW}Test 11: GPT-6-Astra Permutations${NC}"
+if bash -n "$SKILL_DIR/scripts/codex-astra.sh" && bash -n "$SKILL_DIR/scripts/codex-exec.sh"; then
+    test_pass "Astra launch scripts have valid shell syntax"
+else
+    test_fail "Astra launch scripts have shell syntax errors"
+fi
+if grep -q 'ASTRA_MODEL="gpt-6-astra"' "$SKILL_DIR/scripts/codex-astra.sh"; then
+    test_pass "Astra launcher pins the GPT-6-Astra model ID"
+else
+    test_fail "Astra launcher is missing the GPT-6-Astra model ID"
+fi
+astra_permutations=$("$SKILL_DIR/scripts/codex-astra.sh" list | grep -Ec '^(low|medium|high|xhigh|max|ultra)[[:space:]]+(default|priority)[[:space:]]*$' || true)
+if [ "$astra_permutations" -eq 12 ]; then
+    test_pass "Astra launcher exposes all 12 effort/tier permutations"
+else
+    test_fail "Astra launcher exposed $astra_permutations permutations instead of 12"
+fi
+if "$SKILL_DIR/scripts/codex-astra.sh" reviewer "test" --reasoning minimal >/dev/null 2>&1; then
+    test_fail "Astra launcher accepted an unsupported reasoning effort"
+else
+    test_pass "Astra launcher rejects unsupported reasoning efforts before launch"
+fi
+if "$SKILL_DIR/scripts/codex-astra.sh" reviewer "test" --service-tier flex >/dev/null 2>&1; then
+    test_fail "Astra launcher accepted an unsupported service tier"
+else
+    test_pass "Astra launcher rejects unsupported service tiers before launch"
+fi
+
+# Stub Codex so accepted permutations can be checked at the argv boundary
+# without network access or model usage.
+astra_test_root=$(mktemp -d "${TMPDIR:-/tmp}/codex-astra-test.XXXXXX")
+astra_fake_bin="$astra_test_root/bin"
+astra_work_dir="$astra_test_root/work"
+astra_capture="$astra_test_root/argv.txt"
+mkdir -p "$astra_fake_bin" "$astra_work_dir"
+printf '%s\n' '#!/bin/bash' 'printf '\''%s\n'\'' "$@" > "$ASTRA_CAPTURE_FILE"' > "$astra_fake_bin/codex"
+chmod +x "$astra_fake_bin/codex"
+
+capture_astra() {
+    (
+        cd "$astra_work_dir"
+        PATH="$astra_fake_bin:$PATH" \
+        ASTRA_CAPTURE_FILE="$astra_capture" \
+        CODEX_ORCHESTRATOR_SKIP_UPDATE=1 \
+            "$SKILL_DIR/scripts/codex-astra.sh" "$@" >/dev/null 2>&1
+    )
+}
+
+if capture_astra builder "default prompt with spaces" \
+    && grep -Fxq 'gpt-6-astra' "$astra_capture" \
+    && grep -Fxq 'model_reasoning_effort="medium"' "$astra_capture" \
+    && grep -Fxq 'service_tier="default"' "$astra_capture" \
+    && grep -Fxq 'default prompt with spaces' "$astra_capture"; then
+    test_pass "Astra defaults reach Codex as model + medium + default with prompt quoting intact"
+else
+    test_fail "Astra default argv forwarding is incorrect"
+fi
+
+astra_matrix_ok=true
+for effort in low medium high xhigh max ultra; do
+    for tier in default priority; do
+        expected_cli_tier="$tier"
+        if [ "$tier" = "priority" ]; then
+            expected_cli_tier="fast"
+        fi
+        if ! capture_astra architect "matrix-$effort-$tier" --reasoning "$effort" --service-tier "$tier" \
+            || ! grep -Fxq 'gpt-6-astra' "$astra_capture" \
+            || ! grep -Fxq "model_reasoning_effort=\"$effort\"" "$astra_capture" \
+            || ! grep -Fxq "service_tier=\"$expected_cli_tier\"" "$astra_capture" \
+            || ! grep -Fxq "matrix-$effort-$tier" "$astra_capture"; then
+            astra_matrix_ok=false
+            break 2
+        fi
+    done
+done
+if [ "$astra_matrix_ok" = true ]; then
+    test_pass "All 12 Astra permutations forward exact Codex argv (priority maps to fast)"
+else
+    test_fail "Astra argv forwarding failed for $effort/$tier"
+fi
+
+if (
+    cd "$astra_work_dir"
+    PATH="$astra_fake_bin:$PATH" ASTRA_CAPTURE_FILE="$astra_capture" CODEX_ORCHESTRATOR_SKIP_UPDATE=1 \
+        "$SKILL_DIR/scripts/codex-exec.sh" reviewer "direct shortcut" --astra --reasoning high --service-tier priority >/dev/null 2>&1
+) && grep -Fxq 'gpt-6-astra' "$astra_capture" \
+    && grep -Fxq 'model_reasoning_effort="high"' "$astra_capture" \
+    && grep -Fxq 'service_tier="fast"' "$astra_capture"; then
+    test_pass "Generic --astra shortcut forwards model, reasoning, and priority mapping"
+else
+    test_fail "Generic --astra shortcut argv forwarding is incorrect"
+fi
+
+if CODEX_ORCHESTRATOR_SKIP_UPDATE=1 "$SKILL_DIR/scripts/codex-exec.sh" reviewer "test" --api --service-tier priority >/dev/null 2>&1; then
+    test_fail "codex-exec.sh accepted --service-tier with --api"
+else
+    test_pass "codex-exec.sh rejects --service-tier in API mode"
+fi
+if CODEX_ORCHESTRATOR_SKIP_UPDATE=1 "$SKILL_DIR/scripts/codex-exec.sh" reviewer "test" --astra --api >/dev/null 2>&1; then
+    test_fail "codex-exec.sh accepted --astra with --api"
+else
+    test_pass "codex-exec.sh keeps Astra on the Codex subagent path"
+fi
+if CODEX_ORCHESTRATOR_SKIP_UPDATE=1 "$SKILL_DIR/scripts/codex-exec.sh" reviewer "test" --reasoning >/dev/null 2>&1; then
+    test_fail "codex-exec.sh accepted --reasoning without a value"
+else
+    test_pass "codex-exec.sh rejects missing --reasoning values cleanly"
+fi
+
+rm -rf "$astra_test_root"
+
+# Test 12: Quick API test (optional, skipped in quick mode)
 if [ "$QUICK_MODE" = false ]; then
-    echo -e "\n${YELLOW}Test 11: API Connectivity${NC}"
+    echo -e "\n${YELLOW}Test 12: API Connectivity${NC}"
     if [ -n "$OPENAI_API_KEY" ]; then
         if timeout 15 codex exec --model gpt-5-mini "print('hello')" &> /dev/null; then
             test_pass "Codex API connection works"
@@ -196,7 +308,7 @@ if [ "$QUICK_MODE" = false ]; then
         echo -e "${YELLOW}⚠ SKIP${NC}: OPENAI_API_KEY not set"
     fi
 else
-    echo -e "\n${YELLOW}Test 11: API Connectivity${NC}"
+    echo -e "\n${YELLOW}Test 12: API Connectivity${NC}"
     echo -e "${YELLOW}⚠ SKIP${NC}: Quick mode enabled"
 fi
 

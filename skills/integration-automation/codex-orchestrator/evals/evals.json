@@ -1,0 +1,49 @@
+{
+  "skill_name": "codex-orchestrator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Have Codex Astra review this repository at high reasoning.",
+      "expected_output": "The orchestrator selects the reviewer persona and launches GPT-6-Astra at high reasoning on the standard tier.",
+      "expectations": [
+        "Uses scripts/codex-astra.sh or scripts/codex-exec.sh with --astra",
+        "Selects the reviewer profile",
+        "Sets reasoning to high",
+        "Does not select priority tier unless latency is requested"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Spawn the fastest maximum-depth Astra architect to analyze this design.",
+      "expected_output": "The orchestrator launches the architect persona with GPT-6-Astra, max reasoning, and priority service tier.",
+      "expectations": [
+        "Selects the architect profile",
+        "Sets model to gpt-6-astra",
+        "Sets reasoning to max",
+        "Maps the requested priority tier to Codex CLI config service_tier=fast"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Use Astra ultra to implement the plan; the work has four independent workstreams.",
+      "expected_output": "The orchestrator launches the builder persona with GPT-6-Astra ultra reasoning and preserves the default service tier unless speed is requested.",
+      "expectations": [
+        "Selects the builder profile",
+        "Sets model to gpt-6-astra",
+        "Sets reasoning to ultra",
+        "Recognizes that ultra is appropriate for independent parallel workstreams"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Show me the exact Codex command for an Astra debugger at xhigh reasoning on the regular tier.",
+      "expected_output": "The command uses the debugger persona, gpt-6-astra, xhigh reasoning, and the default service tier.",
+      "expectations": [
+        "Uses scripts/codex-astra.sh with the debugger profile",
+        "Passes --reasoning xhigh",
+        "Passes --service-tier default or relies on the launcher's documented default",
+        "Does not use service_tier=priority as a Codex CLI config value"
+      ]
+    }
+  ]
+}

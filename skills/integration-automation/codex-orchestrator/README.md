@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-07-09 | Codex CLI v0.137.0 | Models: GPT-5.6 Sol / Terra / Luna + GPT-5.5 family
+> Last updated: 2026-09-04 | Codex CLI v0.153.3 | Models: GPT-6-Astra + GPT-5.6 / GPT-5.5 families
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
 
@@ -99,6 +99,20 @@ Billed at standard API rates.
 ./scripts/codex-exec.sh adjudicator "With Linear B and Linear A inscriptions side-by-side, weigh candidate values for this missing sound."
 ```
 
+### GPT-6-Astra
+
+Run Astra through any persona with the dedicated launcher:
+
+```bash
+./scripts/codex-astra.sh list
+
+./scripts/codex-astra.sh reviewer "Review the transaction boundary"
+
+./scripts/codex-astra.sh architect "Design the migration" --reasoning max --service-tier priority
+```
+
+Astra provides 12 effort/tier permutations per persona. `priority` maps to Codex CLI's `fast` tier; see `references/codex-models.md` for the full matrix.
+
 ### Session Management
 
 For interactive sessions with more control:
@@ -131,10 +145,11 @@ Each profile has a default model and reasoning effort. User flags override these
 | **Adjudication** | adjudicator | `gpt-5.6-sol` | `high` |
 | **Chat** | chat | `gpt-5.6-terra` | `medium` |
 
-### Available Models (Jul 2026)
+### Available Models (Sep 2026)
 
 | Model | ID | ChatGPT Auth | API Key | Notes |
 |-------|----|:---:|:---:|-------|
+| **GPT-6-Astra** | `gpt-6-astra` | Yes | Yes | Most capable for demanding work. Six effort levels; optional priority tier. |
 | **GPT-5.6 Sol** | `gpt-5.6-sol` | Yes (Plus+) | Yes | New flagship. Complex reasoning, agentic workflows. Default for coding/planning profiles. |
 | **GPT-5.6 Terra** | `gpt-5.6-terra` | Yes (all tiers) | Yes | Balanced everyday model. GPT-5.5-class at half the cost. Default for chat. |
 | **GPT-5.6 Luna** | `gpt-5.6-luna` | Yes (Plus+) | Yes | Fastest and most cost-efficient. High-throughput pipelines. |
@@ -146,7 +161,7 @@ Each profile has a default model and reasoning effort. User flags override these
 
 ### Reasoning Effort Levels
 
-`none` < `minimal` < `low` < `medium` < `high` < `max`
+General scale: `none` < `minimal` < `low` < `medium` < `high` < `xhigh` < `max` < `ultra`. Astra supports `low` through `ultra`.
 
 See `references/codex-models.md` for full model history, capabilities, and reasoning reference.
 
@@ -315,7 +330,9 @@ Every ExecPlan includes:
 | Option | Description |
 |--------|-------------|
 | `--model <model>` | Override model (default: per-profile) |
-| `--reasoning <level>` | Override reasoning effort: `minimal`, `low`, `medium`, `high`, `xhigh` |
+| `--astra` | Shortcut for `--model gpt-6-astra` |
+| `--reasoning <level>` | Override reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra` |
+| `--service-tier <tier>` | Override Codex CLI service tier: `default` or `priority` (not API mode) |
 | `--sandbox <mode>` | `read-only`, `workspace-write`, `danger-full-access` |
 | `--full-auto` | Skip approval prompts |
 | `--no-auto` | Disable auto `--full-auto` (require manual approval) |
@@ -379,6 +396,7 @@ codex-orchestrator/
 │   └── subagent-patterns.md
 └── scripts/               # Execution scripts
     ├── codex-exec.sh      # One-shot execution
+    ├── codex-astra.sh     # GPT-6-Astra permutation launcher
     ├── codex-goal.sh      # Goal draft/run/list workflow
     ├── codex-session.py   # Session management
     ├── codex-status.sh    # Installation check
@@ -399,6 +417,9 @@ npm install -g @openai/codex
 Older model names (`codex-mini`, `o3`, `o4-mini`, `gpt-5.3-codex`) have been superseded. Use current models:
 
 ```bash
+# Most capable (GPT-6-Astra)
+./scripts/codex-astra.sh reviewer "task" --reasoning high
+
 # Recommended (GPT-5.6 Sol)
 ./scripts/codex-exec.sh reviewer "task" --model gpt-5.6-sol
 

@@ -39,11 +39,13 @@ _with_pty() {
 }
 
 # Auto-update check: run version check with auto-update enabled
-echo -e "${BLUE}Checking Codex CLI version...${NC}"
-if ! "$SCRIPT_DIR/codex-version-check.sh" --auto-update; then
-    echo -e "${YELLOW}Warning: Could not verify/update Codex CLI version${NC}"
+if [ "${CODEX_ORCHESTRATOR_SKIP_UPDATE:-}" != "1" ]; then
+    echo -e "${BLUE}Checking Codex CLI version...${NC}"
+    if ! "$SCRIPT_DIR/codex-version-check.sh" --auto-update; then
+        echo -e "${YELLOW}Warning: Could not verify/update Codex CLI version${NC}"
+    fi
+    echo ""
 fi
-echo ""
 
 show_usage() {
     echo "Usage: codex-exec.sh <profile> \"<prompt>\" [options]"
@@ -65,7 +67,9 @@ show_usage() {
     echo ""
     echo "Options:"
     echo "  --model <model>       Override model (default: per-profile, see below)"
-    echo "  --reasoning <level>   Override reasoning effort: minimal, low, medium, high, xhigh"
+    echo "  --astra               Shortcut for --model gpt-6-astra"
+    echo "  --reasoning <level>   Override reasoning effort: none, minimal, low, medium, high, xhigh, max, ultra"
+    echo "  --service-tier <tier> Override service tier: default, priority"
     echo "  --sandbox <mode>      Sandbox mode: read-only, workspace-write, danger-full-access"
     echo "  --no-approve          Force read-only sandbox (no file writes)"
     echo "  --web-search          Enable Exa web search (injects guide into AGENTS.md)"
@@ -95,6 +99,7 @@ show_usage() {
     echo "  codex-exec.sh researcher \"What are the latest React patterns?\" --search"
     echo "  codex-exec.sh reviewer \"Review this mockup\" --image screenshot.png"
     echo "  codex-exec.sh builder \"continue\" --resume"
+    echo "  codex-exec.sh architect \"Design a fault-tolerant queue\" --astra --reasoning max --service-tier priority"
 }
 
 # Profile-specific defaults for model and reasoning effort
@@ -170,6 +175,7 @@ get_profile_defaults "$PROFILE"
 # Parse additional options (user overrides take precedence)
 MODEL=""
 REASONING=""
+SERVICE_TIER=""
 SANDBOX="workspace-write"
 WEB_SEARCH=""
 NATIVE_SEARCH=""
@@ -186,11 +192,31 @@ SKIP_OUTPUT_CLEANUP=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --model)
+            if [[ $# -lt 2 || "$2" == --* ]]; then
+                echo -e "${RED}Error: --model requires a value${NC}"
+                exit 1
+            fi
             MODEL="$2"
             shift 2
             ;;
+        --astra)
+            MODEL="gpt-6-astra"
+            shift
+            ;;
         --reasoning)
+            if [[ $# -lt 2 || "$2" == --* ]]; then
+                echo -e "${RED}Error: --reasoning requires a value${NC}"
+                exit 1
+            fi
             REASONING="$2"
+            shift 2
+            ;;
+        --service-tier)
+            if [[ $# -lt 2 || "$2" == --* ]]; then
+                echo -e "${RED}Error: --service-tier requires a value${NC}"
+                exit 1
+            fi
+            SERVICE_TIER="$2"
             shift 2
             ;;
         --sandbox)
@@ -264,6 +290,35 @@ if [ -z "$REASONING" ] && [ -n "$DEFAULT_REASONING" ]; then
     REASONING="$DEFAULT_REASONING"
 fi
 
+# Validate Astra's model-specific permutations. Keeping the matrix explicit
+# catches typos before Codex starts and makes future capability changes local.
+if [ "$MODEL" = "gpt-6-astra" ]; then
+    case "$REASONING" in
+        low|medium|high|xhigh|max|ultra) ;;
+        *)
+            echo -e "${RED}Error: GPT-6-Astra reasoning must be one of: low, medium, high, xhigh, max, ultra${NC}"
+            exit 1
+            ;;
+    esac
+fi
+
+case "$SERVICE_TIER" in
+    ""|default|priority) ;;
+    *)
+        echo -e "${RED}Error: Service tier must be one of: default, priority${NC}"
+        exit 1
+        ;;
+esac
+
+if [ -n "$API_MODE" ] && [ -n "$SERVICE_TIER" ]; then
+    echo -e "${RED}Error: --service-tier configures Codex CLI subagents and cannot be combined with --api${NC}"
+    exit 1
+fi
+if [ -n "$API_MODE" ] && [ "$MODEL" = "gpt-6-astra" ]; then
+    echo -e "${RED}Error: GPT-6-Astra is exposed here as a Codex CLI subagent and cannot be combined with --api${NC}"
+    exit 1
+fi
+
 # Auto-configure read-only profiles
 EPHEMERAL=""
 OUTPUT_FILE=""
@@ -326,6 +381,11 @@ if [ -e "$AGENTS_TARGET" ] && ! is_our_injection "$AGENTS_TARGET"; then
 fi
 
 # Inject profile AGENTS.md (sentinel for --web-search concatenated files)
+# Remove any leftover target first: a stale symlink from the ln -sf branch would
+# make the > redirect write INTO the profile source while cat reads it — an
+# infinite self-append that grows the profile file unboundedly. Real user
+# content was already backed up above.
+rm -f "$AGENTS_TARGET"
 EXA_GUIDE="$HOME/.claude/skills/exa-search/codex-agent-guide.md"
 if [ -n "$WEB_SEARCH" ] && [ -f "$EXA_GUIDE" ]; then
     { echo "# CODEX-ORCHESTRATOR-INJECTED"; cat "$AGENTS_FILE" "$EXA_GUIDE"; } > "$AGENTS_TARGET"
@@ -341,6 +401,9 @@ else
 fi
 if [ -n "$REASONING" ]; then
     echo -e "Reasoning: $REASONING"
+fi
+if [ -n "$SERVICE_TIER" ]; then
+    echo -e "Service tier: $SERVICE_TIER"
 fi
 echo -e "Sandbox: $SANDBOX"
 echo -e "Working directory: $WORK_DIR"
@@ -421,6 +484,10 @@ esac
 if [ -n "$REASONING" ]; then
     CODEX_ARGS+=(-c "model_reasoning_effort=\"$REASONING\"")
 fi
+case "$SERVICE_TIER" in
+    default) CODEX_ARGS+=(-c 'service_tier="default"') ;;
+    priority) CODEX_ARGS+=(-c 'service_tier="fast"') ;;
+esac
 if [ -n "$EPHEMERAL" ]; then
     CODEX_ARGS+=(--ephemeral)
 fi
