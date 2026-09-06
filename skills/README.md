@@ -34,7 +34,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | `react-best-practices` | React/Next.js optimization from [Vercel Engineering](https://vercel.com/blog) |
 | `openrouter-usage` | Query OpenRouter API costs, credits, and usage by model/provider/date |
 | `glossary` | Domain glossary builder — creates `CONTEXT.md` with shared vocabulary, avoid-aliases, and term relationships. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills) |
-| `fable` | Summon [Claude Fable 5](https://www.anthropic.com/news/claude-fable-5-mythos-5) (Mythos-class) as a subagent—availability probe, two-lane invocation (`Agent(model:"fable")` or CLI bypass of `CLAUDE_CODE_SUBAGENT_MODEL`), model self-report verification |
+| `fable` | Summon Claude Fable 5.1 (Theoros, xenos theoros) by default, or Fable 5.0 (Naos, `--naos`)—availability probe, two-lane invocation, boundary-safe model verification |
 | `skill-optimizer` | Meta-skill for creating and reviewing other skills |
 
 ### Integration & Automation (`integration-automation/`)
