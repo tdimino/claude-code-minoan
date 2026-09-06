@@ -115,6 +115,14 @@ class ProcessInfo:
     is_orphaned: bool = False          # Claude-only
 
 
+@dataclass(frozen=True)
+class ProcEntry:
+    """One row of the full process table."""
+    ppid: int
+    rss_kb: int
+    command: str
+
+
 @dataclass
 class PIDTrackingState:
     """Rolling CPU + RAM state for a single PID."""
@@ -161,6 +169,159 @@ def _command_basename(command: str) -> str:
     """Extract the basename from a command string for exclude matching."""
     first_token = command.split()[0] if command else ""
     return first_token.rsplit("/", 1)[-1]
+
+
+# Wrappers that exist only to run the server beneath them. `npm run` executes
+# scripts through `/bin/sh -c`, so that one shell form is traversed rather than
+# treated as a boundary — stopping there fragments a single logical server into
+# separate chains. Only `sh`/`bash -c` qualify: `zsh -c` is how Claude Code runs
+# its own Bash tool calls, and climbing through one would sweep an unrelated
+# tool invocation's subtree. Interactive shells, terminals, and agent CLIs are
+# likewise absent — a server started from a Ghostty tab or an agent session must
+# never suggest killing its parent.
+# Each regex alternative anchors to the executable, so a path appearing among the
+# *arguments* never qualifies. `bun` needs its subcommand: it is a runtime as
+# well as a package manager, and the bare name matches every `bun server.ts` MCP
+# server on the box.
+SUPERVISOR_RE = re.compile(
+    r"^(?:\S*/)?(?:npm|npx|yarn|pnpm)(?:\s|$)"
+    r"|^(?:\S*/)?bun\s+(?:run|x)\b"
+    r"|^(?:\S*/)?(?:uv|poetry|pipenv|pdm|rye)\s+run\b"
+    r"|^(?:\S*/)?bundle\s+exec\b"
+    r"|^(?:\S*/)?(?:ba)?sh\s+-c\s",
+)
+
+
+def _is_supervisor(command: str) -> bool:
+    """True when `command` exists only to run the process beneath it."""
+    if SUPERVISOR_RE.search(command):
+        return True
+
+    # `node_modules/.bin/` shims, which run both bare and behind `node`. Project
+    # paths contain spaces, so a shim path spans several whitespace tokens and
+    # cannot be located by token index — take everything up to the script's own
+    # first option instead. The shim must sit in executable position: a `.bin`
+    # path handed to something else as an argument is not a supervisor, which is
+    # what keeps out the `zsh -c` wrapper Claude Code runs its Bash calls through.
+    tokens = command.split()
+    if not tokens:
+        return False
+
+    if _command_basename(tokens[0]) == "node":
+        # Skip node's own flags — `--max-old-space-size` before a shim is the
+        # standard incantation for exactly the heap-hungry servers this watches.
+        rest = tokens[1:]
+        while rest and rest[0].startswith("-"):
+            rest.pop(0)
+        return "/node_modules/.bin/" in " ".join(rest).split(" -", 1)[0]
+
+    head = command.split(" -", 1)[0]
+    if "/node_modules/.bin/" not in head:
+        return False
+    return head.startswith("/") or "/node_modules/.bin/" in tokens[0]
+
+
+def _process_table() -> dict[int, ProcEntry]:
+    """One ps scan -> {pid: ProcEntry}. Empty dict if ps fails."""
+    try:
+        result = subprocess.run(
+            ["ps", "-eo", "pid=,ppid=,rss=,command="],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return {}
+
+    table: dict[int, ProcEntry] = {}
+    for line in result.stdout.strip().split("\n"):
+        parts = line.split(None, 3)
+        if len(parts) < 4:
+            continue
+        try:
+            table[int(parts[0])] = ProcEntry(int(parts[1]), int(parts[2]), parts[3])
+        except ValueError:
+            continue
+    return table
+
+
+def kill_chain(pid: int, table: Optional[dict] = None) -> list[int]:
+    """Every PID that must die for `pid` to stay dead, supervisor first.
+
+    A dev server is usually three processes — `npm run dev` -> `next dev` ->
+    `next-server` — and signalling only the leaf leaves the supervisor alive
+    to respawn it. Walk up through wrapper ancestors to the real root, then
+    take that root's whole subtree so sibling workers go too.
+    """
+    table = _process_table() if table is None else table
+    if pid not in table:
+        return [pid]
+
+    # Up: only through wrappers, so we never climb into a shell or agent.
+    root, seen = pid, {pid}
+    while True:
+        ppid = table[root].ppid
+        if ppid in (0, 1) or ppid in seen or ppid not in table:
+            break
+        if not _is_supervisor(table[ppid].command):
+            break
+        root = ppid
+        seen.add(ppid)
+
+    # Nothing above it and not itself a wrapper means no supervisor to respawn
+    # it and no evidence this is one logical server. Report the PID alone
+    # rather than sweeping a subtree — otherwise an agent session's hint names
+    # every MCP server it spawned, which is both alarming and beside the point.
+    # A supervisor alerting on its own account still sweeps: killing `npm run
+    # dev` by itself just reparents the server it started onto launchd.
+    if root == pid and not _is_supervisor(table[pid].command):
+        return [pid]
+
+    # Down: the root's full subtree, so multi-worker servers die together.
+    children: dict[int, list[int]] = {}
+    for child, entry in table.items():
+        children.setdefault(entry.ppid, []).append(child)
+
+    chain, stack = [], [root]
+    while stack:
+        current = stack.pop()
+        if current in chain:
+            continue
+        chain.append(current)
+        stack.extend(sorted(children.get(current, []), reverse=True))
+    return chain
+
+
+def kill_hint(pid: int, expect_command: str = "") -> str:
+    """`kill -9` command covering the process's whole chain.
+
+    The chain is resolved against a table read now, not against the poll that
+    raised the alert — by alert time that poll is up to poll_interval_sec *
+    consecutive_checks old. Pass `expect_command` to guard the gap: if the PID
+    no longer carries the command that alerted, it was recycled, and naming a
+    stranger's entire subtree would be far worse than naming one stale PID.
+    Widening the hint is only safe while the target is known to be the same
+    process.
+
+    Call once per alert and pass the result to both the log line and the
+    notification body: two calls seconds apart can disagree about a child that
+    exited between them, which would put two different kill commands in one
+    alert.
+    """
+    table = _process_table()
+    entry = table.get(pid)
+    if expect_command and (entry is None or entry.command != expect_command):
+        return f"kill -9 {pid}"
+
+    chain = kill_chain(pid, table)
+    hint = "kill -9 " + " ".join(str(p) for p in chain)
+    if len(chain) > 1:
+        # A Telegram alert may be read hours after it fired, so name the root
+        # the list was computed from. Written as a shell comment: the line stays
+        # pasteable, and the reader can confirm the tree before killing it.
+        root_entry = table.get(chain[0])
+        root = root_entry.command.strip() if root_entry else ""
+        if root:
+            hint += f"  # root: {root[:70]}"
+    return hint
 
 
 class ProcessPoller:
@@ -293,33 +454,17 @@ class ProcessPoller:
     def find_orphan_mcp_processes(self, config: dict) -> list[dict]:
         """Return list of PPID=1 node/python MCP servers that look reparented.
 
-        Each entry: {pid, rss_kb, command}. Uses a single `ps` scan and
-        filters the excludes list (claude-peers, claude-plugins-mcp, etc.).
+        Each entry: {pid, rss_kb, command}. Shares the process table with
+        the kill-chain resolver and filters the excludes list (claude-peers,
+        claude-plugins-mcp, etc.).
         """
         excludes = set(config.get("orphan_mcp_excludes", []))
         orphans: list[dict] = []
 
-        try:
-            result = subprocess.run(
-                ["ps", "-eo", "pid=,ppid=,rss=,command="],
-                capture_output=True, text=True, timeout=10,
-            )
-        except (subprocess.TimeoutExpired, OSError):
-            return orphans
-
-        for line in result.stdout.strip().split("\n"):
-            parts = line.split(None, 3)
-            if len(parts) < 4:
+        for pid, entry in _process_table().items():
+            if entry.ppid != 1:
                 continue
-            try:
-                pid = int(parts[0])
-                ppid = int(parts[1])
-                rss_kb = int(parts[2])
-            except ValueError:
-                continue
-            if ppid != 1:
-                continue
-            command = parts[3]
+            command = entry.command
 
             # Exclude legit long-running PPID=1 daemons
             basename = _command_basename(command)
@@ -335,7 +480,7 @@ class ProcessPoller:
 
             orphans.append({
                 "pid": pid,
-                "rss_kb": rss_kb,
+                "rss_kb": entry.rss_kb,
                 "command": command[:200],
             })
         return orphans
@@ -661,7 +806,8 @@ class Alerter:
             self._telegram_notify(log_msg)
 
     def alert(self, proc: ProcessInfo, state: PIDTrackingState):
-        msg = self._format_message(proc, state)
+        hint = kill_hint(proc.pid, proc.command)
+        msg = self._format_message(proc, state, hint)
         label = "Claude" if proc.is_claude else _command_basename(proc.command)
         body_lines = [
             f"{proc.cpu_pct:.0f}% CPU for "
@@ -669,13 +815,14 @@ class Alerter:
         ]
         if proc.cwd:
             body_lines.append(f"CWD: {proc.cwd.replace(str(Path.home()), '~')}")
-        body_lines.append(f"kill -9 {proc.pid}")
+        body_lines.append(hint)
         body = "\n".join(body_lines)
         self._dispatch(msg, f"Phroura: {label} {proc.pid} stuck", body, "Basso")
 
     def alert_orphaned(self, proc: ProcessInfo):
-        msg = self._format_orphan_message(proc)
-        body = f"Terminal closed, process persists.\nkill -9 {proc.pid}"
+        hint = kill_hint(proc.pid, proc.command)
+        msg = self._format_orphan_message(proc, hint)
+        body = f"Terminal closed, process persists.\n{hint}"
         self._dispatch(msg, f"Phroura: Claude {proc.pid} orphaned", body, "Purr")
 
     # ─── RAM alerts ───────────────────────────────────────────────────────
@@ -692,6 +839,10 @@ class Alerter:
         rss_mb = proc.rss_kb // 1024
         peak_mb = state.peak_rss_kb // 1024
         label = "Claude" if proc.is_claude else _command_basename(proc.command)[:40]
+        # Only the critical tier prints a kill command, so only it pays for the
+        # process-table scan. Resolved once and shared by the log line and the
+        # notification body, which must not disagree.
+        hint = kill_hint(proc.pid, proc.command) if severity == "critical" else ""
 
         lines = [
             f"RAM {severity.upper()}: {label} PID {proc.pid} at {rss_mb} MB",
@@ -707,7 +858,7 @@ class Alerter:
         if proc.version:
             lines.append(f"  Version: {proc.version}")
         if severity == "critical":
-            lines.append(f"  Action: kill -9 {proc.pid}")
+            lines.append(f"  Action: {hint}")
         msg = "\n".join(lines)
 
         if severity == "warn":
@@ -723,7 +874,7 @@ class Alerter:
         if proc.cwd:
             body_lines.append(f"CWD: {proc.cwd.replace(str(Path.home()), '~')}")
         if severity == "critical":
-            body_lines.append(f"kill -9 {proc.pid}")
+            body_lines.append(hint)
         sound = "Sosumi" if severity == "critical" else "Basso"
         self._dispatch(msg, title, "\n".join(body_lines), sound)
 
@@ -790,7 +941,8 @@ class Alerter:
             body, "Purr",
         )
 
-    def _format_message(self, proc: ProcessInfo, state: PIDTrackingState) -> str:
+    def _format_message(self, proc: ProcessInfo, state: PIDTrackingState,
+                        hint: str) -> str:
         interval = self.config["poll_interval_sec"]
         label = "Claude" if proc.is_claude else _command_basename(proc.command)[:40]
         lines = [
@@ -811,10 +963,10 @@ class Alerter:
             lines.append(f"  Version: {proc.version}")
         if proc.has_revoked_fds:
             lines.append("  WARNING: Has revoked file descriptors (terminal closed?)")
-        lines.append(f"  Action: kill -9 {proc.pid}")
+        lines.append(f"  Action: {hint}")
         return "\n".join(lines)
 
-    def _format_orphan_message(self, proc: ProcessInfo) -> str:
+    def _format_orphan_message(self, proc: ProcessInfo, hint: str) -> str:
         lines = [
             f"ORPHAN DETECTED: Claude PID {proc.pid} has revoked fds",
             f"  CPU: {proc.cpu_pct:.0f}%  |  Memory: {proc.mem_pct:.1f}%",
@@ -824,7 +976,7 @@ class Alerter:
             cwd = proc.cwd.replace(str(Path.home()), "~")
             lines.append(f"  CWD: {cwd}")
         lines.append("  Terminal closed but process persists.")
-        lines.append(f"  Action: kill -9 {proc.pid}")
+        lines.append(f"  Action: {hint}")
         return "\n".join(lines)
 
     def _macos_notify(self, title: str, body: str, sound: str):

@@ -137,6 +137,20 @@ RAM thresholds are calibrated to catch sustained bloat without flagging normal w
 
 Default `exclude_commands` covers macOS system daemons (`kernel_task`, `WindowServer`, `mdworker`, `Spotlight`, `XprotectService`, `logd`, `fseventsd`, `coreaudiod`, …), compilers and build tools (`cargo`, `rustc`, `clang`, `ld`, `lld`, …), media encoders (`ffmpeg`, `ffprobe`, `HandBrakeCLI`), and local LLM inference (`ollama`, `llama-cli`). These are expected to peg CPU legitimately—extend the list in `config.json` for anything else in your workflow that should be ignored.
 
+## Kill Hints
+
+Every alert ends in a `kill -9` line naming the whole process chain rather than the single offending PID. A dev server is typically three processes—`npm run dev` → `next dev` → `next-server`—and signalling only the leaf leaves the supervisor alive to respawn it seconds later.
+
+`kill_chain()` walks *up* from the alerting PID through wrapper ancestors only—`npm run`/`npm exec`/`npx`/`yarn`/`pnpm`, `bun run`, `uv`/`poetry`/`pipenv` `run`, `bundle exec`, `node_modules/.bin/` shims, and the `sh -c` that `npm run` inserts on macOS. It stops at everything else, so a server launched from a terminal tab or an agent session never suggests killing its parent—the catastrophic failure mode for a tool whose output you paste into a shell. `zsh -c` is excluded by design, being how Claude Code runs its own Bash calls.
+
+Finding no wrapper above the process and none in the process itself, the hint names that PID alone, which keeps an agent session's alert from listing every MCP server it happens to have spawned. Otherwise the hint covers the root's entire subtree so sibling workers die together—and a supervisor that alerts on its own account sweeps as well, since killing `npm run dev` by itself only reparents the server it started onto launchd.
+
+The chain is resolved against a `ps` read at alert time, and the command that alerted is compared against the PID before the hint is allowed to widen. A poll can be 90 seconds stale by the time it fires; naming a recycled PID's whole subtree would be far worse than naming one dead PID, so identity failure falls back to the bare process. Multi-PID hints carry the root's command as a trailing shell comment—the line stays pasteable, and an alert read hours later can still be checked against reality first.
+
+```
+  Action: kill -9 36857 36880 36881  # root: npm run dev --port 3018
+```
+
 ## Notifications
 
 **macOS**—native alert via `alerter`. Bundle ID `fr.vjeantet.alerter` shows as a distinct entry in System Settings → Notifications, so you can grant/deny phroura independently from other notifier tools (phroura specifically avoids `terminal-notifier` to prevent collisions with Claude Code hooks that may already use it).

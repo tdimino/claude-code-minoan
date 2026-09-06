@@ -16,6 +16,16 @@ Monitoring daemon that detects stuck, memory-leaking, or orphaned Claude Code se
 
 All alerts respect per-type cooldowns. RAM thresholds are calibrated to this machine — 641 MB is the highest RSS ever observed for a live Claude session here, so 800 MB / 1200 MB / 2000 MB form 1.25× / 1.9× / 3.1× headroom tiers.
 
+## Kill hints
+
+Every alert ends in a `kill -9` line naming the whole process chain, not just the offending PID. A dev server is typically three processes — `npm run dev` → `next dev` → `next-server` — and signalling only the leaf leaves the supervisor alive to respawn it.
+
+`kill_chain()` walks *up* from the alerting PID through wrapper ancestors only: `npm run`/`npm exec`/`npx`/`yarn`/`pnpm`, `bun run`, `uv`/`poetry`/`pipenv` `run`, `bundle exec`, `node_modules/.bin/` shims, and the `sh -c` that `npm run` inserts. It stops at everything else, so a server launched from a terminal tab or an agent session never suggests killing its parent — `zsh -c` is excluded deliberately, being how Claude Code runs its own Bash calls.
+
+Finding no wrapper above it and not being one itself, the hint names that PID alone, which keeps an agent session from listing every MCP server it spawned. Otherwise the hint covers the root's whole subtree so sibling workers go together — a supervisor alerting on its own account sweeps too, since killing `npm run dev` by itself just reparents the server onto launchd.
+
+The chain resolves against a `ps` read at alert time, and the alerting command is compared against the PID before the hint widens: a poll can be 90s stale, and naming a recycled PID's whole subtree is far worse than naming one dead PID. Multi-PID hints carry the root's command as a trailing shell comment, so an alert read hours later can be checked before it is pasted.
+
 ## Files
 
 | File | Purpose |
@@ -64,6 +74,7 @@ launchctl kickstart -k gui/$(id -u)/com.minoan.cpu-watchdog
 | `rss_warn_mb` | `800` | Log-only early warning |
 | `rss_alert_mb` | `1200` | Sustained-breach alert tier |
 | `rss_critical_mb` | `2000` | Hard-ceiling critical tier |
+| `rss_inclusion_floor_mb` | `500` | Include process if RSS exceeds this, even at 0% CPU |
 | `rss_claude_floor_mb` | `100` | Skip RAM tracking for tiny processes |
 | `rss_growth_mb_per_min` | `60` | Growth-slope alert trigger |
 | `rss_growth_min_samples` | `5` | Minimum samples before slope is trusted |
