@@ -1,6 +1,6 @@
 # CLI Tools (`bin/`)
 
-Terminal commands for managing Claude Code sessions. Copy to `~/.local/bin/` (or anywhere on your `$PATH`).
+Terminal commands for managing Claude Code and Codex sessions. Copy to `~/.local/bin/` (or anywhere on your `$PATH`).
 
 ## Installation
 
@@ -19,6 +19,22 @@ Browse recent Claude Code sessions with summaries, running status, and VS Code d
 claude-tracker              # List recent sessions
 claude-tracker --json       # JSON output for scripting
 ```
+
+### `codex-tracker` — Search and Inspect Codex Sessions
+
+Use Codex's native App Server APIs to search transcript text, browse recent work, inspect one session, and print a safe native resume command.
+
+```bash
+codex-tracker search "permission profile"
+codex-tracker recent --limit 10
+codex-tracker show <session-id>
+codex-tracker occurrences <session-id> "search phrase"
+codex-tracker resume <session-id>
+```
+
+The launcher resolves `codex-tracker-suite` from either `~/.claude/skills/` or `~/.codex/skills/`. Install the skill before using it. Full-text search requires a Codex build exposing the experimental App Server search methods.
+
+See [`skills/planning-productivity/codex-tracker-suite/README.md`](../skills/planning-productivity/codex-tracker-suite/README.md) for setup, compatibility, privacy, and operational notes.
 
 ### `claude-tracker-search` — Search Sessions
 

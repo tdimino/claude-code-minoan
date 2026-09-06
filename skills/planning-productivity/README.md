@@ -5,6 +5,7 @@ Session management, agent orchestration, iteration loops, and workflow automatio
 | Skill | Description |
 |-------|-------------|
 | `claude-tracker-suite` | Session management: search, resume, alive detection, auto-summarize, cost |
+| `codex-tracker-suite` | Native Codex session search, inspection, status, and safe resume commands via App Server |
 | `crypt-librarian` | Film curator for pre-2016 gothic/occult/noir cinema |
 | `minoan-swarm` | Multi-agent teams with Minoan-Semitic naming, shared task lists |
 | `planning-with-files` | Manus-style file-based planning (task_plan.md, findings.md) |

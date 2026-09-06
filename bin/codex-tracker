@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+for tracker in \
+  "$HOME/.claude/skills/codex-tracker-suite/scripts/codex_tracker.py" \
+  "$HOME/.codex/skills/codex-tracker-suite/scripts/codex_tracker.py"
+do
+  if [ -f "$tracker" ]; then
+    exec python3 "$tracker" "$@"
+  fi
+done
+
+echo "codex-tracker-suite is not installed in ~/.claude/skills or ~/.codex/skills" >&2
+exit 1

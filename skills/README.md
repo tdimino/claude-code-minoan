@@ -99,6 +99,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 | Skill | Description |
 |-------|-------------|
 | `claude-tracker-suite` | Session search, resume, project detection, resume-in-terminal (Ghostty/VS Code/Cursor) |
+| `codex-tracker-suite` | Native Codex session search, inspection, status, and safe resume commands via App Server |
 | `crypt-librarian` | Film curator for pre-2016 gothic/occult/noir cinema |
 | `minoan-swarm` | Agent Teams orchestration with ancient Mediterranean naming |
 | `planning-with-files` | Structured planning with file-based plan artifacts |

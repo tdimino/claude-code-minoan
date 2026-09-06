@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Tracker Suite"
+  short_description: "Search and inspect local Codex sessions"
+  default_prompt: "Use $codex-tracker-suite to find the Codex session about this topic."

@@ -43,6 +43,7 @@
     "claude-usage": "core-development",
     "cloudflare": "integration-automation",
     "codex-cto": "integration-automation",
+    "codex-tracker-suite": "planning-productivity",
     "codex-orchestrator": "integration-automation",
     "component-gallery": "design-media",
     "crypt-librarian": "planning-productivity",

@@ -1,0 +1,47 @@
+{
+  "skill_name": "codex-tracker-suite",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find the Codex session where we discussed the first mention of Itanos.",
+      "expected_output": "Search native Codex transcript text and return ranked sessions with snippets and resumable IDs.",
+      "expectations": [
+        "Runs codex-tracker search with the topic as the query",
+        "Reports at least one matching session ID when a match exists",
+        "Includes the native matching snippet and working directory",
+        "Does not query Codex SQLite databases directly"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Show me my five most recent Codex sessions, including codex exec runs, as JSON.",
+      "expected_output": "Return machine-readable recent-session metadata from the native App Server.",
+      "expectations": [
+        "Runs codex-tracker recent with --limit 5",
+        "Uses --include-non-interactive",
+        "Uses --json",
+        "Returns valid JSON without ANSI control sequences"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Within Codex session 01a00000-0000-7000-8000-000000000000, find every visible occurrence of ‘permission profile’.",
+      "expected_output": "Use native in-session occurrence search and report matching turn/item identifiers and snippets.",
+      "expectations": [
+        "Runs codex-tracker occurrences with the supplied session ID and phrase",
+        "Reports chronological native snippets",
+        "Includes turn and item identifiers",
+        "Does not resume or mutate the session"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Search this repository for where Codex session state is implemented.",
+      "expected_output": "Do not invoke the session-tracker skill because this is project source-code search.",
+      "expectations": [
+        "Does not run codex-tracker",
+        "Uses ordinary repository search tools instead"
+      ]
+    }
+  ]
+}
