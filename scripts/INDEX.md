@@ -1,6 +1,6 @@
 # Scripts Index
 
-*14 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
+*15 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
 
 ## Plugin Management
 
@@ -13,6 +13,7 @@
 
 | Script | Description |
 |--------|-------------|
+| `ghostty-resume.sh` | The one terminal opener for claude-tracker-suite: session ID (claude or codex) or `--exec` command → new Ghostty tab or `--split right\|left\|down\|up`. Writes a short launcher to `~/.claude/run/launch/`, delivered via Ghostty's AppleScript dictionary (≥ 1.3.0, no keystrokes/clipboard) or Cmd-T + paste on older builds. `--print` writes the launcher only. Installed by `setup.sh` |
 | `cc-sessions.sh` | Session history viewer with auto-categorization |
 | `cc-sessions-fzf.sh` | Interactive session picker with fzf + tmux integration |
 | `cc-sessions-ui.py` | Visual TUI for browsing and resuming sessions |

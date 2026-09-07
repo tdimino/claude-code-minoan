@@ -1,15 +1,16 @@
 # Commands Index
 
-*16 custom slash commands in `~/.claude/commands/`*
+*18 custom slash commands in `~/.claude/commands/`*
 
 ## Session Management
 
 | Command | Invocation | Description |
 |---------|------------|-------------|
-| `claude-tracker.md` | `/claude-tracker` | List and browse saved sessions with status (running/inactive/VS Code) |
-| `claude-tracker-here.md` | `/claude-tracker-here` | List sessions for the current working directory |
+| `claude-tracker.md` | `/claude-tracker` | List and browse saved sessions with LIVE/STALE status from Claude Code's PID files |
+| `claude-tracker-here.md` | `/claude-tracker-here` | List sessions for the current working directory (`list-sessions.js --here`) |
+| `claude-tracker-recent.md` | `/claude-tracker-recent` | Most recent sessions across projects with resume commands (`--copy` to clipboard) |
 | `claude-tracker-search.md` | `/claude-tracker-search` | Search across all sessions for keywords |
-| `claude-tracker-resume.md` | `/claude-tracker-resume` | Resume a session by number from tracker output |
+| `claude-tracker-resume.md` | `/claude-tracker-resume` | Resume by session ID or search term in a Ghostty tab via `ghostty-resume.sh`; no arg reopens crashed sessions; `--here` prints the launcher for in-place exec |
 | `session-report.md` | `/session-report` | Generate Markdown dashboard of recent sessions with git activity |
 | `spawn.md` | `/spawn` | Start a new session (interactive, prompt-driven, or headless) |
 | `tag.md` | `/tag` | Attach manual keyword metatags to the current session for search recall |

@@ -11,7 +11,7 @@
 # Usage:
 #   ghostty-resume.sh <session-id> [--agent claude|codex] [--project <path>] [--name <title>]
 #   ghostty-resume.sh --exec "<command>" --project <path> [--name <title>]
-#   ghostty-resume.sh <session-id> --split [right|down]   # split the current tab instead
+#   ghostty-resume.sh <session-id> --split [right|left|down|up]   # split the current tab instead
 #   ghostty-resume.sh <session-id> --print          # write the launcher, print its path, open nothing
 #   ghostty-resume.sh --help
 #
