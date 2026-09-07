@@ -24,4 +24,5 @@ If no project path is given, use the current working directory.
 - `/spawn ~/my-project` — Interactive session in Ghostty
 - `/spawn ~/my-project --prompt "fix the tests"` — Prompt-driven in Ghostty tab
 - `/spawn ~/my-project --headless --prompt "summarize"` — Headless JSON output
-- `/spawn ~/my-project --vscode --model opus` — Interactive in VS Code
+- `/spawn ~/my-project --model opus --name "auth refactor"` — Named session (shows in the resume picker and tab title)
+- `/spawn ~/my-project --cursor` — Ghostty tab plus the project opened in Cursor

@@ -292,7 +292,7 @@ Write-Host "---------------------------" -ForegroundColor White
 
 Write-Host ""
 Write-Host "  The tracker suite can use SQLite for faster session search, checkpoints,"
-Write-Host "  and tagged phrase capture. Requires Node.js + npm."
+Write-Host "  and tagged phrase capture. Uses Node's built-in node:sqlite (Node >= 22.13, no npm install)."
 Write-Host ""
 Write-Host "    1. Install SQLite tracker"
 Write-Host "    2. Skip (JSON-only mode — everything still works)"
@@ -301,7 +301,7 @@ $sqliteChoice = Read-Host "  Enter choice (1-2)"
 
 switch ($sqliteChoice) {
     "1" {
-        if (Get-Command npm -ErrorAction SilentlyContinue) {
+        if (Get-Command node -ErrorAction SilentlyContinue) {
             $libDir = Join-Path $ClaudeDir "lib"
             if (-not (Test-Path $libDir)) { New-Item -ItemType Directory -Path $libDir -Force | Out-Null }
 
@@ -311,15 +311,11 @@ switch ($sqliteChoice) {
                 Copy-Item -Path $pkgJson -Destination $libDir -Force
             }
 
-            Write-Info "Running npm install..."
-            Push-Location $libDir
-            & npm install --production 2>&1 | Out-Null
-            Pop-Location
+            & node -e "require('node:sqlite')" 2>$null
             if ($LASTEXITCODE -eq 0) {
-                Write-OK "better-sqlite3 installed"
+                Write-OK "tracker-db.js installed (node:sqlite, no dependencies)"
             } else {
-                Write-Warn "npm install failed. You may need Visual Studio Build Tools with C++ workload."
-                Write-Warn "Or try: npm install --production in $libDir manually."
+                Write-Warn "node:sqlite unavailable: Node 22.13 or newer is required (winget install OpenJS.NodeJS.LTS)."
             }
 
             $migrationSrc = Join-Path $RepoRoot "scripts\migrate-to-sqlite.js"

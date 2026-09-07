@@ -233,17 +233,18 @@ echo "-------------------------------"
 echo ""
 echo "The tracker suite can optionally use SQLite (tracker.db) for faster session"
 echo "search, checkpoints, workflow phase tracking, and tagged phrase capture."
-echo "This requires better-sqlite3 (npm). Without it, everything works via JSON/JSONL."
+echo "It uses Node's built-in node:sqlite (Node >= 22.13) — no npm install."
+echo "Without it, everything works via JSON/JSONL."
 echo ""
-echo "  1. Install SQLite tracker (npm install + run migration)"
+echo "  1. Install SQLite tracker (copy lib + run migration)"
 echo "  2. Skip (JSON-only mode, all features still work)"
 echo ""
 read -p "Enter choice (1-2): " sqlite_choice
 
 case $sqlite_choice in
     1)
-        if command -v npm &> /dev/null; then
-            print_blue "Installing better-sqlite3..."
+        if node -e 'require("node:sqlite")' 2>/dev/null; then
+            print_blue "Installing tracker DB layer (node:sqlite)..."
             mkdir -p ~/.claude/lib ~/.claude/scripts
             cp "$SCRIPT_DIR/lib/tracker-db.js" ~/.claude/lib/tracker-db.js
             cp "$SCRIPT_DIR/lib/tracker-utils.js" ~/.claude/lib/tracker-utils.js 2>/dev/null || true
@@ -251,7 +252,7 @@ case $sqlite_choice in
             # resume/restore scripts expect this at ~/.claude/scripts/
             cp "$SCRIPT_DIR/scripts/ghostty-resume.sh" ~/.claude/scripts/ghostty-resume.sh 2>/dev/null || true
             chmod +x ~/.claude/scripts/ghostty-resume.sh 2>/dev/null || true
-            (cd ~/.claude/lib && npm install --production 2>&1) && print_green "better-sqlite3 installed"
+            print_green "tracker-db.js installed (node:sqlite, no dependencies)"
 
             print_blue "Running migration..."
             if [ -f ~/.claude/scripts/migrate-to-sqlite.js ]; then
@@ -263,8 +264,7 @@ case $sqlite_choice in
                 print_yellow "Migration script not found. Run manually: node ~/.claude/scripts/migrate-to-sqlite.js"
             fi
         else
-            print_yellow "npm not found. Install Node.js first, then run:"
-            print_yellow "  cd ~/.claude/lib && npm install --production"
+            print_yellow "node:sqlite unavailable — Node >= 22.13 is required (brew install node). Then run:"
             print_yellow "  node ~/.claude/scripts/migrate-to-sqlite.js"
         fi
         ;;

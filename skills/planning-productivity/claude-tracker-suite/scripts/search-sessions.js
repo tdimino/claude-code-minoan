@@ -30,7 +30,7 @@ function trackResume(projectPath, sessionId) {
 }
 
 function copyToClipboard() {
-  if (!firstResumeCmd) return;
+  if (!firstResumeCmd || !copyFirst) return;
   try {
     execSync('pbcopy', { input: firstResumeCmd });
     console.log('\x1b[32m✓ Copied to clipboard:\x1b[0m ' + firstResumeCmd + '\n');
@@ -70,6 +70,8 @@ let idPrefix = '';
 let deepScan = false;
 let openTop = false;
 let titlesMode = false;
+let noRefresh = false;   // --no-refresh: skip the on-demand index catch-up
+let copyFirst = false;   // --copy: put the top hit's resume command on the clipboard
 
 // `titles <id-prefix>` subcommand — print the title/nickname timeline
 if (args[0] === 'titles') {
@@ -94,6 +96,10 @@ for (let i = 0; i < args.length; i++) {
     deepScan = true;
   } else if (args[i] === '--open') {
     openTop = true;
+  } else if (args[i] === '--no-refresh') {
+    noRefresh = true;
+  } else if (args[i] === '--copy') {
+    copyFirst = true;
   } else if (args[i] === '--id' && args[i + 1]) {
     idPrefix = args[i + 1].toLowerCase();
     i++;
@@ -103,7 +109,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (!searchTerm && !idPrefix) {
-  console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js <search-term> [--limit N] [--name] [--deep] [--open]');
+  console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js <search-term> [--limit N] [--name] [--deep] [--open] [--copy] [--no-refresh]');
   console.log('\x1b[90mExample: node search-sessions.js "kothar mac mini"');
   console.log('Example: node search-sessions.js "websocket" --limit 5');
   console.log('Example: node search-sessions.js "thera" --name    (name/slug only, fast)');
@@ -114,35 +120,11 @@ if (!searchTerm && !idPrefix) {
   process.exit(0);
 }
 
-// Patterns that indicate system context injection (not real conversation)
-const NOISE_PATTERNS = [
-  'CLAUDE.md',
-  'MEMORY.md',
-  'active-projects.md',
-  '<observed_from_primary_session>',
-  'system-reminder',
-  'agent_docs/',
-  'user-invocable skills',
-  'userModels/',
-];
-
-function extractText(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content
-      .filter(block => block && block.type === 'text' && block.text)
-      .map(block => block.text)
-      .join(' ');
-  }
-  return '';
-}
-
-function isNoise(content) {
-  for (const pattern of NOISE_PATTERNS) {
-    if (content.includes(pattern)) return true;
-  }
-  return false;
-}
+// Text extraction and noise filtering are the shared tracker-utils versions —
+// the same list the indexer applies, so --deep and the no-DB fallback agree
+// with FTS results on what counts as conversation.
+const extractText = utils.extractMessageText;
+const isNoise = utils.isTranscriptNoise;
 
 async function searchSession(filePath, projectPath) {
   return new Promise((resolve) => {
@@ -547,6 +529,24 @@ async function main() {
       // Default body search: transcript FTS index + metadata FTS, merged.
       if (!deepScan && db.searchTranscripts) {
         console.log('\n\x1b[1m\x1b[36mSearching for:\x1b[0m "' + searchTerm + '" \x1b[90m(transcript index)\x1b[0m\n');
+
+        // On-demand catch-up: index new/changed transcripts (newest first)
+        // under a small time budget so today's sessions are findable even if
+        // the Stop hook missed them. A write failure must never block a read.
+        if (!noRefresh) {
+          try {
+            const indexer = require(path.join(__dirname, 'index-transcripts.js'));
+            const fresh = await indexer.refreshTranscriptIndex({ budgetMs: 1500, quiet: true, prune: false });
+            if (fresh.indexed || fresh.remaining || fresh.errored) {
+              console.log('\x1b[90mIndex refreshed: ' + fresh.indexed + ' session(s) in ' + fresh.ms + 'ms' +
+                (fresh.remaining ? ' — \x1b[33m' + fresh.remaining + ' still pending\x1b[90m (run index-transcripts.js or search again)' : '') +
+                (fresh.errored ? ' — ' + fresh.errored + ' read error(s), will retry' : '') + '\x1b[0m\n');
+            }
+          } catch (e) {
+            console.log('\x1b[33mIndex refresh skipped: ' + e.message + '\x1b[0m\n');
+          }
+        }
+
         const bodyRows = db.searchTranscripts(searchTerm, { limit: maxResults });
         const bodyIds = new Set(bodyRows.map(r => r.session_id));
         let metaRows = [];

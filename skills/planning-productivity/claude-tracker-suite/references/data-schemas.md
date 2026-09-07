@@ -1,8 +1,8 @@
 # Data Schemas
 
-## sessions-index.json
+## sessions-index.json (not read — internal, unstable)
 
-Located at `~/.claude/projects/<encoded-dir>/sessions-index.json`. Each project directory has one.
+Claude Code documents this file as internal and gives no stability guarantee. On this machine only 11 of 92 project directories ever received one and none has been written since February 2026, so the suite no longer consults it: `tracker.db` (`sessions.project_path`, kept current by `hooks/session-sync-db.py` from the transcript's own `cwd`) is the ground truth for project paths and titles. The shape is kept here for archaeology.
 
 ```json
 {
@@ -23,10 +23,26 @@ Located at `~/.claude/projects/<encoded-dir>/sessions-index.json`. Each project 
 }
 ```
 
-**Key fields:**
-- `customTitle` takes priority over `summary` for display
-- `isSidechain` — filtered out by search (observer/background sessions)
-- `projectPath` — ground truth path (used instead of encoded dir name)
+## ~/.claude/sessions/<pid>.json (live sessions)
+
+Written by Claude Code itself for every running process; the authoritative source for "is this session live" (`getLiveSessions()` in `tracker-utils.js`). Matching is by `sessionId`, never by directory.
+
+```json
+{
+  "pid": 41237,
+  "sessionId": "21f2a5a7-d6aa-4e42-9012-0cb07e3792dc",
+  "cwd": "/Users/name/project",
+  "kind": "interactive",
+  "name": "migrate-sqlite-native-module",
+  "nameSource": "auto",
+  "status": "idle",
+  "version": "2.1.263",
+  "bridgeSessionId": null,
+  "startedAt": "2026-09-07T12:01:44.120Z"
+}
+```
+
+`kind` is `interactive` for terminal sessions and `bg` for `claude --bg` / pre-warmed spares; only `interactive` counts unless `--all-kinds` is passed. A file whose pid is dead, or whose process is no longer a `claude` command line, is ignored.
 
 ## session-summaries.json
 
@@ -104,18 +120,22 @@ Project directories under `~/.claude/projects/` use hyphen-encoding:
 /Users/alice/Projects/my-app → -Users-alice-Projects-my-app
 ```
 
-**Decoding priority:**
-1. Read `projectPath` from `sessions-index.json` (ground truth)
-2. Fall back to filesystem walk heuristic (`resolvePathHeuristic`)
+**Decoding priority (`decodeProjectPath`, memoized per process):**
+1. `tracker.db` `sessions.project_path` for that `project_dir` (exact—written from the transcript's `cwd`)
+2. `cwd` on the newest transcript in the directory (first 8 KB)
+3. Filesystem walk heuristic (`resolvePathHeuristic`)—last resort, wrong for moved or deleted directories
 
-The heuristic is lossy because real hyphens in directory names collide with path separators.
+The heuristic is lossy because real hyphens and spaces in directory names collide with path separators (`Plasma AI` → `Plasma/AI`). Steps 1–2 resolve 90+ % of directories in ~20 ms total.
 
 ## Data Source Locations
 
 | Source | Location | Content |
 |--------|----------|---------|
-| Session index | `~/.claude/projects/*/sessions-index.json` | Summary, firstPrompt, sessionId, timestamps, branch, projectPath |
-| Summary cache | `~/.claude/session-summaries.json` | Cached titles, summaries, model, turn count, cost |
+| Tracker DB | `~/.claude/tracker.db` | Sessions, tags, phases, checkpoints, title history, git tracking (node:sqlite, WAL) |
+| Transcript index | `~/.claude/tracker-transcripts.db` | FTS5 message index + per-file index state (sidecar, attached on demand) |
+| Live sessions | `~/.claude/sessions/*.json` | PID files written by Claude Code (pid, sessionId, cwd, kind, name, status) |
+| Workspace stamp | `~/.claude/workspace-state.json` | Ghostty tab order of live claude + codex sessions (schema 3, every 5 min) |
+| Summary cache | `~/.claude/session-summaries.json` | Legacy cached titles/summaries (imported into title_history) |
 | Session files | `~/.claude/projects/*/*.jsonl` | Full conversation transcripts (NDJSON) |
 | Active projects | `~/.claude/agent_docs/active-projects.md` | Curated project list with sessions, model, turns, cost |
 | Watcher PID | `~/.claude/.tracker-watch.pid` | Daemon process tracking |
@@ -126,12 +146,15 @@ All tracker scripts use `~/.claude/lib/tracker-utils.js`:
 
 | Function | Purpose |
 |----------|---------|
-| `loadSessionsIndex()` | Load all sessions-index.json into flat array |
+| `loadSessionsIndex()` | Every transcript as a flat array, titles/summaries from tracker.db |
 | `loadSummaryCache()` | Load cached summaries |
 | `parseSession()` | Parse JSONL for messages, keywords, metadata |
 | `parseSessionEnriched()` | Extract model, tokens, turns, duration, cost, worktree status from JSONL |
-| `buildSessionStatus()` | Detect running/VS Code status per session |
-| `getRunningClaudeSessions()` | Find active Claude processes via pgrep+lsof |
+| `getLiveSessions({allKinds})` | Live sessions from PID files, verified against `ps`, TTY-ordered |
+| `getStaleSessions({windowDays})` | Newest transcript per project with no live process (crash candidates) |
+| `buildSessionStatus()` | Per-file `isRunning`/`pid`/`tty`/`liveName` by sessionId, plus VS Code workspace flag |
 | `getAllSessionFiles()` | List all session JSONL files sorted by mtime |
-| `decodeProjectPath()` | Convert encoded dir names to real paths |
+| `decodeProjectPath()` | Encoded dir name → real path (DB → transcript cwd → heuristic) |
+| `extractMessageText()` / `isTranscriptNoise()` | Shared text extraction and context-injection filter (indexer and search agree) |
+| `tryDb()` | tracker-db module or `null`, printing the reason to stderr on fallback |
 | `formatAge()` | Human-readable time formatting |

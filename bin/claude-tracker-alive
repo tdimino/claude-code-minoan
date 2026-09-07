@@ -1,0 +1,166 @@
+#!/usr/bin/env node
+
+/**
+ * Claude Tracker Alive - PID-file session alive detection
+ *
+ * Live sessions come from ~/.claude/sessions/<pid>.json (written by Claude
+ * Code itself) via tracker-utils.getLiveSessions(): exact per session, one
+ * readdir plus one `ps` pass. Stale = the newest transcript per project
+ * (last 7 days) that has no live process.
+ *
+ * Usage:
+ *   claude-tracker-alive                List running + stale sessions
+ *   claude-tracker-alive --json         Machine-readable JSON output
+ *   claude-tracker-alive --running      Show only running sessions
+ *   claude-tracker-alive --stale        Show only stale sessions
+ *   claude-tracker-alive --all-kinds    Include headless/background sessions
+ */
+
+const os = require('os');
+const path = require('path');
+
+const UTILS_PATH = path.join(os.homedir(), '.claude', 'lib', 'tracker-utils.js');
+let utils;
+try {
+  utils = require(UTILS_PATH);
+} catch (e) {
+  console.error('Error: Could not load tracker utilities from ' + UTILS_PATH);
+  process.exit(1);
+}
+
+const STALE_WINDOW_DAYS = 7;
+const OLD_BADGE_DAYS = 3;
+
+// --- Argument parsing ---
+
+function parseArgs(argv) {
+  return {
+    json: argv.includes('--json'),
+    running: argv.includes('--running'),
+    stale: argv.includes('--stale'),
+    allKinds: argv.includes('--all-kinds'),
+    help: argv.includes('--help') || argv.includes('-h'),
+  };
+}
+
+// --- Data ---
+
+function collect(allKinds) {
+  const live = utils.getLiveSessions({ allKinds });
+  const allFiles = utils.getAllSessionFiles();
+  const mtimeById = new Map(allFiles.map(f => [path.basename(f.filePath, '.jsonl'), f.mtime]));
+
+  const running = live.map(s => ({
+    sessionId: s.sessionId,
+    projectPath: s.cwd,
+    projectName: path.basename(s.cwd || '') || '?',
+    name: s.name,
+    status: s.status,
+    kind: s.kind,
+    pid: s.pid,
+    tty: s.tty,
+    mtime: mtimeById.get(s.sessionId) || null,
+  }));
+
+  // Newest non-live transcript per project, skipping projects with a live tab
+  const stale = utils.getStaleSessions({ windowDays: STALE_WINDOW_DAYS, allKinds });
+  return { running, stale };
+}
+
+// --- Display ---
+
+function displaySessions(running, stale, args) {
+  if (!args.stale && running.length > 0) {
+    console.log('\n\x1b[1m\x1b[32m' + running.length + ' running session(s)\x1b[0m\n');
+    for (const s of running) {
+      const age = s.mtime ? utils.formatAge(new Date(s.mtime).toISOString()) : 'no transcript';
+      const status = s.status === 'busy' ? '\x1b[33m busy\x1b[0m' : '';
+      console.log(
+        '  \x1b[32m●\x1b[0m \x1b[1m' + (s.name || s.projectName) + '\x1b[0m' + status +
+        '  \x1b[35m' + s.tty + '\x1b[0m' +
+        '  \x1b[90mPID ' + s.pid + '  ' + s.sessionId.slice(0, 8) + '  (' + age + ')\x1b[0m'
+      );
+      console.log('    \x1b[90m' + s.projectPath + '\x1b[0m');
+    }
+    console.log('');
+  }
+
+  if (!args.running && stale.length > 0) {
+    console.log('\x1b[1m\x1b[33m' + stale.length + ' stale session(s)\x1b[0m \x1b[90m(newest per project, no live process)\x1b[0m\n');
+    for (const s of stale) {
+      const age = utils.formatAge(new Date(s.mtime).toISOString());
+      const badge = s.ageDays > OLD_BADGE_DAYS ? ' \x1b[41m\x1b[37m OLD \x1b[0m' : '';
+      console.log(
+        '  \x1b[33m○\x1b[0m \x1b[1m' + s.projectName + '\x1b[0m' + badge +
+        '  \x1b[90m(' + age + ')\x1b[0m'
+      );
+      console.log('    \x1b[90m' + s.projectPath + '\x1b[0m');
+      console.log('    \x1b[36mclaude --resume ' + s.sessionId + '\x1b[0m');
+    }
+    console.log('');
+  }
+
+  if (!args.running && !args.stale) {
+    console.log('\x1b[90m───────────────────────────────────────────────────────────────\x1b[0m');
+    console.log('  \x1b[32m●\x1b[0m Running: ' + running.length +
+      '  \x1b[33m○\x1b[0m Stale: ' + stale.length);
+  }
+}
+
+function displayJson(running, stale) {
+  const output = {
+    timestamp: new Date().toISOString(),
+    running: running.map(s => ({
+      sessionId: s.sessionId,
+      projectPath: s.projectPath,
+      projectName: s.projectName,
+      name: s.name,
+      status: s.status,
+      kind: s.kind,
+      pid: s.pid,
+      tty: s.tty,
+      lastActive: s.mtime ? new Date(s.mtime).toISOString() : null,
+    })),
+    stale: stale.map(s => ({
+      sessionId: s.sessionId,
+      projectPath: s.projectPath,
+      projectName: s.projectName,
+      lastActive: new Date(s.mtime).toISOString(),
+      ageDays: Math.round(s.ageDays * 10) / 10,
+    })),
+  };
+  console.log(JSON.stringify(output, null, 2));
+}
+
+// --- Main ---
+
+const args = parseArgs(process.argv);
+
+if (args.help) {
+  console.log(`
+Usage: claude-tracker-alive [options]
+
+Check which Claude Code sessions are alive (have a running process).
+
+Options:
+  --json        Machine-readable JSON output
+  --running     Show only running sessions
+  --stale       Show only stale sessions (no process, last ${STALE_WINDOW_DAYS} days)
+  --all-kinds   Include headless (-p) and background sessions
+  -h, --help    Show this help
+`);
+  process.exit(0);
+}
+
+const { running, stale } = collect(args.allKinds);
+
+if (running.length === 0 && stale.length === 0) {
+  console.log('\x1b[90mNo live or recent sessions found (last ' + STALE_WINDOW_DAYS + ' days).\x1b[0m');
+  process.exit(0);
+}
+
+if (args.json) {
+  displayJson(running, stale);
+} else {
+  displaySessions(running, stale, args);
+}

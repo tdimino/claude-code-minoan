@@ -127,7 +127,7 @@ See [hooks/README.md](hooks/README.md) for the full event map, hook dependencies
 
 **Plan Auto-Naming**: Renames randomly-named plan files (e.g. `tingly-humming-simon.md`) to dated slugs (e.g. `2026-02-17-auto-rename-plan-files-hook.md`) by extracting the H1 header. Creates forwarding symlinks for mid-session continuity; cleaned up on SessionEnd.
 
-**Session Auto-Titling**: When a plan file is created, `plan-session-rename.py` immediately extracts the H1 header and sets the session's `customTitle` in `sessions-index.json`—no LLM call, pure local, ~10ms. If the session isn't yet in the index (Claude Code writes lazily), a `.pending-title` breadcrumb is saved for `session-tags-infer.py` to apply on next Stop.
+**Session Auto-Titling**: When a plan file is created, `plan-session-rename.py` immediately extracts the H1 header and injects a `custom-title` event into the session's JSONL transcript—no LLM call, pure local, ~10ms. Claude Code's resume picker reads it from there, and `session-sync-db.py` mirrors it into `tracker.db` on the next Stop.
 
 **Lint-Directed Agent Loop**: `lint-on-write.py` runs standard linters (ESLint, Clippy, Ruff) and custom grep-based convention rules after every Write/Edit, returning violations as `additionalContext` so the agent self-corrects against machine-enforced rules. Any repo can opt in by dropping a `.claude/lint-rules.json` config file declaring which linter to use and what CLAUDE.md conventions to enforce as grep rules. Implements the [Factory.ai pattern](https://factory.ai/news/using-linters-to-direct-agents). 5s per-file cooldown, 10-violation cap.
 
@@ -163,14 +163,17 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 
 | Tool | Purpose |
 |------|---------|
-| `claude-tracker` | List recent sessions with summaries and status |
-| `claude-tracker-search` | Search sessions by topic, ID, project, date |
-| `claude-tracker-resume` | Find crashed sessions, auto-resume in tmux |
+| `claude-tracker` | List recent sessions with LIVE/INACTIVE status from Claude Code's PID files |
+| `claude-tracker-search` | FTS5 transcript search (index refreshed on every search, sessions from today included) |
+| `claude-tracker-recent` | Recent sessions straight from `tracker.db`—the fast listing |
+| `claude-tracker-alive` | Live vs. stale sessions (`--json`, `--stale`, `--all-kinds`) |
+| `claude-tracker-resume` | Find crashed sessions and reopen them in Ghostty tabs (`--open`, `--workspace`) |
+| `ghostty-resume.sh` | The one terminal opener: session ID → new Ghostty tab or split (`--split right`) |
 | `claude-tmux-status` | Tmux statusline integration for session info |
 | `cc` / `cckill` / `ccls` / `ccpick` | Quick launchers and session management |
-| `ccnew` / `ccresume` | Start new sessions / resume existing ones |
+| `ccnew` | Start a new session in a Ghostty tab (`--name`, `--model`, `--prompt`, `--headless`) |
 
-All CLIs share `lib/tracker-utils.js` for session parsing and status detection.
+All CLIs are thin wrappers over `skills/planning-productivity/claude-tracker-suite/scripts/` and share `lib/tracker-utils.js` (session parsing, live detection) and `lib/tracker-db.js` (Node's built-in `node:sqlite`, no npm dependency). Ghostty is the only terminal target; cmux, tmux, Terminal.app and VS Code resume paths are retired. On Ghostty ≥ 1.3 the opener drives the native AppleScript dictionary (no keystrokes, no clipboard); older builds fall back to Cmd-T plus a single paste.
 
 ### Session Cost Tracking
 

@@ -103,14 +103,14 @@ If you chose "Python hooks only" during setup, bash hooks weren't installed and 
 
 ---
 
-## `npm install` fails for SQLite tracker
+## SQLite tracker reports `node:sqlite` unavailable
 
-`better-sqlite3` needs to compile native code. Make sure you have:
+The tracker DB layer uses Node's built-in `node:sqlite` module — there is no `npm install` and nothing native to compile. It needs Node 22.13 or newer:
 
-1. Node.js LTS installed (`winget install OpenJS.NodeJS.LTS`)
-2. `better-sqlite3` usually ships prebuilt binaries, so it should just work. If it tries to compile from source, you need Visual Studio Build Tools with the "Desktop development with C++" workload: `winget install Microsoft.VisualStudio.2022.BuildTools` then select the C++ workload in the installer.
+1. Install or upgrade Node.js LTS (`winget install OpenJS.NodeJS.LTS`) and open a new terminal.
+2. Check: `node -e "require('node:sqlite')"` prints nothing on success.
 
-If that's too much trouble, skip the SQLite tracker — the JSON-only mode works for everything.
+If Node cannot be upgraded, skip the SQLite tracker — the JSON-only mode works for everything.
 
 ---
 

@@ -1,1 +1,12 @@
-{"name": "claude-lib", "private": true, "dependencies": {"better-sqlite3": "^12.9.0"}}
+{
+  "name": "lib",
+  "version": "2.0.0",
+  "description": "Shared libraries for claude-tracker-suite (tracker-db.js over node:sqlite, tracker-utils.js)",
+  "main": "tracker-utils.js",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {}
+}

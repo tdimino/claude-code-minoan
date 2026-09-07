@@ -6,18 +6,38 @@ Terminal commands for managing Claude Code and Codex sessions. Copy to `~/.local
 
 ```bash
 cp bin/* ~/.local/bin/
-mkdir -p ~/.claude/lib && cp lib/* ~/.claude/lib/
+mkdir -p ~/.claude/lib ~/.claude/scripts && cp lib/* ~/.claude/lib/
+cp scripts/ghostty-resume.sh ~/.claude/scripts/ && chmod +x ~/.claude/scripts/ghostty-resume.sh
 ```
+
+Requires macOS, Node ≥ 22.13 (the DB layer uses the built-in `node:sqlite`—there is no `npm install`), Ghostty (≥ 1.3.0 for the native tab/split path), fzf for the picker, and the `sqlite3` CLI. The `claude-tracker*` commands are thin wrappers over the scripts in `skills/planning-productivity/claude-tracker-suite/scripts/`, so install that skill too.
 
 ## Session Management
 
 ### `claude-tracker` — List Recent Sessions
 
-Browse recent Claude Code sessions with summaries, running status, and VS Code detection.
+Browse recent Claude Code sessions with summaries and a LIVE badge (with TTY) taken from Claude Code's own PID files in `~/.claude/sessions/`, matched by session ID.
 
 ```bash
 claude-tracker              # List recent sessions
-claude-tracker --json       # JSON output for scripting
+claude-tracker --here       # Only this directory's sessions
+claude-tracker --limit 5
+```
+
+### `claude-tracker-recent` — Fast Listing from tracker.db
+
+```bash
+claude-tracker-recent --limit 20 --project knossot
+claude-tracker-recent --since 24h --model opus --json
+claude-tracker-recent --copy          # copy the first resume command (opt-in)
+```
+
+### `claude-tracker-alive` — Live vs. Stale
+
+```bash
+claude-tracker-alive                  # running sessions + newest stale transcript per project
+claude-tracker-alive --json
+claude-tracker-alive --stale
 ```
 
 ### `codex-tracker` — Search and Inspect Codex Sessions
@@ -38,40 +58,44 @@ See [`skills/planning-productivity/codex-tracker-suite/README.md`](../skills/pla
 
 ### `claude-tracker-search` — Search Sessions
 
-Find past sessions by topic, content, project, or date range.
+Find past sessions by topic, content, name, or ID. Searches the FTS5 transcript index in `~/.claude/tracker-transcripts.db`; the index is refreshed in-process before every search (1.5 s budget) and by Stop/SessionEnd hooks, so a session from a minute ago is findable. Sub-100 ms on a 6 GB corpus.
 
 ```bash
 claude-tracker-search "kothar mac mini"           # Full-text search
+claude-tracker-search "twitter banner" --open     # Resume the top hit in a Ghostty tab
 claude-tracker-search --id 1da2b718               # Lookup by session ID prefix
-claude-tracker-search --project Aldea --limit 5   # Filter by project
-claude-tracker-search --since 7d --json           # Last 7 days, JSON output
+claude-tracker-search --name knossot              # Match names/slugs/titles only
+claude-tracker-search "rare term" --deep          # Streaming JSONL scan, bypasses the index
+claude-tracker-search "query" --copy              # Copy the first resume command (opt-in)
 ```
 
 ### `claude-tracker-resume` — Crash Recovery
 
-Find crashed sessions and resume them in tmux or Terminal.app.
+A crashed session is the newest transcript of a project with no live Claude process. Reopens them in Ghostty tabs through `ghostty-resume.sh`.
 
 ```bash
 claude-tracker-resume              # List crashed sessions with resume commands
-claude-tracker-resume --tmux       # Auto-resume in tmux windows
-claude-tracker-resume --zsh        # Auto-resume in Terminal.app tabs
+claude-tracker-resume --open       # Reopen each in a new Ghostty tab
 claude-tracker-resume --dry-run    # Preview without acting
+claude-tracker-resume --days 14    # Widen the window (default 7)
+claude-tracker-resume --workspace  # Restore every claude + codex tab from the last workspace stamp
 ```
 
-### `resume-in-vscode.sh` — Resume in New Terminal
+### `ghostty-resume.sh` — The Terminal Opener
 
-Open a session in a new Ghostty tab, VS Code terminal, or Cursor terminal. Auto-detects the project directory from the session ID.
+Installed at `~/.claude/scripts/ghostty-resume.sh`. Writes a short launcher to `~/.claude/run/launch/r-<id>.sh` (checks the project dir and transcript, falls back to a fresh session with a printed reason, then `exec claude --resume <id>`) and has Ghostty run it.
 
 ```bash
-resume-in-vscode.sh <session-id>              # Ghostty (default)
-resume-in-vscode.sh <session-id> --vscode     # VS Code terminal
-resume-in-vscode.sh <session-id> --cursor     # Cursor terminal
-resume-in-vscode.sh <session-id> --project ~/myproject  # Override project dir
+ghostty-resume.sh <session-id>                       # New Ghostty tab
+ghostty-resume.sh <session-id> --split               # Split the focused terminal (right; also left/down/up)
+ghostty-resume.sh <session-id> --project ~/myproject # Override project dir
+ghostty-resume.sh --exec "claude -n 'auth'" --project ~/p   # Any command
+ghostty-resume.sh <session-id> --print               # Only write the launcher, print its path
 ```
 
-Uses AppleScript for terminal automation. Ghostty uses clipboard-paste (Cmd+V) for reliability; VS Code/Cursor use Ctrl+Shift+` for new terminal.
+On Ghostty ≥ 1.3.0 it uses the AppleScript dictionary (`new tab … with configuration`, `split … direction`), which needs no keystrokes, clipboard or focus. Older builds fall back to Cmd-T + one paste of the launcher path, with the clipboard saved and restored.
 
-**Requires**: macOS, Ghostty/VS Code/Cursor
+**Requires**: macOS, Ghostty
 
 ## Quick Launchers
 
@@ -94,34 +118,19 @@ Browse and select from running sessions with [fzf](https://github.com/junegunn/f
 
 **Requires**: `brew install fzf`
 
-### `ccnew` — New Session in Terminal
-
-Open a new Claude Code session in a Ghostty tab, VS Code terminal, or Cursor terminal.
+### `ccnew` — New Session in a Ghostty Tab
 
 ```bash
-ccnew ~/Desktop/my-project                    # Ghostty (default)
-ccnew ~/Desktop/my-project --vscode           # VS Code terminal
-ccnew ~/Desktop/my-project --cursor           # Cursor terminal
-ccnew ~/Desktop/my-project --model sonnet     # With model override
+ccnew ~/Desktop/my-project                                # Interactive session
+ccnew ~/Desktop/my-project --model sonnet --name "auth"   # Model override + name (resume picker / tab title)
+ccnew ~/Desktop/my-project --prompt "fix the tests"       # Prompt-driven, in the tab
+ccnew ~/Desktop/my-project --headless --prompt "summarize" --output-format text
+ccnew ~/Desktop/my-project --cursor                       # Also open the project in Cursor
 ```
 
-Wrapper for `skills/planning-productivity/claude-tracker-suite/scripts/new-session.sh`.
+Wrapper for `skills/planning-productivity/claude-tracker-suite/scripts/new-session.sh`, which delegates to `ghostty-resume.sh --exec`. `ccresume` and `resume-in-vscode.sh` are retired—use `ghostty-resume.sh <session-id>` or `claude-tracker-search "…" --open`.
 
-**Requires**: macOS, Ghostty/VS Code/Cursor
-
-### `ccresume` — Resume Session in Terminal
-
-Open an existing session in a Ghostty tab, VS Code terminal, or Cursor terminal. Auto-detects the project directory.
-
-```bash
-ccresume <session-id>                         # Ghostty (default)
-ccresume <session-id> --vscode                # VS Code terminal
-ccresume <session-id> --project ~/myproject   # Override project dir
-```
-
-Wrapper for `skills/planning-productivity/claude-tracker-suite/scripts/resume-in-vscode.sh`.
-
-**Requires**: macOS, Ghostty/VS Code/Cursor
+**Requires**: macOS, Ghostty
 
 ### `cckill` — Kill Sessions
 
@@ -135,11 +144,14 @@ Claude Code status integration for tmux status bar.
 
 All tracker CLIs share `tracker-utils.js` for consistent session parsing:
 
-- `loadSessionsIndex()` — Load all `sessions-index.json` into flat array
-- `decodeProjectPath()` — Resolve encoded dir names to real paths
-- `buildSessionStatus()` — Detect running sessions, VS Code workspace membership
+- `getLiveSessions()` / `getStaleSessions()` — live sessions from `~/.claude/sessions/*.json` PID files, verified against `ps`; crash candidates per project
+- `decodeProjectPath()` — encoded dir name → real path (tracker.db → transcript `cwd` → filesystem heuristic; `sessions-index.json` is no longer read)
+- `buildSessionStatus()` — per-session `isRunning`, `pid`, `tty`, `liveName`, VS Code workspace membership
+- `loadSessionsIndex()` — every transcript with titles/summaries from tracker.db
 - `parseSession()` — Parse individual JSONL session files
 - `formatAge()` — Human-readable time formatting
+
+`tracker-db.js` wraps Node's built-in `node:sqlite` (`DatabaseSync`) with a small compatibility layer (`prepare/run/get/all/exec/pragma/transaction`), so nothing native has to be rebuilt when Node upgrades.
 
 ## Credits & Inspiration
 

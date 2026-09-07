@@ -1,25 +1,26 @@
 #!/usr/bin/env node
 
 /**
- * Claude Tracker Resume - Auto-resume crashed/inactive sessions
+ * Claude Tracker Resume - Find crashed sessions and bring them back in Ghostty
  *
- * Finds sessions that were running in VS Code workspaces but are now inactive
- * (crashed or orphaned), then resumes them in tmux panes or prints commands.
+ * A crashed session is the newest transcript of a project (last 7 days) that
+ * has no live Claude process, for projects with no live tab at all. Liveness
+ * comes from ~/.claude/sessions/<pid>.json via tracker-utils.getLiveSessions().
  *
  * Usage:
  *   claude-tracker-resume                  List crashed sessions with resume commands
- *   claude-tracker-resume --tmux           Resume all in tmux windows
- *   claude-tracker-resume --zsh            Resume all in new Terminal.app tabs (macOS)
- *   claude-tracker-resume --dry-run        Show what would be resumed without doing it
- *   claude-tracker-resume --all            Include all inactive sessions, not just VS Code
- *   claude-tracker-resume --limit 5        Max sessions to resume (default: 10)
+ *   claude-tracker-resume --open           Reopen each of them in a new Ghostty tab
+ *   claude-tracker-resume --open --limit 3 Reopen at most 3
+ *   claude-tracker-resume --dry-run        Show what --open would do
+ *   claude-tracker-resume --days 14        Widen the window (default 7)
  *   claude-tracker-resume --workspace      Restore the stamped workspace (claude + codex
  *                                          Ghostty tabs from ~/.claude/workspace-state.json)
+ *   claude-tracker-resume --workspace --dry-run
  */
 
 const os = require('os');
 const path = require('path');
-const { execSync, exec } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 const UTILS_PATH = path.join(os.homedir(), '.claude', 'lib', 'tracker-utils.js');
 let utils;
@@ -30,210 +31,77 @@ try {
   process.exit(1);
 }
 
+const OPENER = path.join(os.homedir(), '.claude', 'scripts', 'ghostty-resume.sh');
+const RESTORE_SCRIPT = path.join(os.homedir(), '.claude', 'skills', 'claude-tracker-suite', 'scripts', 'restore-workspace.sh');
+
 // --- Argument parsing ---
 
 function parseArgs(argv) {
-  const args = {
-    tmux: false,
-    zsh: false,
-    dryRun: false,
-    all: false,
-    limit: 10,
-    help: false,
-  };
-
+  const args = { open: false, dryRun: false, workspace: false, limit: 10, days: 7, help: false };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--help' || arg === '-h') args.help = true;
-    else if (arg === '--tmux') args.tmux = true;
-    else if (arg === '--zsh') args.zsh = true;
+    else if (arg === '--open') args.open = true;
     else if (arg === '--dry-run') args.dryRun = true;
-    else if (arg === '--all') args.all = true;
     else if (arg === '--workspace') args.workspace = true;
-    else if (arg === '--limit' || arg === '-n') {
-      const val = parseInt(argv[++i]);
+    else if (arg === '--all') { /* default now: every project, not only VS Code workspaces */ }
+    else if (arg === '--tmux' || arg === '--zsh') {
+      console.error(`Note: ${arg} is retired — sessions reopen in Ghostty (use --open)`);
+      args.open = true;
+    } else if (arg === '--limit' || arg === '-n') {
+      const val = parseInt(argv[++i], 10);
       args.limit = (val > 0 && val <= 100) ? val : 10;
+    } else if (arg === '--days') {
+      const val = parseInt(argv[++i], 10);
+      args.days = (val > 0 && val <= 365) ? val : 7;
     }
   }
-
   return args;
-}
-
-// --workspace: delegate to the workspace restore pipeline and exit
-{
-  const early = parseArgs(process.argv);
-  if (early.workspace) {
-    const script = path.join(os.homedir(), '.claude', 'skills', 'claude-tracker-suite', 'scripts', 'restore-workspace.sh');
-    const extra = [];
-    if (early.dryRun) extra.push('--dry-run');
-    if (early.limit !== 10) extra.push('--limit', String(early.limit));
-    try {
-      execSync(`bash ${JSON.stringify(script)} ${extra.join(' ')}`, { stdio: 'inherit' });
-      process.exit(0);
-    } catch (e) {
-      process.exit(e.status || 1);
-    }
-  }
-}
-
-// --- Helpers ---
-
-function shellEscape(str) {
-  return "'" + str.replace(/'/g, "'\\''") + "'";
-}
-
-function getSessionId(filePath) {
-  return path.basename(filePath, '.jsonl');
-}
-
-// --- Session discovery ---
-
-function findCrashedSessions(allMode) {
-  const allFiles = utils.getAllSessionFiles();
-  if (allFiles.length === 0) return [];
-
-  const { sessions } = utils.buildSessionStatus(allFiles, {
-    vsCodeOnly: !allMode,
-    maxSessions: 100,
-  });
-
-  // Enrich with session ID (derived from JSONL filename)
-  for (const s of sessions) {
-    s.sessionId = getSessionId(s.filePath);
-  }
-
-  // Filter: inactive only (crashed = was in VS Code workspace but no longer running)
-  const inactive = sessions.filter(s => !s.isRunning);
-
-  // Deduplicate: keep only the most recent session per project
-  const byProject = new Map();
-  for (const s of inactive) {
-    const key = s.projectDir;
-    if (!byProject.has(key) || s.mtime > byProject.get(key).mtime) {
-      byProject.set(key, s);
-    }
-  }
-
-  return Array.from(byProject.values()).sort((a, b) => b.mtime - a.mtime);
-}
-
-// --- tmux integration ---
-
-function resumeInTmux(sessions, dryRun) {
-  const sessionName = 'claude-resume';
-
-  // Create or attach to existing session (idempotent with -A flag)
-  if (!dryRun) {
-    try {
-      execSync('tmux new-session -A -d -s ' + shellEscape(sessionName), { stdio: 'pipe' });
-    } catch (e) {
-      console.error('Failed to create tmux session:', e.message);
-      process.exit(1);
-    }
-  }
-
-  for (let i = 0; i < sessions.length; i++) {
-    const s = sessions[i];
-    const projectName = path.basename(s.projectPath);
-    const windowName = projectName.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 20);
-    const escapedPath = shellEscape(s.projectPath);
-    // Smart resume: try --resume, if it exits within 5s, fall back to fresh session
-    const cmd = `cd ${escapedPath} && claude --resume ${s.sessionId} || { echo '\\x1b[33mResume failed, starting fresh session...\\x1b[0m'; sleep 1; claude; }`;
-
-    if (dryRun) {
-      console.log(`  [dry-run] tmux new-window -n ${shellEscape(windowName)} ${shellEscape(cmd)}`);
-    } else {
-      try {
-        if (i === 0) {
-          // Use the first window of the session
-          execSync(
-            `tmux send-keys -t ${shellEscape(sessionName)} ${shellEscape(cmd)} Enter`,
-            { stdio: 'pipe' }
-          );
-          execSync(
-            `tmux rename-window -t ${shellEscape(sessionName)} ${shellEscape(windowName)}`,
-            { stdio: 'pipe' }
-          );
-        } else {
-          execSync(
-            `tmux new-window -t ${shellEscape(sessionName)} -n ${shellEscape(windowName)} ${shellEscape(cmd)}`,
-            { stdio: 'pipe' }
-          );
-        }
-        console.log(`  \x1b[32m✓\x1b[0m Resumed \x1b[1m${projectName}\x1b[0m in tmux window "${windowName}"`);
-      } catch (e) {
-        console.error(`  \x1b[31m✗\x1b[0m Failed to resume ${projectName}: ${e.message}`);
-      }
-    }
-  }
-
-  if (!dryRun) {
-    console.log('\n\x1b[36mAttach with:\x1b[0m tmux attach -t ' + sessionName);
-  }
-}
-
-// --- zsh / Terminal.app integration ---
-
-function resumeInZsh(sessions, dryRun) {
-  if (process.platform !== 'darwin') {
-    console.error('Error: --zsh uses macOS Terminal.app. Use --tmux on other platforms.');
-    process.exit(1);
-  }
-
-  for (const s of sessions) {
-    const projectName = path.basename(s.projectPath);
-    const escapedPath = shellEscape(s.projectPath);
-    // Smart resume: try --resume, if it fails, fall back to fresh session
-    const cmd = `cd ${escapedPath} && claude --resume ${s.sessionId} || { echo 'Resume failed, starting fresh session...'; sleep 1; claude; }`;
-
-    // AppleScript to open a new Terminal tab and run the command
-    // Use shellEscape for the entire command to prevent injection via project paths
-    const asCmd = cmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    const script = `tell application "Terminal"\n  activate\n  do script "${asCmd}"\nend tell`;
-
-    if (dryRun) {
-      console.log(`  [dry-run] Open Terminal tab: cd ${shellEscape(s.projectPath)} && claude --resume ${s.sessionId}`);
-    } else {
-      try {
-        execSync(`osascript -e ${shellEscape(script)}`, { stdio: 'pipe' });
-        console.log(`  \x1b[32m✓\x1b[0m Resumed \x1b[1m${projectName}\x1b[0m in new Terminal tab`);
-      } catch (e) {
-        console.error(`  \x1b[31m✗\x1b[0m Failed to resume ${projectName}: ${e.message}`);
-      }
-    }
-  }
 }
 
 // --- Display ---
 
 async function displaySessions(sessions) {
-  // Parse sessions in parallel for summaries
-  const parsed = await Promise.all(
-    sessions.map(s => utils.parseSession(s.filePath))
-  );
+  const parsed = await Promise.all(sessions.map(s => utils.parseSession(s.filePath, { projectPath: s.projectPath })));
 
   for (let i = 0; i < sessions.length; i++) {
     const s = sessions[i];
     const p = parsed[i];
-    const projectName = path.basename(s.projectPath);
     const age = utils.formatAge(new Date(s.mtime).toISOString());
-    const vsCodeBadge = s.isInVSCode ? ' \x1b[44m\x1b[37m VS CODE \x1b[0m' : '';
-    const daysSinceActive = (Date.now() - s.mtime) / (1000 * 60 * 60 * 24);
-    const staleBadge = daysSinceActive > 7 ? ' \x1b[43m\x1b[30m STALE \x1b[0m' : '';
+    const staleBadge = s.ageDays > 3 ? ' \x1b[43m\x1b[30m OLD \x1b[0m' : '';
+    const title = (p && (p.customTitle || p.sessionSlug)) || '';
 
-    console.log(
-      '\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + projectName + '\x1b[0m' + vsCodeBadge + staleBadge
-    );
-
-    if (p && p.sessionSummary) {
-      console.log('    \x1b[90mSummary:\x1b[0m \x1b[1m' + p.sessionSummary + '\x1b[0m');
-    }
-
+    console.log('\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + s.projectName + '\x1b[0m' + staleBadge +
+      (title ? '  \x1b[35m' + title + '\x1b[0m' : ''));
+    if (p && p.sessionSummary) console.log('    \x1b[90mSummary:\x1b[0m ' + p.sessionSummary);
     console.log('    \x1b[90mPath:\x1b[0m ' + s.projectPath);
     console.log('    \x1b[90mLast active:\x1b[0m ' + age);
-    console.log('    \x1b[32mclaude --resume ' + s.sessionId + '\x1b[0m');
+    console.log('    \x1b[36mcd ' + s.projectPath + ' && claude --resume ' + s.sessionId + '\x1b[0m');
+    console.log('    \x1b[35m' + OPENER + ' ' + s.sessionId + '\x1b[0m');
     console.log('');
   }
+}
+
+function openSessions(sessions, dryRun) {
+  let opened = 0, failed = 0;
+  for (const s of sessions) {
+    if (dryRun) {
+      console.log(`  [dry-run] ${s.projectName}: ${OPENER} ${s.sessionId} --project ${s.projectPath}`);
+      continue;
+    }
+    const r = spawnSync(OPENER, [s.sessionId, '--project', s.projectPath],
+      { stdio: ['ignore', 'inherit', 'inherit'], timeout: 20000 });
+    if (r.status === 0) {
+      opened++;
+      console.log(`  \x1b[32m✓\x1b[0m Reopened \x1b[1m${s.projectName}\x1b[0m (${s.sessionId.slice(0, 8)})`);
+      if (sessions.length > 1) spawnSync('sleep', ['1']);
+    } else {
+      failed++;
+      console.error(`  \x1b[31m✗\x1b[0m ${s.projectName}: opener exited ${r.status}`);
+    }
+  }
+  if (!dryRun) console.log(`\n${opened} reopened, ${failed} failed.`);
+  return failed === 0;
 }
 
 // --- Main ---
@@ -245,49 +113,53 @@ async function main() {
     console.log(`
 Usage: claude-tracker-resume [options]
 
-Find and resume crashed/inactive Claude Code sessions.
+Find crashed Claude Code sessions (newest per project, no live process) and
+reopen them in Ghostty tabs.
 
 Options:
-  --tmux            Resume all sessions in tmux windows
-  --zsh             Resume all sessions in new Terminal.app tabs (macOS)
-  --dry-run         Show what would happen without doing it
-  --all             Include all inactive sessions (not just VS Code)
-  --limit <n>       Max sessions to resume (default: 10)
+  --open            Reopen each crashed session in a new Ghostty tab
+  --dry-run         Show what --open / --workspace would do
+  --limit <n>       Max sessions (default: 10)
+  --days <n>        Look-back window in days (default: 7)
+  --workspace       Restore the stamped workspace (claude + codex tabs, TTY order)
   -h, --help        Show this help
 
 Examples:
-  claude-tracker-resume                List crashed VS Code sessions
-  claude-tracker-resume --tmux         Resume all in tmux windows
-  claude-tracker-resume --zsh          Resume all in Terminal.app tabs
-  claude-tracker-resume --all --tmux   Resume ALL inactive sessions in tmux
-  claude-tracker-resume --dry-run      Preview without acting
+  claude-tracker-resume                     List crashed sessions with resume commands
+  claude-tracker-resume --open              Reopen them all in Ghostty
+  claude-tracker-resume --workspace         Bring back every tab from the last stamp
+  claude-tracker-resume --workspace --dry-run
 `);
     return;
   }
 
-  const sessions = findCrashedSessions(args.all).slice(0, args.limit);
+  if (args.workspace) {
+    const extra = [];
+    if (args.dryRun) extra.push('--dry-run');
+    if (args.limit !== 10) extra.push('--limit', String(args.limit));
+    const r = spawnSync('bash', [RESTORE_SCRIPT, ...extra], { stdio: 'inherit' });
+    process.exit(r.status === null ? 1 : r.status);
+  }
+
+  const sessions = utils.getStaleSessions({ windowDays: args.days }).slice(0, args.limit);
 
   if (sessions.length === 0) {
-    console.log('\x1b[32mNo crashed sessions found.\x1b[0m');
-    if (!args.all) {
-      console.log('\x1b[90mTry --all to include sessions outside VS Code workspaces.\x1b[0m');
-    }
+    console.log('\x1b[32mNo crashed sessions found in the last ' + args.days + ' day(s).\x1b[0m');
+    console.log('\x1b[90mEvery recent project has a live tab. Try --days 30 for older ones.\x1b[0m');
     return;
   }
 
-  console.log('\n\x1b[1m\x1b[36m' + sessions.length + ' crashed session(s) found\x1b[0m\n');
+  console.log('\n\x1b[1m\x1b[36m' + sessions.length + ' crashed session(s) found\x1b[0m \x1b[90m(newest per project, no live process)\x1b[0m\n');
 
-  if (args.tmux) {
-    resumeInTmux(sessions, args.dryRun);
-  } else if (args.zsh) {
-    resumeInZsh(sessions, args.dryRun);
-  } else {
-    await displaySessions(sessions);
-    console.log('\x1b[90m───────────────────────────────────────────────────────────────\x1b[0m');
-    console.log('\x1b[90mTo auto-resume in tmux:\x1b[0m claude-tracker-resume --tmux');
-    console.log('\x1b[90mTo auto-resume in Terminal tabs:\x1b[0m claude-tracker-resume --zsh');
-    console.log('\x1b[90mTo preview:\x1b[0m claude-tracker-resume --dry-run');
+  if (args.open || args.dryRun) {
+    const ok = openSessions(sessions, args.dryRun);
+    process.exit(ok ? 0 : 1);
   }
+
+  await displaySessions(sessions);
+  console.log('\x1b[90m───────────────────────────────────────────────────────────────\x1b[0m');
+  console.log('\x1b[90mReopen all in Ghostty:\x1b[0m claude-tracker-resume --open');
+  console.log('\x1b[90mRestore the full workspace:\x1b[0m claude-tracker-resume --workspace');
 }
 
 main().catch(e => {

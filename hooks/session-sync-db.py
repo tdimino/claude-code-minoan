@@ -223,10 +223,17 @@ def main():
     conn = None
     try:
         conn = sqlite3.connect(str(DB_PATH), timeout=5)
+        # Autocommit mode + explicit BEGIN IMMEDIATE: the Node indexer writes
+        # this DB concurrently (Stop hook, on-search refresh, hourly job). A
+        # deferred read-then-write transaction under WAL returns BUSY_SNAPSHOT
+        # immediately instead of waiting on busy_timeout, and the bare
+        # `except Exception: pass` below would silently drop the sync.
+        conn.isolation_level = None
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA busy_timeout = 5000")
         now = time.strftime("%Y-%m-%dT%H:%M:%S")
+        conn.execute("BEGIN IMMEDIATE")
 
         # Ensure session row exists before any FK-dependent operations
         if transcript_path:
@@ -266,9 +273,13 @@ def main():
         except (FileNotFoundError, json.JSONDecodeError):
             pass
 
-        conn.commit()
+        conn.execute("COMMIT")
     except Exception:
-        pass
+        if conn:
+            try:
+                conn.execute("ROLLBACK")
+            except Exception:
+                pass
     finally:
         if conn:
             conn.close()

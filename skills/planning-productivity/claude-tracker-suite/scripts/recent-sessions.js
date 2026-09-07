@@ -29,6 +29,7 @@ let jsonMode = false;
 let projectFilter = null;
 let modelFilter = null;
 let sinceFilter = null;
+let copyFirst = false;   // clipboard is opt-in: never clobber what the user copied
 
 const args = process.argv.slice(2);
 for (let i = 0; i < args.length; i++) {
@@ -38,6 +39,9 @@ for (let i = 0; i < args.length; i++) {
       break;
     case '--json':
       jsonMode = true;
+      break;
+    case '--copy':
+      copyFirst = true;
       break;
     case '--project':
       projectFilter = args[++i];
@@ -50,10 +54,11 @@ for (let i = 0; i < args.length; i++) {
       break;
     case '--help':
     case '-h':
-      console.log('Usage: recent-sessions.js [--limit N] [--json] [--project <name>] [--model <name>] [--since <duration>]');
+      console.log('Usage: recent-sessions.js [--limit N] [--json] [--project <name>] [--model <name>] [--since <duration>] [--copy]');
       console.log('');
       console.log('  --limit N          Max sessions to show (default: 10)');
       console.log('  --json             Machine-readable JSON output');
+      console.log('  --copy             Copy the first resume command to the clipboard');
       console.log('  --project <name>   Filter by project name (substring)');
       console.log('  --model <name>     Filter by model (e.g. opus, sonnet)');
       console.log('  --since <dur>      Recent only: 7d, 24h, 30m, 2w');
@@ -191,7 +196,7 @@ sessions.forEach((s, i) => {
   console.log('');
 });
 
-if (firstResumeCmd) {
+if (copyFirst && firstResumeCmd) {
   try {
     execSync('pbcopy', { input: firstResumeCmd });
     console.log('\x1b[32m✓ Copied to clipboard:\x1b[0m ' + firstResumeCmd + '\n');

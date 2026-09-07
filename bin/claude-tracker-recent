@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# claude-tracker-recent — recent sessions straight from tracker.db (fast path)
+# Thin wrapper: the one implementation lives in the claude-tracker-suite skill.
+exec node "$HOME/.claude/skills/claude-tracker-suite/scripts/recent-sessions.js" "$@"

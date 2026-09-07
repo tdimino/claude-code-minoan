@@ -1,266 +1,82 @@
 #!/usr/bin/env bash
-# new-session.sh — Start a new Claude Code session in a terminal or headless
+# new-session.sh — Start a new Claude Code session in a Ghostty tab or headless
 #
 # Usage:
 #   new-session.sh <project-path> [OPTIONS]
 #
-# Targets (pick one):
-#   --ghostty          Ghostty terminal — new tab (default)
-#   --vscode           Disabled (supplanted by Ghostty) — falls back to Ghostty
-#   --cursor           Cursor integrated terminal
-#   --headless         Run in current terminal, return JSON (requires --prompt)
-#
 # Options:
-#   --prompt <text>    Pass a prompt to claude -p (terminal: runs in tab; headless: returns JSON)
-#   --model <model>    Pass --model to claude (e.g. sonnet, opus, haiku)
-#   --output-format <fmt>  Output format for headless mode: json (default), text, stream-json
-#   -h, --help         Show this help
+#   --prompt <text>        Prompt for claude -p (tab: runs in the tab; headless: returns output)
+#   --model <model>        Pass --model to claude (e.g. sonnet, opus, haiku)
+#   --name <title>         Session display name (claude -n; shown in the /resume picker and tab title)
+#   --headless             Run in the current terminal and print the result (requires --prompt)
+#   --output-format <fmt>  Headless output format: json (default), text, stream-json
+#   --cursor               Also open the project in Cursor
+#   --ghostty              Accepted for compatibility (Ghostty is the only terminal target)
+#   -h, --help             Show this help
 #
-# Opens the selected app, creates a new terminal/tab, cd's to the project
-# directory, and runs `claude` (optionally with --model and --prompt).
-#
-# Requires macOS (uses osascript for terminal automation).
+# Tab mode delegates to ~/.claude/scripts/ghostty-resume.sh --exec, the suite's
+# single terminal opener. Requires macOS.
 
-set -euo pipefail
+set -uo pipefail
 
-# --- Parse arguments ---
+OPENER="$HOME/.claude/scripts/ghostty-resume.sh"
 PROJECT_PATH=""
-TARGET="ghostty"  # default
 MODEL=""
 PROMPT=""
 HEADLESS=false
 OUTPUT_FORMAT="json"
 TAB_NAME=""
+OPEN_CURSOR=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --ghostty)
-      TARGET="ghostty"
-      shift
-      ;;
-    --vscode)
-      echo "Note: VS Code integration is disabled (supplanted by Ghostty) — opening in Ghostty" >&2
-      TARGET="ghostty"
-      shift
-      ;;
-    --cursor)
-      TARGET="cursor"
-      shift
-      ;;
-    --headless)
-      HEADLESS=true
-      shift
-      ;;
-    --prompt)
-      PROMPT="$2"
-      shift 2
-      ;;
-    --model)
-      MODEL="$2"
-      shift 2
-      ;;
-    --name)
-      TAB_NAME="$2"
-      shift 2
-      ;;
-    --output-format)
-      OUTPUT_FORMAT="$2"
-      shift 2
-      ;;
-    --help|-h)
-      echo "Usage: new-session.sh <project-path> [OPTIONS]"
-      echo ""
-      echo "Start a new Claude Code session in a terminal tab or headless."
-      echo ""
-      echo "Targets (pick one):"
-      echo "  --ghostty              Ghostty terminal — new tab (default)"
-      echo "  --vscode               Disabled (supplanted by Ghostty) — falls back to Ghostty"
-      echo "  --cursor               Cursor integrated terminal"
-      echo "  --headless             Run in current terminal, return output (requires --prompt)"
-      echo ""
-      echo "Options:"
-      echo "  --prompt <text>        Pass a prompt to claude -p"
-      echo "  --model <model>        Pass --model to claude (e.g. sonnet, opus, haiku)"
-      echo "  --name <title>         Set Ghostty tab title (default: project basename)"
-      echo "  --output-format <fmt>  Headless output format: json (default), text, stream-json"
-      echo "  -h, --help             Show this help"
-      echo ""
-      echo "Examples:"
-      echo "  new-session.sh ~/project                              # interactive in Ghostty"
-      echo "  new-session.sh ~/project --prompt 'fix the bug'       # prompt-driven in Ghostty"
-      echo "  new-session.sh ~/project --headless --prompt 'hello'  # headless JSON output"
-      echo "  new-session.sh ~/project --ghostty --model opus       # interactive in Ghostty"
-      exit 0
-      ;;
-    -*)
-      echo "Unknown option: $1" >&2
-      exit 1
-      ;;
+    --ghostty) shift ;;
+    --vscode|--cmux) echo "Note: $1 is retired — opening in Ghostty" >&2; shift ;;
+    --cursor) OPEN_CURSOR=true; shift ;;
+    --headless) HEADLESS=true; shift ;;
+    --prompt) PROMPT="$2"; shift 2 ;;
+    --model) MODEL="$2"; shift 2 ;;
+    --name) TAB_NAME="$2"; shift 2 ;;
+    --output-format) OUTPUT_FORMAT="$2"; shift 2 ;;
+    --help|-h) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -*) echo "Unknown option: $1" >&2; exit 1 ;;
     *)
-      if [[ -z "$PROJECT_PATH" ]]; then
-        PROJECT_PATH="$1"
-      else
-        echo "Error: unexpected argument '$1'" >&2
-        exit 1
-      fi
-      shift
-      ;;
+      if [[ -z "$PROJECT_PATH" ]]; then PROJECT_PATH="$1"
+      else echo "Error: unexpected argument '$1'" >&2; exit 1; fi
+      shift ;;
   esac
 done
 
-if [[ -z "$PROJECT_PATH" ]]; then
-  echo "Error: project path required" >&2
-  echo "Usage: new-session.sh <project-path> [--ghostty|--vscode|--cursor|--headless] [--prompt <text>] [--model <model>]" >&2
-  exit 1
-fi
-
-# --- Validate flag combinations ---
+[[ -n "$PROJECT_PATH" ]] || { echo "Error: project path required" >&2; exit 1; }
 if [[ "$HEADLESS" == "true" && -z "$PROMPT" ]]; then
-  echo "Error: --headless requires --prompt" >&2
-  exit 1
+  echo "Error: --headless requires --prompt" >&2; exit 1
 fi
 
-if [[ "$HEADLESS" == "true" && "$TARGET" != "ghostty" ]]; then
-  echo "Error: --headless runs in current terminal, cannot combine with --$TARGET" >&2
-  exit 1
-fi
-
-# Resolve to absolute path
 PROJECT_PATH="$(cd "$PROJECT_PATH" 2>/dev/null && pwd)" || {
-  echo "Error: directory does not exist: $PROJECT_PATH" >&2
-  exit 1
+  echo "Error: directory does not exist: $PROJECT_PATH" >&2; exit 1
 }
 
-# --- Headless mode: run in current terminal, return output ---
+# --- Headless: run here, print the result ---
 if [[ "$HEADLESS" == "true" ]]; then
   cd "$PROJECT_PATH"
-  # shellcheck disable=SC2086
   exec claude -p "$PROMPT" --output-format "$OUTPUT_FORMAT" ${MODEL:+--model "$MODEL"}
 fi
 
-# --- Build the command string for terminal modes ---
+# --- Tab: build the claude command, hand it to the opener ---
+sq() { local q=\'; printf "'%s'" "${1//$q/$q\\$q$q}"; }   # 'it'\''s' — shell-safe single quoting
 CLAUDE_CMD="claude"
-if [[ -n "$PROMPT" ]]; then
-  # Escape single quotes in prompt: replace ' with '\''
-  ESCAPED_PROMPT="${PROMPT//\'/\'\\\'\'}"
-  CLAUDE_CMD="claude -p '${ESCAPED_PROMPT}'"
-fi
-if [[ -n "$MODEL" ]]; then
-  CLAUDE_CMD="$CLAUDE_CMD --model $MODEL"
-fi
+[[ -n "$PROMPT" ]] && CLAUDE_CMD="claude -p $(sq "$PROMPT")"
+[[ -n "$MODEL" ]] && CLAUDE_CMD="$CLAUDE_CMD --model $(sq "$MODEL")"
+[[ -n "$TAB_NAME" ]] && CLAUDE_CMD="$CLAUDE_CMD -n $(sq "$TAB_NAME")"
 
-# --- Ghostty ---
-# Uses clipboard-paste (Cmd+V) instead of keystroke to avoid AppleScript
-# capitalization bugs. Pattern from zeitlings/alfred-ghostty-script.
-open_in_ghostty() {
-  local title="${TAB_NAME:-$(basename "$PROJECT_PATH")}"
-  local escaped_title="${title//\'/\'\\\'\'}"
-  local cmd="printf '\\e]1;${escaped_title}\\a' && cd $(printf '%q' "$PROJECT_PATH") && $CLAUDE_CMD"
-
-  # Save clipboard, write command to it
-  local old_clipboard
-  old_clipboard="$(pbpaste 2>/dev/null || true)"
-  printf '%s' "$cmd" | pbcopy
-
-  osascript <<'APPLESCRIPT'
-tell application "Ghostty"
-    activate
-end tell
-
-delay 0.5
-
-tell application "System Events"
-    tell process "Ghostty"
-        -- Cmd+T for new tab
-        keystroke "t" using command down
-    end tell
-end tell
-
-delay 1.0
-
-tell application "System Events"
-    tell process "Ghostty"
-        -- Paste command from clipboard (avoids keystroke capitalization bugs)
-        keystroke "v" using command down
-        delay 0.2
-        keystroke return
-    end tell
-end tell
-APPLESCRIPT
-
-  # Restore clipboard after a brief delay
-  sleep 0.5
-  printf '%s' "$old_clipboard" | pbcopy
-
-  echo "Opened Ghostty tab: $cmd"
-}
-
-# --- VS Code / Cursor ---
-# Uses clipboard-paste (same as Ghostty) to avoid AppleScript quoting issues
-# with prompts containing special characters.
-open_in_editor() {
-  local app_name="$1"
-  local cli_cmd="$2"
-
-  # Verify CLI exists
-  if ! command -v "$cli_cmd" &>/dev/null; then
-    echo "Error: '$cli_cmd' command not found." >&2
-    exit 1
+if [[ "$OPEN_CURSOR" == "true" ]]; then
+  if command -v cursor >/dev/null; then
+    cursor "$PROJECT_PATH" >/dev/null 2>&1 &
+    echo "Opened Cursor: $PROJECT_PATH"
+  else
+    echo "Warning: cursor CLI not found — skipping editor" >&2
   fi
+fi
 
-  # Open project directory
-  "$cli_cmd" "$PROJECT_PATH" &>/dev/null &
-  sleep 1
-
-  local cmd="$CLAUDE_CMD"
-
-  # Save clipboard, write command to it
-  local old_clipboard
-  old_clipboard="$(pbpaste 2>/dev/null || true)"
-  printf '%s' "$cmd" | pbcopy
-
-  osascript <<EOF
-tell application "$app_name"
-    activate
-end tell
-
-delay 0.5
-
-tell application "System Events"
-    tell process "$app_name"
-        -- Ctrl+Shift+\` to open new terminal
-        key code 50 using {control down, shift down}
-    end tell
-end tell
-
-delay 0.8
-
-tell application "System Events"
-    tell process "$app_name"
-        -- Paste command from clipboard (avoids keystroke quoting issues)
-        keystroke "v" using command down
-        delay 0.2
-        keystroke return
-    end tell
-end tell
-EOF
-
-  # Restore clipboard after a brief delay
-  sleep 0.5
-  printf '%s' "$old_clipboard" | pbcopy
-
-  echo "Opened $app_name terminal in $PROJECT_PATH with: $cmd"
-}
-
-# --- Dispatch ---
-case "$TARGET" in
-  ghostty)
-    open_in_ghostty
-    ;;
-  vscode)
-    open_in_editor "Visual Studio Code" "vscode"
-    ;;
-  cursor)
-    open_in_editor "Cursor" "cursor"
-    ;;
-esac
+[[ -x "$OPENER" ]] || { echo "Error: opener not found at $OPENER" >&2; exit 1; }
+exec "$OPENER" --exec "$CLAUDE_CMD" --project "$PROJECT_PATH" --name "${TAB_NAME:-$(basename "$PROJECT_PATH")}"

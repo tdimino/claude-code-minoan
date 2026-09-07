@@ -131,7 +131,7 @@ All tools that read session data share `lib/tracker-utils.js`.
 | File | ~Lines | Purpose |
 |------|--------|---------|
 | `tracker-utils.js` | 920 | Session parsing--reads `~/.claude/projects/`, `sessions-index.json`, JSONL transcripts. Includes `tryDb()` for optional SQLite fast-path. Shared by all `bin/` tools. Installed to `~/.claude/lib/`. |
-| `tracker-db.js` | 890 | SQLite API for tracker.db--synchronous better-sqlite3, WAL mode, singleton lazy-open. Sessions, tags, checkpoints, phases, phrases, git tracking, FTS5 search. |
+| `tracker-db.js` | 890 | SQLite API for tracker.db--synchronous node:sqlite DatabaseSync (built into Node >= 22.13, no npm dependency), WAL mode, singleton lazy-open. Sessions, tags, checkpoints, phases, phrases, git tracking, FTS5 search. |
 | `claudicle_memory.py` | 300 | Bridge between Claudicle's soul memory and Claude Code hooks. Reads/writes the canonical memory.db. |
 | `usermodel_resolver.py` | 180 | Resolves phone numbers and names to userModel persona files via YAML frontmatter scanning. Used by SMS/Slack response hooks. |
 

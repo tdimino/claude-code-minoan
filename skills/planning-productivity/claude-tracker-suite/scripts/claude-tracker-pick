@@ -44,7 +44,7 @@ ROWS=$(sqlite3 -separator $'\t' "$DB" "
     COALESCE(NULLIF(custom_title,''), NULLIF(auto_title,''), NULLIF(slug,''), '(untitled)'),
     COALESCE(summary, '')
   FROM sessions
-  WHERE project_path LIKE '/%' ${PROJECT:+AND project_name LIKE '%$PROJECT%'}
+  WHERE project_path LIKE '/%' ${PROJECT:+AND project_name LIKE '%${PROJECT//\'/\'\'}%'}
   ORDER BY modified_at DESC LIMIT $LIMIT;
 ")
 

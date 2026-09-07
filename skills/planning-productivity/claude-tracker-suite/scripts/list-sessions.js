@@ -1,55 +1,60 @@
 #!/usr/bin/env node
 /**
- * list-sessions.js — List recent Claude Code sessions with status badges
+ * list-sessions.js — List recent Claude Code sessions with live status
  *
- * Usage: node list-sessions.js [vscode]
+ * Usage: node list-sessions.js [--here] [--limit N] [--vscode]
  *
- * Shows recent sessions with RUNNING/INACTIVE status, VS Code badges,
- * summaries, slugs, git info, keywords, and recent messages.
+ *   --here       Only sessions whose project is the current directory
+ *   --limit N    Sessions to show (default: tracker-utils MAX_SESSIONS)
+ *   --vscode     Only sessions whose project is open in a VS Code workspace
+ *
+ * Live status comes from Claude Code's own PID files (~/.claude/sessions/)
+ * via buildSessionStatus: LIVE badge with the tab's TTY, plus summary, slug,
+ * git info, keywords and recent messages per session.
  */
 
 const os = require('os');
 const utils = require(os.homedir() + '/.claude/lib/tracker-utils.js');
 
-const VSCODE_ONLY = process.argv.slice(2).some(a => a.toLowerCase() === 'vscode');
+const args = process.argv.slice(2);
+let here = false, vsCodeOnly = false, limit = utils.MAX_SESSIONS;
+for (let i = 0; i < args.length; i++) {
+  const a = args[i].toLowerCase();
+  if (a === '--here') here = true;
+  else if (a === '--vscode' || a === 'vscode') vsCodeOnly = true;
+  else if (a === '--limit' && args[i + 1]) limit = parseInt(args[++i], 10) || limit;
+  else if (a === '--help' || a === '-h') {
+    console.log('Usage: node list-sessions.js [--here] [--limit N] [--vscode]');
+    process.exit(0);
+  }
+}
 
 async function main() {
-  const allFiles = utils.getAllSessionFiles();
+  const cwd = process.cwd();
+  const allFiles = here ? utils.getSessionsForPath(cwd) : utils.getAllSessionFiles();
 
   if (allFiles.length === 0) {
-    console.log('No Claude sessions found.');
+    console.log(here
+      ? '\x1b[33mNo Claude sessions found for this directory.\x1b[0m\n\x1b[90mPath: ' + cwd + '\x1b[0m'
+      : 'No Claude sessions found.');
     return;
   }
 
   const { sessions, runningCount, inactiveCount, vsCodeCount } = utils.buildSessionStatus(allFiles, {
-    vsCodeOnly: VSCODE_ONLY,
-    maxSessions: utils.MAX_SESSIONS,
+    vsCodeOnly,
+    maxSessions: limit,
   });
 
-  // Load speculator data for TTY info
-  const specData = utils.loadSpeculatorData();
-
-  // Header
-  console.log('\n\x1b[1m\x1b[36m═══════════════════════════════════════════════════════════════\x1b[0m');
-  if (VSCODE_ONLY) {
-    console.log('\x1b[1m\x1b[36m               VS CODE SESSIONS (Crash Recovery)               \x1b[0m');
-  } else {
-    console.log('\x1b[1m\x1b[36m                    CLAUDE CODE SESSIONS                        \x1b[0m');
-  }
-  console.log('\x1b[1m\x1b[36m═══════════════════════════════════════════════════════════════\x1b[0m');
-
-  if (VSCODE_ONLY) {
-    console.log('\x1b[90m  Showing ' + sessions.length + ' sessions from VS Code workspaces\x1b[0m');
-    console.log('\x1b[33m  Resume commands listed below for each session\x1b[0m\n');
-  } else {
-    let headerLine = '\x1b[90m  ' + runningCount + ' running, ' + inactiveCount + ' inactive  |  ' + vsCodeCount + ' in VS Code';
-    if (specData && specData.ghosttyRunning) {
-      const tabCount = specData.stats.total_ttys || 0;
-      const winCount = (specData.windows || []).length;
-      headerLine += '  |  \x1b[35m' + tabCount + ' Ghostty tabs (' + winCount + ' windows)\x1b[90m';
-    }
-    console.log(headerLine + '\x1b[0m\n');
-  }
+  const title = here ? 'SESSIONS FOR: ' + cwd.split('/').pop()
+    : vsCodeOnly ? 'SESSIONS IN VS CODE WORKSPACES' : 'CLAUDE CODE SESSIONS';
+  const rule = '\x1b[1m\x1b[36m═══════════════════════════════════════════════════════════════\x1b[0m';
+  console.log('\n' + rule);
+  console.log('\x1b[1m\x1b[36m' + ' '.repeat(Math.max(0, Math.floor((63 - title.length) / 2))) + title + '\x1b[0m');
+  console.log(rule);
+  let headerLine = '\x1b[90m  ' + runningCount + ' live, ' + inactiveCount + ' inactive';
+  if (vsCodeCount) headerLine += '  |  ' + vsCodeCount + ' in VS Code';
+  if (here) headerLine += '\n  Path: ' + cwd;
+  console.log(headerLine + '\x1b[0m\n');
 
   for (let i = 0; i < sessions.length; i++) {
     const file = sessions[i];
@@ -58,32 +63,21 @@ async function main() {
 
     const projectName = file.projectPath.split('/').pop();
     const statusBadge = file.isRunning
-      ? '\x1b[42m\x1b[30m RUNNING \x1b[0m'
+      ? '\x1b[42m\x1b[30m LIVE' + (file.tty ? ' ' + file.tty.replace('ttys', 's') : '') + ' \x1b[0m'
       : '\x1b[100m INACTIVE \x1b[0m';
-    const vsCodeBadge = file.isInVSCode
-      ? ' \x1b[44m\x1b[37m VS CODE \x1b[0m'
-      : '';
+    const vsCodeBadge = file.isInVSCode ? ' \x1b[44m\x1b[37m VS CODE \x1b[0m' : '';
 
-    // TTY badge from speculator
-    const ttyInfo = specData ? utils.getSessionTTY(session.fullId, specData) : null;
-    const ttyBadge = ttyInfo
-      ? ' \x1b[45m\x1b[37m ' + ttyInfo.tty.replace('ttys', 's') + ' \x1b[0m'
-      : '';
+    console.log('\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + projectName + '\x1b[0m  ' + statusBadge + vsCodeBadge);
 
-    console.log('\x1b[33m[' + (i + 1) + ']\x1b[0m \x1b[1m' + projectName + '\x1b[0m  ' + statusBadge + vsCodeBadge + ttyBadge);
+    if (file.liveName) console.log('    \x1b[90mName:\x1b[0m \x1b[1m\x1b[35m' + file.liveName + '\x1b[0m');
+    if (session.sessionSummary) console.log('    \x1b[90mSummary:\x1b[0m \x1b[1m' + session.sessionSummary + '\x1b[0m');
+    if (session.sessionSlug) console.log('    \x1b[90mSession:\x1b[0m ' + session.sessionSlug);
 
-    if (session.sessionSummary) {
-      console.log('    \x1b[90mSummary:\x1b[0m \x1b[1m' + session.sessionSummary + '\x1b[0m');
-    }
-    if (session.sessionSlug) {
-      console.log('    \x1b[90mSession:\x1b[0m ' + session.sessionSlug);
-    }
-
-    console.log('    \x1b[90mPath:\x1b[0m ' + file.projectPath);
+    if (!here) console.log('    \x1b[90mPath:\x1b[0m ' + file.projectPath);
     if (session.gitRemote) console.log('    \x1b[90mRepo:\x1b[0m \x1b[34m' + session.gitRemote + '\x1b[0m');
     if (session.gitBranch) console.log('    \x1b[90mBranch:\x1b[0m \x1b[35m' + session.gitBranch + '\x1b[0m');
 
-    // Show repos touched from git-tracking (cross-directory awareness)
+    // Repos touched from git-tracking (cross-directory awareness)
     const repos = utils.getReposForSession(session.fullId);
     const repoEntries = Object.entries(repos);
     if (repoEntries.length > 0) {
@@ -103,18 +97,12 @@ async function main() {
       ? utils.formatAge(session.lastUserTimestamp)
       : utils.formatAge(session.timestamp);
     console.log('    \x1b[90mLast user message:\x1b[0m ' + lastMsgTime);
+    console.log('    \x1b[90mSession ID:\x1b[0m ' + session.fullId);
 
-    if (VSCODE_ONLY) {
-      console.log('    \x1b[32m→ claude --resume ' + session.fullId + '\x1b[0m');
-    } else {
-      console.log('    \x1b[90mSession ID:\x1b[0m ' + session.fullId);
-    }
-
-    if (!VSCODE_ONLY && session.keywords.length > 0) {
+    if (session.keywords.length > 0) {
       console.log('    \x1b[90mKeywords:\x1b[0m \x1b[36m' + session.keywords.join('\x1b[0m, \x1b[36m') + '\x1b[0m');
     }
-
-    if (!VSCODE_ONLY && session.userMessages.length > 0) {
+    if (session.userMessages.length > 0) {
       console.log('    \x1b[90mRecent messages:\x1b[0m');
       session.userMessages.forEach((msg, j) => {
         console.log('      \x1b[32m' + (j + 1) + '.\x1b[0m ' + msg.substring(0, 70) + (msg.length > 70 ? '...' : ''));
@@ -124,13 +112,9 @@ async function main() {
   }
 
   console.log('\x1b[90m───────────────────────────────────────────────────────────────\x1b[0m');
-  if (VSCODE_ONLY) {
-    console.log('\x1b[90mCopy a resume command above and run it in the appropriate terminal.\x1b[0m');
-  } else {
-    console.log('\x1b[90mTo resume a session:\x1b[0m claude --resume <session-id>');
-    console.log('\x1b[90mTo continue most recent:\x1b[0m claude --continue');
-    console.log('\x1b[90mFor crash recovery:\x1b[0m /claude-tracker vscode');
-  }
+  console.log('\x1b[90mResume in this terminal:\x1b[0m claude --resume <session-id|name>');
+  console.log('\x1b[90mResume in a new Ghostty tab:\x1b[0m ~/.claude/scripts/ghostty-resume.sh <session-id>');
+  console.log('\x1b[90mCrashed sessions:\x1b[0m claude-tracker-resume [--open]');
   console.log('');
 }
 
