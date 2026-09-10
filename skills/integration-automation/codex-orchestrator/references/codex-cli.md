@@ -172,13 +172,16 @@ sandbox = "read-only"
 | Variable | Purpose |
 |----------|---------|
 | `OPENAI_API_KEY` | API authentication |
-| `CODEX_AGENTS_FILE` | Path to custom AGENTS.md |
 | `CODEX_CONFIG` | Path to config file |
 | `CODEX_HOME` | Codex home directory |
 
 ## AGENTS.md
 
-Codex reads `AGENTS.md` from the current directory to customize agent behavior.
+Codex reads a layered instruction chain: global guidance from `CODEX_HOME`, then one project instruction file per directory from the project root down to the current directory. `AGENTS.override.md` takes precedence over `AGENTS.md` within a directory. The orchestrator adds its role without mutating that chain:
+
+```bash
+codex exec -c 'developer_instructions=# Reviewer persona' "Review this patch"
+```
 
 ```markdown
 # Agent Name

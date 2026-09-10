@@ -27,12 +27,21 @@ _with_pty() {
         echo -e "${YELLOW}Warning: 'script' not found — PTY wrapper unavailable, Codex may fail in background${NC}" >&2
         "$@"
     else
-        case "$(uname -s)" in
+        case "${CODEX_ORCHESTRATOR_PLATFORM:-$(uname -s)}" in
             Darwin)
                 script -q /dev/null "$@"
                 ;;
             *)
-                script -qfc "$(printf '%q ' "$@")" /dev/null
+                # util-linux script passes -c through /bin/sh on some systems.
+                # Serialize argv with POSIX single quotes; Bash printf %q emits
+                # $'...' for multiline personas, which dash cannot interpret.
+                local command_string=""
+                local argument escaped_argument
+                for argument in "$@"; do
+                    escaped_argument="$(printf '%s' "$argument" | sed "s/'/'\\\\''/g")"
+                    command_string="${command_string}${command_string:+ }'${escaped_argument}'"
+                done
+                script -qfc "$command_string" /dev/null
                 ;;
         esac
     fi
@@ -72,7 +81,7 @@ show_usage() {
     echo "  --service-tier <tier> Override service tier: default, priority"
     echo "  --sandbox <mode>      Sandbox mode: read-only, workspace-write, danger-full-access"
     echo "  --no-approve          Force read-only sandbox (no file writes)"
-    echo "  --web-search          Enable Exa web search (injects guide into AGENTS.md)"
+    echo "  --web-search          Enable Exa web search (appends guide to this process's persona)"
     echo "  --search              Enable native Codex web search (works in all sandboxes)"
     echo "  --json                Output JSONL event stream (pipe to jq, logs, etc.)"
     echo "  --image <file>        Attach image to prompt (vision input)"
@@ -135,21 +144,6 @@ get_profile_defaults() {
             DEFAULT_REASONING=""
             ;;
     esac
-}
-
-# Detect if an AGENTS.md is one we injected (symlink or sentinel-marked file).
-is_our_injection() {
-    local file="$1"
-    if [ -L "$file" ]; then
-        local target
-        target="$(readlink "$file")"
-        case "$target" in
-            */.claude/skills/codex-orchestrator/agents/*) return 0 ;;
-        esac
-    elif [ -f "$file" ] && head -1 "$file" 2>/dev/null | grep -q "^# CODEX-ORCHESTRATOR-INJECTED"; then
-        return 0
-    fi
-    return 1
 }
 
 if [ $# -lt 2 ]; then
@@ -336,61 +330,17 @@ if [ "$PROFILE" = "researcher" ] || [ "$PROFILE" = "adjudicator" ] || [ "$PROFIL
     fi
 fi
 
-# Save current directory
+# Save current directory. Project AGENTS.md files stay in place and Codex
+# discovers their normal root-to-cwd instruction chain independently per run.
 WORK_DIR="$(pwd)"
 
-# --- PID-scoped AGENTS.md backup/restore (parallel-safe) ---
-# Each instance manages its own backup. No shared lock state.
-BACKUP_PATH="$WORK_DIR/.AGENTS.md.codex-backup.$$"
-AGENTS_TARGET="$WORK_DIR/AGENTS.md"
-HAD_EXISTING_AGENTS=""
-
-# crash recovery: clean orphan backups from dead processes and stale injections
-for orphan in "$WORK_DIR"/.AGENTS.md.codex-backup.* "$WORK_DIR"/AGENTS.md.backup.* "$WORK_DIR"/.AGENTS.md.codex-orchestrator-backup; do
-    [ -e "$orphan" ] || continue
-    orphan_pid="${orphan##*.}"
-    case "$orphan_pid" in
-        *codex-orchestrator-backup) orphan_pid="" ;;
-    esac
-    if [ -z "$orphan_pid" ] || ! kill -0 "$orphan_pid" 2>/dev/null; then
-        if ([ ! -e "$AGENTS_TARGET" ] || is_our_injection "$AGENTS_TARGET") && [ ! -L "$orphan" ]; then
-            echo -e "${YELLOW}Restoring AGENTS.md from orphaned backup: $orphan${NC}"
-            mv "$orphan" "$AGENTS_TARGET"
-        else
-            rm -f "$orphan"
-        fi
-    fi
-done
-rmdir "$WORK_DIR/.codex-orchestrator-locks" 2>/dev/null || true
-
-# Verify working directory is writable
-if ! touch "$WORK_DIR/.codex-orchestrator-write-test" 2>/dev/null; then
-    echo -e "${RED}Error: Working directory is not writable: $WORK_DIR${NC}"
-    exit 1
-fi
-rm -f "$WORK_DIR/.codex-orchestrator-write-test"
-
-# Backup existing AGENTS.md if it's real user content (not our injection)
-if [ -e "$AGENTS_TARGET" ] && ! is_our_injection "$AGENTS_TARGET"; then
-    if cp -a "$AGENTS_TARGET" "$BACKUP_PATH"; then
-        HAD_EXISTING_AGENTS="true"
-    else
-        echo -e "${RED}Error: Failed to backup AGENTS.md. Aborting to prevent data loss.${NC}"
-        exit 1
-    fi
-fi
-
-# Inject profile AGENTS.md (sentinel for --web-search concatenated files)
-# Remove any leftover target first: a stale symlink from the ln -sf branch would
-# make the > redirect write INTO the profile source while cat reads it — an
-# infinite self-append that grows the profile file unboundedly. Real user
-# content was already backed up above.
-rm -f "$AGENTS_TARGET"
+# Compose a per-process persona. Passing it as developer_instructions keeps the
+# profile isolated from sibling launches and preserves every project AGENTS.md.
 EXA_GUIDE="$HOME/.claude/skills/exa-search/codex-agent-guide.md"
 if [ -n "$WEB_SEARCH" ] && [ -f "$EXA_GUIDE" ]; then
-    { echo "# CODEX-ORCHESTRATOR-INJECTED"; cat "$AGENTS_FILE" "$EXA_GUIDE"; } > "$AGENTS_TARGET"
+    PROFILE_INSTRUCTIONS="$(printf '%s\n\n' "$(cat "$AGENTS_FILE")"; cat "$EXA_GUIDE")"
 else
-    ln -sf "$AGENTS_FILE" "$AGENTS_TARGET"
+    PROFILE_INSTRUCTIONS="$(cat "$AGENTS_FILE")"
 fi
 
 echo -e "${GREEN}Executing Codex with profile: $PROFILE${NC}"
@@ -425,38 +375,11 @@ if [ -n "$RESUME_SESSION" ]; then
 fi
 echo ""
 
-# Cleanup: PID-scoped restore (no shared lock state)
+# Cleanup captured output only; project instructions are never mutated.
 CLEANUP_DONE=""
 cleanup() {
     [ -n "$CLEANUP_DONE" ] && return
     CLEANUP_DONE=1
-
-    # Check if any sibling backups exist from still-running instances
-    local has_live_siblings=false
-    for sibling in "$WORK_DIR"/.AGENTS.md.codex-backup.*; do
-        [ -e "$sibling" ] || continue
-        [ "$sibling" = "$BACKUP_PATH" ] && continue
-        local sib_pid="${sibling##*.}"
-        if kill -0 "$sib_pid" 2>/dev/null; then
-            has_live_siblings=true
-            break
-        else
-            rm -f "$sibling"
-        fi
-    done
-
-    if [ "$has_live_siblings" = false ]; then
-        if [ -n "$HAD_EXISTING_AGENTS" ] && [ -e "$BACKUP_PATH" ]; then
-            mv "$BACKUP_PATH" "$AGENTS_TARGET"
-        else
-            rm -f "$BACKUP_PATH"
-            if is_our_injection "$AGENTS_TARGET"; then
-                rm -f "$AGENTS_TARGET"
-            fi
-        fi
-    else
-        rm -f "$BACKUP_PATH"
-    fi
 
     if [ -n "$OUTPUT_FILE" ]; then
         if [ -n "$SKIP_OUTPUT_CLEANUP" ]; then
@@ -478,6 +401,9 @@ fi
 if [ -n "$MODEL" ]; then
     CODEX_ARGS+=(--model "$MODEL")
 fi
+# Codex parses -c values as TOML and falls back to the raw string for Markdown.
+# This is process-local, so concurrent personas cannot overwrite one another.
+CODEX_ARGS+=(-c "developer_instructions=$PROFILE_INSTRUCTIONS")
 case "$MODEL" in
     gpt-4*) REASONING="" ;;
 esac
@@ -498,7 +424,8 @@ elif [ -n "$OUTPUT_FILE" ]; then
     # Fallback: -o captures last message (may include intermediate content)
     CODEX_ARGS+=(-o "$OUTPUT_FILE")
 fi
-# Exa search is injected via AGENTS.md; built-in web search is fallback
+# Exa guidance is appended to the per-process developer instructions; built-in
+# web search remains the transport/fallback.
 if [ -n "$WEB_SEARCH" ]; then
     CODEX_ARGS+=(-c 'web_search="live"')
 fi
@@ -554,8 +481,7 @@ if ! command -v codex >/dev/null 2>&1; then
     exit 1
 fi
 
-# Run Codex with the agent profile
-# Codex reads AGENTS.md from the current directory
+# Run Codex with the per-process profile plus the untouched project AGENTS chain.
 set +e
 if [ -n "$EXTRACT_RESPONSE" ]; then
     # JSONL mode: pipe through jq to extract only agent_message text.
@@ -600,7 +526,7 @@ if [ -n "$OUTPUT_FILE" ]; then
     else
         echo ""
         echo -e "${RED}Warning: Codex produced no output (exit code $CODEX_EXIT).${NC}"
-        echo -e "${YELLOW}Possible causes: TTY detachment (background execution), AGENTS.md collision, empty model response, or session too short.${NC}"
+        echo -e "${YELLOW}Possible causes: TTY detachment (background execution), empty model response, or session too short.${NC}"
         echo -e "${YELLOW}If backgrounded, codex-exec.sh auto-wraps with script(1) — check Codex CLI version (v0.124.0+ required).${NC}"
         exit 1
     fi

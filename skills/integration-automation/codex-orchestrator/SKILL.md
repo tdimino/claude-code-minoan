@@ -1,11 +1,11 @@
 ---
 name: codex-orchestrator
-description: "This skill should be used to spawn specialized OpenAI Codex CLI subagents for code review, debugging, architecture analysis, security audits, refactoring, documentation, comparative evidence adjudication, and autonomous /goal runs via AGENTS.md persona injection. Supports GPT-6-Astra across low, medium, high, xhigh, max, and ultra reasoning with default or priority service tiers, plus GPT-5.6 and GPT-5.5 models. Triggers on 'delegate to Codex', 'Codex Astra', 'Astra subagent', 'Codex subagent', 'code review agent', 'security audit', 'refactor with Codex', 'goal run', 'autonomous goal', 'have Codex weigh this'."
+description: "This skill should be used to spawn specialized OpenAI Codex CLI subagents for code review, debugging, architecture analysis, security audits, refactoring, documentation, comparative evidence adjudication, and autonomous /goal runs. It adds each persona through process-local developer instructions while preserving the project's AGENTS.md chain, including during parallel launches. Supports GPT-6-Astra across low, medium, high, xhigh, max, and ultra reasoning with default or priority service tiers, plus GPT-5.6 and GPT-5.5 models. Triggers on 'delegate to Codex', 'Codex Astra', 'Astra subagent', 'Codex subagent', 'code review agent', 'security audit', 'refactor with Codex', 'goal run', 'autonomous goal', 'have Codex weigh this'."
 ---
 
 # Codex Orchestrator
 
-Spawn specialized Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
+Spawn specialized Codex CLI subagents for focused development tasks. Each profile becomes process-local developer instructions; the repository's global, root, and nested `AGENTS.md` files remain untouched and continue to apply.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ Claude Code (orchestrator)
     ↓ invokes skill
 codex-orchestrator scripts
     ↓ spawns via Bash
-Codex CLI with AGENTS.md
+Codex CLI with process-local persona + project AGENTS.md chain
     ↓ executes
 Specialized subagent task
 ```
@@ -117,7 +117,7 @@ Examples:
 # Weigh rival hypotheses or ambiguous evidence (read-only, high reasoning)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh adjudicator "With Linear B and Linear A inscriptions side-by-side, weigh candidate values for the missing sound and rank the hypotheses."
 
-# Research with Exa web search (injects Exa guide into AGENTS.md)
+# Research with Exa web search (appends Exa guide to this process's persona)
 ~/.claude/skills/codex-orchestrator/scripts/codex-exec.sh researcher "What are the latest React Server Component patterns?" --web-search
 
 # Research with native Codex web search (model-level tool, works in all sandboxes)
@@ -280,7 +280,7 @@ script -q /dev/null codex exec --skip-git-repo-check "prompt" </dev/null
 script -qfc 'codex exec --skip-git-repo-check "prompt" </dev/null' /dev/null
 ```
 
-AGENTS.md backups are PID-scoped — multiple `codex-exec.sh` instances can safely run in the same directory.
+Personas are passed with `-c developer_instructions=...`; multiple `codex-exec.sh` instances can run in the same directory without changing or serializing around `AGENTS.md`. Still serialize agents that write overlapping project files, or give them separate worktrees.
 
 **`--no-cleanup` flag** (codex-exec.sh only): When set, the output temp file is preserved after exit and its path is printed to stderr (`OUTPUT_FILE=<path>`). Use when the caller needs to retrieve the output file asynchronously.
 
@@ -369,7 +369,7 @@ See `references/goal-command.md` for the full `/goal` command reference.
 | `--service-tier <tier>` | Override Codex CLI service tier: `default` or `priority` (not API mode) |
 | `--sandbox <mode>` | read-only, workspace-write, danger-full-access |
 | `--no-approve` | Force read-only sandbox (no file writes) |
-| `--web-search` | Enable Exa web search (injects guide into AGENTS.md) |
+| `--web-search` | Enable Exa web search (appends guide to process-local persona) |
 | `--search` | Enable native Codex web search (model-level tool, works in all sandboxes) |
 | `--json` | Output JSONL event stream (pipe to jq, logs, etc.) |
 | `--image <file>` | Attach image to prompt (vision input) |
@@ -501,7 +501,11 @@ The researcher/adjudicator/chat profiles capture output to a temp file. If Codex
 - **TTY detachment (most common)**: Codex CLI v0.124.0+ silently crashes when backgrounded without a TTY. `codex-exec.sh` auto-wraps with `script(1)` — verify your Codex version (`codex --version`). Longer prompts increase failure rate.
 - Codex session too short to produce a response
 - Model returned empty response (retry)
-- AGENTS.md was missing (check for stale `.AGENTS.md.codex-backup.*` files in working directory)
+- Profile instructions were rejected by an outdated Codex CLI (update Codex and retry)
+
+### Upgrade from AGENTS.md-injection releases
+
+An interrupted run from an older release may have left an `AGENTS.md` symlink into `codex-orchestrator/agents/` plus `.AGENTS.md.codex-backup.<pid>`. Inspect those paths and restore the matching backup once before parallel use. Keep the backup until the repository instructions are verified; current launchers deliberately do not guess among legacy backups.
 
 ### Poor Results
 - Narrow the task scope

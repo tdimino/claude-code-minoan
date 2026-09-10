@@ -9,7 +9,7 @@ Local ML inference, RAG, browser automation, messaging, telephony, physical medi
 | `classical-887` | WRHV 88.7 FM (Classical WMHT) playlist — now playing, history, search |
 | `claude-peers` | Peer discovery, messaging, and lifecycle management between Claude Code and Codex CLI via Unix socket MCP |
 | `codex-cto` | Codex CLI as CTO: GPT-5.4-Pro plans, GPT-5.4 reviews, Claude Code executes |
-| `codex-orchestrator` | Spawn persona-driven Codex subagents, including all 12 GPT-6-Astra effort/tier permutations |
+| `codex-orchestrator` | Spawn parallel-safe, persona-driven Codex subagents without replacing project `AGENTS.md`; includes all 12 GPT-6-Astra effort/tier permutations |
 | `disc-forge` | Burn Red Book audio CDs on macOS via [cdrdao](https://cdrdao.sourceforge.net/) with CD-Text from ID3 tags — works with USB burners `drutil` labels "Unsupported" |
 | `figma-mcp` | Convert Figma designs to production code via MCP |
 | `linkedin-export` | Parse, search, analyze LinkedIn GDPR data exports (23 CSV types) |

@@ -86,12 +86,14 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
 | Core Development | 15 | `fable`, `skill-optimizer`, `claude-agent-sdk`, `claude-md-manager`, `dag-typesafe`, `glossary`, `autoresearch`, `claude-usage`, `architecture-md-builder`, `stop-slop`, `test-harness-auditor`, `user-model-builder` |
-| Integration & Automation | 31 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator`, `obscura`, `stock-monitor` |
+| Integration & Automation | 31 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator` (parallel-safe personas), `obscura`, `stock-monitor` |
 | Design & Media | 33 | `minoan-frontend-design` (70% win rate), `scroll-cinema`, `conductor-motion`, `vellum-editorial`, `gpt-atelier`, `nano-banana-pro`, `gemini-forge`, `sprite-forge`, `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy`, `particle-swarm-sim`, `tamarru` |
 | Research | 10 | `omnisearch`, `geo-seo`, `academic-research`, `ancient-near-east-research`, `exa-search`, `firecrawl`, `keenable`, `scrapling`, `openplanter`, `reverse-trace` |
 | Planning & Productivity | 8 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (FTS5 transcript search, title/nickname history, fzf picker, checkpoints, workflow phases, tagged phrases, workspace save/restore, cost tracking via optional SQLite), `codex-tracker-suite` (native App Server search, inspection, status, and safe resume commands), `travel-requirements-expert` |
 
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
+
+**Parallel-safe Codex personas**: `codex-orchestrator` passes each role through per-invocation `developer_instructions` while leaving Codex's global, repository, and nested `AGENTS.md` chain untouched. Independent read-only agents can fan out immediately; agents that write overlapping files should still run serially or in separate worktrees.
 
 > **Claude 4.6 Prompting Alignment (Feb 2026)**: All agentic skills (`minoan-swarm`, `super-ralph-wiggum`, `firecrawl`, `claude-agent-sdk`, `skill-optimizer`) updated to follow [Anthropic's Claude 4.6 prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)—softer tool-use language, factual quality criteria over motivational framing, effort parameter guidance, structured state management.
 

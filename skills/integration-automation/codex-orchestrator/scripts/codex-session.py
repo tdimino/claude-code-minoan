@@ -16,18 +16,14 @@ Examples:
 
 import subprocess
 import sys
-import os
 import platform
 import shlex
-import signal
-import shutil
 from pathlib import Path
 
 # Get the agents directory relative to this script
 SCRIPT_DIR = Path(__file__).parent.resolve()
 AGENTS_DIR = SCRIPT_DIR.parent / "agents"
 
-BACKUP_NAME = f".AGENTS.md.codex-backup.{os.getpid()}"
 READ_ONLY_PROFILES = {"researcher", "adjudicator", "chat"}
 
 
@@ -40,23 +36,6 @@ def _pty_wrap(cmd: list[str]) -> list[str]:
     else:
         return ["script", "-qfc", " ".join(shlex.quote(c) for c in cmd), "/dev/null"]
 
-
-def is_our_injection(path: Path) -> bool:
-    """Check if an AGENTS.md is one we injected (symlink into our agents dir)."""
-    if path.is_symlink():
-        target = str(path.resolve())
-        if "/codex-orchestrator/agents/" in target:
-            return True
-    return False
-
-
-def _signal_handler(signum, frame):
-    """Re-raise as SystemExit so the finally block executes."""
-    sys.exit(128 + signum)
-
-
-signal.signal(signal.SIGTERM, _signal_handler)
-signal.signal(signal.SIGHUP, _signal_handler)
 
 PROFILES = {
     "reviewer": "Code review specialist - quality, bugs, performance",
@@ -118,126 +97,44 @@ def start_session(profile: str, prompt: str, interactive: bool = False):
 
     agents_path = get_agents_path(profile)
     work_dir = Path.cwd()
-    existing_agents = work_dir / "AGENTS.md"
-    backup_path = work_dir / BACKUP_NAME
-    had_existing_agents = False
+    developer_instructions = agents_path.read_text()
 
-    # Phase 0: Clean orphaned backups from dead processes
-    for orphan in list(work_dir.glob(".AGENTS.md.codex-backup.*")) + list(work_dir.glob("AGENTS.md.backup.*")) + [work_dir / ".AGENTS.md.codex-orchestrator-backup"]:
-        if not orphan.exists() and not orphan.is_symlink():
-            continue
-        if orphan == backup_path:
-            continue
-        orphan_pid_str = orphan.name.rsplit(".", 1)[-1]
-        try:
-            orphan_pid = int(orphan_pid_str)
-            os.kill(orphan_pid, 0)
-            continue
-        except (ValueError, ProcessLookupError, PermissionError):
-            pass
-        if (not existing_agents.exists() and not existing_agents.is_symlink()) or is_our_injection(existing_agents):
-            if is_our_injection(existing_agents):
-                existing_agents.unlink()
-            if not orphan.is_symlink():
-                print(f"Restoring AGENTS.md from orphaned backup: {orphan}")
-                shutil.move(str(orphan), str(existing_agents))
-            else:
-                print(f"Removing orphaned symlink backup: {orphan}")
-                orphan.unlink()
-        else:
-            orphan.unlink()
+    print(f"Starting Codex with profile: {profile}")
+    print(f"Working directory: {work_dir}")
 
-    # Phase 1: Startup crash recovery
-    if backup_path.exists() or backup_path.is_symlink():
-        print("Warning: Found backup from a previous crashed run.")
-        if existing_agents.exists() or existing_agents.is_symlink():
-            if is_our_injection(existing_agents):
-                print("Current AGENTS.md is a stale injection. Restoring original from backup.")
-                existing_agents.unlink()
-                shutil.move(str(backup_path), str(existing_agents))
-            else:
-                print("Current AGENTS.md appears to be user content. Removing orphaned backup.")
-                backup_path.unlink()
-        else:
-            print("Restoring AGENTS.md from backup after previous crash.")
-            shutil.move(str(backup_path), str(existing_agents))
+    # developer_instructions is process-local. Codex still discovers the
+    # project's untouched root-to-cwd AGENTS.md chain for this run.
+    profile_args = ["-c", f"developer_instructions={developer_instructions}"]
+    if interactive:
+        cmd = ["codex", "--model", "gpt-5.6-sol", *profile_args]
+        if profile in READ_ONLY_PROFILES:
+            cmd.extend(["--sandbox", "read-only"])
+        if prompt:
+            cmd.append(prompt)
+    elif profile in READ_ONLY_PROFILES:
+        cmd = [
+            "codex", "exec",
+            "--skip-git-repo-check",
+            "--model", "gpt-5.6-sol",
+            "--sandbox", "read-only",
+            "--ephemeral",
+            *profile_args,
+            prompt,
+        ]
+    else:
+        cmd = [
+            "codex", "exec",
+            "--skip-git-repo-check",
+            "--model", "gpt-5.6-sol",
+            "--sandbox", "workspace-write",
+            *profile_args,
+            prompt,
+        ]
 
-    # Phase 2: Concurrent-run guard
-    if backup_path.exists() or backup_path.is_symlink():
-        print("Error: Backup still exists after recovery. Another instance may be running.")
-        print(f"If not, manually remove: {backup_path}")
-        sys.exit(1)
-
-    # Phase 3: Verify working directory is writable
-    test_file = work_dir / ".codex-orchestrator-write-test"
-    try:
-        test_file.touch()
-        test_file.unlink()
-    except OSError:
-        print(f"Error: Working directory is not writable: {work_dir}")
-        sys.exit(1)
-
-    # Phase 4: Backup existing AGENTS.md
-    if existing_agents.exists() or existing_agents.is_symlink():
-        had_existing_agents = True
-        if existing_agents.is_symlink():
-            backup_path.symlink_to(os.readlink(existing_agents))
-        else:
-            shutil.copy2(str(existing_agents), str(backup_path))
-
-    # Phase 5: Create profile AGENTS.md
-    if existing_agents.exists() or existing_agents.is_symlink():
-        existing_agents.unlink()
-    existing_agents.symlink_to(agents_path)
-
-    try:
-        print(f"Starting Codex with profile: {profile}")
-        print(f"Working directory: {work_dir}")
-
-        if interactive:
-            # Interactive mode - just launch codex with the profile
-            cmd = ["codex", "--model", "gpt-5.6-sol"]
-            if profile in READ_ONLY_PROFILES:
-                cmd.extend(["--sandbox", "read-only"])
-            if prompt:
-                cmd.append(prompt)
-        else:
-            # Non-interactive exec mode
-            # Read-only analysis profiles: no mutation, ephemeral.
-            if profile in READ_ONLY_PROFILES:
-                cmd = [
-                    "codex", "exec",
-                    "--skip-git-repo-check",
-                    "--model", "gpt-5.6-sol",
-                    "--sandbox", "read-only",
-                    "--ephemeral",
-                    prompt
-                ]
-            else:
-                cmd = [
-                    "codex", "exec",
-                    "--skip-git-repo-check",
-                    "--model", "gpt-5.6-sol",
-                    "--sandbox", "workspace-write",
-                    prompt
-                ]
-
-        # Run from current directory so Codex can access project files
-        stdin_arg = None if interactive else subprocess.DEVNULL
-        run_cmd = cmd if interactive else _pty_wrap(cmd)
-        result = subprocess.run(run_cmd, text=True, stdin=stdin_arg)
-
-        return result.returncode
-
-    finally:
-        # Remove our injected AGENTS.md
-        if existing_agents.is_symlink() or existing_agents.exists():
-            existing_agents.unlink()
-        # Restore backup
-        if had_existing_agents and (backup_path.exists() or backup_path.is_symlink()):
-            shutil.move(str(backup_path), str(existing_agents))
-        elif backup_path.exists() or backup_path.is_symlink():
-            backup_path.unlink()
+    stdin_arg = None if interactive else subprocess.DEVNULL
+    run_cmd = cmd if interactive else _pty_wrap(cmd)
+    result = subprocess.run(run_cmd, text=True, stdin=stdin_arg)
+    return result.returncode
 
 
 def main():

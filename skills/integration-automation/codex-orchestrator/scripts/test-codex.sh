@@ -131,34 +131,70 @@ else
     test_fail "Missing /dev/null stdin redirect"
 fi
 
-# Test 9: Backup/Restore Safety
-echo -e "\n${YELLOW}Test 9: Backup/Restore Safety${NC}"
+# Test 9: Process-local personas preserve project instructions
+echo -e "\n${YELLOW}Test 9: Parallel Persona Isolation${NC}"
 
-if grep -q '.AGENTS.md.codex-orchestrator-backup' "$SKILL_DIR/scripts/codex-exec.sh"; then
-    test_pass "codex-exec.sh uses deterministic backup name"
+persona_test_root=$(mktemp -d "${TMPDIR:-/tmp}/codex-persona-test.XXXXXX")
+persona_fake_bin="$persona_test_root/bin"
+persona_work_dir="$persona_test_root/work"
+builder_capture="$persona_test_root/builder-argv.txt"
+reviewer_capture="$persona_test_root/reviewer-argv.txt"
+mkdir -p "$persona_fake_bin" "$persona_work_dir"
+printf '%s\n' '#!/bin/bash' 'printf '\''%s\n'\'' "$@" > "$PERSONA_CAPTURE_FILE"' 'sleep 0.2' > "$persona_fake_bin/codex"
+chmod +x "$persona_fake_bin/codex"
+printf '%s\n' '# Project instructions' '- preserve-me' > "$persona_work_dir/AGENTS.md"
+
+(
+    cd "$persona_work_dir"
+    PATH="$persona_fake_bin:$PATH" PERSONA_CAPTURE_FILE="$builder_capture" CODEX_ORCHESTRATOR_SKIP_UPDATE=1 \
+        "$SKILL_DIR/scripts/codex-exec.sh" builder "builder task" >/dev/null 2>&1
+) &
+builder_pid=$!
+(
+    cd "$persona_work_dir"
+    PATH="$persona_fake_bin:$PATH" PERSONA_CAPTURE_FILE="$reviewer_capture" CODEX_ORCHESTRATOR_SKIP_UPDATE=1 \
+        "$SKILL_DIR/scripts/codex-exec.sh" reviewer "reviewer task" >/dev/null 2>&1
+) &
+reviewer_pid=$!
+
+if wait "$builder_pid" && wait "$reviewer_pid" \
+    && grep -Fxq '# Project instructions' "$persona_work_dir/AGENTS.md" \
+    && grep -Fxq -- '- preserve-me' "$persona_work_dir/AGENTS.md" \
+    && grep -q 'developer_instructions=.*Builder' "$builder_capture" \
+    && grep -q 'developer_instructions=.*Reviewer' "$reviewer_capture"; then
+    test_pass "Concurrent profiles remain isolated and preserve project AGENTS.md"
 else
-    test_fail "codex-exec.sh missing deterministic backup name"
+    test_fail "Concurrent profile injection changed AGENTS.md or mixed personas"
 fi
-if grep -q '.AGENTS.md.codex-orchestrator-backup' "$SKILL_DIR/scripts/codex-session.py"; then
-    test_pass "codex-session.py uses deterministic backup name"
+
+# Exercise the util-linux `script -c` path under POSIX sh. Builder instructions
+# contain both newlines and an apostrophe ("what's left"), which caught the
+# previous Bash-only printf %q serialization.
+printf '%s\n' '#!/bin/sh' '[ "$1" = "-qfc" ] || exit 2' '/bin/sh -c "$2"' > "$persona_fake_bin/script"
+chmod +x "$persona_fake_bin/script"
+linux_capture="$persona_test_root/linux-argv.txt"
+if (
+    cd "$persona_work_dir"
+    PATH="$persona_fake_bin:$PATH" PERSONA_CAPTURE_FILE="$linux_capture" \
+        CODEX_ORCHESTRATOR_PLATFORM=Linux CODEX_ORCHESTRATOR_SKIP_UPDATE=1 \
+        "$SKILL_DIR/scripts/codex-exec.sh" builder "linux prompt" >/dev/null 2>&1
+) && grep -q 'developer_instructions=# Builder Agent' "$linux_capture" \
+    && grep -Fq "what's left" "$linux_capture" \
+    && grep -Fxq 'linux prompt' "$linux_capture"; then
+    test_pass "Linux PTY path preserves multiline personas and apostrophes under POSIX sh"
 else
-    test_fail "codex-session.py missing deterministic backup name"
+    test_fail "Linux PTY path corrupted multiline persona argv"
 fi
-if grep -q 'trap cleanup EXIT INT TERM HUP' "$SKILL_DIR/scripts/codex-exec.sh"; then
-    test_pass "codex-exec.sh traps EXIT INT TERM HUP"
+
+if ! find "$persona_work_dir" -maxdepth 1 -name '*AGENTS.md*backup*' -print -quit | grep -q . \
+    && ! grep -Eq 'codex-backup|AGENTS_TARGET|existing_agents\.unlink' \
+        "$SKILL_DIR/scripts/codex-exec.sh" "$SKILL_DIR/scripts/codex-session.py" "$SKILL_DIR/scripts/codex-goal.sh"; then
+    test_pass "Launchers do not create, rename, or remove project instruction files"
 else
-    test_fail "codex-exec.sh missing extended signal traps"
+    test_fail "A launcher still contains AGENTS.md mutation or backup logic"
 fi
-if grep -q 'crash recovery' "$SKILL_DIR/scripts/codex-exec.sh"; then
-    test_pass "codex-exec.sh has crash recovery logic"
-else
-    test_fail "codex-exec.sh missing crash recovery logic"
-fi
-if grep -q 'AGENTS.md.backup\.\*' "$SKILL_DIR/scripts/codex-exec.sh"; then
-    test_pass "codex-exec.sh migrates old PID-based backups"
-else
-    test_fail "codex-exec.sh missing PID-based backup migration"
-fi
+
+rm -rf "$persona_test_root"
 
 # Test 10: PTY Wrapper
 echo -e "\n${YELLOW}Test 10: PTY Wrapper${NC}"
@@ -177,10 +213,11 @@ if grep -q '_with_pty' "$SKILL_DIR/scripts/codex-goal.sh"; then
 else
     test_fail "codex-goal.sh missing PTY wrapper function"
 fi
-if grep -q 'codex-backup.*os.getpid' "$SKILL_DIR/scripts/codex-session.py"; then
-    test_pass "codex-session.py uses PID-scoped backup name"
+if grep -q 'developer_instructions=' "$SKILL_DIR/scripts/codex-session.py" \
+    && grep -q 'developer_instructions=' "$SKILL_DIR/scripts/codex-goal.sh"; then
+    test_pass "Session and goal launchers use process-local developer instructions"
 else
-    test_fail "codex-session.py missing PID-scoped backup name"
+    test_fail "Session or goal launcher is missing process-local persona injection"
 fi
 
 # Test 11: GPT-6-Astra permutations

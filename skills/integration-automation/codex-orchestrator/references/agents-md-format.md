@@ -2,13 +2,15 @@
 
 AGENTS.md files customize Codex agent behavior by providing persona, focus areas, and output formatting instructions.
 
-## File Location
+## Instruction Layers
 
-Codex reads AGENTS.md from the current working directory. The codex-orchestrator skill manages this by:
+Codex builds an instruction chain once at startup:
 
-1. Storing profile templates in `agents/*.md`
-2. Symlinking (or concatenating with web-search guide) the selected profile as `AGENTS.md` in the current working directory
-3. Running Codex from the current working directory (AGENTS.md is backed up and restored automatically)
+1. It reads `AGENTS.override.md` or `AGENTS.md` from `CODEX_HOME`.
+2. It walks from the project root to the current directory, taking at most one instruction file per directory: `AGENTS.override.md`, then `AGENTS.md`, then configured fallback names.
+3. It concatenates the files root-to-leaf, so guidance closer to the working directory takes precedence.
+
+The orchestrator stores personas in `agents/*.md` and passes the selected content with `-c developer_instructions=...`. It never replaces a project instruction file. Each launch therefore receives both its own persona and the project's normal instruction chain, even when sibling agents run concurrently.
 
 ## Basic Structure
 
@@ -162,14 +164,14 @@ Non-critical items for improvement
 Include code snippets and line numbers for all findings.
 ```
 
-## Profile Inheritance
+## Profile Composition
 
-For complex scenarios, profiles can reference shared content:
+Keep durable repository rules in the project's `AGENTS.md` hierarchy and put only role-specific behavior in the orchestrator profile:
 
 ```markdown
 # API Security Specialist
 
-Extends security auditor with API-specific focus.
+Apply the repository instructions, with this additional API-security focus.
 
 ## Additional Focus
 - REST/GraphQL security

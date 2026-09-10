@@ -157,7 +157,7 @@ For independent tasks, run multiple subagents in parallel. `codex-exec.sh` autom
 wait
 ```
 
-AGENTS.md backups are PID-scoped — parallel instances in the same directory do not collide.
+Each persona is passed through process-local `developer_instructions`, while Codex discovers the project's normal `AGENTS.md` chain. Parallel launchers therefore do not collide or require an `AGENTS.md` restore barrier. Serialize only agents that write overlapping project files, or use separate worktrees.
 
 Direct `codex exec` calls with `&` require a manual `script(1)` wrapper (see SKILL.md "Backgrounding & Parallel Execution").
 

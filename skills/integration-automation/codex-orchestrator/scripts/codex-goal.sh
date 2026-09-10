@@ -13,13 +13,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENTS_DIR="$(cd "$SCRIPT_DIR/../agents" && pwd)"
 
-# Global state for AGENTS.md injection/cleanup (referenced by trap)
-WORK_DIR=""
-BACKUP_PATH=""
-AGENTS_TARGET=""
-HAD_EXISTING_AGENTS=""
-CLEANUP_DONE=""
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -35,12 +28,21 @@ _with_pty() {
         echo -e "${YELLOW}Warning: 'script' not found — PTY wrapper unavailable${NC}" >&2
         "$@"
     else
-        case "$(uname -s)" in
+        case "${CODEX_ORCHESTRATOR_PLATFORM:-$(uname -s)}" in
             Darwin)
                 script -q /dev/null "$@"
                 ;;
             *)
-                script -qfc "$(printf '%q ' "$@")" /dev/null
+                # util-linux script may execute -c with /bin/sh. Use POSIX
+                # single-quote escaping so multiline instructions and apostrophes
+                # survive under dash as well as Bash.
+                local command_string=""
+                local argument escaped_argument
+                for argument in "$@"; do
+                    escaped_argument="$(printf '%s' "$argument" | sed "s/'/'\\\\''/g")"
+                    command_string="${command_string}${command_string:+ }'${escaped_argument}'"
+                done
+                script -qfc "$command_string" /dev/null
                 ;;
         esac
     fi
@@ -71,101 +73,6 @@ show_usage() {
     echo "  codex-goal.sh draft \"Migrate database to PostgreSQL\" --output goals/pg-migration.md"
     echo "  codex-goal.sh run goals/goal-20260518-143000.md"
     echo "  codex-goal.sh list"
-}
-
-# --- Shared: PID-scoped AGENTS.md injection (mirrors codex-exec.sh) ---
-
-is_our_injection() {
-    local file="$1"
-    if [ -L "$file" ]; then
-        local target
-        target="$(readlink "$file")"
-        case "$target" in
-            */.claude/skills/codex-orchestrator/agents/*) return 0 ;;
-        esac
-    elif [ -f "$file" ] && head -1 "$file" 2>/dev/null | grep -q "^# CODEX-ORCHESTRATOR-INJECTED"; then
-        return 0
-    fi
-    return 1
-}
-
-inject_agents() {
-    local profile="$1"
-
-    local agents_file="$AGENTS_DIR/$profile.md"
-    if [ ! -f "$agents_file" ]; then
-        echo -e "${RED}Error: Profile '$profile' not found at $agents_file${NC}"
-        exit 1
-    fi
-
-    BACKUP_PATH="$WORK_DIR/.AGENTS.md.codex-backup.$$"
-    AGENTS_TARGET="$WORK_DIR/AGENTS.md"
-    HAD_EXISTING_AGENTS=""
-
-    # Crash recovery: clean orphan backups from dead processes
-    for orphan in "$WORK_DIR"/.AGENTS.md.codex-backup.* "$WORK_DIR"/AGENTS.md.backup.* "$WORK_DIR"/.AGENTS.md.codex-orchestrator-backup; do
-        [ -e "$orphan" ] || continue
-        orphan_pid="${orphan##*.}"
-        case "$orphan_pid" in
-            *codex-orchestrator-backup) orphan_pid="" ;;
-        esac
-        if [ -z "$orphan_pid" ] || ! kill -0 "$orphan_pid" 2>/dev/null; then
-            if ([ ! -e "$AGENTS_TARGET" ] || is_our_injection "$AGENTS_TARGET") && [ ! -L "$orphan" ]; then
-                echo -e "${YELLOW}Restoring AGENTS.md from orphaned backup: $orphan${NC}"
-                mv "$orphan" "$AGENTS_TARGET"
-            else
-                rm -f "$orphan"
-            fi
-        fi
-    done
-
-    # Verify working directory is writable
-    if ! touch "$WORK_DIR/.codex-orchestrator-write-test" 2>/dev/null; then
-        echo -e "${RED}Error: Working directory is not writable: $WORK_DIR${NC}"
-        exit 1
-    fi
-    rm -f "$WORK_DIR/.codex-orchestrator-write-test"
-
-    # Backup existing AGENTS.md if it's real user content
-    if [ -e "$AGENTS_TARGET" ] && ! is_our_injection "$AGENTS_TARGET"; then
-        if cp -a "$AGENTS_TARGET" "$BACKUP_PATH"; then
-            HAD_EXISTING_AGENTS="true"
-        else
-            echo -e "${RED}Error: Failed to backup AGENTS.md. Aborting to prevent data loss.${NC}"
-            exit 1
-        fi
-    fi
-
-    # Inject profile
-    ln -sf "$agents_file" "$AGENTS_TARGET"
-}
-
-cleanup_agents() {
-    local has_live_siblings=false
-    for sibling in "$WORK_DIR"/.AGENTS.md.codex-backup.*; do
-        [ -e "$sibling" ] || continue
-        [ "$sibling" = "$BACKUP_PATH" ] && continue
-        local sib_pid="${sibling##*.}"
-        if kill -0 "$sib_pid" 2>/dev/null; then
-            has_live_siblings=true
-            break
-        else
-            rm -f "$sibling"
-        fi
-    done
-
-    if [ "$has_live_siblings" = false ]; then
-        if [ -n "$HAD_EXISTING_AGENTS" ] && [ -e "$BACKUP_PATH" ]; then
-            mv "$BACKUP_PATH" "$AGENTS_TARGET"
-        else
-            rm -f "$BACKUP_PATH"
-            if is_our_injection "$AGENTS_TARGET"; then
-                rm -f "$AGENTS_TARGET"
-            fi
-        fi
-    else
-        rm -f "$BACKUP_PATH"
-    fi
 }
 
 # --- Command: draft ---
@@ -217,8 +124,6 @@ cmd_draft() {
     goals_dir=$(dirname "$output_path")
     mkdir -p "$goals_dir"
 
-    WORK_DIR="$(pwd)"
-
     echo -e "${BLUE}Drafting goal specification...${NC}"
     echo -e "Objective: $objective"
     echo -e "Output: $output_path"
@@ -233,11 +138,6 @@ cmd_draft() {
     fi
     echo ""
 
-    # Inject goal profile AGENTS.md
-    inject_agents "goal"
-    CLEANUP_DONE=""
-    trap 'if [ -z "$CLEANUP_DONE" ]; then CLEANUP_DONE=1; cleanup_agents; fi' EXIT INT TERM HUP
-
     # Verify codex is available
     if ! command -v codex >/dev/null 2>&1; then
         echo -e "${RED}Error: 'codex' CLI not found. Install with: npm install -g @openai/codex${NC}"
@@ -246,22 +146,22 @@ cmd_draft() {
 
     local abs_output
     abs_output="$(cd "$goals_dir" && pwd)/$(basename "$output_path")"
+    local goal_instructions
+    goal_instructions="$(cat "$AGENTS_DIR/goal.md")"
 
-    # Run codex exec with goal profile
+    # Add the goal persona per process. Existing project AGENTS.md files remain
+    # untouched and are still discovered normally by Codex.
     set +e
     _with_pty codex exec \
         --skip-git-repo-check \
         --sandbox workspace-write \
         --model "$model" \
+        -c "developer_instructions=$goal_instructions" \
         -c "model_reasoning_effort=\"$reasoning\"" \
         "Read the project at $(pwd) and create a goal specification for: $objective. Write the goal file to $abs_output." \
         </dev/null
     local exit_code=$?
     set -e
-
-    # Cleanup AGENTS.md
-    CLEANUP_DONE=1
-    cleanup_agents
 
     if [ $exit_code -ne 0 ] && [ $exit_code -ne 130 ] && [ $exit_code -ne 143 ]; then
         echo -e "${RED}Codex exited with code $exit_code${NC}"

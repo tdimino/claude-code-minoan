@@ -2,7 +2,7 @@
 
 > Last updated: 2026-09-04 | Codex CLI v0.153.3 | Models: GPT-6-Astra + GPT-5.6 / GPT-5.5 families
 
-Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile injects a custom AGENTS.md persona that shapes the agent's behavior, focus areas, and output format.
+Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile is passed as process-local developer instructions, so the project's existing `AGENTS.md` hierarchy remains intact.
 
 ## Architecture
 
@@ -11,7 +11,7 @@ Claude Code (orchestrator)
     ↓ invokes skill
 codex-orchestrator scripts
     ↓ spawns via Bash
-Codex CLI with AGENTS.md persona
+Codex CLI with process-local persona + project AGENTS.md chain
     ↓ executes
 Specialized subagent task
 ```
@@ -245,7 +245,7 @@ Codex CLI v0.124.0+ requires a controlling TTY. When run with shell `&` or Claud
 wait
 ```
 
-AGENTS.md backups are PID-scoped — multiple instances can safely run in the same directory.
+Personas are process-local, so multiple instances can run in the same directory without touching `AGENTS.md`. Continue to serialize writers that edit overlapping project files, or isolate them with worktrees.
 
 For direct `codex exec` calls (not through the wrapper scripts), use `script(1)` manually:
 
@@ -336,7 +336,7 @@ Every ExecPlan includes:
 | `--sandbox <mode>` | `read-only`, `workspace-write`, `danger-full-access` |
 | `--full-auto` | Skip approval prompts |
 | `--no-auto` | Disable auto `--full-auto` (require manual approval) |
-| `--web-search` | Enable Exa web search (injects guide into AGENTS.md) |
+| `--web-search` | Enable Exa web search (appends guide to process-local persona) |
 | `--search` | Enable native Codex web search (works in all sandboxes) |
 | `--json` | Output raw JSONL event stream (pipe to jq, logs, etc.) |
 | `--image <file>` | Attach image to prompt (vision input) |
@@ -458,8 +458,12 @@ The researcher/adjudicator/chat profiles capture output to a temp file. Common c
 - Codex session too short to produce a response
 - Empty model response (retry)
 - Missing `jq` (install via `brew install jq`)
-- Stale `.AGENTS.md.codex-backup.*` files in the working directory
+- An outdated Codex CLI that does not support `developer_instructions`
 - Broken skill YAML in `~/.claude/skills/` (causes ERROR log that bleeds through PTY — harmless but noisy)
+
+### Upgrade from AGENTS.md-injection releases
+
+An interrupted run from an older release may have left an `AGENTS.md` symlink into `codex-orchestrator/agents/` plus `.AGENTS.md.codex-backup.<pid>`. Inspect those paths and restore the matching backup once before parallel use. Keep the backup until the repository instructions are verified; current launchers deliberately do not guess among legacy backups.
 
 ### Poor Results
 
