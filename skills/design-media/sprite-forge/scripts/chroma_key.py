@@ -13,6 +13,10 @@ Usage:
 import argparse
 import math
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from _images import open_image  # noqa: E402
 
 try:
     from PIL import Image, ImageFilter
@@ -78,7 +82,7 @@ def main():
     args = parser.parse_args()
 
     key_rgb = hex_to_rgb(args.color)
-    img = Image.open(args.input)
+    img = open_image(args.input)
     total_pixels = img.size[0] * img.size[1]
 
     result, removed = remove_chroma(img, key_rgb, args.tolerance, args.despill, args.feather)

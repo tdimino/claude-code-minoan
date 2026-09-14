@@ -1,0 +1,47 @@
+{
+  "skill_name": "sprite-forge",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Make an 8-direction pixel sprite of the droid in ./droid.png. Don't spend anything yet, just show me what it would cost.",
+      "expected_output": "Runs turnaround.py --mode pixel with --ref droid.png (no --yes), reports the Retro Diffusion rotate8 cost check ($0.25, 80x80, up to 5 refs) and explains that --yes would produce turnaround.png plus an atlas v2 manifest with directions S,SE,E,NE,N,NW,W,SW.",
+      "expectations": [
+        "Uses scripts/turnaround.py --mode pixel (or retro_diffusion.py rotate8) rather than a general image model",
+        "Does not pass --yes",
+        "States the price from the dry run",
+        "Mentions the atlas v2 manifest and the 8-direction order"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Turn this character (hero.png) into a looping walk-cycle sprite sheet for Phaser. Preview the plan first.",
+      "expected_output": "Runs video_to_spritesheet.py --provider genmedia with --start-frame hero.png --end-frame hero.png on a first+last-frame model (Wan 3 default) with a chroma prompt, without --yes; explains the pipeline: chroma key once, align_frames feet-line alignment with dedup and loop check, stitch --atlas v2 --state walk:12:loop --aseprite-json.",
+      "expectations": [
+        "Uses a first+last-frame video model with the same image as start and end frame",
+        "Prompts for a flat #00FF00 background and keys with chroma_key, not rembg per frame",
+        "Runs or describes align_frames.py and cites feet-line variance under 1 px",
+        "Dry run only; no --yes"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Upscale sprite.png (an indexed 8-bit PNG) 4x for an HD build without introducing any new colours.",
+      "expected_output": "Runs pixel_scale.py --mode scale4x (or --mode nearest --factor 4 if exactness is required) and reports that the output is mode P with the same palette and an unchanged colour count.",
+      "expectations": [
+        "Uses scripts/pixel_scale.py, not a generative upscaler or LANCZOS resize",
+        "Output colour count equals input colour count",
+        "Keeps the palette block and transparency index"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Run the sprite-forge example pipeline profile in dry-run mode and tell me which stages would spend money.",
+      "expected_output": "Runs run_pipeline.py pipelines/example.json --dry-run, lists the four stages (anchor, rotate8, walk-clip, walk-2x), identifies anchor, rotate8 and walk-clip as paid stages that stay provider dry-runs without --yes, and notes nothing was generated.",
+      "expectations": [
+        "Uses scripts/run_pipeline.py with --dry-run",
+        "Names the stages and which are paid",
+        "Confirms no credits were spent"
+      ]
+    }
+  ]
+}

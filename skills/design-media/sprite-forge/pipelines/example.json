@@ -1,0 +1,71 @@
+{
+  "schema": "sprite-forge/pipeline-profile-v1",
+  "name": "example-character",
+  "description": "Generic 8-direction pixel character: RD rotation for stills, Wan 3 clip on chroma for the walk cycle, aligned and stitched into one atlas v2 sheet. Dry-runs everywhere unless run_pipeline.py --yes.",
+  "vars": {
+    "character": "astromech droid, blue and white dome, three legs",
+    "out": "./sprite-out/example-character",
+    "cell": "96x96"
+  },
+  "palette": null,
+  "cell": [96, 96],
+  "directions": 8,
+  "states": {"idle": {"fps": 8, "loop": true}, "walk": {"fps": 12, "loop": true}},
+  "provider": {
+    "image": "openai/gpt-image-2.5/sunburst",
+    "edit": "openai/gpt-image-2.5/sunburst/edit",
+    "video": "alibaba/wan-3.0/image-to-video",
+    "pixel": "rd_pro__default"
+  },
+  "output_root": "${out}",
+  "stages": [
+    {
+      "name": "anchor",
+      "stage": "gen_image",
+      "description": "Identity anchor still with true alpha (GPT Image 2.5 Sunburst).",
+      "args": {"job": "anchor", "prompt": "Full-body game sprite of ${character}, neutral pose, facing the viewer, centered, feet visible. Transparent background.", "transparent": true, "out": "${out}/anchor", "stem": "anchor"},
+      "outputs": ["${out}/anchor"],
+      "paid": true
+    },
+    {
+      "name": "rotate8",
+      "stage": "turnaround",
+      "description": "Eight directions in one Retro Diffusion call, split and stitched with directions metadata.",
+      "args": {"mode": "pixel", "prompt": "${character}", "ref": ["${out}/anchor/anchor_00.png"], "out": "${out}/turnaround"},
+      "inputs": ["${out}/anchor"],
+      "outputs": ["${out}/turnaround/turnaround.png", "${out}/turnaround/turnaround.json"],
+      "paid": true
+    },
+    {
+      "name": "walk-clip",
+      "stage": "video_to_spritesheet",
+      "description": "Side-view walk cycle: first+last frame = the E direction still, generated on #00FF00, keyed once, feet-aligned, deduped.",
+      "args": {
+        "provider": "genmedia",
+        "model": "alibaba/wan-3.0/image-to-video",
+        "start_frame": "${out}/turnaround/frames/frame_0002.png",
+        "end_frame": "${out}/turnaround/frames/frame_0002.png",
+        "prompt": "side-view walk cycle in place, feet stay on one line, flat #00FF00 background, no camera motion",
+        "duration": "4",
+        "fps": 12,
+        "cell_size": "${cell}",
+        "dedup": 6,
+        "max_frames": 8,
+        "state": ["walk:12:loop"],
+        "aseprite_json": true,
+        "output": "${out}/walk/walk.png"
+      },
+      "inputs": ["${out}/turnaround/frames"],
+      "outputs": ["${out}/walk/walk.png", "${out}/walk/walk.json"],
+      "paid": true
+    },
+    {
+      "name": "walk-2x",
+      "stage": "pixel_scale",
+      "description": "Deterministic 2x for HD displays without new colours.",
+      "args": {"input": "${out}/walk/walk.png", "output": "${out}/walk/walk_2x.png", "mode": "scale2x"},
+      "inputs": ["${out}/walk/walk.png"],
+      "outputs": ["${out}/walk/walk_2x.png"]
+    }
+  ]
+}

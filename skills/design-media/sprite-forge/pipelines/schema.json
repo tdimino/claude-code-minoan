@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sprite-forge/pipeline-profile-v1",
+  "title": "sprite-forge pipeline profile",
+  "description": "Ordered stages executed by scripts/run_pipeline.py. Each stage names a sprite-forge script (or a shell command) and its arguments; ${var} placeholders are resolved from `vars`. Stage input/output hashes are recorded so reruns skip unchanged stages.",
+  "type": "object",
+  "required": ["name", "stages"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "sprite-forge/pipeline-profile-v1"},
+    "name": {"type": "string", "minLength": 1},
+    "description": {"type": "string"},
+    "vars": {
+      "type": "object",
+      "description": "String substitutions available as ${key} in every string of the profile. `${profile_dir}` and `${skill_dir}` are always defined.",
+      "additionalProperties": {"type": ["string", "number", "boolean"]}
+    },
+    "palette": {"type": ["string", "null"], "description": "Path to an indexed PNG whose palette every output must keep, or null."},
+    "cell": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
+    "directions": {
+      "oneOf": [
+        {"type": "integer", "enum": [4, 8, 16]},
+        {"type": "array", "items": {"type": "string"}},
+        {"type": "null"}
+      ]
+    },
+    "states": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["fps"],
+        "properties": {"fps": {"type": "integer", "minimum": 1}, "loop": {"type": "boolean"}, "frames": {"type": "integer"}}
+      }
+    },
+    "provider": {
+      "type": "object",
+      "description": "Default endpoints; stages may override with their own args.",
+      "properties": {
+        "image": {"type": "string"},
+        "edit": {"type": "string"},
+        "video": {"type": "string"},
+        "pixel": {"type": "string"}
+      },
+      "additionalProperties": {"type": "string"}
+    },
+    "output_root": {"type": "string", "description": "Where run/<timestamp>/manifest.json is written. Keep it inside the project, never /tmp."},
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "stage"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+          "stage": {
+            "type": "string",
+            "description": "A script in sprite-forge/scripts without .py (gen_image, retro_diffusion, turnaround, video_to_spritesheet, align_frames, pixel_scale, stitch_spritesheet, split_spritesheet, chroma_key), an absolute/relative path to a Python script, or `shell`."
+          },
+          "description": {"type": "string"},
+          "positional": {"type": "array", "items": {"type": ["string", "number"]}},
+          "args": {
+            "type": "object",
+            "description": "key -> value becomes --key value; snake_case keys become kebab-case flags; true becomes a bare flag; lists repeat the flag.",
+            "additionalProperties": {"type": ["string", "number", "boolean", "null", "array"]}
+          },
+          "cmd": {"type": "array", "items": {"type": "string"}, "description": "stage == shell only"},
+          "python": {"type": "string", "description": "Interpreter for script stages (default python3). Use `blender` for Blender headless scripts; args then follow `--`."},
+          "cwd": {"type": "string"},
+          "inputs": {"type": "array", "items": {"type": "string"}, "description": "Files/dirs hashed to decide whether the stage can be skipped."},
+          "outputs": {"type": "array", "items": {"type": "string"}, "description": "Files/dirs that must exist after the stage; hashed into the run manifest."},
+          "paid": {"type": "boolean", "description": "Stage spends provider credits; run_pipeline appends --yes only when invoked with --yes."},
+          "optional": {"type": "boolean", "description": "Failure does not abort the run."},
+          "skip": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

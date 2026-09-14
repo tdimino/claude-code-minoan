@@ -13,6 +13,9 @@ import argparse
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _images import open_image  # noqa: E402
+
 try:
     from PIL import Image
 except ImportError:
@@ -25,7 +28,7 @@ def split_sheet(image_path: str, cols: int, rows: int = 1, output_dir: str = "fr
 
     Returns list of output file paths.
     """
-    img = Image.open(image_path).convert("RGBA")
+    img = open_image(image_path, "RGBA")
     w, h = img.size
 
     frame_w = w // cols
@@ -42,8 +45,9 @@ def split_sheet(image_path: str, cols: int, rows: int = 1, output_dir: str = "fr
             y0 = row * frame_h
             frame = img.crop((x0, y0, x0 + frame_w, y0 + frame_h))
 
-            # Skip fully transparent frames
+            # Skip fully transparent frames, loudly: a dropped frame desyncs direction order downstream.
             if frame.getextrema()[3][1] == 0:
+                print(f"WARNING: cell r{row} c{col} is fully transparent; dropped (frame count will be short)", file=sys.stderr)
                 continue
 
             path = out / f"frame_{idx:04d}.png"
@@ -56,7 +60,7 @@ def split_sheet(image_path: str, cols: int, rows: int = 1, output_dir: str = "fr
 
 def auto_detect_rows(image_path: str, cols: int) -> int:
     """Guess row count from aspect ratio. If frame_w ≈ frame_h, it's a grid."""
-    img = Image.open(image_path)
+    img = open_image(image_path)
     w, h = img.size
     frame_w = w // cols
     # Estimate rows from height

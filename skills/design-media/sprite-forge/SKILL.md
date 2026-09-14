@@ -1,220 +1,108 @@
 ---
 name: sprite-forge
-description: "Generate game sprites, SVG characters, ASCII art, animated mascots, and isometric turnarounds from images or descriptions. Five output modes: SVG characters, game sprite sheets with atlas metadata, 8-way isometric turnarounds, ASCII/Unicode terminal art, GSAP-animated mascots. Triggers on sprite, pixel art, SVG character, ASCII art, mascot, sprite sheet, isometric, walk cycle, turnaround, game asset."
-argument-hint: "[description or image path] [--mode svg|sprite|isometric|ascii|mascot]"
+description: "Generate game sprites, 8-direction turnarounds, walk-cycle sprite sheets, SVG characters, ASCII art and animated mascots from images or descriptions, with September 2026 providers: Retro Diffusion (pixel art, 8-dir rotation, frame animation, free palette tools), fal genmedia (GPT Image 2.5, Nano Banana 2, Kling 3, Seedance 2.5, Wan 3, Hailuo 03). Deterministic utilities: feet-line frame alignment, palette-preserving Scale2x/3x/4x pixel scaler, atlas manifest v2 with states/fps/loop/anchor, Aseprite JSON, pipeline profiles. Triggers on sprite, pixel art, sprite sheet, spritesheet, turnaround, 8-direction, walk cycle, atlas manifest, frame alignment, pixel scaler, Retro Diffusion, genmedia, SVG character, ASCII art, mascot, game asset, sprite pipeline profile."
+argument-hint: "[description or image path] [--mode turnaround|sheet|scale|svg|ascii|mascot]"
 ---
 
 # Sprite Forge
 
-Generate game-ready sprites, SVG characters, ASCII art, animated mascots, and isometric turnarounds from images or text descriptions. Five output modes, each with proven pipelines.
+Game-ready sprites from images or text, September 2026 edition. Five pipelines, two wired providers (Retro Diffusion, fal `genmedia`), and a profile runner so a project can declare its own pipeline.
 
-## When to Use
+**Cost rule:** every provider script is a free dry run until you pass `--yes`. Retro Diffusion runs `check_cost`; genmedia prints the exact command and price. Never add `--yes` on a user's behalf without stating the estimate.
 
-- Creating pixel-art characters or converting images to pixel art
-- Generating sprite sheets with walk cycles, idle, attack animations
-- Building 8-way isometric character turnarounds for tactics/RPG games
-- Producing clean, hand-editable SVG characters or icons
-- Converting images to ASCII/Unicode terminal art
-- Animating mascots with GSAP walk, bounce, wave, or typing presets
-- Generating lil-agents macOS dock companion videos
+## When to use
 
-**When not to use agents**: Each pipeline is sequential — generate image, then process, then stitch. Work directly rather than spawning subagents, because intermediate outputs from one step feed the next. Parallel agents only help when generating multiple independent characters simultaneously.
+- Pixel-art characters, 8-direction rotations, animated frames from a start image
+- Walk/idle/attack sprite sheets from video (first+last-frame loops)
+- HD painted turnarounds via GPT Image 2.5 edits
+- Upscaling indexed sprites without new colours (faithful-HD rule)
+- Atlas metadata with states, fps, loop, anchor (Phaser/Godot/Flame/Aseprite)
+- SVG mascots with GSAP, ASCII art, lil-agents dock videos (unchanged niche)
 
-## Quick Start
+Not for: 3D generation (meshy skill), photoreal image editing (nano-banana-pro skill), generated sprites where original assets exist and parity is required (see `references/pipelines/open-rebellion.md`).
 
-```bash
-# Isometric 8-way turnaround from a character image
-python3 scripts/isometric_pipeline.py --reference character.png --output-dir ./iso/
+Work sequentially inside a pipeline; parallel agents only for independent characters.
 
-# Video walk cycle → game sprite sheet with atlas
-python3 scripts/video_to_spritesheet.py --input walk.mp4 --fps 12 --cell-size 64x64 --atlas json
-
-# Image → pixel-art SVG mascot with walk animation
-magick input.png -fuzz 15% -trim +repage /tmp/trimmed.png
-python3 scripts/pixel_art_generator.py /tmp/trimmed.png --grid 20 --colors 4 --merge --remove-bg -o mascot.svg
-python3 scripts/animation_builder.py --preset walk-and-bounce --svg-id mascot
-
-# Image → terminal ASCII art
-python3 scripts/image_to_ascii.py input.png --mode color --width 80
-
-# Stitch frames into a sprite sheet with atlas
-python3 scripts/stitch_spritesheet.py --input-dir frames/ --cols 8 --atlas json -o sheet.png
-
-# Remove green screen background
-python3 scripts/chroma_key.py --input sprite.png --output sprite_alpha.png --despill
-```
-
-## Pipeline 1: Isometric Turnaround
-
-Generate an 8-way directional character sprite from a single reference image. Based on chongdashu's FFT-style pipeline (github.com/chongdashu/vibe-isometric-sprites, Mar 2026).
-
-**Core insight**: Never generate all 8 directions at once — generate 4 cardinals, then derive 4 diagonals.
+## Quick start
 
 ```bash
-python3 scripts/isometric_pipeline.py \
-  --reference portrait.png \
-  --character-desc "young adventurer, red scarf, blue tunic, leather belts" \
-  --output-dir ./iso-output/ \
-  --chroma-key
+S=~/.claude/skills/sprite-forge/scripts
+# 8-direction pixel sprite (one Retro Diffusion call, $0.25)
+python3 $S/turnaround.py --mode pixel --prompt "astromech droid" --ref droid.png --out ./turn   # add --yes
+# Walk cycle: Wan 3 clip on chroma -> key -> feet-align -> atlas v2 (+ Aseprite JSON)
+python3 $S/video_to_spritesheet.py --provider genmedia --start-frame hero.png --end-frame hero.png \
+  --prompt "side-view walk cycle in place, flat #00FF00 background" --duration 4 --cell-size 128x128 \
+  --dedup 6 --state walk:12:loop --aseprite-json -o walk.png                                   # add --yes
+# Indexed sprite 4x with the same palette
+python3 $S/pixel_scale.py --input sprite.png --output sprite_4x.png --mode scale4x
+# Frames -> sheet with manifest v2
+python3 $S/stitch_spritesheet.py --input-dir frames/ --atlas v2 --state idle:8:loop --cols 8 -o idle.png
+# Profile
+python3 $S/run_pipeline.py ~/.claude/skills/sprite-forge/pipelines/example.json --dry-run
 ```
 
-Steps orchestrated by the script:
-1. Reference → full-body asset (identity anchor)
-2. Full-body → isometric anchor (¾ view, facing down-right)
-3. Apply chroma key green (`#00FF00`) for Nano Banana models
-4. Generate 4 cardinal directions (N/E/S/W) as 2×2 sheet
-5. Generate 4 diagonals (NE/NW/SE/SW) from anchor + cardinals
-6. Optionally generate walk cycle via video model
-7. Normalize, crop, stitch into final 8-direction sprite sheet
+## Pipeline 1: Turnaround (`turnaround.py`)
 
-See `references/isometric-turnaround.md` for the full prompt library and model comparison.
+- `--mode pixel`: `rd_animation__8_dir_rotation` (80x80, <= 5 refs) -> split -> `stitch --atlas v2 --directions 8`. One paid call.
+- `--mode hd`: anchor -> 4 cardinal edits -> 4 diagonal edits (anchor + two neighbours as refs) -> key if `--chroma` -> `align_frames` -> stitch. Default model `openai/gpt-image-2.5/sunburst/edit` (true alpha); `--model fal-ai/nano-banana-2/edit --chroma` for typed refs.
+- Order in the sheet: S, SE, E, NE, N, NW, W, SW. See `references/turnaround.md`.
 
-## Pipeline 2: Video to Sprite Sheet
+## Pipeline 2: Video -> sprite sheet (`video_to_spritesheet.py`)
 
-Convert animation videos into game-ready sprite sheets. The proven approach for walk cycles because image models lack temporal coherence for multi-frame animation.
+`[genmedia clip] -> ffmpeg -> chroma_key (once) -> align_frames (feet line, dedup, loop check) -> stitch v2`. Default model `alibaba/wan-3.0/image-to-video` with `--end-frame` = start frame for a seamless loop; alternates Seedance 2.5, Kling 3 (`@Element` identity), Hailuo 03 (timecoded multi-state). Per-frame `rembg` on video is refused (matte flicker) unless `--allow-rembg-video`. Recipe and model table: `references/video-to-spritesheet.md`; jitter rules: `references/frame-alignment.md`.
 
-```bash
-python3 scripts/video_to_spritesheet.py \
-  --input walk_cycle.mp4 \
-  --fps 12 --cell-size 64x64 \
-  --remove-bg rembg \
-  --cols 8 --atlas json \
-  --output walk_sheet.png
-```
+## Pipeline 3: Pixel scaling and palette (deterministic)
 
-Produces: `walk_sheet.png` + `walk_sheet.json` (atlas with frame coordinates for Phaser/Unity/Godot).
+- `pixel_scale.py --mode nearest|scale2x|scale3x|scale4x`, mode-P in, mode-P out, palette block and transparency kept, colour count never grows. `--family dir/ --output-dir out/` transforms a frame family and writes `family.json` with a family sha256.
+- Retro Diffusion free tools for the generative side: `retro_diffusion.py tool k_centroid_downscale --input-image in.png --field width=64 --field height=64`, `tool palette_converter --palette pal.png`, `tool color_reducer --field color_count=16`, `tool pixel_correction`; `pixelate` (`rd_pro__pixelate`, $0.18) turns any raster into native pixel art.
+- `pixel_art_generator.py` survives only for the SVG `<rect>` mascot path (Pipeline 4).
 
-See `references/video-to-spritesheet.md` for practitioner workflows and engine integration.
+## Pipeline 4: SVG characters and GSAP mascots
 
-## Pipeline 3: SVG Character Generation
+Gemini SVG-as-code for clean vectors (`references/gemini-svg-generation.md`); `pixel_art_generator.py --grid 16-24 --colors 4-6 --merge` for rect-based pixel mascots (`references/pixel-art-svgs.md`); `animation_builder.py --preset idle|bounce|lean|wave|walk|walk-and-bounce|walk-and-wave|typing` for GSAP timelines (`references/gsap-timeline-patterns.md`, `references/ayotomcs-deconstruction.md`); `generate_walk_video.py sheet.png --cols 6 --name robot` for lil-agents HEVC-alpha dock videos (`references/lil-agents-character-spec.md`). Trim AI images first: `magick in.png -fuzz 15% -trim +repage out.png`.
 
-Two approaches depending on the output needed:
+## Pipeline 5: ASCII
 
-**Gemini SVG-as-code** — Clean, hand-editable vector SVGs with CSS custom properties. Gemini 3.1 Pro writes raw XML, not traced raster. Use for icons, logos, simple characters, interactive SVGs. Generate via nano-banana-pro with a prompt requesting SVG XML output. See `references/gemini-svg-generation.md`.
+`image_to_ascii.py img.png --mode gray|color|jp2a --width 80` for static art (`references/ascii-art-techniques.md`); frame-based React components and the asciistudio catalog in `references/ascii-animation-components.md` and `references/animated-ascii-sprites.md`; template `assets/ascii-animation-template.tsx`.
 
-**Pixel-art rect SVGs** — Retro pixel-art characters built entirely from `<rect>` elements. Use when targeting GSAP animation or the ayotomcs-style mascot aesthetic.
+## Profiles (`pipelines/`)
 
-```bash
-magick input.png -fuzz 15% -trim +repage /tmp/trimmed.png
-python3 scripts/pixel_art_generator.py /tmp/trimmed.png --grid 20 --colors 4 --merge --remove-bg -o char.svg
-```
+A profile (`pipelines/schema.json`) is an ordered list of stages over these scripts with `${var}` substitution. `run_pipeline.py profile.json [--dry-run] [--yes] [--stage name] [--from name] [--force]` writes `<output_root>/run/<id>/manifest.json` with per-stage commands and input/output sha256 and skips unchanged stages. `pipelines/example.json` is the generic character profile; project profiles live in their repos (Open Rebellion: `references/pipelines/open-rebellion.md`).
 
-Design constraints for animatable pixel-art characters:
-- **Standing pose, side view** — legs must be distinct blocks so walk cycle `scaleY` squash works on them independently
-- **4-6 colors max** — fewer colors produces cleaner quantization and more iconic, readable sprites at small sizes
-- **Symmetric body parts** — left/right hand and leg pairs enable GSAP alternating animation without per-frame redrawing
-- **Grid size 16-24** — below 16 the character loses recognizable features; above 24 it stops reading as pixel art
+## Provider matrix (short)
 
-See `references/pixel-art-svgs.md` for the rect conversion technique.
+| Need | Use | Alpha |
+|---|---|---|
+| Pixel still / identity | RD `rd_pro__default` + `--ref` (<= 9), $0.18 | `--remove-bg` |
+| 8 directions, pixel | RD `rotate8`, $0.25 | yes |
+| Animate a start frame | RD `animate --action walking|idle|attack|jump|crouch|custom_action` | key on `--matte` |
+| HD anchor / edits | `openai/gpt-image-2.5/sunburst[/edit]` via `gen_image.py` | yes |
+| Many typed refs | `fal-ai/nano-banana-2/edit` | no, chroma |
+| Loops | `alibaba/wan-3.0/image-to-video` first+last | no, chroma |
+| Identity-critical clip | `fal-ai/kling-video/v3/pro/image-to-video` `@Element1` | no, chroma |
 
-## Pipeline 4: ASCII Art
-
-Two sub-modes: **static** (image-to-ASCII conversion) and **animated** (frame-based ASCII animation components).
-
-### Static — Image to ASCII
-
-Convert images to terminal-renderable character art.
-
-```bash
-# Grayscale density ramp
-python3 scripts/image_to_ascii.py photo.png --mode gray --width 80
-
-# Color Unicode half-block (▀▄█)
-python3 scripts/image_to_ascii.py photo.png --mode color --width 120
-
-# jp2a wrapper (if installed)
-python3 scripts/image_to_ascii.py photo.png --mode jp2a --width 80
-```
-
-See `references/ascii-art-techniques.md` for character sets, density ramps, and color modes.
-
-### Animated — Frame-Based ASCII Animation Components
-
-Generate React components that cycle through ASCII art frames at a target FPS. Output: TSX component with frame array, animation loop, APPEARANCE config, and ResizeObserver scaling. Distributable via shadcn registry.
-
-Use when the user wants: animated ASCII art, terminal-style loading animations, retro text effects in a React app, ASCII art that moves.
-
-**Existing catalog** (install via shadcn from asciistudio.space): Lightning, Skull, Pitstop, Red Fire, CD, Balls, Star, Rainbow Fire, Hand Fire, Dust. Install: `npx shadcn@latest add https://asciistudio.space/r/<name>.json`
-
-**Generating new animations**: See `references/ascii-animation-components.md` for the component architecture, APPEARANCE config (video/gradient/burn effects), character sets, and generation guidelines. For programmatic patterns (particles, waves, fire), write a frame generator rather than hand-crafting each frame.
-
-## Pipeline 5: Animated Mascot
-
-The ayotomcs-derived pipeline. Convert images to pixel-art SVG characters and animate with GSAP timelines.
-
-```bash
-# Generate SVG
-python3 scripts/pixel_art_generator.py trimmed.png --grid 24 --colors 6 --merge --remove-bg -o mascot.svg
-
-# Add animation preset
-python3 scripts/animation_builder.py --preset walk-and-bounce --svg-id mascot
-
-# Assemble standalone HTML demo
-python3 scripts/animation_builder.py --preset walk-and-bounce --svg-id mascot --standalone -o mascot.html
-```
-
-**Presets**: `idle`, `bounce`, `lean`, `wave`, `walk`, `walk-and-bounce`, `walk-and-wave`, `typing`
-
-**Output formats**: `standalone` (HTML + GSAP CDN), `react` (TSX component), `svg-only` (SMIL fallback)
-
-**Frame-by-frame**: For complex choreography, generate N SVG frames as `<g>` groups, then use `generate_frame_switcher()` from `animation_builder.py` with variable timing.
-
-### lil-agents Dock Companion
-
-Generate transparent HEVC walk cycle videos for the lil-agents macOS dock app:
-
-```bash
-python3 scripts/generate_walk_video.py spritesheet.png --cols 6 --name robot
-# Output: walk-robot-01.mov (1080x1920, HEVC with alpha, ~10s)
-```
-
-See `references/lil-agents-character-spec.md` for the full format spec and `references/gsap-timeline-patterns.md` for animation recipes.
-
-## Model Selection Guide
-
-| Task | Best Model | Why |
-|------|-----------|-----|
-| Identity preservation (anchor) | GPT Image 1.5 | Best at maintaining character features across edits |
-| Direction sheets (N/E/S/W) | Nano Banana 2 | Good isometric style, cheaper, fast |
-| True transparent background | GPT Image 1.5 | Only model that reliably produces alpha |
-| Walk cycle animation | Veo 3.1 (video) | Image models have zero temporal coherence |
-| Clean vector SVG | Gemini 3.1 Pro | Writes SVG as code, not traced raster |
-| Pixel-art reference image | Nano Banana Pro | Good at retro game art styles |
+Full table, prices, setup commands and PixelLab notes: `references/provider-matrix.md`. Setup: `genmedia` CLI (`curl https://genmedia.sh/install -fsS | bash`, then `genmedia setup --non-interactive --api-key "$FAL_KEY"`), `RETRODIFFUSION_API_KEY` in `~/.config/env/secrets.env`; optional RD MCP `claude mcp add --transport http retro-diffusion https://mcp.retrodiffusion.ai/mcp --header "Authorization: Bearer rdpk-..."`.
 
 ## Gotchas
 
-**ImageMagick trim is mandatory.** AI-generated images have large white borders. Without `magick -fuzz 15% -trim`, the character occupies <10% of the grid. Always trim before converting.
-
-**Nano Banana can't do true transparency.** Use chroma key `#00FF00` green and remove with `chroma_key.py`. Do NOT use magenta — it contaminates warm costume colors. See `references/chroma-key-transparency.md`.
-
-**Never generate all 8 isometric directions at once.** Results are inconsistent. Generate 4 cardinals, then derive diagonals from anchor + cardinals.
-
-**Walk animation requires standing characters.** Auto-grouping puts bottom 30% of rects into `legs`. For sitting characters, use `idle` or `bounce` presets.
-
-**SVG id required for GSAP.** Add `id="mascot"` to the root `<svg>` before animation.
-
-**Near-white quantization.** JPEG sources produce near-white colors that background removal misses. Use `--colors 4` or PNG sources with true transparent backgrounds.
+- **Feet line, not bbox.** Halos and shadows move the bbox; `align_frames.py` scans for the lowest row with >= 5% solid width. Check `feet_line_variance < 1`.
+- **One matte per clip.** Chroma-key video frames with one setting; per-frame `rembg` flickers (`perimeter_cv > 0.15`).
+- **RD limits.** Styles cap at 384 px, animations at 256 and must match the start frame; `input_image` must be RGB without alpha (scripts composite onto `--matte`); `negative` is ignored; never write "pixel art" in RD prompts; balance is charged before generation.
+- **genmedia.** Use `--async` for anything over ~5 s (the video script does); verify endpoint ids and field names with `genmedia models` / `genmedia schema`; the GPT Image 2.5 endpoint spelling came from a third-party commit.
+- **Nano Banana 2 still has no alpha**; GPT Image 2.5 and RD do. Never key magenta on warm costumes.
+- **Manifest v2 pastes at cell origin**; use `--fit scale` only for legacy sheets that need centring.
+- **Pixel art through the aligner**: `--no-scale`, and the scaler uses nearest below 256 px.
+- **Turnarounds:** cardinals, then diagonals; diagonals come out shorter, so never skip the align step.
 
 ## Dependencies
 
-- **Pillow**: `uv pip install Pillow` (all pipelines)
-- **ImageMagick 7**: Pre-processing (`magick -trim`, `-fuzz`)
-- **ffmpeg**: Video frame extraction (Pipeline 2)
-- **rembg**: Background removal (optional, `uv pip install rembg`)
-- **jp2a**: ASCII art (optional, `brew install jp2a`)
-- **GSAP 3**: Via CDN in standalone HTML templates (Pipeline 5)
-- **nano-banana-pro skill**: AI image generation/editing
+Pillow (numpy optional, speeds `pixel_scale.py`), ffmpeg, ImageMagick 7, `genmedia` CLI (fal), `rembg` (stills only), jp2a (optional), GSAP 3 via CDN. Keys: `FAL_KEY`, `RETRODIFFUSION_API_KEY` (loaded by `scripts/_secrets.py` from env or `~/.config/env/secrets.env`).
 
 ## Reference
 
-- `references/isometric-turnaround.md` — Chongdashu 8-way turnaround prompts and methodology
-- `references/chroma-key-transparency.md` — Model-specific transparency handling
-- `references/video-to-spritesheet.md` — Video-first animation workflow
-- `references/gemini-svg-generation.md` — Gemini SVG-as-code prompt patterns
-- `references/ascii-art-techniques.md` — ASCII/Unicode art techniques
-- `references/ascii-animation-components.md` — Frame-based ASCII animation React components (shadcn pattern)
-- `references/sprite-generation-landscape.md` — Tool comparison (SEELE, Ludo, SpriteCook, etc.)
-- `references/pixel-art-svgs.md` — Pixel grid to SVG rect conversion
-- `references/gsap-timeline-patterns.md` — GSAP animation recipes
-- `references/ayotomcs-deconstruction.md` — Original ayotomcs.me reference deconstruction
-- `references/lil-agents-character-spec.md` — lil-agents video format spec
+- `references/provider-matrix.md`, `references/landscape-2026-09.md` — endpoints, prices, what changed
+- `references/turnaround.md`, `references/video-to-spritesheet.md`, `references/frame-alignment.md`, `references/chroma-key-transparency.md` — pipeline details
+- `references/gemini-svg-generation.md`, `references/pixel-art-svgs.md`, `references/gsap-timeline-patterns.md`, `references/ayotomcs-deconstruction.md`, `references/lil-agents-character-spec.md` — SVG and mascot
+- `references/ascii-art-techniques.md`, `references/ascii-animation-components.md`, `references/animated-ascii-sprites.md` — ASCII
+- `references/pipelines/open-rebellion.md` — project profile pointer
+- `tests/test_deterministic.py` — run `python3 tests/test_deterministic.py`
