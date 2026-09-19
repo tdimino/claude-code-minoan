@@ -1,6 +1,6 @@
 # Codex Orchestrator
 
-> Last updated: 2026-09-04 | Codex CLI v0.153.3 | Models: GPT-6-Astra + GPT-5.6 / GPT-5.5 families
+> Last updated: 2026-09-19 | Codex CLI v0.155.1 | Models: GPT-6-Astra + GPT-5.6 / GPT-5.5 families
 
 Spawn specialized OpenAI Codex CLI subagents for focused development tasks. Each profile is passed as process-local developer instructions, so the project's existing `AGENTS.md` hierarchy remains intact.
 
@@ -247,15 +247,23 @@ wait
 
 Personas are process-local, so multiple instances can run in the same directory without touching `AGENTS.md`. Continue to serialize writers that edit overlapping project files, or isolate them with worktrees.
 
-For direct `codex exec` calls (not through the wrapper scripts), use `script(1)` manually:
+Inside Codex's own `exec_command` tool the command already has a PTY, so the wrapper is skipped automatically; `tty:true` there is not a fix for missing output.
+
+For direct `codex exec` calls (not through the wrapper scripts), use `script(1)` manually and terminate options with `--`:
 
 ```bash
 # macOS
-script -q /dev/null codex exec --skip-git-repo-check "prompt" </dev/null
+script -q /dev/null codex exec --skip-git-repo-check -- "prompt" </dev/null
 
 # Linux
-script -qfc 'codex exec --skip-git-repo-check "prompt" </dev/null' /dev/null
+script -qfc 'codex exec --skip-git-repo-check -- "prompt" </dev/null' /dev/null
 ```
+
+Argv rules that the launchers already follow:
+
+- `-i/--image <FILE>...` is variadic (and comma-split). Directly before the prompt it consumes the prompt as another image path; Codex then reads stdin, finds nothing, and exits 1 with `No prompt provided via stdin.` Put `--` before the prompt.
+- With `resume`, pass `-i` after the subcommand (`codex exec <opts> resume --last -i shot.png -- "prompt"`); a parent-level `-i` before `resume` swallows the word `resume`.
+- Keep `</dev/null`. With a prompt present and non-terminal stdin, Codex logs `Reading additional input from stdin...` and appends any bytes as a `<stdin>` block. Immediate EOF makes that harmless; an open pipe hangs ([openai/codex#27019](https://github.com/openai/codex/issues/27019)).
 
 ## Goal Runs
 
@@ -339,7 +347,7 @@ Every ExecPlan includes:
 | `--web-search` | Enable Exa web search (appends guide to process-local persona) |
 | `--search` | Enable native Codex web search (works in all sandboxes) |
 | `--json` | Output raw JSONL event stream (pipe to jq, logs, etc.) |
-| `--image <file>` | Attach image to prompt (vision input) |
+| `--image <file>` | Attach image to prompt (vision input); emitted after `resume` and before `--` so the variadic `-i` cannot swallow the prompt |
 | `--resume` | Resume previous exec session (builder "continue" workflow) |
 | `--no-cleanup` | Preserve output temp file after exit (prints path to stderr) |
 | `--with-mcp` | Keep global MCP servers enabled (no-op, kept for compatibility) |
@@ -452,9 +460,10 @@ ls ./agents/
 
 ### "Codex produced no output"
 
-The researcher/adjudicator/chat profiles capture output to a temp file. Common causes:
+The researcher/adjudicator/chat profiles capture output to a temp file. When it stays empty the launcher prints the last diagnostic lines from Codex (stderr, PTY-merged log lines, and JSONL error events) before the warning; read those first. Common causes:
+- **Prompt never reached Codex** (`Reading prompt from stdin...` / `No prompt provided via stdin.`): `-i` was placed directly before the prompt and consumed it. Fixed on 2026-09-19 (Codex CLI 0.155.1); the launcher now emits `-i` after `resume` and terminates options with `--`. Codex 0.155.x did not change PTY handling or prompt forwarding, so this symptom is never a TTY problem.
 - **stderr bleed through PTY wrapper**: `script(1)` merges stderr (error logs, control chars) into stdout, corrupting the JSON stream. Fixed in v0.137.0 support by filtering non-JSON lines (`grep '^{'`) before `jq`. If you still see this, ensure your `codex-exec.sh` is current.
-- **TTY detachment**: Codex CLI v0.124.0+ silently crashes when backgrounded without a TTY. `codex-exec.sh` auto-wraps with `script(1)` — verify your Codex version (`codex --version`).
+- **TTY detachment**: Codex CLI v0.124.0+ silently crashes when backgrounded without a TTY. `codex-exec.sh` auto-wraps with `script(1)`; this only applies to hand-written background launches.
 - Codex session too short to produce a response
 - Empty model response (retry)
 - Missing `jq` (install via `brew install jq`)

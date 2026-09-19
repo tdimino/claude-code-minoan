@@ -1,6 +1,6 @@
 # Codex CLI Reference
 
-> Last updated: 2026-04-21 | Covers Codex CLI through v0.122.0
+> Last updated: 2026-09-19 | Covers Codex CLI through v0.155.1
 
 Complete reference for OpenAI Codex CLI commands and options.
 
@@ -46,6 +46,23 @@ codex e "Quick task"  # alias
 ```
 
 Runs Codex without the TUI, outputs result to stdout.
+
+#### Prompt and stdin resolution (`codex-rs/exec/src/lib.rs`, `StdinPromptBehavior`)
+
+| Invocation | stdin is a terminal | stdin is piped or `/dev/null` |
+|------------|---------------------|-------------------------------|
+| No prompt argument | Error: "No prompt provided" | Reads stdin as the prompt (`Reading prompt from stdin...`); empty input exits 1 with `No prompt provided via stdin.` |
+| Prompt is `-` | Reads stdin as the prompt | Reads stdin as the prompt |
+| Prompt argument present | Ignores stdin | Reads stdin to EOF (`Reading additional input from stdin...`) and appends it as a `<stdin>` block; empty input is ignored |
+
+Consequences for launchers: always redirect `</dev/null` so the read returns immediately (an open pipe with no EOF hangs, openai/codex#27019), and always terminate options with `--` before the prompt, because `-i/--image` is variadic (`num_args = 1..`, comma-delimited) and otherwise consumes the prompt as another image path:
+
+```bash
+codex exec --skip-git-repo-check -s read-only -i shot.png -- "Describe the screenshot" </dev/null
+codex exec --skip-git-repo-check resume --last -i shot.png -- "Continue" </dev/null   # -i after the subcommand
+```
+
+Unchanged from v0.154.0 through v0.155.1 (the exec crate is byte-identical across those tags).
 
 ### Session Management
 
@@ -143,7 +160,8 @@ codex plugin install <name>            # Install a Codex plugin
 ### Other Options
 
 ```bash
--i, --image <FILE>                     # Attach image(s) to prompt
+-i, --image <FILE>...                  # Attach image(s) to prompt; variadic and comma-split,
+                                       # so follow it with `--` before a positional prompt
     --oss                              # Use local Ollama model
 --enable <FEATURE>                     # Enable a feature flag
 --disable <FEATURE>                    # Disable a feature flag
@@ -239,3 +257,7 @@ codex --sandbox read-only "Analyze the codebase architecture"
 | v0.122.0 | `/side` conversations | Start parallel side conversations without losing main context |
 | v0.122.0 | Plan Mode improvements | Better plan editing, approval flow, and execution tracking |
 | v0.122.0 | Deny-read glob policies | `deny_file_read_patterns` in config blocks reads of sensitive file paths |
+| v0.155.0 | `/voice` conversations | Experimental live transcripts and microphone controls via `/experimental` |
+| v0.155.0 | Touch ID for MCP | Secure Enclave user verification for MCP requests in local TUI sessions |
+| v0.155.0 | Daemon update command | `codex app-server daemon update` plus configurable update schedules |
+| v0.155.1 | TUI reasoning summary default | Only change in the release: new TUI sessions leave reasoning summaries off (#46467). No exec, stdin, or PTY changes |

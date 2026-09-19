@@ -349,6 +349,78 @@ else
     echo -e "${YELLOW}⚠ SKIP${NC}: Quick mode enabled"
 fi
 
+# Test 13: Argv ordering at the Codex boundary
+# `codex exec -i/--image <FILE>...` is variadic (clap num_args = 1..). If the
+# launcher places it directly before the prompt, the prompt is consumed as a
+# second image path and Codex exits 1 with "No prompt provided via stdin."
+# (observed 2026-09-19 on Codex CLI 0.155.1). These checks pin the shape
+# `<opts> [resume --last] [-i FILE] -- <prompt>` using a stub codex.
+echo -e "\n${YELLOW}Test 13: Argv Ordering${NC}"
+argv_test_root=$(mktemp -d "${TMPDIR:-/tmp}/codex-argv-test.XXXXXX")
+argv_fake_bin="$argv_test_root/bin"
+argv_work_dir="$argv_test_root/work"
+argv_capture="$argv_test_root/argv.txt"
+argv_image="$argv_test_root/frame.png"
+mkdir -p "$argv_fake_bin" "$argv_work_dir"
+printf '%s\n' '#!/bin/bash' 'printf '\''%s\n'\'' "$@" > "$ARGV_CAPTURE_FILE"' > "$argv_fake_bin/codex"
+chmod +x "$argv_fake_bin/codex"
+: > "$argv_image"
+
+capture_argv() {
+    rm -f "$argv_capture"
+    (
+        cd "$argv_work_dir"
+        PATH="$argv_fake_bin:$PATH" \
+        ARGV_CAPTURE_FILE="$argv_capture" \
+        CODEX_ORCHESTRATOR_SKIP_UPDATE=1 \
+            "$SKILL_DIR/scripts/codex-exec.sh" "$@" >/dev/null 2>&1
+    )
+}
+
+# Line number of the first exact match, or empty.
+argv_line_of() {
+    grep -Fxn -- "$1" "$argv_capture" | head -1 | cut -d: -f1
+}
+
+if capture_argv reviewer "vision prompt" --image "$argv_image" \
+    && [ "$(tail -n 1 "$argv_capture")" = "vision prompt" ] \
+    && [ "$(tail -n 2 "$argv_capture" | head -n 1)" = "--" ] \
+    && [ "$(sed -n "$(( $(argv_line_of '-i') + 1 ))p" "$argv_capture")" = "$argv_image" ] \
+    && [ "$(argv_line_of '-i')" -lt "$(argv_line_of '--')" ]; then
+    test_pass "--image is followed only by its path and the prompt sits after --"
+else
+    test_fail "--image ordering would let Codex consume the prompt as an image path"
+fi
+
+if capture_argv builder "continue" --resume --image "$argv_image" \
+    && [ "$(argv_line_of 'resume')" -lt "$(argv_line_of '-i')" ] \
+    && [ "$(sed -n "$(( $(argv_line_of 'resume') + 1 ))p" "$argv_capture")" = "--last" ] \
+    && [ "$(tail -n 2 "$argv_capture" | head -n 1)" = "--" ] \
+    && [ "$(tail -n 1 "$argv_capture")" = "continue" ]; then
+    test_pass "Resume places --image after the resume subcommand and the prompt after --"
+else
+    test_fail "Resume argv ordering is incorrect (image before subcommand or prompt unterminated)"
+fi
+
+if capture_argv reviewer "-starts-with-dash" \
+    && [ "$(tail -n 2 "$argv_capture" | head -n 1)" = "--" ] \
+    && [ "$(tail -n 1 "$argv_capture")" = "-starts-with-dash" ] \
+    && ! grep -Fxq -- '-i' "$argv_capture"; then
+    test_pass "Prompts are always terminated by -- and no image flag is emitted without --image"
+else
+    test_fail "Prompt without --image is not terminated by -- or a stray -i was emitted"
+fi
+
+if capture_argv reviewer "missing image" --image "$argv_test_root/absent.png"; then
+    test_fail "codex-exec.sh launched Codex with a nonexistent --image path"
+elif [ ! -f "$argv_capture" ]; then
+    test_pass "codex-exec.sh rejects a missing --image path before launching Codex"
+else
+    test_fail "codex-exec.sh invoked Codex despite a missing --image path"
+fi
+
+rm -rf "$argv_test_root"
+
 # Summary
 echo -e "\n${BLUE}=== Test Summary ===${NC}"
 echo -e "Passed: ${GREEN}$TESTS_PASSED${NC}"

@@ -158,6 +158,7 @@ cmd_draft() {
         --model "$model" \
         -c "developer_instructions=$goal_instructions" \
         -c "model_reasoning_effort=\"$reasoning\"" \
+        -- \
         "Read the project at $(pwd) and create a goal specification for: $objective. Write the goal file to $abs_output." \
         </dev/null
     local exit_code=$?

@@ -316,12 +316,23 @@ fi
 # Auto-configure read-only profiles
 EPHEMERAL=""
 OUTPUT_FILE=""
+STDERR_FILE=""
+RAW_FILE=""
 EXTRACT_RESPONSE=""
 OUTPUT_DISPLAYED=""
 if [ "$PROFILE" = "researcher" ] || [ "$PROFILE" = "adjudicator" ] || [ "$PROFILE" = "chat" ]; then
     SANDBOX="read-only"
     EPHEMERAL="--ephemeral"
     OUTPUT_FILE=$(mktemp /tmp/codex-researcher-XXXXXXXX)
+    # Codex's own stderr (startup banner, "Reading prompt from stdin...",
+    # auth and model errors) is kept here and shown only when the run yields
+    # nothing, so a failed launch explains itself instead of printing a bare
+    # "no output" warning.
+    STDERR_FILE=$(mktemp /tmp/codex-researcher-stderr-XXXXXXXX)
+    # Under the script(1) PTY wrapper Codex's stderr is merged into the PTY
+    # stream, so the raw stdout is also kept and its non-JSON lines are
+    # reported alongside STDERR_FILE.
+    RAW_FILE=$(mktemp /tmp/codex-researcher-raw-XXXXXXXX)
     # Use --json + jq to extract only agent_message text, avoiding the noise
     # from intermediate file reads that -o captures.
     # Skip if user explicitly requested --json (they want raw JSONL).
@@ -388,16 +399,23 @@ cleanup() {
             rm -f "$OUTPUT_FILE"
         fi
     fi
+    if [ -n "$STDERR_FILE" ]; then
+        if [ -n "$SKIP_OUTPUT_CLEANUP" ]; then
+            echo "STDERR_FILE=$STDERR_FILE" >&2
+        else
+            rm -f "$STDERR_FILE"
+        fi
+    fi
+    [ -n "$RAW_FILE" ] && rm -f "$RAW_FILE"
+    return 0
 }
 trap cleanup EXIT INT TERM HUP
 
 # Build codex command as array to preserve quoting
 # --skip-git-repo-check allows running in directories not in Codex's trusted list
-if [ -n "$RESUME_SESSION" ]; then
-    CODEX_ARGS=(exec --skip-git-repo-check --sandbox "$SANDBOX")
-else
-    CODEX_ARGS=(exec --skip-git-repo-check --sandbox "$SANDBOX")
-fi
+# The resume subcommand is appended later (see LAUNCH_ARGS), so the base
+# argv is the same for fresh and resumed runs.
+CODEX_ARGS=(exec --skip-git-repo-check --sandbox "$SANDBOX")
 if [ -n "$MODEL" ]; then
     CODEX_ARGS+=(--model "$MODEL")
 fi
@@ -437,9 +455,20 @@ fi
 if [ -n "$JSON_OUTPUT" ] && [ -z "$EXTRACT_RESPONSE" ]; then
     CODEX_ARGS+=(--json)
 fi
-# Vision input (image attachment)
+# Vision input (image attachment). Kept out of CODEX_ARGS on purpose:
+# `codex exec -i/--image <FILE>...` is a clap option with num_args = 1.., so
+# every bare token after it is consumed as another image path. Placed before
+# the prompt it swallows the prompt (Codex then reads stdin, finds nothing,
+# and exits 1 with "No prompt provided via stdin."); placed before the
+# `resume` subcommand it swallows the word "resume". The launch lines below
+# put IMAGE_ARGS after `resume` and terminate options with `--`.
+IMAGE_ARGS=()
 if [ -n "$IMAGE_FILE" ]; then
-    CODEX_ARGS+=(-i "$IMAGE_FILE")
+    if [ ! -f "$IMAGE_FILE" ]; then
+        echo -e "${RED}Error: --image file not found: $IMAGE_FILE${NC}"
+        exit 1
+    fi
+    IMAGE_ARGS=(-i "$IMAGE_FILE")
 fi
 # Note: MCP servers from ~/.codex/config.toml always boot (CLI merge semantics
 # prevent clearing via -c override). Remove unused servers from config.toml to
@@ -482,31 +511,41 @@ if ! command -v codex >/dev/null 2>&1; then
 fi
 
 # Run Codex with the per-process profile plus the untouched project AGENTS chain.
+#
+# Argv shape (see IMAGE_ARGS above for why the order matters):
+#   fresh:  codex exec <opts> [-i FILE] -- "<prompt>"
+#   resume: codex exec <opts> resume --last [-i FILE] -- "<prompt>"
+# `--` ends option parsing so the variadic -i can never absorb the prompt and
+# prompts that begin with "-" are passed through verbatim. `</dev/null` gives
+# Codex an immediate EOF on stdin; with a prompt present it logs "Reading
+# additional input from stdin..." and continues, which is expected.
+LAUNCH_ARGS=("${CODEX_ARGS[@]}")
+if [ -n "$RESUME_SESSION" ]; then
+    LAUNCH_ARGS+=(resume --last)
+fi
+LAUNCH_ARGS+=("${IMAGE_ARGS[@]}" -- "$PROMPT")
+
 set +e
 if [ -n "$EXTRACT_RESPONSE" ]; then
     # JSONL mode: pipe through jq to extract only agent_message text.
     # This filters out intermediate tool calls (file reads, command executions)
     # that would otherwise bury the actual response in thousands of lines.
     # grep '^{' filters non-JSON lines (control chars, stderr bleed from script(1) PTY wrapper).
-    if [ -n "$RESUME_SESSION" ]; then
-        _with_pty codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null 2>/dev/null \
-            | tr -d '\r' \
-            | grep '^{' \
-            | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
-            > "$OUTPUT_FILE"
-    else
-        _with_pty codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null 2>/dev/null \
-            | tr -d '\r' \
-            | grep '^{' \
-            | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
-            > "$OUTPUT_FILE"
-    fi
+    _with_pty codex "${LAUNCH_ARGS[@]}" </dev/null 2>"$STDERR_FILE" \
+        | tr -d '\r' \
+        | tee "$RAW_FILE" \
+        | grep '^{' \
+        | jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text // empty' \
+        > "$OUTPUT_FILE"
     CODEX_EXIT=${PIPESTATUS[0]}
-elif [ -n "$RESUME_SESSION" ]; then
-    _with_pty codex "${CODEX_ARGS[@]}" resume --last "$PROMPT" </dev/null
-    CODEX_EXIT=$?
+elif [ -n "$OUTPUT_FILE" ]; then
+    # -o fallback (jq missing, or --json requested on a captured profile):
+    # stdout and stderr still stream to the caller, but copies are kept so the
+    # no-output diagnostics below work on this path too.
+    _with_pty codex "${LAUNCH_ARGS[@]}" </dev/null 2> >(tee "$STDERR_FILE" >&2) | tee "$RAW_FILE"
+    CODEX_EXIT=${PIPESTATUS[0]}
 else
-    _with_pty codex "${CODEX_ARGS[@]}" "$PROMPT" </dev/null
+    _with_pty codex "${LAUNCH_ARGS[@]}" </dev/null
     CODEX_EXIT=$?
 fi
 set -e
@@ -526,8 +565,23 @@ if [ -n "$OUTPUT_FILE" ]; then
     else
         echo ""
         echo -e "${RED}Warning: Codex produced no output (exit code $CODEX_EXIT).${NC}"
-        echo -e "${YELLOW}Possible causes: TTY detachment (background execution), empty model response, or session too short.${NC}"
-        echo -e "${YELLOW}If backgrounded, codex-exec.sh auto-wraps with script(1) — check Codex CLI version (v0.124.0+ required).${NC}"
+        # Codex diagnostics: stderr when codex ran directly, or the non-JSON
+        # lines of the PTY stream when script(1) merged stderr into stdout.
+        # With --json, Codex reports failures as JSONL error events; surface
+        # their messages too, since the jq filter above keeps only agent text.
+        DIAG_LINES="$( {
+            [ -n "$STDERR_FILE" ] && tr -d '\r' < "$STDERR_FILE"
+            [ -n "$RAW_FILE" ] && grep -v '^{' "$RAW_FILE"
+            [ -n "$RAW_FILE" ] && command -v jq >/dev/null 2>&1 && grep '^{' "$RAW_FILE" \
+                | jq -r 'select(.type == "error" or .type == "turn.failed" or (.type == "item.completed" and .item.type == "error"))
+                         | "codex: " + (.message // .error.message // .item.message // tostring)'
+        } 2>/dev/null | grep -v '^[[:space:]]*$' | tail -n 15 )"
+        if [ -n "$DIAG_LINES" ]; then
+            echo -e "${YELLOW}Last lines from Codex:${NC}"
+            printf '%s\n' "$DIAG_LINES" | sed 's/^/  /'
+        fi
+        echo -e "${YELLOW}Possible causes: Codex rejected the launch (see stderr above: prompt not received, auth, or model errors), empty model response, or session too short.${NC}"
+        echo -e "${YELLOW}Background launches are already wrapped with script(1); a missing TTY is rarely the cause when stderr shows a Codex banner.${NC}"
         exit 1
     fi
 fi

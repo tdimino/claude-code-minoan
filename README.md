@@ -95,6 +95,8 @@ Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggl
 
 **Parallel-safe Codex personas**: `codex-orchestrator` passes each role through per-invocation `developer_instructions` while leaving Codex's global, repository, and nested `AGENTS.md` chain untouched. Independent read-only agents can fan out immediately; agents that write overlapping files should still run serially or in separate worktrees.
 
+**Codex argv hygiene (2026-09-19)**: `codex exec -i/--image` is variadic, so the launchers now emit it after `resume` and terminate options with `--` before the prompt; captured-output profiles print Codex's own diagnostics when a run yields nothing. Codex CLI 0.155.x did not change PTY or prompt handling.
+
 > **Claude 4.6 Prompting Alignment (Feb 2026)**: All agentic skills (`minoan-swarm`, `super-ralph-wiggum`, `firecrawl`, `claude-agent-sdk`, `skill-optimizer`) updated to follow [Anthropic's Claude 4.6 prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)—softer tool-use language, factual quality criteria over motivational framing, effort parameter guidance, structured state management.
 
 ---

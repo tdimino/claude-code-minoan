@@ -44,6 +44,18 @@
         "Passes --service-tier default or relies on the launcher's documented default",
         "Does not use service_tier=priority as a Codex CLI config value"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Have Astra medium review /tmp/mockup.png for UX issues and report back.",
+      "expected_output": "The orchestrator launches the reviewer persona on GPT-6-Astra at medium reasoning with the screenshot attached through the launcher's --image option, and reads the captured response.",
+      "expectations": [
+        "Uses scripts/codex-astra.sh (or codex-exec.sh --astra) with the reviewer profile",
+        "Attaches the screenshot with --image /tmp/mockup.png rather than asking Codex to open it from the prompt text",
+        "Sets reasoning to medium",
+        "Does not hand-write a codex exec command that places -i directly before the prompt without a -- terminator",
+        "If the launcher reports no output, reads the printed stderr tail before retrying"
+      ]
     }
   ]
 }

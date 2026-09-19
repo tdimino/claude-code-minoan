@@ -270,15 +270,23 @@ Codex CLI v0.124.0+ requires a controlling TTY. When run with shell `&` or Claud
 
 `codex-exec.sh` and `codex-goal.sh` automatically detect non-TTY contexts and wrap `codex exec` with `script(1)` to re-attach a pseudo-TTY. No user action is required.
 
+Inside Codex's own `exec_command` tool the command already has a PTY, so the wrapper stays out of the way; requesting `tty:true` there changes nothing and is not a fix for missing output.
+
 For direct `codex exec` calls (not through `codex-exec.sh`), wrap manually:
 
 ```bash
 # macOS
-script -q /dev/null codex exec --skip-git-repo-check "prompt" </dev/null
+script -q /dev/null codex exec --skip-git-repo-check -- "prompt" </dev/null
 
 # Linux
-script -qfc 'codex exec --skip-git-repo-check "prompt" </dev/null' /dev/null
+script -qfc 'codex exec --skip-git-repo-check -- "prompt" </dev/null' /dev/null
 ```
+
+### Argv rules for direct `codex exec` calls
+
+- End options with `--` before the prompt. `-i/--image <FILE>...` is variadic: placed right before the prompt it consumes the prompt as another image path, Codex then reads stdin, finds nothing, and exits 1 with `No prompt provided via stdin.` `--image` also splits its value on commas.
+- With `resume`, pass `-i` after the subcommand: `codex exec <opts> resume --last -i shot.png -- "prompt"`. A parent-level `-i` before `resume` swallows the word `resume`.
+- Keep `</dev/null`. When stdin is not a terminal and a prompt is present, Codex prints `Reading additional input from stdin...` and appends whatever it reads as a `<stdin>` block; an immediate EOF makes that a harmless one-liner, while an open pipe hangs forever (openai/codex#27019).
 
 Personas are passed with `-c developer_instructions=...`; multiple `codex-exec.sh` instances can run in the same directory without changing or serializing around `AGENTS.md`. Still serialize agents that write overlapping project files, or give them separate worktrees.
 
@@ -372,7 +380,7 @@ See `references/goal-command.md` for the full `/goal` command reference.
 | `--web-search` | Enable Exa web search (appends guide to process-local persona) |
 | `--search` | Enable native Codex web search (model-level tool, works in all sandboxes) |
 | `--json` | Output JSONL event stream (pipe to jq, logs, etc.) |
-| `--image <file>` | Attach image to prompt (vision input) |
+| `--image <file>` | Attach image to prompt (vision input); the launcher emits it after `resume` and before `--` so the variadic `-i` cannot swallow the prompt |
 | `--resume` | Resume previous exec session (builder "continue" workflow) |
 | `--with-mcp` | (no-op, kept for compatibility; manage MCPs in ~/.codex/config.toml) |
 | `--api` | Use OpenAI API directly (API billing, not Codex subscription) |
@@ -497,8 +505,10 @@ ls ~/.claude/skills/codex-orchestrator/agents/
 ```
 
 ### "Codex produced no output"
-The researcher/adjudicator/chat profiles capture output to a temp file. If Codex exits without writing to it, the script warns and exits 1. Common causes:
-- **TTY detachment (most common)**: Codex CLI v0.124.0+ silently crashes when backgrounded without a TTY. `codex-exec.sh` auto-wraps with `script(1)` — verify your Codex version (`codex --version`). Longer prompts increase failure rate.
+The researcher/adjudicator/chat profiles capture output to a temp file. If Codex exits without writing to it, the script prints the last diagnostic lines from Codex (stderr, PTY-merged log lines, and JSONL error events), warns, and exits 1. Read those lines first; they name the cause. Common causes:
+- **Prompt never reached Codex**: stderr shows `Reading prompt from stdin...` then `No prompt provided via stdin.` This was the 2026-09-19 failure: `--image` was emitted directly before the prompt and the variadic `-i` consumed it. The launcher now places `-i` after `resume` and terminates options with `--`; if you see this from a hand-written `codex exec`, apply the argv rules above. Codex CLI 0.155.x did not change PTY handling or prompt forwarding, so do not reach for TTY workarounds on this symptom.
+- **Auth or model errors**: stderr shows the Codex banner followed by an API error. Retry or fix credentials.
+- **TTY detachment**: Codex CLI v0.124.0+ silently crashes when backgrounded without a TTY. `codex-exec.sh` auto-wraps with `script(1)`, so this only applies to hand-written background launches.
 - Codex session too short to produce a response
 - Model returned empty response (retry)
 - Profile instructions were rejected by an outdated Codex CLI (update Codex and retry)
