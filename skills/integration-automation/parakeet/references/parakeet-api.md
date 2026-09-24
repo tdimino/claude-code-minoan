@@ -1,179 +1,105 @@
-# Parakeet API Reference
+# MLX Speech-to-Text API Reference
 
-Technical reference for the Parakeet Dictate transcription engine.
+Engines used by `scripts/batch_transcribe.py`. Verified against parakeet-mlx 0.5.2,
+mlx-audio 0.5.5–0.5.6, and mlx 0.32.2 on an M4 Max (2026-09-24).
 
-## Location
+## Default Models
 
-```
-/Users/tomdimino/Programming/parakeet-dictate/
-├── src/
-│   ├── audio.py        # Audio capture and file loading
-│   ├── transcriber.py  # Parakeet model wrapper
-│   └── config.py       # Configuration management
-├── .venv/              # Python virtual environment
-└── requirements.txt    # Dependencies
-```
+| Engine | Repo | Disk | Notes |
+|--------|------|------|-------|
+| parakeet | `mlx-community/parakeet-tdt-0.6b-v2` | 2.5 GB (fp32 weights, bf16 at runtime) | English; beats v3 on English (Open ASR avg 5.48 vs ~6.3) |
+| qwen3 | `mlx-community/Qwen3-ASR-1.7B-8bit` | 2.5 GB | Best open-weight model on Open ASR (4.95); hotword biasing |
 
-## Audio Module (`src/audio.py`)
+Alternates: `mlx-community/parakeet-tdt-0.6b-v3` (25 European languages),
+`mlx-community/Qwen3-ASR-1.7B-bf16` / `-4bit`. Pass with `--parakeet-model` / `--qwen3-model`.
 
-### `load_audio_file(filepath, target_sample_rate=16000)`
-
-Load an audio file and convert to format expected by Parakeet.
-
-**Arguments:**
-- `filepath` (str | Path): Path to audio file
-- `target_sample_rate` (int): Target sample rate (default 16000Hz)
-
-**Returns:**
-- `np.ndarray`: Float32 audio array at target sample rate
-
-**Supported Formats:**
-- `.wav` - Waveform Audio
-- `.mp3` - MPEG Audio Layer III
-- `.m4a` - MPEG-4 Audio (AAC)
-- `.flac` - Free Lossless Audio Codec
-- `.ogg` - Ogg Vorbis
-- `.aac` - Advanced Audio Coding
-
-**Example:**
-```python
-from src.audio import load_audio_file
-
-audio = load_audio_file("interview.mp3")
-print(f"Duration: {len(audio) / 16000:.1f}s")
-```
-
-### `AudioRecorder`
-
-Record audio from the microphone.
-
-**Methods:**
-- `start_recording()` - Begin capturing audio
-- `stop_recording() -> np.ndarray` - Stop and return audio
-- `cleanup()` - Release resources
-
-**Example:**
-```python
-from src.audio import AudioRecorder
-
-recorder = AudioRecorder()
-recorder.start_recording()
-# ... wait for user input ...
-audio = recorder.stop_recording()
-recorder.cleanup()
-```
-
-### `save_audio_to_file(audio, filepath, sample_rate=16000, channels=1)`
-
-Save audio array to WAV file.
-
-**Arguments:**
-- `audio` (np.ndarray): Float32 audio array
-- `filepath` (str): Output file path
-- `sample_rate` (int): Sample rate in Hz
-- `channels` (int): Number of channels
-
-## Transcriber Module (`src/transcriber.py`)
-
-### `get_transcriber() -> Transcriber`
-
-Get the global transcriber singleton.
-
-### `Transcriber`
-
-Wrapper around NVIDIA Parakeet TDT model.
-
-**Methods:**
-- `preload()` - Pre-load model into memory
-- `transcribe(audio) -> str` - Transcribe audio array to text
-
-**Example:**
-```python
-from src.transcriber import get_transcriber
-from src.audio import load_audio_file
-
-transcriber = get_transcriber()
-transcriber.preload()  # Optional, speeds up first transcription
-
-audio = load_audio_file("recording.wav")
-text = transcriber.transcribe(audio)
-print(text)
-```
-
-## Configuration (`src/config.py`)
-
-### `get_config() -> Config`
-
-Get the global configuration.
-
-### `Config`
-
-**Fields:**
-- `model_name` (str): Model identifier (default: `nvidia/parakeet-tdt-0.6b-v2`)
-- `sample_rate` (int): Audio sample rate (default: 16000)
-- `channels` (int): Audio channels (default: 1)
-
-**Config File Location:**
-`~/.config/parakeet-dictate/config.json`
-
-## Model Details
-
-### NVIDIA Parakeet TDT 0.6B v2
-
-- **Parameters**: ~600M
-- **Architecture**: Token-and-Duration Transducer (TDT)
-- **Speed**: 3,386x realtime factor
-- **Accuracy**: 6.05% WER (Word Error Rate)
-- **Sample Rate**: 16kHz mono
-- **Languages**: English (optimized)
-
-### Hardware Acceleration
-
-Automatically uses the best available:
-1. **MPS** (Apple Silicon) - Fastest on Mac
-2. **CUDA** (NVIDIA GPU) - Fastest on Linux/Windows
-3. **CPU** - Fallback, slower but always works
-
-## Error Handling
-
-### Common Exceptions
+## parakeet-mlx
 
 ```python
-FileNotFoundError  # Audio file not found
-ValueError         # Unsupported audio format
-RuntimeError       # Model loading or transcription failure
+import mlx.core as mx
+from parakeet_mlx import from_pretrained
+from parakeet_mlx.audio import get_logmel
+from parakeet_mlx.parakeet import Beam, DecodingConfig, Greedy
+
+model = from_pretrained("mlx-community/parakeet-tdt-0.6b-v2")      # dtype=mx.bfloat16
+# From a file (parakeet-mlx decodes with ffmpeg internally):
+result = model.transcribe("clip.wav", chunk_duration=None)          # -> AlignedResult
+# From a 16 kHz mono float32 array (what batch_transcribe.py does):
+mel = get_logmel(mx.array(audio), model.preprocessor_config)
+result = model.generate(mel, decoding_config=DecodingConfig(decoding=Beam(beam_size=4)))[0]
 ```
 
-### Example Error Handling
+`AlignedResult(text, sentences)`, `.tokens` flattens to `AlignedToken(id, text, start,
+duration, end, confidence)`. Tokens are SentencePiece pieces; a leading space starts a
+word. `AlignedSentence.confidence` is the geometric mean of its token confidences.
+
+For long audio, use `chunk_duration=120, overlap_duration=15`. `transcribe_stream()` gives a
+streaming context. CLI: `uv tool install parakeet-mlx`, then
+`parakeet-mlx file.wav --output-format json --highlight-words`.
+
+## mlx-audio Qwen3-ASR
 
 ```python
-from src.audio import load_audio_file
-from src.transcriber import get_transcriber
+from mlx_audio.stt.utils import load_model
 
-try:
-    audio = load_audio_file("audio.wav")
-    transcriber = get_transcriber()
-    text = transcriber.transcribe(audio)
-except FileNotFoundError as e:
-    print(f"File not found: {e}")
-except ValueError as e:
-    print(f"Invalid format: {e}")
-except RuntimeError as e:
-    print(f"Transcription failed: {e}")
+model = load_model("mlx-community/Qwen3-ASR-1.7B-8bit")
+out = model.generate(audio,                  # path, np.ndarray, mx.array, or a list of them
+                     language="English",     # full name only; None = auto-detect
+                                             # ("en" is NOT mapped; use qwen3_language())
+                     hotwords=["Mon Calamari", "Ackbar"],
+                     temperature=0.0)        # -> STTOutput(text, segments, language, ...)
 ```
 
-## Performance Tips
+`hotwords` are merged into the model's system prompt (`mlx_audio.stt.utils.merge_hotwords`).
+The upstream model is reported to accept about 10k tokens of context, and the biasing effect
+is not strictly predictable (QwenLM/Qwen3-ASR#106). Word timestamps need the separate
+`Qwen3-ForcedAligner-0.6B` model, which `batch_transcribe.py` does not load.
 
-1. **Pre-load the model** - Call `transcriber.preload()` before first use
-2. **Batch processing** - Model stays in memory after first load
-3. **Audio quality** - 16kHz mono is optimal; higher rates are downsampled
-4. **Short clips** - Split long recordings into <30 second chunks for faster processing
+## batch_transcribe.py JSONL Record
 
-## Dependencies
+```json
+{"path": "...", "sha256": "...", "duration_s": 1.283, "sample_rate_src": 11025,
+ "codec": "pcm_u8", "samples": 20528, "peak_dbfs": -0.4, "gain_db": -0.6,
+ "length_mismatch": false, "pad_s": 0.75, "hotwords": 0,
+ "results": {
+   "parakeet": {"model": "...", "revision": "<hf commit>", "text": "...",
+                "words": [{"w": "Stay", "start": 0.08, "end": 0.32, "conf": 0.97}],
+                "min_conf": 0.91},
+   "qwen3": {"model": "...", "revision": "...", "text": "...", "words": [], "min_conf": null,
+             "truncated": false, "echo_stripped": false}},
+ "status": "agreed | needs_listen | sfx_likely | silent | null", "similarity": 1.0}
+```
 
-Required packages (in `.venv`):
-- `nemo_toolkit[asr]>=2.0.0` - NVIDIA NeMo ASR framework
-- `torch>=2.0.0` - PyTorch with MPS support
-- `sounddevice>=0.4.6` - Audio capture
-- `soundfile>=0.12.0` - Audio file loading
-- `numpy>=1.24.0` - Array operations
+A clip that fails becomes `{"path": "...", "status": "error", "error": "<ffmpeg reason>"}`.
+`similarity` (word-level SequenceMatcher ratio) is `null` when no comparison was made
+(`silent`, `sfx_likely`, one engine). Word times are relative to the original, unpadded clip
+and are clamped to its duration. `raw_text` appears on the Qwen3 result only when
+`echo_stripped` fired.
+
+Sidecar `<out>.meta.json`: `complete`, `clips`, `counts`, `audio_s`, `load_s`,
+`transcribe_s`, `engines{name: {model, revision}}`, `params{language, beam, min_conf, pad,
+pad_under}`, `hotwords{count, sha256}`, `versions`, `script_sha256`.
+
+## Measured Behavior (351 Star Wars Rebellion WAVE resources)
+
+- Input: 276 clips are 8-bit unsigned PCM and 71 are 16-bit, all at 11,025 Hz mono, plus 4
+  that are 16-bit at 44.1 kHz. ffmpeg decodes them all with no special handling. When
+  concatenating mixed-format clips for a test, convert each one first: the ffmpeg concat
+  demuxer assumes the first file's sample format and turns the rest into noise.
+- Parakeet throughput: 351 clips (975 s of audio) in about 44 s. Per-clip ffprobe and ffmpeg
+  calls dominate, not the model.
+- Padding clips under 2 s with 0.75 s of silence lost no words on 30 short speech clips, and
+  it cut hallucinated text on short TACTICAL SFX from 23 of 42 clips to 2.
+- An empty Parakeet transcript is a strong signal that a clip is SFX. Qwen3 emits a filler
+  ("Oh.", "Whoa.", "Shh.") on nearly every SFX clip, and on TACTICAL 13056 it looped "Oh, oh,
+  oh, ..." for about 4.7 minutes up to its 8192-token default. batch_transcribe.py caps Qwen3
+  at `12 * duration_s + 32` tokens, sets `truncated` when the cap is hit, and labels a clip
+  `sfx_likely` only when Parakeet is empty and Qwen3's words are all fillers.
+- parakeet-mlx 0.5.2 `transcribe(chunk_duration=120, overlap_duration=15)` corrupted a 418 s
+  file at a chunk boundary: it dropped "Green Group reporting...", duplicated two "Task Force"
+  lines, and deleted two more. batch_transcribe.py instead cuts audio over 5 minutes at quiet
+  points about every 60 s and decodes each segment independently (0.985 word similarity to
+  per-clip ground truth).
+- MLX 0.32 streams are thread-local. A model loaded on one thread fails on another with
+  "There is no Stream(cpu, 1) in current thread", so the server runs all MLX work on a single
+  dedicated thread.

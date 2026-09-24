@@ -1,96 +1,76 @@
-#!/usr/bin/env python3
-"""Record from microphone and transcribe using Parakeet TDT 0.6B.
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11,<3.14"
+# dependencies = [
+#     "parakeet-mlx>=0.5.2",
+#     "mlx-audio>=0.5.5",
+#     "numpy>=1.26",
+# ]
+# ///
+"""Record from the default microphone until Enter, then transcribe with Parakeet (MLX).
+
+Recording uses ffmpeg's AVFoundation input, so no audio Python packages are needed.
+For push-to-talk into any text field, use the Handy app instead.
 
 Usage:
-    dictate.py
-
-Records audio from the default microphone until Enter is pressed,
-then transcribes and outputs the text.
+    dictate.py [--device :0]
 """
 
+import argparse
+import importlib.util
+import subprocess
 import sys
-import os
-import warnings
+import tempfile
+from pathlib import Path
 
-# Suppress warnings before any imports
-warnings.filterwarnings('ignore')
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
-
-# Add Parakeet to path (configurable via PARAKEET_HOME)
-PARAKEET_PATH = os.environ.get(
-    "PARAKEET_HOME",
-    os.path.expanduser("~/Programming/parakeet-dictate")
-)
-sys.path.insert(0, PARAKEET_PATH)
-
-# Suppress NeMo's verbose logging (must be before nemo imports)
-os.environ.setdefault("NEMO_CACHE_DIR", os.path.expanduser("~/.cache/nemo"))
-os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-
-import logging
-# Suppress all NeMo/PyTorch warnings for clean output
-logging.disable(logging.WARNING)
-logging.getLogger("nemo").setLevel(logging.ERROR)
-logging.getLogger("nemo_logger").setLevel(logging.ERROR)
-logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-logging.getLogger("torch").setLevel(logging.ERROR)
+spec = importlib.util.spec_from_file_location("batch", Path(__file__).with_name("batch_transcribe.py"))
+batch = importlib.util.module_from_spec(spec)
+sys.modules["batch"] = batch  # @dataclass resolves annotations via sys.modules
+spec.loader.exec_module(batch)
 
 
-def main():
-    # Import after path setup
-    from src.audio import AudioRecorder
-    from src.transcriber import get_transcriber
-    from src.config import get_config
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--device", default=":default",
+                        help="AVFoundation audio device (list: ffmpeg -f avfoundation -list_devices true -i '')")
+    args = parser.parse_args()
 
-    recorder = None
-    try:
-        # Pre-load model while user reads prompt
-        print("Loading Parakeet model...", file=sys.stderr)
-        transcriber = get_transcriber()
-        transcriber.preload()
+    print("Loading Parakeet model...", file=sys.stderr)
+    engine = batch.ParakeetEngine(batch.DEFAULT_MODELS["parakeet"], beam=1)
 
-        recorder = AudioRecorder()
-        config = get_config()
+    with tempfile.TemporaryDirectory() as tmp:
+        recording = Path(tmp) / "dictation.wav"
+        recorder = subprocess.Popen(
+            ["ffmpeg", "-v", "error", "-f", "avfoundation", "-i", args.device,
+             "-ac", "1", "-ar", str(batch.SAMPLE_RATE), str(recording)],
+            stdin=subprocess.PIPE,
+        )
+        print("\n>>> Recording... press ENTER to stop <<<\n", file=sys.stderr)
+        try:
+            input()
+        except KeyboardInterrupt:
+            recorder.terminate()
+            sys.exit("\nCancelled.")
+        recorder.communicate(b"q")  # ffmpeg finalizes the WAV header on 'q'
 
-        print("", file=sys.stderr)
-        print(">>> Recording... Press ENTER to stop <<<", file=sys.stderr)
-        print("", file=sys.stderr)
+        if not recording.exists() or recording.stat().st_size <= 44:
+            sys.exit(f"No audio captured (ffmpeg exit {recorder.returncode}). Check --device; list devices "
+                     "with: ffmpeg -f avfoundation -list_devices true -i ''")
+        try:
+            clip = batch.load_clip(recording, pad_under=2.0, pad_s=0.75)
+        except batch.ClipError as error:
+            sys.exit(f"Recording unreadable: {error}")
+        if clip.peak_dbfs is None or clip.peak_dbfs < -80:
+            # macOS records digital silence, not an error, when microphone access is denied.
+            sys.exit("Recording is silent. Grant your terminal microphone access in System Settings > "
+                     "Privacy & Security > Microphone, or pick another --device.")
+        print(f"Recorded: {clip.duration_s:.1f}s (peak {clip.peak_dbfs} dBFS)", file=sys.stderr)
+        text = engine.transcribe(clip)["text"]
 
-        recorder.start_recording()
-
-        # Wait for Enter key
-        input()
-
-        # Stop recording and get audio
-        audio = recorder.stop_recording()
-
-        if audio.size == 0:
-            print("No audio captured.", file=sys.stderr)
-            sys.exit(1)
-
-        # Show duration (use config sample rate)
-        duration = len(audio) / config.sample_rate
-        print(f"Recorded: {duration:.1f}s", file=sys.stderr)
-
-        # Transcribe
-        print("Transcribing...", file=sys.stderr)
-        text = transcriber.transcribe(audio)
-
-        if text.strip():
-            print(text)
-        else:
-            print("(No speech detected)", file=sys.stderr)
-
-    except KeyboardInterrupt:
-        print("\nCancelled.", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-    finally:
-        if recorder:
-            recorder.cleanup()
+    if text:
+        print(text)
+    else:
+        print("(No speech detected)", file=sys.stderr)
 
 
 if __name__ == "__main__":

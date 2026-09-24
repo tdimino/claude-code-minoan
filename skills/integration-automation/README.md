@@ -16,7 +16,7 @@ Local ML inference, RAG, browser automation, messaging, telephony, physical medi
 | `llama-cpp` | Direct llama.cpp access: GGUF models, LoRA hot-loading, benchmarking |
 | `mcp-server-manager` | Configure and manage MCP servers in Claude Code CLI |
 | `netlify-integration` | Deploy Netlify projects with serverless functions |
-| `parakeet` | Local speech-to-text via NVIDIA Parakeet TDT 0.6B |
+| `parakeet` | Local speech-to-text on Apple Silicon: Parakeet TDT v2 + Qwen3-ASR cross-checked via MLX, batch JSONL verdicts |
 | `rlama` | Fully local RAG with Ollama (default: retrieve-only, Claude synthesizes) |
 | `slack` | Slack workspace integration — 9 scripts (post, read, search, stream, react, upload, channels, users), dual-token support, RTS API search, chat streaming, AI Block Kit, Session Bridge, Claudicle unified launcher |
 | `slack-respond` | Process Slack messages as Claudicle with persistent memory |

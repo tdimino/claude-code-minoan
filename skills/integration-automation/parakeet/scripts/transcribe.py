@@ -1,98 +1,32 @@
 #!/usr/bin/env python3
-"""Transcribe audio file using Parakeet TDT 0.6B.
+"""Transcribe one audio file to stdout with Parakeet (MLX).
+
+Thin wrapper over batch_transcribe.py for the `/parakeet <file>` shortcut.
+Extra flags pass through, e.g. `--engine qwen3` or `--beam 4`.
 
 Usage:
-    transcribe.py <audio-file>
-
-Supports: .wav, .mp3, .m4a, .flac, .ogg, .aac
-Output: Transcribed text to stdout
+    transcribe.py <audio-file> [batch_transcribe flags]
 """
 
-import sys
 import os
-import warnings
+import shutil
+import sys
+from pathlib import Path
 
-# Suppress warnings before any imports
-warnings.filterwarnings('ignore')
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
-
-# Add Parakeet to path (configurable via PARAKEET_HOME)
-PARAKEET_PATH = os.environ.get(
-    "PARAKEET_HOME",
-    os.path.expanduser("~/Programming/parakeet-dictate")
-)
-sys.path.insert(0, PARAKEET_PATH)
-
-# Suppress NeMo's verbose logging (must be before nemo imports)
-os.environ.setdefault("NEMO_CACHE_DIR", os.path.expanduser("~/.cache/nemo"))
-os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-
-import logging
-# Suppress all NeMo/PyTorch warnings for clean output
-logging.disable(logging.WARNING)
-logging.getLogger("nemo").setLevel(logging.ERROR)
-logging.getLogger("nemo_logger").setLevel(logging.ERROR)
-logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-logging.getLogger("torch").setLevel(logging.ERROR)
+BATCH = Path(__file__).with_name("batch_transcribe.py")
 
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: transcribe.py <audio-file>", file=sys.stderr)
-        print("Supported formats: .wav, .mp3, .m4a, .flac, .ogg, .aac", file=sys.stderr)
+def main() -> None:
+    if len(sys.argv) < 2 or sys.argv[1] in {"-h", "--help"}:
+        print(__doc__.strip(), file=sys.stderr)
         sys.exit(1)
-
-    filepath = sys.argv[1]
-
-    # Expand user paths
-    if filepath.startswith("~"):
-        filepath = os.path.expanduser(filepath)
-
-    # Resolve relative paths
-    if not os.path.isabs(filepath):
-        filepath = os.path.abspath(filepath)
-
-    if not os.path.exists(filepath):
-        print(f"Error: File not found: {filepath}", file=sys.stderr)
-        sys.exit(1)
-
-    # Import after path setup
-    from src.audio import load_audio_file
-    from src.transcriber import get_transcriber
-    from src.config import get_config
-
-    try:
-        config = get_config()
-
-        # Load audio file
-        print(f"Loading: {os.path.basename(filepath)}...", file=sys.stderr)
-        audio = load_audio_file(filepath)
-
-        # Get duration (use config sample rate)
-        duration = len(audio) / config.sample_rate
-        print(f"Duration: {duration:.1f}s", file=sys.stderr)
-
-        # Transcribe
-        print("Transcribing...", file=sys.stderr)
-        transcriber = get_transcriber()
-        text = transcriber.transcribe(audio)
-
-        # Output result
-        print(text)
-
-    except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-    except RuntimeError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"Unexpected error: {e}", file=sys.stderr)
-        sys.exit(1)
+    uv = shutil.which("uv")
+    if uv is None:
+        sys.exit("error: uv not found (brew install uv)")
+    args = sys.argv[1:]
+    if not any(arg == "--engine" or arg.startswith("--engine=") for arg in args):
+        args += ["--engine", "parakeet"]
+    os.execv(uv, [uv, "run", "--quiet", "--script", str(BATCH), *args, "--text"])
 
 
 if __name__ == "__main__":
