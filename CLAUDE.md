@@ -10,6 +10,7 @@ Curated `~/.claude/` configuration for Claude Code: 94 skills, 46 hooks, 20 comm
 ```
 skills/{category}/{name}/  →  installs flat to ~/.claude/skills/{name}/
 hooks/                     →  ~/.claude/hooks/ (wire in settings.json)
+plugins/{name}/            →  claude plugin marketplace add ./plugins/{name} (function-hook plugins)
 commands/                  →  ~/.claude/commands/
 bin/                       →  ~/.local/bin/
 lib/                       →  ~/.claude/lib/

@@ -1,0 +1,15 @@
+{
+  "name": "jev-compact-gate",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Jev decides when a Claude Code session compacts, inside a 280k–400k token band.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "smoke": "uv run scripts/smoke.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}

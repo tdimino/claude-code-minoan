@@ -1,0 +1,70 @@
+{
+  "name": "jev-compact-gate",
+  "version": "0.2.0",
+  "description": "Jev decides when the session compacts, inside a 280k–400k token band; Claude's own summary does the compacting.",
+  "license": "MIT",
+  "author": { "name": "Tom di Mino", "url": "https://github.com/tdimino" },
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Mode",
+      "description": "shadow logs every verdict without compacting; live acts on them.",
+      "options": ["shadow", "live"],
+      "default": "shadow"
+    },
+    "floorTokens": {
+      "type": "number",
+      "title": "Band floor (tokens)",
+      "description": "Below this context size the gate never asks Jev.",
+      "default": 280000
+    },
+    "ceilingTokens": {
+      "type": "number",
+      "title": "Band ceiling (tokens)",
+      "description": "At or above this context size the gate compacts without asking.",
+      "default": 400000
+    },
+    "boundaryMax": {
+      "type": "number",
+      "title": "Boundary threshold at the floor",
+      "description": "P(a unit of work just closed) required to compact at the floor.",
+      "default": 0.7
+    },
+    "boundaryMin": {
+      "type": "number",
+      "title": "Boundary threshold at the ceiling",
+      "description": "P(a unit of work just closed) required to compact just below the ceiling.",
+      "default": 0.3
+    },
+    "verbatimVeto": {
+      "type": "number",
+      "title": "Verbatim veto",
+      "description": "P(next step needs exact recent tool output) at or above which the gate holds.",
+      "default": 0.5
+    },
+    "debugPenalty": {
+      "type": "number",
+      "title": "Debugging penalty",
+      "description": "Added to the boundary threshold, weighted by P(phase = debugging).",
+      "default": 0.15
+    },
+    "cooldownTurns": {
+      "type": "number",
+      "title": "Cooldown turns",
+      "description": "Main-loop turns after a compaction before the gate may act again.",
+      "default": 3
+    },
+    "timeoutMs": {
+      "type": "number",
+      "title": "Jev timeout (ms)",
+      "description": "A Jev call slower than this holds.",
+      "default": 5000
+    },
+    "model": {
+      "type": "string",
+      "title": "Jev model",
+      "description": "OpenRouter model id, pinned to a release rather than jev-latest.",
+      "default": "typesafe/jev-1.13"
+    }
+  }
+}

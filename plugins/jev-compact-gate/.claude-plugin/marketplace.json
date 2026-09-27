@@ -1,0 +1,14 @@
+{
+  "name": "jev-compact-gate",
+  "owner": { "name": "tdimino" },
+  "description": "Local marketplace for the Jev compaction gate.",
+  "plugins": [
+    {
+      "name": "jev-compact-gate",
+      "source": "./",
+      "description": "Jev decides when the session compacts, inside a 280k–400k token band.",
+      "version": "0.2.0",
+      "license": "MIT"
+    }
+  ]
+}
