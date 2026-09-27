@@ -35,6 +35,38 @@ export const SETTINGS: Settings = {
   model: 'typesafe/jev-1.13',
 };
 
+const NUMERIC_SETTINGS = [
+  'floorTokens',
+  'ceilingTokens',
+  'boundaryMax',
+  'boundaryMin',
+  'verbatimVeto',
+  'debugPenalty',
+  'cooldownTurns',
+  'timeoutMs',
+] as const satisfies readonly (keyof Settings)[];
+
+function finite(value: unknown): number | undefined {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * The plugin's `userConfig` values over the defaults. Numbers typed into
+ * settings.json as strings still count; anything unreadable takes the default.
+ */
+export function resolveSettings(options: Readonly<Record<string, unknown>>): Settings {
+  const settings: Settings = { ...SETTINGS };
+  for (const key of NUMERIC_SETTINGS) settings[key] = finite(options[key]) ?? SETTINGS[key];
+  if (options.mode === 'live') settings.mode = 'live';
+  if (typeof options.model === 'string' && options.model) settings.model = options.model;
+  return settings;
+}
+
 export type TurnEvent = {
   turnId: string;
   answer: string;
@@ -110,13 +142,7 @@ export async function onTurn(event: TurnEvent, io: Io, cfg: Settings, memo: Memo
       return;
     }
 
-    const messages = await io.messages();
-    const state = buildState({
-      messages,
-      answer: event.answer,
-      usage: { tokens: usage.tokens!, window: usage.window, percent: usage.percent },
-      turnsSinceCompaction: memo.turn - (memo.lastCompactTurn ?? 0),
-    });
+    const state = buildState({ messages: await io.messages(), answer: event.answer });
 
     let row: LogRow;
     if (g.action === 'ceiling') {
@@ -213,5 +239,41 @@ export async function withTimeout<T>(promise: Promise<T>, ms: number, sleep: Sle
     return await Promise.race([promise, timeout]);
   } finally {
     controller.abort();
+  }
+}
+
+/** The whole-file `$.fs` calls the log needs; the engine offers no append. */
+export type LogFs = {
+  exists: (path: string) => Promise<boolean>;
+  read: (path: string) => Promise<string>;
+  write: (path: string, text: string) => Promise<void>;
+};
+
+/** Rows per log file: bounds each read-modify-write, since `$.fs.write` rewrites whole files. */
+export const LOG_ROWS_PER_FILE = 200;
+
+const rowCount = (text: string): number => text.split('\n').length - 1;
+
+/**
+ * Appends one JSONL row to `<dir>/<session>.jsonl`, rotating to
+ * `<session>.1.jsonl`, `.2`, … as each fills. `cursor` remembers the open
+ * file; a fresh one (after a reload) walks past full files instead of growing them.
+ */
+export async function appendRow(
+  fs: LogFs,
+  dir: string,
+  sessionId: string,
+  row: unknown,
+  cursor: { chunk: number },
+): Promise<string> {
+  for (;;) {
+    const path = `${dir}/${sessionId}${cursor.chunk ? `.${cursor.chunk}` : ''}.jsonl`;
+    const prior = (await fs.exists(path)) ? await fs.read(path) : '';
+    if (rowCount(prior) >= LOG_ROWS_PER_FILE) {
+      cursor.chunk++;
+      continue;
+    }
+    await fs.write(path, `${prior}${JSON.stringify(row)}\n`);
+    return path;
   }
 }

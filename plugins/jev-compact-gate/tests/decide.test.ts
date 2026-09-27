@@ -9,6 +9,7 @@ import {
   estimateTokens,
   gate,
   threshold,
+  redact,
   toolLine,
   type Message,
 } from '../src/decide.ts';
@@ -162,6 +163,27 @@ describe('toolLine', () => {
   });
 });
 
+describe('redact', () => {
+  const cases: [string, string][] = [
+    ['curl -H "Authorization: Bearer abc.def-123" x', 'curl -H "Authorization: Bearer [redacted]" x'],
+    ['key sk-or-v1-0123456789abcdef0123 here', 'key [redacted] here'],
+    ['export OPENROUTER_API_KEY=sk-or-xyz', 'export OPENROUTER_API_KEY=[redacted]'],
+    ['GITHUB_TOKEN="ghp_abc123" gh api', 'GITHUB_TOKEN=[redacted] gh api'],
+    ['mysql --password=hunter2 -u root', 'mysql --password=[redacted] -u root'],
+    ['{"api_key": "abc123", "n": 1}', '{"api_key": [redacted], "n": 1}'],
+    ['token ghp_0123456789abcdefghijABCDEFGHIJ012345', 'token [redacted]'],
+    ['AKIAIOSFODNN7EXAMPLE is aws', '[redacted] is aws'],
+  ];
+  for (const [input, expected] of cases) {
+    it(`redacts ${input.slice(0, 28)}`, () => assert.equal(redact(input), expected));
+  }
+
+  it('leaves ordinary text alone', () => {
+    const text = 'git commit -m "fix token parsing" && cargo test --release';
+    assert.equal(redact(text), text);
+  });
+});
+
 describe('buildState', () => {
   const user = (text: string): Message => ({ role: 'user', text, toolUses: [] });
   const toolResultOnly: Message = {
@@ -176,8 +198,6 @@ describe('buildState', () => {
     toolUses: [{ tool_use_id: `t${n}`, tool: 'Read', input: { file_path: `f${n}.ts` }, text: 'body' }],
   });
 
-  const usage = { tokens: 300_000, window: 1_000_000, percent: 30 };
-
   it('takes the last three typed prompts, skipping tool-result turns and reminders', () => {
     const messages = [
       user('first'),
@@ -187,14 +207,48 @@ describe('buildState', () => {
       user('fourth'),
       toolResultOnly,
     ];
-    const s = buildState({ messages, answer: 'done', usage, turnsSinceCompaction: 3 });
+    const s = buildState({ messages, answer: 'done' });
     assert.deepEqual(s.recent_prompts, ['second', 'third', 'fourth']);
-    assert.deepEqual(s.context, { ...usage, turns_since_compaction: 3 });
+    assert.deepEqual(Object.keys(s).sort(), ['last_answer', 'recent_activity', 'recent_prompts']);
+  });
+
+  it('strips reminder tags that carry attributes', () => {
+    const s = buildState({
+      messages: [user('ask <system-reminder id="r1" kind="x">secret noise</system-reminder> now')],
+      answer: '',
+    });
+    assert.deepEqual(s.recent_prompts, ['ask  now']);
+  });
+
+  it('redacts secrets in prompts, the answer, and tool arguments before they leave', () => {
+    const s = buildState({
+      messages: [
+        user('use key sk-or-v1-0123456789abcdef0123'),
+        {
+          role: 'assistant',
+          text: '',
+          toolUses: [
+            {
+              tool_use_id: 't1',
+              tool: 'Bash',
+              input: { command: 'curl -H "Authorization: Bearer abc.def" api' },
+              text: 'error: 401 for token=abc123',
+              isError: true,
+            },
+          ],
+        },
+      ],
+      answer: 'set GITHUB_TOKEN=ghp_secret first',
+    });
+    const sent = JSON.stringify(s);
+    for (const secret of ['sk-or-v1', 'abc.def', 'abc123', 'ghp_secret']) {
+      assert.ok(!sent.includes(secret), `${secret} leaked: ${sent}`);
+    }
   });
 
   it('keeps only the newest fifteen tool calls, oldest first', () => {
     const messages = Array.from({ length: 40 }, (_, i) => assistant(i));
-    const s = buildState({ messages, answer: '', usage, turnsSinceCompaction: 0 });
+    const s = buildState({ messages, answer: '' });
     assert.equal(s.recent_activity.length, 15);
     assert.ok(s.recent_activity[0].includes('f25.ts'));
     assert.ok(s.recent_activity[14].includes('f39.ts'));
@@ -214,8 +268,6 @@ describe('buildState', () => {
     const newest = buildState({
       messages: [assistant(0), assistant(1), burst, toolResultOnly],
       answer: '',
-      usage,
-      turnsSinceCompaction: 0,
     });
     assert.equal(newest.recent_activity.length, 15);
     assert.ok(newest.recent_activity[0]!.includes('burst5.ts'));
@@ -224,8 +276,6 @@ describe('buildState', () => {
     const older = buildState({
       messages: [burst, ...Array.from({ length: 15 }, (_, i) => assistant(i))],
       answer: '',
-      usage,
-      turnsSinceCompaction: 0,
     });
     assert.equal(older.recent_activity.length, 15);
     assert.ok(older.recent_activity.every((line) => !line.includes('burst')));
@@ -235,8 +285,6 @@ describe('buildState', () => {
     const s = buildState({
       messages: [user('p'.repeat(5000))],
       answer: 'a'.repeat(5000),
-      usage,
-      turnsSinceCompaction: 0,
     });
     assert.ok(s.recent_prompts[0]!.length <= 601);
     assert.ok(s.last_answer.length <= 1501);
@@ -253,7 +301,7 @@ describe('buildState', () => {
             toolUses: [{ tool_use_id: `t${i}`, tool: 'Bash', input: { command: huge }, text: huge }],
           },
     );
-    const s = buildState({ messages, answer: huge, usage, turnsSinceCompaction: 900 });
+    const s = buildState({ messages, answer: huge });
     assert.ok(estimateTokens(s) <= 8000, `state is ${estimateTokens(s)} tokens`);
   });
 });

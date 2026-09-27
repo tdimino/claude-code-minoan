@@ -6,8 +6,12 @@ import {
   buildJevRequest,
   newMemo,
   onTurn,
+  appendRow,
+  LOG_ROWS_PER_FILE,
   parseJevResponse,
+  resolveSettings,
   SETTINGS,
+  type LogFs,
   withTimeout,
   type Io,
   type LogRow,
@@ -253,5 +257,80 @@ describe('Jev transport', () => {
     };
     assert.equal(await withTimeout(Promise.resolve('fast'), 1000, watched), 'fast');
     assert.ok(aborted);
+  });
+});
+
+describe('resolveSettings', () => {
+  it('takes defaults when nothing is set', () => {
+    assert.deepEqual(resolveSettings({}), SETTINGS);
+  });
+
+  it('reads numbers, and numeric strings typed into settings by hand', () => {
+    const s = resolveSettings({ floorTokens: 300000, ceilingTokens: '450000', verbatimVeto: '0.6' });
+    assert.equal(s.floorTokens, 300000);
+    assert.equal(s.ceilingTokens, 450000);
+    assert.equal(s.verbatimVeto, 0.6);
+  });
+
+  it('falls back on values that are not finite numbers', () => {
+    const s = resolveSettings({ floorTokens: 'lots', tMax: 0.9, timeoutMs: Number.NaN, boundaryMax: '' });
+    assert.equal(s.floorTokens, SETTINGS.floorTokens);
+    assert.equal(s.timeoutMs, SETTINGS.timeoutMs);
+    assert.equal(s.boundaryMax, SETTINGS.boundaryMax);
+  });
+
+  it('goes live only when told exactly', () => {
+    assert.equal(resolveSettings({ mode: 'live' }).mode, 'live');
+    assert.equal(resolveSettings({ mode: 'LIVE' }).mode, 'shadow');
+    assert.equal(resolveSettings({ mode: true }).mode, 'shadow');
+  });
+
+  it('keeps the pinned model unless given a non-empty id', () => {
+    assert.equal(resolveSettings({ model: '' }).model, SETTINGS.model);
+    assert.equal(resolveSettings({ model: '~typesafe/jev-latest' }).model, '~typesafe/jev-latest');
+  });
+});
+
+describe('appendRow', () => {
+  const memFs = () => {
+    const files = new Map<string, string>();
+    const writes: { path: string; bytes: number }[] = [];
+    const fs: LogFs = {
+      exists: async (p) => files.has(p),
+      read: async (p) => files.get(p) ?? '',
+      write: async (p, text) => {
+        files.set(p, text);
+        writes.push({ path: p, bytes: text.length });
+      },
+    };
+    return { fs, files, writes };
+  };
+  const lines = (text = '') => text.split('\n').filter(Boolean).length;
+
+  it('writes the first row to <session>.jsonl', async () => {
+    const { fs, files } = memFs();
+    const path = await appendRow(fs, '/logs', 'abc', { n: 0 }, { chunk: 0 });
+    assert.equal(path, '/logs/abc.jsonl');
+    assert.equal(files.get(path), '{"n":0}\n');
+  });
+
+  it('rotates to a numbered file once one holds its quota, bounding every write', async () => {
+    const { fs, files, writes } = memFs();
+    const cursor = { chunk: 0 };
+    for (let n = 0; n <= LOG_ROWS_PER_FILE; n++) await appendRow(fs, '/logs', 'abc', { n }, cursor);
+    assert.equal(lines(files.get('/logs/abc.jsonl')), LOG_ROWS_PER_FILE);
+    assert.equal(files.get('/logs/abc.1.jsonl'), `{"n":${LOG_ROWS_PER_FILE}}\n`);
+    const biggest = Math.max(...writes.map((w) => w.bytes));
+    assert.ok(biggest <= LOG_ROWS_PER_FILE * 12, `a write of ${biggest} bytes`);
+  });
+
+  it('after a reload, walks past full files instead of growing them', async () => {
+    const { fs, files } = memFs();
+    files.set('/logs/abc.jsonl', '{"n":1}\n'.repeat(LOG_ROWS_PER_FILE));
+    const cursor = { chunk: 0 };
+    const path = await appendRow(fs, '/logs', 'abc', { n: 'new' }, cursor);
+    assert.equal(path, '/logs/abc.1.jsonl');
+    assert.equal(cursor.chunk, 1);
+    assert.equal(lines(files.get('/logs/abc.jsonl')), LOG_ROWS_PER_FILE);
   });
 });

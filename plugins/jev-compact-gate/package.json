@@ -1,6 +1,6 @@
 {
   "name": "jev-compact-gate",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Jev decides when a Claude Code session compacts, inside a 280k–400k token band.",
   "type": "module",

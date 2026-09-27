@@ -172,53 +172,69 @@ const clip = (text: string, max: number): string =>
   text.length > max ? `${text.slice(0, max)}…` : text;
 
 const stripReminders = (text: string): string =>
-  text.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, '').trim();
+  text.replace(/<system-reminder\b[^>]*>[\s\S]*?<\/system-reminder>/g, '').trim();
+
+const REDACTED = '[redacted]';
+const SECRET_NAME = String.raw`[A-Za-z0-9_]*(?:key|token|secret|passw(?:or)?d|pwd)[A-Za-z0-9_]*`;
+const SECRET_PATTERNS: [RegExp, string][] = [
+  [new RegExp(String.raw`("${SECRET_NAME}"\s*:\s*)"[^"]*"`, 'gi'), `$1${REDACTED}`],
+  [new RegExp(String.raw`\b(${SECRET_NAME})=("[^"]*"|'[^']*'|\S+)`, 'gi'), `$1=${REDACTED}`],
+  [/\b(Bearer)\s+[A-Za-z0-9._~+/=-]+/gi, `$1 ${REDACTED}`],
+  [/\bsk-[A-Za-z0-9_-]{16,}/g, REDACTED],
+  [/\bgh[pousr]_[A-Za-z0-9]{20,}/g, REDACTED],
+  [/\bAKIA[0-9A-Z]{16}\b/g, REDACTED],
+];
+
+/**
+ * Masks credential-shaped text before the state leaves the machine: named
+ * secret assignments (`*_KEY=`, `--password=`, `"token": "…"`), bearer
+ * headers, and OpenAI/OpenRouter, GitHub and AWS key shapes. Best effort,
+ * biased to over-redact; Jev judges work boundaries, not values.
+ */
+export function redact(text: string): string {
+  return SECRET_PATTERNS.reduce((acc, [pattern, replacement]) => acc.replace(pattern, replacement), text);
+}
 
 /** One line per tool call: its key argument and outcome, never its output. */
 export function toolLine(use: ToolUse): string {
   const key = KEY_ARGS.find((k) => typeof use.input[k] === 'string');
-  const value = key ? clip(String(use.input[key]).replace(/\s+/g, ' '), ARG_CHARS) : '';
+  const value = key ? clip(redact(String(use.input[key]).replace(/\s+/g, ' ')), ARG_CHARS) : '';
   const arg = key ? ` ${key}=${value.includes(' ') ? JSON.stringify(value) : value}` : '';
   const outcome =
     use.text === undefined
       ? 'pending'
       : use.isError
-        ? `error: ${clip(use.text.split('\n', 1)[0] ?? '', ARG_CHARS)}`
+        ? `error: ${clip(redact(use.text.split('\n', 1)[0] ?? ''), ARG_CHARS)}`
         : `ok ${use.text.length}ch`;
   return `${use.tool}${arg} → ${outcome}`;
 }
 
-export type Usage = { tokens: number; window: number; percent?: number };
-
 export type JevState = {
-  context: Usage & { turns_since_compaction: number };
   recent_prompts: string[];
   last_answer: string;
   recent_activity: string[];
 };
 
-/** The bounded view of the session Jev judges: recent prompts, the last answer, recent tool calls. */
-export function buildState(input: {
-  messages: readonly Message[];
-  answer: string;
-  usage: Usage;
-  turnsSinceCompaction: number;
-}): JevState {
+/**
+ * The bounded, redacted view of the session Jev judges: recent prompts, the
+ * last answer, recent tool calls. Token counts stay in code, where the band is
+ * decided; they tell Jev nothing about whether work just closed.
+ */
+export function buildState(input: { messages: readonly Message[]; answer: string }): JevState {
   const prompts: string[] = [];
   const calls: ToolUse[] = [];
   for (const message of input.messages.toReversed()) {
     if (prompts.length === PROMPTS && calls.length === TOOL_CALLS) break;
     if (message.role === 'user' && prompts.length < PROMPTS) {
       const text = stripReminders(message.text);
-      if (text) prompts.unshift(clip(text, PROMPT_CHARS));
+      if (text) prompts.unshift(clip(redact(text), PROMPT_CHARS));
     }
     const room = TOOL_CALLS - calls.length;
-    if (room > 0) calls.unshift(...message.toolUses.slice(-room));
+    if (room > 0) calls.unshift(...(message.toolUses ?? []).slice(-room));
   }
   return {
-    context: { ...input.usage, turns_since_compaction: input.turnsSinceCompaction },
     recent_prompts: prompts,
-    last_answer: clip(input.answer, ANSWER_CHARS),
+    last_answer: clip(redact(input.answer), ANSWER_CHARS),
     recent_activity: calls.map(toolLine),
   };
 }

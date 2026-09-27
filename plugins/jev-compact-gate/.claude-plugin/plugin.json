@@ -1,6 +1,6 @@
 {
   "name": "jev-compact-gate",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Jev decides when the session compacts, inside a 280k–400k token band; Claude's own summary does the compacting.",
   "license": "MIT",
   "author": { "name": "Tom di Mino", "url": "https://github.com/tdimino" },

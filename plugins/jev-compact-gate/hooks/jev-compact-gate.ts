@@ -2,47 +2,27 @@
  * Claude Code function hook: Jev decides when the session compacts.
  *
  * A thin adapter from the engine's `$` onto `src/run.ts`'s `Io`. Verdicts
- * log to ~/.claude/jev-compact-gate/<session>.jsonl in every mode.
+ * log to ~/.claude/jev-compact-gate/<session>[.N].jsonl in every mode.
  */
 
-import type { PluginOptions, Register } from 'claude-code';
+import type { Register } from 'claude-code';
 
 import type { Message } from '../src/decide.ts';
 import {
+  appendRow,
   buildJevRequest,
   newMemo,
   onTurn,
   parseJevResponse,
-  SETTINGS,
+  resolveSettings,
   withTimeout,
   type LogRow,
-  type Settings,
 } from '../src/run.ts';
-
-function resolveSettings(options: PluginOptions): Settings {
-  const num = (key: keyof Settings): number => {
-    const value = options[key];
-    return typeof value === 'number' && Number.isFinite(value) ? value : (SETTINGS[key] as number);
-  };
-  const mode = options.mode === 'live' ? 'live' : 'shadow';
-  const model = typeof options.model === 'string' && options.model ? options.model : SETTINGS.model;
-  return {
-    mode,
-    model,
-    floorTokens: num('floorTokens'),
-    ceilingTokens: num('ceilingTokens'),
-    boundaryMax: num('boundaryMax'),
-    boundaryMin: num('boundaryMin'),
-    verbatimVeto: num('verbatimVeto'),
-    debugPenalty: num('debugPenalty'),
-    cooldownTurns: num('cooldownTurns'),
-    timeoutMs: num('timeoutMs'),
-  };
-}
 
 export const register: Register = (on, options) => {
   const cfg = resolveSettings(options);
   const memo = newMemo();
+  const logCursor = { chunk: 0 };
 
   on('turn.complete', async ($, event, next) => {
     await onTurn(
@@ -70,9 +50,13 @@ export const register: Register = (on, options) => {
         log: async (row: LogRow) => {
           const home = await $.env.get('HOME');
           if (!home) return;
-          const path = `${home}/.claude/jev-compact-gate/${await $.session.id()}.jsonl`;
-          const prior = (await $.fs.exists(path)) ? await $.fs.read(path) : '';
-          await $.fs.write(path, `${prior}${JSON.stringify(row)}\n`);
+          await appendRow(
+            { exists: (p) => $.fs.exists(p), read: (p) => $.fs.read(p), write: (p, text) => $.fs.write(p, text) },
+            `${home}/.claude/jev-compact-gate`,
+            await $.session.id(),
+            row,
+            logCursor,
+          );
           if (row.acted) {
             $.ui.toast(
               `jev-compact-gate: compacting at ${Math.round((row.tokens ?? 0) / 1000)}k (${row.gate === 'ceiling' ? 'ceiling' : `seam ${row.pBoundary?.toFixed(2)} ≥ ${row.threshold?.toFixed(2)}`})`,

@@ -44,12 +44,9 @@ QUESTIONS = {
     },
 }
 
-CONTEXT = {"tokens": 312000, "window": 1000000, "percent": 31, "turns_since_compaction": 48}
-
 STATES = {
     "seam (just committed)": {
-        "context": CONTEXT,
-        "goal": [
+        "recent_prompts": [
             "Add retry with exponential backoff to the fetch client in src/net.rs",
             "Tests pass? then commit it",
         ],
@@ -62,8 +59,7 @@ STATES = {
         ],
     },
     "mid-debug": {
-        "context": CONTEXT,
-        "goal": [
+        "recent_prompts": [
             "The save loader panics on old saves, find out why",
             "still panicking, keep going",
         ],

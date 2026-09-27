@@ -24,7 +24,7 @@ turn.complete ─┬─ subagent / aborted / errored / in flight / cooldown → 
                └─ 280k ≤ tokens < 400k → ask Jev → veto? threshold? → compact | hold
 ```
 
-One request to `POST https://openrouter.ai/api/v1/systemone` carries three questions over a bounded state. The state holds the context numbers, the last three typed prompts, the final answer, and the last 15 tool calls as one-liners:
+One request to `POST https://openrouter.ai/api/v1/systemone` carries three questions over a bounded, redacted state. The state holds the last three typed prompts, the final answer, and the last 15 tool calls as one-liners. Token counts stay in code, where the band is decided, because they tell Jev nothing about whether work just closed.
 
 | Question | Type | Judges |
 |---|---|---|
@@ -46,6 +46,14 @@ Compaction runs as `$.session.compact({ instructions })`, which is the same path
 ## Install
 
 Requires Claude Code **2.1.274+** (function hooks are early access) and an OpenRouter key.
+
+**What leaves the machine.** Each gate call sends OpenRouter (and TypeSafe behind it) your last three prompts, up to 600 characters each, the last answer, up to 1,500 characters, and the key argument of the last 15 tool calls: a bash command, file path, URL, or search query, up to 120 characters each. Tool output is never sent. Before sending, `redact()` in `src/decide.ts` masks credential-shaped text:
+
+- named secret assignments (`*_KEY=`, `*TOKEN=`, `--password=`, `"api_key": "…"`)
+- `Bearer` headers
+- `sk-…`, `ghp_…` and `AKIA…` key shapes
+
+Redaction is pattern-based and biased toward over-redacting. It is not a guarantee, so don't install this where prompts must not reach a third party. Shadow mode sends the same state as live mode.
 
 ```sh
 # 1. Enable function hooks wherever Claude Code runs (~/.claude/settings.json)
@@ -89,7 +97,7 @@ The band only means something on a model with a window above `ceilingTokens` (a 
 
 ## Shadow Mode and Tuning
 
-Every in-band turn writes one row to `~/.claude/jev-compact-gate/<session-id>.jsonl`:
+Every in-band turn writes one row to `~/.claude/jev-compact-gate/<session-id>.jsonl`, rotating to `<session-id>.1.jsonl`, `.2`, … every 200 rows. `$.fs.write` rewrites whole files, so rotation bounds each write:
 
 ```json
 {"tokens":312000,"urgency":0.27,"verdict":"compact","reason":"seam","pBoundary":0.96,"pVerbatim":0.13,
@@ -103,8 +111,9 @@ The rows keep Jev's raw judgments, so a threshold change is a re-read of the log
 ## Verification
 
 ```sh
-npm test                   # 48 node:test cases: band edges, veto, thresholds, malformed answers,
-                           # cooldown, vetoed and rejected compactions, transport, timeout
+npm test                   # 67 node:test cases: band edges, veto, thresholds, malformed answers,
+                           # redaction, cooldown, vetoed and rejected compactions, transport,
+                           # timeout, settings parsing, log rotation
 npm run typecheck          # against the engine's declarations (run /plugin-types first)
 uv run scripts/smoke.py    # live Jev probe: "just committed" vs "mid-debug"
 claude plugin validate .claude-plugin/plugin.json --strict
@@ -134,6 +143,7 @@ These were learned building against 2.1.283. Early access means they may move.
 - **Registration.** A plugin's hooks module is found only through `hooks/hooks.json` → `{ "modules": ["./<file>.ts"] }`, with one module per plugin. Without it the plugin loads and its hooks silently never do.
 - **Sandbox.** The module runs with no Node and no DOM, and there is no `setTimeout`. Waits go through `$.clock.sleep(ms, { signal })`. `AbortController` and `AbortSignal.any` exist.
 - **Budget.** A hook gets 10s of its own time. Calls in flight on `$` (fetch, compact) do not count, but `$.clock` waits do. Honor `next.signal`, which aborts when the dispatch is abandoned.
+- **Compaction from `turn.complete`.** `$.session.compact()` works in interactive sessions. It was verified: the summary ran inside the dispatch in about 12s, and the transcript showed "Conversation compacted". Headless sessions (`-p`, SDK) refuse it with "not available in a headless session yet"; the gate catches that, logs it, and holds.
 - **Safe mode.** `--safe-mode` disables every non-builtin hooks module, so use `--setting-sources` to isolate a test run instead.
 - **Environment variables.** `$.env.get` takes string literals only. `claude plugin validate` lists every variable the module reads.
 - **Imports.** Relative imports resolve with or without the `.ts` extension. The only bare import allowed is `'claude-code'`.

@@ -7,7 +7,7 @@
       "name": "jev-compact-gate",
       "source": "./",
       "description": "Jev decides when the session compacts, inside a 280k–400k token band.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "license": "MIT"
     }
   ]

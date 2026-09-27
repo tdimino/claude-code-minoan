@@ -15,6 +15,6 @@ Claude Code function-hook plugin. On each main-loop `turn.complete` it places th
 | `README.md` | Design, install, configuration, tuning, function-hook notes |
 | `.claude/types/` | Engine declarations from `/plugin-types` (git-ignored; regenerate after upgrades) |
 
-- Logs: `~/.claude/jev-compact-gate/<session>.jsonl`
+- Logs: `~/.claude/jev-compact-gate/<session>[.N].jsonl` (rotates every 200 rows)
 - Configure: `/plugin configure jev-compact-gate@jev-compact-gate`
 - Requires: `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` and `OPENROUTER_API_KEY`
