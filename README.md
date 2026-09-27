@@ -331,6 +331,10 @@ uv run python cliplog_query.py stats               # per-app breakdown
 
 Persistent daemon via launchd: `cp com.minoan.cliplog.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.minoan.cliplog.plist`
 
+### [claude-peers](https://github.com/tdimino/claude-peers-mcp) — Claude ↔ Codex Messaging
+
+Claude Code and Codex CLI sessions on one machine message each other through a launchd broker. Instead of relying on polling, the broker wakes the recipient through Claude Code's inbox socket or `codex queue`, and a `Stop`/`PreToolUse` hook catches any missed wake. Use native `SendMessage` for Claude-to-Claude. Setup: [`skills/integration-automation/claude-peers/`](skills/integration-automation/claude-peers/README.md).
+
 ---
 
 ## Credits & Inspiration

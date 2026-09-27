@@ -15,6 +15,7 @@
  */
 
 import { DEFAULT_SOCKET_PATH } from "./shared/types.ts";
+import type { SendMessageResponse } from "./shared/types.ts";
 
 const SOCKET_PATH = process.env.CLAUDE_PEERS_SOCKET ?? DEFAULT_SOCKET_PATH;
 const BROKER_TCP = process.env.CLAUDE_PEERS_URL; // optional TCP fallback
@@ -28,7 +29,8 @@ async function brokerFetch<T>(path: string, body?: unknown): Promise<T> {
         body: JSON.stringify(body),
       }
     : {};
-  fetchOpts.signal = AbortSignal.timeout(3000);
+  // /send-message waits for the recipient's wake, and codex queue can take 10s.
+  fetchOpts.signal = AbortSignal.timeout(path === "/send-message" ? 15_000 : 3000);
   if (!BROKER_TCP) fetchOpts.unix = SOCKET_PATH;
 
   const res = await fetch(url, fetchOpts);
@@ -145,13 +147,14 @@ switch (cmd) {
       process.exit(1);
     }
     try {
-      const result = await brokerFetch<{ ok: boolean; error?: string }>("/send-message", {
+      const result = await brokerFetch<SendMessageResponse>("/send-message", {
         from_id: "cli",
         to_id: toId,
         text: msg,
       });
       if (result.ok) {
-        console.log(`Message sent to ${toId}`);
+        const wake = result.wake;
+        console.log(`Message sent to ${toId} (wake: ${wake?.status ?? "none"}${wake?.transport ? ` via ${wake.transport}` : ""})`);
       } else {
         console.error(`Failed: ${result.error}`);
       }

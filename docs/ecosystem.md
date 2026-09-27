@@ -63,7 +63,7 @@ uv run python cliplog_query.py today --table          # box-drawing table output
 
 **Repo**: [tdimino/claude-peers-mcp](https://github.com/tdimino/claude-peers-mcp)
 
-MCP server for peer discovery and messaging between AI coding agents on the same machine. Unix socket broker with push delivery for Claude Code and poll delivery for Codex CLI. Agents can discover each other, send messages, and set status summaries.
+MCP server for peer discovery and messaging between AI coding agents on the same machine. A Unix socket broker wakes each recipient natively when a message arrives—Claude Code through its inbox socket, Codex through `codex queue`—and a turn-boundary hook (`hooks/peers-hook.ts`) catches missed wakes, holds `Stop` while peer messages are unread, and registers Codex threads. Agents can discover each other, send messages, and set status summaries.
 
 **Independent**: Yes. Works as a standalone MCP server with any Claude Code session.
 

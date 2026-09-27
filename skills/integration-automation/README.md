@@ -7,7 +7,7 @@ Local ML inference, RAG, browser automation, messaging, telephony, physical medi
 | `agent-browser` | Headless browser automation for AI agents |
 | `beautiful-mermaid` | Mermaid diagrams as ASCII/Unicode art or SVG (15 themes) |
 | `classical-887` | WRHV 88.7 FM (Classical WMHT) playlist — now playing, history, search |
-| `claude-peers` | Peer discovery, messaging, and lifecycle management between Claude Code and Codex CLI via Unix socket MCP |
+| `claude-peers` | Peer discovery, messaging, and lifecycle management between Claude Code and Codex CLI via Unix socket MCP; the broker wakes recipients natively (Claude inbox socket, `codex queue`) and a Stop/PreToolUse hook catches missed wakes |
 | `codex-cto` | Codex CLI as CTO: GPT-5.4-Pro plans, GPT-5.4 reviews, Claude Code executes |
 | `codex-orchestrator` | Spawn parallel-safe, persona-driven Codex subagents without replacing project `AGENTS.md`; includes all 12 GPT-6-Astra effort/tier permutations |
 | `disc-forge` | Burn Red Book audio CDs on macOS via [cdrdao](https://cdrdao.sourceforge.net/) with CD-Text from ID3 tags — works with USB burners `drutil` labels "Unsupported" |

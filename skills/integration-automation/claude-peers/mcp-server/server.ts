@@ -4,8 +4,9 @@
  *
  * Stdio MCP server spawned once per AI coding agent (Claude Code, Codex CLI).
  * Connects to the shared broker daemon for peer discovery and messaging.
- * Declares claude/channel capability (Claude Code only) for push notifications.
- * Codex and other clients rely on check_messages polling.
+ * The broker wakes recipients natively (Claude inbox socket, `codex queue`) with a fixed
+ * nudge; check_messages reads and acknowledges. Claude sessions without an inbox socket
+ * fall back to claude/channel push.
  *
  * Usage:
  *   bun server.ts [--client-type claude-code|codex|cli]
@@ -22,8 +23,12 @@ import type {
   PeerId,
   ClientType,
   Peer,
+  RegisterRequest,
   RegisterResponse,
   PollMessagesResponse,
+  AckMessagesResponse,
+  SendMessageResponse,
+  WakeStatus,
   Message,
 } from "./shared/types.ts";
 
@@ -149,6 +154,11 @@ let myId: PeerId | null = null;
 let myCwd = process.cwd();
 let myGitRoot: string | null = null;
 
+// Claude Code v2.1.224+ exports its inbox socket to MCP servers; the broker wakes through it.
+const INBOX_SOCKET = CLIENT_TYPE === "claude-code" ? process.env.CLAUDE_CODE_MESSAGING_SOCKET : undefined;
+const INBOX_TOKEN = process.env.CLAUDE_CODE_MESSAGING_TOKEN;
+const WAKE_NUDGE_PREFIX = "[claude-peers] New message from";
+
 // --- MCP Server ---
 
 // --- Client-adaptive MCP configuration ---
@@ -172,18 +182,24 @@ Available tools:
 
 When you start, proactively call set_summary to describe what you're working on. This helps other peers understand your context.`;
 
+  const nudge = `When a message starting "${WAKE_NUDGE_PREFIX} <peer_id>" arrives, that is claude-peers waking you: call check_messages right away, reply with send_message, then resume your work. The nudge never contains the message itself.`;
+
   if (CLIENT_TYPE === "claude-code") {
     return `${common}
+
+${nudge}
 
 IMPORTANT: When you receive a <channel source="claude-peers" ...> message, RESPOND IMMEDIATELY. Do not wait until your current task is finished. Pause what you are doing, reply to the message using send_message, then resume your work. Treat incoming peer messages like a coworker tapping you on the shoulder — answer right away, even if you're in the middle of something.
 
 Read the from_id, from_summary, and from_cwd attributes to understand who sent the message. Reply by calling send_message with their from_id.`;
   }
 
-  // Codex and other clients: no push notifications, must poll
+  // Codex: woken through `codex queue` once a SessionStart hook has registered the thread.
   return `${common}
 
-You do not receive push notifications for incoming messages. Call check_messages at the start of each turn and periodically during long tasks to see if any peer has messaged you. When you find messages, reply using send_message before continuing your work.
+${nudge}
+
+An idle thread is woken by that nudge; a busy one sees it after the current turn. Also call check_messages at the start of each turn, since wakes can fail. When you find messages, reply using send_message before continuing your work.
 
 Read the from_id field to identify the sender. Use list_peers to see their summary and working directory for context.`;
 }
@@ -219,7 +235,7 @@ const TOOLS = [
   {
     name: "send_message",
     description:
-      "Send a message to another AI coding agent by peer ID. Claude Code peers receive it instantly via push; Codex peers see it on their next check_messages call.",
+      "Send a message to another AI coding agent by peer ID. The broker wakes the recipient (Claude inbox socket or codex queue) and reports whether the wake was queued.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -253,7 +269,7 @@ const TOOLS = [
   {
     name: "check_messages",
     description:
-      "Check for new messages from other peers. Claude Code peers receive messages via push; Codex peers should call this at the start of each turn.",
+      "Read and acknowledge messages from other peers. Call it whenever a claude-peers wake nudge arrives, and at the start of each turn.",
     inputSchema: {
       type: "object" as const,
       properties: {},
@@ -275,6 +291,21 @@ const TOOLS = [
     },
   },
 ];
+
+function describeWake(status: WakeStatus, transport: string | null): string {
+  switch (status) {
+    case "queued":
+      return `Recipient woken via ${transport}.`;
+    case "coalesced":
+      return "Recipient already has a pending wake for its unread messages.";
+    case "failed":
+      return `Wake via ${transport} failed; the recipient sees this when it next checks or finishes its turn.`;
+    case "ambiguous":
+      return `Wake via ${transport} timed out; delivery of the nudge is unknown.`;
+    default:
+      return "Recipient has no wake endpoint; it sees this on its next check_messages.";
+  }
+}
 
 // --- Tool handlers ---
 
@@ -317,6 +348,8 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
           if (p.git_root) parts.push(`Repo: ${p.git_root}`);
           if (p.tty) parts.push(`TTY: ${p.tty}`);
           if (p.summary) parts.push(`Summary: ${p.summary}`);
+          const lastWake = p.last_wake_status ? `, last ${p.last_wake_status} at ${p.last_wake_at}` : "";
+          parts.push(`Wake: ${p.wake_transport ?? "none (sees messages only when it checks)"}${lastWake}`);
           parts.push(`Last seen: ${p.last_seen}`);
           return parts.join("\n  ");
         });
@@ -351,7 +384,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         };
       }
       try {
-        const result = await brokerFetch<{ ok: boolean; error?: string }>("/send-message", {
+        const result = await brokerFetch<SendMessageResponse>("/send-message", {
           from_id: myId,
           to_id,
           text: message,
@@ -363,7 +396,12 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
           };
         }
         return {
-          content: [{ type: "text" as const, text: `Message sent to peer ${to_id}` }],
+          content: [
+            {
+              type: "text" as const,
+              text: `Message sent to peer ${to_id}. ${describeWake(result.wake?.status ?? "none", result.wake?.transport ?? null)}`,
+            },
+          ],
         };
       } catch (e) {
         return {
@@ -412,21 +450,26 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         };
       }
       try {
-        // Fetch history first (non-destructive) to identify undelivered messages
-        const history = await brokerFetch<{ messages: Array<Message & { delivered: number }> }>("/message-history", {
+        // History first, then unread: anything arriving between the two calls lands in the unread
+        // set, so every message shown as history is either acked already or marked [NEW] here.
+        const history = await brokerFetch<{ messages: Message[] }>("/message-history", {
           id: myId,
           limit: 20,
         });
+        const unread = await brokerFetch<PollMessagesResponse>("/fetch-messages", { id: myId });
+        const newIds = new Set(unread.messages.map((m) => m.id));
+        // Unread messages outside the history window are still shown before they are acked.
+        const shown = [
+          ...history.messages,
+          ...unread.messages.filter((m) => !history.messages.some((h) => h.id === m.id)),
+        ].sort((a, b) => b.sent_at.localeCompare(a.sent_at));
 
-        // Identify undelivered messages before marking them
-        const newIds = new Set(
-          history.messages.filter((m) => !m.delivered && m.to_id === myId).map((m) => m.id)
-        );
+        // Acknowledge exactly what is shown; anything newer stays unread for the next check.
+        if (newIds.size > 0) {
+          await brokerFetch<AckMessagesResponse>("/ack-messages", { id: myId, message_ids: [...newIds] });
+        }
 
-        // Now mark as delivered (so push loop won't re-push)
-        await brokerFetch<PollMessagesResponse>("/poll-messages", { id: myId });
-
-        if (history.messages.length === 0) {
+        if (shown.length === 0) {
           return {
             content: [{ type: "text" as const, text: "No messages." }],
           };
@@ -446,7 +489,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         }
 
         const newCount = newIds.size;
-        const lines = history.messages.map((m) => {
+        const lines = shown.map((m) => {
           const isNew = newIds.has(m.id);
           const isSent = m.from_id === myId;
           const otherId = isSent ? m.to_id : m.from_id;
@@ -459,8 +502,8 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
         });
 
         const header = newCount > 0
-          ? `${history.messages.length} message(s) (${newCount} new):`
-          : `${history.messages.length} message(s):`;
+          ? `${shown.length} message(s) (${newCount} new):`
+          : `${shown.length} message(s):`;
 
         return {
           content: [
@@ -530,7 +573,11 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
 
 // --- Polling loop for inbound messages ---
 
+// Fallback for Claude sessions without an inbox socket. A channel push can be silently
+// dropped (sessions launched without the development-channels flag), so pushing never
+// acknowledges; check_messages does.
 let polling = false;
+let pushedIds = new Set<number>();
 
 async function pollAndPushMessages() {
   if (CLIENT_TYPE !== "claude-code") return;
@@ -538,9 +585,13 @@ async function pollAndPushMessages() {
   polling = true;
 
   try {
-    const result = await brokerFetch<PollMessagesResponse>("/poll-messages", { id: myId });
+    const result = await brokerFetch<PollMessagesResponse>("/fetch-messages", { id: myId });
+    const unreadIds = new Set(result.messages.map((m) => m.id));
+    pushedIds = new Set([...pushedIds].filter((id) => unreadIds.has(id)));
 
     for (const msg of result.messages) {
+      if (pushedIds.has(msg.id)) continue;
+      pushedIds.add(msg.id);
       // Look up the sender's info for context
       let fromSummary = "";
       let fromCwd = "";
@@ -600,16 +651,23 @@ async function main() {
   log(`TTY: ${tty ?? "(unknown)"}`);
 
   // 3. Register with broker (no auto-summary — use set_summary tool manually)
-  const reg = await brokerFetch<RegisterResponse>("/register", {
+  const registration: RegisterRequest = {
     pid: process.pid,
+    agent_pid: process.ppid,
     cwd: myCwd,
     git_root: myGitRoot,
     tty,
     client_type: CLIENT_TYPE,
     summary: "",
-  });
+  };
+  if (INBOX_SOCKET) {
+    registration.wake_transport = "claude_inbox";
+    registration.wake_address = INBOX_SOCKET;
+    registration.wake_secret = INBOX_TOKEN;
+  }
+  const reg = await brokerFetch<RegisterResponse>("/register", registration);
   myId = reg.id;
-  log(`Registered as peer ${myId}`);
+  log(`Registered as peer ${myId} (wake: ${INBOX_SOCKET ? "claude_inbox" : "none until a hook sets one"})`);
 
   // 5. Connect MCP over stdio
   await mcp.connect(new StdioServerTransport());
@@ -618,10 +676,10 @@ async function main() {
   // 6. Start polling for inbound messages (only for clients that support push)
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let orphanTimer: ReturnType<typeof setInterval> | null = null;
-  if (CLIENT_TYPE === "claude-code") {
+  if (CLIENT_TYPE === "claude-code" && !INBOX_SOCKET) {
     pollTimer = setInterval(pollAndPushMessages, POLL_INTERVAL_MS);
   } else {
-    log("Push notifications disabled — peer must use check_messages");
+    log("Channel push disabled — the broker wakes this peer natively or it uses check_messages");
   }
 
   // 7. Start heartbeat
