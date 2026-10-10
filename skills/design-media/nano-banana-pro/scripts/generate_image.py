@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-Generate images using Google's Nano Banana Pro (Gemini 3 Pro Image) API.
+Generate images using Gemini by default, with Atlas Cloud as an optional provider.
 
 Usage:
     python generate_image.py "prompt text" --api-key YOUR_KEY [options]
 
 Environment variables:
-    GEMINI_API_KEY - API key (can override --api-key flag)
+    GEMINI_API_KEY - Gemini API key (can override --api-key)
+    ATLASCLOUD_API_KEY - Atlas Cloud API key (used with --provider atlas)
+    IMAGE_PROVIDER - Optional default provider: gemini or atlas
 """
 
 import argparse
@@ -22,6 +24,8 @@ try:
 except ImportError:
     print("Error: requests library not installed. Run: pip install requests", file=sys.stderr)
     sys.exit(1)
+
+from atlas_images import AtlasImageClient, DEFAULT_ATLAS_MODEL
 
 
 class NanoBananaProClient:
@@ -242,7 +246,16 @@ Examples:
     )
 
     parser.add_argument("prompt", help="Text prompt describing the image to generate")
+    parser.add_argument("--provider", choices=["gemini", "atlas"],
+                       default=os.environ.get("IMAGE_PROVIDER", "gemini"),
+                       help="Image provider (default: gemini)")
     parser.add_argument("--api-key", help="Gemini API key (or set GEMINI_API_KEY env var)")
+    parser.add_argument("--atlas-api-key",
+                       help="Atlas Cloud API key (or set ATLASCLOUD_API_KEY env var)")
+    parser.add_argument("--atlas-model", default=DEFAULT_ATLAS_MODEL,
+                       help=f"Atlas Cloud model (default: {DEFAULT_ATLAS_MODEL})")
+    parser.add_argument("--resolution", choices=["1k", "2k", "4k"], default="1k",
+                       help="Atlas output resolution (default: 1k; ignored by Gemini)")
     parser.add_argument("--model", default=NanoBananaProClient.DEFAULT_MODEL,
                        help=f"Model to use (default: {NanoBananaProClient.DEFAULT_MODEL})")
     parser.add_argument("--aspect-ratio", default="16:9",
@@ -261,23 +274,35 @@ Examples:
 
     args = parser.parse_args()
 
-    # Get API key
-    api_key = args.api_key or os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("Error: API key required. Use --api-key or set GEMINI_API_KEY environment variable",
-              file=sys.stderr)
-        sys.exit(1)
-
-    # Initialize client
-    client = NanoBananaProClient(api_key, args.model)
-
     print(f"🎨 Generating image with Nano Banana Pro...")
-    print(f"   Model: {args.model}")
+    print(f"   Provider: {args.provider}")
+    print(f"   Model: {args.atlas_model if args.provider == 'atlas' else args.model}")
     print(f"   Prompt: {args.prompt}")
     print(f"   Aspect Ratio: {args.aspect_ratio}")
     print()
 
     try:
+        if args.provider == "atlas":
+            client = AtlasImageClient(args.atlas_api_key, args.atlas_model)
+            output_path = client.generate_to_file(
+                args.prompt,
+                Path(args.output) / f"{args.filename}_image_0_0",
+                aspect_ratio=args.aspect_ratio,
+                resolution=args.resolution,
+                temperature=args.temperature,
+            )
+            print()
+            print("✅ Success! Generated 1 file")
+            print(f"   Output: {output_path.absolute()}")
+            return
+
+        api_key = args.api_key or os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise EnvironmentError(
+                "Gemini API key required. Use --api-key or set GEMINI_API_KEY"
+            )
+        client = NanoBananaProClient(api_key, args.model)
+
         # Generate image
         response = client.generate_image(
             prompt=args.prompt,

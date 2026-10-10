@@ -1,12 +1,13 @@
 # Nano Banana Pro Scripts
 
-Professional-quality image generation and editing using Google's Gemini 3 Pro Image model (Nano Banana Pro). All scripts use the REST API directly for maximum control and compatibility.
+Professional-quality image generation and editing using Google's Gemini 3 Pro Image model (Nano Banana Pro). Gemini remains the default; `generate_image.py --provider atlas` enables optional Atlas Cloud text-to-image generation. All scripts use REST APIs directly for maximum control and compatibility.
 
 ## 📚 Script Overview
 
 | Script | Type | Purpose | Input | Output |
 |--------|------|---------|-------|--------|
 | `gemini_images.py` | Library | Shared functionality for all scripts | N/A | N/A |
+| `atlas_images.py` | Library | Optional Atlas Cloud text-to-image generation | Prompt | Image |
 | `generate_image.py` | CLI | Text-to-image generation | Text prompt | Image(s) |
 | `edit_image.py` | CLI | Image editing with instructions | Image + instruction | Edited image(s) |
 | `compose_images.py` | CLI | Multi-image composition | 2-14 images + instruction | Composed image |
@@ -115,6 +116,9 @@ client.save_response("sunset_edited.png", response)
 ```bash
 # Quick generation
 python generate_image.py "A red sports car"
+
+# Optional Atlas Cloud provider (requires ATLASCLOUD_API_KEY)
+python generate_image.py "A red sports car" --provider atlas --resolution 2k
 
 # Professional headshot
 python generate_image.py "Professional headshot, 85mm lens, soft lighting" \
