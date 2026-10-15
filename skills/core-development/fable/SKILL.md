@@ -45,14 +45,14 @@ The probe informs; it never blocks an attempt on its own. The `MODEL:` self-repo
 
 ### 2. Pin Detection
 
-Read the subagent model pin—it decides the invocation lane. Compare it against the **selected** model:
+Since Claude Code v2.1.251, a per-call `model:` and agent frontmatter outrank `CLAUDE_CODE_SUBAGENT_MODEL`, so the pin no longer decides the lane. Check only for a forced pin:
 
 ```bash
-~/bin/subagent-model
+grep -q '"CLAUDE_CODE_SUBAGENT_MODEL_FORCE"' ~/.claude/settings.json && echo forced
 ```
 
-- **Pin absent, or pinned to the selected model** → use **Lane A** (Agent tool) below.
-- **Pinned to anything else** → use **Lane B** (CLI) directly. Do NOT attempt Lane A: `CLAUDE_CODE_SUBAGENT_MODEL` silently overrides the Agent tool's `model:` parameter (anthropics/claude-code#57718)—the spawn would run on the pinned model with no signal in the tool result.
+- **Not forced** → use **Lane A** (Agent tool) below.
+- **Forced** → use **Lane B** (CLI) directly. `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` clamps every subagent to the pinned model with no signal in the tool result.
 
 If you need to change the pin, pass the full id: `subagent-model claude-fable-5-1`. **`subagent-model fable-5-1` does not error**—`resolve_preset` has no such preset, so the argument falls through unchanged and pins the literal string `fable-5-1`, reporting success while leaving an invalid model id in `settings.json`.
 
@@ -91,7 +91,7 @@ The skill accepts a task description and optional flags:
 - `--naos` or `--5.0`: run on `claude-fable-5` with the Naos persona
 - `--cwd <path>`: working directory (default: `/Users/tomdimino/Desktop/Programming/Fable-Test`)
 
-### Lane A—Agent Tool (pin absent or pinned to the selected model)
+### Lane A—Agent Tool (default)
 
 **Fable 5.1 mode (default).** The `fable-5-1` agent definition carries the Theoros persona and a boot sequence that already emits the self-report:
 
@@ -124,7 +124,7 @@ In both lanes, if the user specified `--cwd`, note the working directory in the 
 - Fable 5.0 mode: contains `claude-fable-5` but NOT `claude-fable-5-1` → genuine Fable 5.0, proceed. `claude-fable-5-1` is a **version mismatch**, not a match—the substring overlap is what boundary matching exists to catch.
 - Anything else → the harness clamped the model silently. State the clamp explicitly to the user, then re-run the task via Lane B.
 
-### Lane B—CLI (pin set to another model, or Lane A clamped)
+### Lane B—CLI (forced pin, or Lane A clamped)
 
 ```bash
 bash ~/.claude/skills/fable/scripts/fable-exec.sh "<task description>" [--naos|--5.0] --cwd "<working directory>" [--turns <N>]

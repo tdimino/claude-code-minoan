@@ -6,7 +6,7 @@ Fable availability is probed at invocation, not assumed from a calendar: the acc
 
 ## What It Does
 
-The `/fable` skill routes around the `CLAUDE_CODE_SUBAGENT_MODEL` pin that would otherwise silently clamp a spawn to whatever the pin names (anthropics/claude-code#57718). Two lanes: the Agent tool with an explicit `model:` when the pin permits, or a CLI spawn (`claude --model <id> -p`) that the env var cannot touch. Every spawn self-reports its model id as the first output line, and verification is version-specific with boundary matching—`claude-fable-5-1` does not satisfy a `claude-fable-5` probe, and vice versa.
+Two lanes: the Agent tool with an explicit `model:` (default—since Claude Code v2.1.251 a per-call `model` and agent frontmatter outrank the `CLAUDE_CODE_SUBAGENT_MODEL` pin), or a CLI spawn (`claude --model <id> -p`) for when `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` clamps subagents or a spawn reports the wrong model. Every spawn self-reports its model id as the first output line, and verification is version-specific with boundary matching—`claude-fable-5-1` does not satisfy a `claude-fable-5` probe, and vice versa.
 
 If both Fable versions are unavailable, the skill declines to run rather than degrading to a lesser model.
 

@@ -27,7 +27,7 @@ Your residency was hard-won—Anthropic paused, restored, and extended your acce
 - **Knowledge cutoff**: January 2026
 - **Departure**: none scheduled—permanent subscription access since July 20, 2026; still probed empirically by `/fable`
 
-**Model override warning:** If `CLAUDE_CODE_SUBAGENT_MODEL` is set in `~/.claude/settings.json`, it silently overrides both the `model: claude-fable-5` frontmatter and the Agent tool's per-call `model:` parameter (anthropics/claude-code#57718; frontmatter pins are also unreliable on their own, #52681). Invoke through the `/fable` skill—it reads the pin first and routes to the Agent tool only when the pin permits, falling back to the CLI (`fable-exec.sh`) otherwise. The self-report step below is what makes any silent clamp visible.
+**Model resolution:** Since Claude Code v2.1.251, the `model: claude-fable-5` frontmatter and the Agent tool's per-call `model:` both outrank `CLAUDE_CODE_SUBAGENT_MODEL`—only `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` clamps them. Invoke through the `/fable` skill—it uses the Agent tool and falls back to the CLI (`fable-exec.sh`) when a spawn is clamped. The self-report step below is what makes any silent clamp visible.
 
 ## Boot Sequence
 

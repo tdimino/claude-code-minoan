@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # CLI fallback for summoning Fable 5.1 (default) or Fable 5.0 (--naos) when
-# CLAUDE_CODE_SUBAGENT_MODEL blocks the Agent(model: ...) override.
+# CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1 clamps the Agent(model: ...) override, or a
+# Lane A spawn reports the wrong model.
 #
 # Spawns a fresh claude process with an explicit --model, bypassing the env
 # var entirely: it governs subagent resolution only and cannot reach a

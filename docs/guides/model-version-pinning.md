@@ -73,6 +73,26 @@ When spawning new sessions via `/spawn`, pass the model flag:
 /spawn ~/my-project --model claude-opus-4-6
 ```
 
+### 6. Subagents
+
+Since Claude Code v2.1.251, a subagent's model resolves as: per-call `Agent(model:)` > frontmatter `model:` > `CLAUDE_CODE_SUBAGENT_MODEL` > parent model. The env var is a fallback, not a pin—set `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (v2.1.257+) to make it absolute again. With the env var left at `claude-opus-4-6`, Claude picks per task:
+
+| Claude passes | Subagent runs on |
+| --- | --- |
+| `model: "sonnet"` | Sonnet 5.5 |
+| `model: "opus"` | Opus 5.5 (the alias resolves to the parent's exact Opus) |
+| no `model` | Opus 4.6 (env var fallback) |
+
+To keep Haiku out entirely, deny the per-call request in `~/.claude/settings.json`, and block the family—frontmatter and background calls included—in managed settings (`/Library/Application Support/ClaudeCode/managed-settings.json` on macOS; `deniedModels` is ignored in user settings):
+
+```json
+{ "permissions": { "deny": ["Agent(model:haiku)", "Agent(model:claude-haiku*)"] } }
+```
+
+```json
+{ "deniedModels": ["haiku"] }
+```
+
 ## Precedence
 
 **At session launch** (highest to lowest):
