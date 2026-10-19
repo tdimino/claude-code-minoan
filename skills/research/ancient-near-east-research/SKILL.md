@@ -98,7 +98,7 @@ See `references/cuneiform-databases.md` for CDLI/ORACC API details and script co
 |------|------|------|--------------|
 | 0 | Sefaria / CDLI / ORACC | Known reference, free structured data | Genesis 1:2, P480701, deity lookup |
 | 1 | Omnisearch `--academic` | Broad discovery, unknown sources | "Minoan Semitic connections Bronze Age" |
-| 2 | Exa `--category publication` | Domain-filtered neural search | `--domains jstor.org,persee.fr` |
+| 2 | Exa `--domains` (no category) | Domain-filtered neural search | `--domains jstor.org,persee.fr` |
 | 3 | Firecrawl `scrape` / `parse` | Page extraction, PDF-to-markdown | Known URL, remote PDF |
 | 4 | Obscura `ane_stealth_fetch.sh` | Bot-protected sites | JSTOR, Scholar, Persée |
 | 5 | Scrapling | Cloudflare Turnstile | Last resort |
@@ -203,7 +203,7 @@ Tier 0: Check Sefaria / CDLI / ORACC (known references)
     ↓
 Tier 1: Omnisearch --academic (broad discovery, titles only)
     ↓
-Tier 2: Exa --category publication --domains [ANE list] (focused search)
+Tier 2: Exa --domains [ANE list] (focused search; no --category publication)
     ↓
 Pick URLs → Tier 3: Firecrawl scrape / parse (extract content)
     ↓

@@ -56,7 +56,7 @@ ancient-near-east-research/
 | Tool | When | Command |
 |------|------|---------|
 | Omnisearch | Broad discovery, unknown sources | `omnisearch.py "query" --academic` |
-| Exa | Domain-filtered neural search | `exa_search.py "query" --category publication --domains jstor.org persee.fr` |
+| Exa | Domain-filtered neural search | `exa_search.py "query" --domains jstor.org persee.fr` (`--category publication` rejects `--domains`) |
 
 ### Source Extraction (Tiers 3--4)
 

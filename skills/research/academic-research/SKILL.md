@@ -1,11 +1,11 @@
 ---
 name: academic-research
-description: Search academic papers, build literature reviews, and synthesize research findings — combines Exa MCP (research_paper category, arxiv filtering) with arxiv-mcp-server for paper discovery, download, and deep analysis. Triggers on academic paper, literature review, research synthesis, arxiv, find papers, scholarly search.
+description: Search academic papers, build literature reviews, and synthesize research findings — combines Exa search (publication category, domain and date filters) with arxiv-mcp-server for paper discovery, download, and deep analysis. Triggers on academic paper, literature review, research synthesis, arxiv, find papers, scholarly search.
 ---
 
 # Academic Research
 
-This skill provides comprehensive guidance for academic paper search, literature reviews, and research synthesis using Exa MCP and arxiv-mcp-server.
+This skill provides comprehensive guidance for academic paper search, literature reviews, and research synthesis using the `exa-search` scripts and arxiv-mcp-server.
 
 ## When to Use This Skill
 
@@ -20,14 +20,16 @@ This skill provides comprehensive guidance for academic paper search, literature
 
 ## Available Tools
 
-### Exa MCP Server (Web Search with Academic Filtering)
+### Exa Search (Web Search with Academic Filtering)
 
-**Tools**: `mcp__exa__web_search_exa`, `mcp__exa__get_code_context_exa`, `mcp__exa__deep_search_exa`
+**Scripts**: `~/.claude/skills/exa-search/scripts/` (`exa_search.py`, `exa_contents.py`, `exa_research.py`, `exa_agent.py`)
 
-**Key Parameters for Academic Search**:
-- `category: "research_paper"` - Filter results to academic papers
-- `includeDomains: ["arxiv.org"]` - Restrict to arXiv
-- `startPublishedDate` / `endPublishedDate` - Filter by publication date
+**Key Flags for Academic Search**:
+- `--category publication` - Filter results to papers, preprints, and proceedings
+- `--domains arxiv.org` - Restrict to arXiv (repeat for more venues; cannot combine with `--category publication`)
+- `--after` / `--before` - Filter by publication date
+
+The hosted Exa MCP server is an alternative; its filters live only in the opt-in `web_search_advanced_exa` tool (see `references/exa-academic-search.md`).
 
 ### ArXiv MCP Server (Paper Search, Download, Analysis)
 
@@ -46,12 +48,10 @@ This skill provides comprehensive guidance for academic paper search, literature
 **Use case**: Find papers on a specific topic quickly
 
 ```
-Step 1: Use Exa with research_paper category
-mcp__exa__web_search_exa({
-  query: "transformer attention mechanisms survey",
-  category: "research_paper",
-  numResults: 10
-})
+Step 1: Use Exa with the publication category
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "a survey of transformer attention mechanisms" \
+  --category publication --highlights --no-text -n 10
 
 Step 2: Review titles and abstracts
 Step 3: Note arXiv IDs for deeper analysis
@@ -79,7 +79,7 @@ read_paper({ arxiv_id: "2301.00234" })
 ### Workflow 3: Comprehensive Literature Review
 
 ```
-Step 1: Broad discovery with Exa (category: "research_paper")
+Step 1: Broad discovery with Exa (--category publication)
 Step 2: Identify key papers and authors
 Step 3: Deep dive with arXiv MCP (download + read_paper)
 Step 4: Synthesize findings by methodology/approach
@@ -89,11 +89,9 @@ Step 4: Synthesize findings by methodology/approach
 
 ```
 Step 1: Time-filtered Exa search
-mcp__exa__web_search_exa({
-  query: "multimodal large language models",
-  category: "research_paper",
-  startPublishedDate: "2024-01-01"
-})
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "multimodal large language models" \
+  --category publication --after 2026-01-01 --highlights --no-text
 
 Step 2: Sort arXiv by submitted_date
 search_papers({ query: "multimodal LLM", sort_by: "submitted_date" })
@@ -113,29 +111,24 @@ search_papers({ query: "multimodal LLM", sort_by: "submitted_date" })
 
 ## Academic Domain Filtering
 
-For Exa searches, restrict to academic sources:
+For Exa searches, restrict to academic sources (repeated flags accumulate; omit `--category publication`, which rejects `--domains`):
 
 ```
-includeDomains: [
-  "arxiv.org",
-  "aclanthology.org",
-  "openreview.net",
-  "proceedings.mlr.press",
-  "papers.nips.cc",
-  "openaccess.thecvf.com"
-]
+--domains arxiv.org --domains aclanthology.org --domains openreview.net \
+--domains proceedings.mlr.press --domains papers.nips.cc --domains openaccess.thecvf.com
 ```
 
 ## Tool Selection Guide
 
 | Task | Primary Tool | Alternative |
 |------|--------------|-------------|
-| Broad topic search | Exa (research_paper) | arXiv search_papers |
-| ArXiv-specific | arXiv search_papers | Exa with includeDomains |
+| Broad topic search | Exa (`--category publication`) | arXiv search_papers |
+| ArXiv-specific | arXiv search_papers | Exa with `--domains arxiv.org` |
 | Download paper | arXiv download_paper | - |
 | Full paper content | arXiv read_paper | - |
-| Code implementations | Exa get_code_context | - |
-| Very recent papers | arXiv (submitted_date) | Exa with date filter |
+| Code implementations | Exa with `--domains github.com` | - |
+| Very recent papers | arXiv (submitted_date) | Exa with `--after` |
+| Multi-hop review, paper lists | `exa_agent.py run` | - |
 | Bot-protected sites | Obscura `--stealth` | Scrapling (Turnstile) |
 | Batch stealth scrape | Obscura `scrape` | - |
 
@@ -170,7 +163,7 @@ See `references/obscura-academic-patterns.md` for site-specific JS extraction pa
 
 ## Best Practices
 
-1. **Start broad** with Exa's research_paper category, then narrow
+1. **Start broad** with Exa's publication category, then narrow
 2. **Use date filtering** for recent developments
 3. **Download key papers** via arXiv MCP for persistent access
 4. **Cross-reference** multiple search approaches
@@ -226,6 +219,6 @@ Working MoBA implementation with Triton kernels: `~/Desktop/Aldea/01-Repos/perpl
 ## Reference Documentation
 
 For detailed parameters and advanced usage:
-- `references/exa-academic-search.md` - Exa parameters for academic search
+- `references/exa-academic-search.md` - Exa script recipes and MCP tools for academic search
 - `references/arxiv-mcp-tools.md` - ArXiv MCP server tool reference
 - `references/obscura-academic-patterns.md` - Site-specific Obscura extraction patterns with JS expressions and gotchas

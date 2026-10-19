@@ -16,7 +16,7 @@ Exa 3.0, OpenAPI spec 2.0.0 (synced 2026-10-19). All scripts live in `~/.claude/
 | `--output-schema JSON` / `--schema-file F` / `--schema-preset P` | `outputSchema` | ≤10 properties in total (nested and array items count), ≤2 levels |
 | `--system-prompt S` | `systemPrompt` | Guides synthesized output; not lite |
 | `--objective S` | `objective` | What the search is for |
-| `--category, -c` | `category` | company, publication, news, personal site, financial report, people (`research paper` → publication; pdf/github soft hints) |
+| `--category, -c` | `category` | company, publication, news, personal site, financial report, people (`research paper` → publication; pdf/github soft hints). `publication` rejects `--domains` |
 | `-n, --num` | `numResults` | Default 10, max 100; >10 adds $1/1k results |
 | `--domains` / `--exclude-domains` | `includeDomains` / `excludeDomains` | |
 | `--after` / `--before` | `startPublishedDate` / `endPublishedDate` | YYYY-MM-DD or full ISO |

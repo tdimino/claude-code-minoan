@@ -68,4 +68,4 @@ Agent errors use `{"error": {"type", "code", "message", "detail"}}`, unlike sear
 
 ## Not wrapped
 
-SSE streaming (`Accept: text/event-stream`) and `/agent/runs/{id}/events`—polling suffices for captured stdout. Exa Connect providers are exposed as `--data-source NAME` (billed per provider call; see `exa-docs-2026-10-19/agent_quickstart.md`).
+SSE streaming (`Accept: text/event-stream`) and `/agent/runs/{id}/events`—polling suffices for captured stdout. Exa Connect providers are exposed as `--data-source NAME` (billed per provider call; see `exa-docs-2026-10-19/agent_quickstart.md` or https://exa.ai/docs/agent/quickstart).

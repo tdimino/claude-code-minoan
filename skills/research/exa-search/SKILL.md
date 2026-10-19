@@ -62,7 +62,7 @@ Extras: results above 10 add $1/1k; `--summary` adds $1/1k pages; `exa_contents.
 - **Lite drops uncached pages** when text or highlights are requested, so fewer than `-n` results is normal; rerun without `--lite` when coverage matters.
 - **`/search` object schemas cap at 10 properties in total and 2 nesting levels.** Larger shapes go to `exa_agent.py`. Never add citation or confidence fields—grounding has them.
 - **`--dynamic`** sends the `Exa-Beta: dynamic-highlights-2026-08-28` header and cannot combine with `--highlights-max-chars`.
-- **`--category company`/`people`** reject `--after/--before`; `people` also rejects `--exclude-domains`.
+- **`--category company`/`people`** reject `--after/--before`; `people` also rejects `--exclude-domains`. **`--category publication` rejects `--domains`** (400 `UNSUPPORTED_PUBLICATION_INCLUDE_FILTER`, probed 2026-10-19 on arxiv.org, openreview.net, nature.com, jstor.org): pin venues with `--domains` and no category; `--exclude-domains` works with it.
 - **Categories:** `research paper` is now `publication` (auto-mapped); `pdf`/`github` were deprecated in Exa's 2026-07-23 changelog and now pass as soft hints; `tweet` is rejected.
 - **Warnings vs notices:** warnings (ignored or deprecated fields) go to stderr; notices (e.g. restrictions relaxed) print with the results—read them before trusting the results.
 - **Repeated list flags accumulate:** `--domains a.com --domains b.com` and `--domains a.com,b.com` both send both domains.

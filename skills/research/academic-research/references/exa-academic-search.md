@@ -1,291 +1,87 @@
 # Exa Academic Search Reference
 
-Comprehensive reference for using Exa MCP tools for academic paper search.
+Exa for paper discovery, through the `exa-search` scripts (primary) or the hosted Exa MCP server. `S=~/.claude/skills/exa-search/scripts`.
 
-## Available Tools
+## Scripts (Primary)
 
-### web_search_exa
+| Task | Command |
+|------|---------|
+| Topic search | `python3 $S/exa_search.py "query" --category publication --highlights --no-text -n 20` |
+| Recent papers | `... --category publication --after 2026-01-01` |
+| Date window | `... --after 2025-06-01 --before 2025-12-31` |
+| arXiv only | `... --domains arxiv.org` (no `--category`) |
+| Conference venues | `... --domains proceedings.mlr.press --domains papers.nips.cc --domains openreview.net` |
+| Drop blogs | `... --exclude-domains medium.com --exclude-domains towardsdatascience.com` |
+| Read known papers | `python3 $S/exa_contents.py https://arxiv.org/abs/2501.09686 --highlights-query "method and results" --no-text` |
+| Cited answer from academic sources | `python3 $S/exa_research.py "question" --domains arxiv.org --sources` |
+| Structured paper survey | `python3 $S/exa_search.py "question" --category publication --schema-preset paper-survey` |
+| Code implementing a paper | `python3 $S/exa_search.py "BERT attention PyTorch implementation" --domains github.com` |
+| Multi-hop literature review, paper lists | `python3 $S/exa_agent.py run "task" --effort medium` |
 
-Real-time web search with academic filtering capabilities.
+Repeated `--domains` and `--exclude-domains` flags accumulate. Full flag reference: `~/.claude/skills/exa-search/references/exa-scripts-reference.md`.
 
-**Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `query` | string | Search query (required) |
-| `numResults` | number | Number of results (default: 10, max: 100) |
-| `category` | string | Content type filter |
-| `includeDomains` | string[] | Restrict to specific domains |
-| `excludeDomains` | string[] | Exclude specific domains |
-| `startPublishedDate` | string | ISO date (e.g., "2024-01-01") |
-| `endPublishedDate` | string | ISO date |
-| `startCrawlDate` | string | ISO date for crawl time |
-| `endCrawlDate` | string | ISO date |
+## Academic Domains
 
-### get_code_context_exa
-
-Search for code implementations and technical documentation.
-
-**Best for**: Finding code that implements concepts from papers.
-
-**Parameters**:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `query` | string | Search query (required) |
-| `tokensNum` | number/"dynamic" | Token limit (default: "dynamic") |
-
-### deep_search_exa
-
-Advanced search with query expansion and summaries.
-
-**Best for**: Complex research questions requiring synthesis.
-
-## Academic-Specific Parameters
-
-### Category Filter
-
-```javascript
-category: "research_paper"
+```
+arxiv.org               Preprints (CS, physics, math)
+aclanthology.org        ACL Anthology (NLP)
+openreview.net          ML conference submissions and reviews
+proceedings.mlr.press   JMLR, ICML, AISTATS
+papers.nips.cc          NeurIPS
+openaccess.thecvf.com   CVPR, ICCV
+ieeexplore.ieee.org     IEEE
+dl.acm.org              ACM Digital Library
+nature.com              Nature journals
+science.org             Science journals
 ```
 
-Filters results to academic papers, preprints, and scholarly articles.
+## Query Patterns
 
-### Academic Domain Filtering
+- **Describe the paper, not keywords.** "a survey comparing linear attention approximations for long-context transformers" beats "linear attention survey".
+- **Surveys:** add "survey" or "review" to the description.
+- **Authors:** name them in the description ("papers by Yann LeCun on self-supervised learning"); there is no author filter.
+- **`publication` vs `--domains`:** the category covers journals, preprints, and proceedings; domains pin exact venues. They cannot combine—`--category publication --domains X` returns 400 `UNSUPPORTED_PUBLICATION_INCLUDE_FILTER`. `--exclude-domains` does work with the category.
 
-**ArXiv-focused**:
+## Exa MCP Server (Alternative)
+
+Hosted at `https://mcp.exa.ai/mcp` (not configured in this environment; checked against `exa-labs/exa-mcp-server` on 2026-10-19).
+
+| Tool | Default | Parameters |
+|------|---------|------------|
+| `web_search_exa` | on | `query`, `numResults` only—no category, domain, or date filters |
+| `web_fetch_exa` | on | `urls[]`, `maxCharacters` (default 3000) |
+| `web_search_advanced_exa` | opt-in | `category` (`publication`, ...), `includeDomains`, `excludeDomains`, `startPublishedDate`, `endPublishedDate`, `type` (`auto`/`lite`), `enableHighlights`, `highlightsQuery`, `enableSummary`, `additionalQueries`, `maxAgeHours`, `subpages` |
+| `agent_run` | opt-in, needs auth | Exa Agent: multi-step research, lists, structured output |
+
+Enable opt-in tools on the URL (this replaces the defaults, so list every tool wanted): `https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa,web_search_advanced_exa`.
+
+Academic search through MCP needs `web_search_advanced_exa`:
+
 ```javascript
-includeDomains: ["arxiv.org"]
-```
-
-**Multi-source academic**:
-```javascript
-includeDomains: [
-  "arxiv.org",           // Preprints (CS, Physics, Math, etc.)
-  "aclanthology.org",    // ACL Anthology (NLP papers)
-  "openreview.net",      // ML conference submissions/reviews
-  "proceedings.mlr.press", // JMLR, ICML, AISTATS
-  "papers.nips.cc",      // NeurIPS proceedings
-  "openaccess.thecvf.com", // CVPR, ICCV (Computer Vision)
-  "ieeexplore.ieee.org", // IEEE publications
-  "dl.acm.org",          // ACM Digital Library
-  "nature.com",          // Nature journals
-  "science.org"          // Science journals
-]
-```
-
-### Date Filtering
-
-**Recent papers (last year)**:
-```javascript
-startPublishedDate: "2024-01-01"
-```
-
-**Specific time range**:
-```javascript
-startPublishedDate: "2023-06-01",
-endPublishedDate: "2023-12-31"
-```
-
-## Search Query Patterns
-
-### Topic Search
-```javascript
-mcp__exa__web_search_exa({
-  query: "transformer architecture attention mechanism",
-  category: "research_paper",
-  numResults: 20
+web_search_advanced_exa({
+  query: "a survey of reasoning in large language models",
+  category: "publication",          // cannot combine with includeDomains
+  startPublishedDate: "2026-01-01",
+  numResults: 20,
+  enableHighlights: true
 })
 ```
 
-### Author Search
-```javascript
-mcp__exa__web_search_exa({
-  query: "author:Yann LeCun convolutional neural networks",
-  category: "research_paper"
-})
-```
+`get_code_context_exa`, `deep_search_exa`, and `deep_researcher_start`/`deep_researcher_check` are deprecated and disabled by default; use `web_search_exa` and `agent_run`. The category `research_paper` is now `publication`.
 
-### Recent Developments
-```javascript
-mcp__exa__web_search_exa({
-  query: "large language model reasoning chain-of-thought",
-  category: "research_paper",
-  startPublishedDate: "2024-06-01",
-  numResults: 30
-})
-```
+## Extracting arXiv IDs
 
-### ArXiv-Specific
-```javascript
-mcp__exa__web_search_exa({
-  query: "multimodal vision language models",
-  includeDomains: ["arxiv.org"],
-  numResults: 25
-})
-```
-
-### Survey/Review Papers
-```javascript
-mcp__exa__web_search_exa({
-  query: "survey review transformer architectures NLP",
-  category: "research_paper",
-  numResults: 15
-})
-```
-
-### Code Implementation Search
-```javascript
-mcp__exa__get_code_context_exa({
-  query: "BERT implementation PyTorch attention mechanism",
-  tokensNum: 5000
-})
-```
-
-## Advanced Patterns
-
-### Multi-Domain Conference Search
-```javascript
-mcp__exa__web_search_exa({
-  query: "few-shot learning meta-learning",
-  category: "research_paper",
-  includeDomains: [
-    "proceedings.mlr.press",
-    "papers.nips.cc",
-    "openreview.net"
-  ],
-  numResults: 30
-})
-```
-
-### Exclude Non-Academic Sources
-```javascript
-mcp__exa__web_search_exa({
-  query: "deep learning optimization",
-  category: "research_paper",
-  excludeDomains: [
-    "medium.com",
-    "towardsdatascience.com",
-    "blog.*"
-  ]
-})
-```
-
-### Deep Research on Complex Topic
-```javascript
-mcp__exa__deep_search_exa({
-  query: "What are the current approaches to aligning large language models with human preferences?",
-  numResults: 15
-})
-```
-
-## Response Handling
-
-Exa returns structured results with:
-- `title` - Paper title
-- `url` - Link to paper
-- `publishedDate` - Publication date
-- `author` - Author information (when available)
-- `text` - Abstract or summary content
-- `highlights` - Key excerpts
-
-### Extracting ArXiv IDs
-
-From Exa results, extract arXiv IDs for use with arxiv-mcp-server:
+Exa results feed `arxiv-mcp-server` (`download_paper`, `read_paper`):
 
 ```
-URL pattern: https://arxiv.org/abs/2301.00234
-ArXiv ID: 2301.00234
-
-URL pattern: https://arxiv.org/pdf/2301.00234.pdf
-ArXiv ID: 2301.00234
+https://arxiv.org/abs/2301.00234       → 2301.00234
+https://arxiv.org/pdf/2301.00234.pdf   → 2301.00234
 ```
-
-## Direct API Endpoints (curl)
-
-Beyond MCP tools, Exa offers powerful direct API endpoints for academic research.
-
-### Synthesized Answers with Citations
-
-`/answer` takes no source filters, so a domain-restricted answer goes through `/search` with a text `outputSchema` (`exa_research.py --domains arxiv.org` does this automatically).
-
-```bash
-curl -s "https://api.exa.ai/search" -X POST \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -d '{
-    "query": "What are the main approaches to RLHF in large language models?",
-    "includeDomains": ["arxiv.org"],
-    "outputSchema": {"type": "text", "description": "A cited answer"},
-    "contents": {"highlights": true}
-  }'
-```
-
-**Returns**: Comprehensive answer with inline citations and source list.
-
-### /contents - Extract Paper Details
-
-Get full text and highlights from specific papers by URL.
-
-```bash
-curl -s "https://api.exa.ai/contents" -X POST \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -d '{
-    "ids": ["https://arxiv.org/abs/2501.09686"],
-    "text": true,
-    "highlights": true
-  }'
-```
-
-**Parameters**:
-- `ids` - Array of URLs to extract content from
-- `text` - Include full text (boolean)
-- `highlights` - Extract key sentences
-
-### /research/v1 - Long-Running Research (Async)
-
-For comprehensive literature reviews and complex research tasks.
-
-```bash
-curl -s "https://api.exa.ai/research/v1" -X POST \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -d '{
-    "instructions": "Research the main approaches to chain-of-thought prompting in LLMs. Focus on academic papers from arxiv.org.",
-    "model": "exa-research-fast"
-  }'
-```
-
-**Parameters**:
-- `instructions` - Research instructions (max 4096 chars)
-- `model` - `exa-research-fast`, `exa-research`, or `exa-research-pro`
-- `outputSchema` - Optional JSON schema for structured output
-
-**Returns**: `researchId` for polling completion.
-
-**Models**:
-| Model | Speed | Thoroughness | Cost |
-|-------|-------|--------------|------|
-| exa-research-fast | Fast | Basic | Low |
-| exa-research | Medium | Standard | Medium |
-| exa-research-pro | Slow | Comprehensive | High |
 
 ## Troubleshooting
 
-### No Results with category Filter
-- Try without category filter first
-- Use includeDomains instead for source control
-- Broaden query terms
-
-### Too Many Non-Academic Results
-- Add `category: "research_paper"`
-- Use `includeDomains` for academic sources
-- Add terms like "paper" or "research" to query
-
-### Missing Recent Papers
-- ArXiv may index faster than Exa crawls
-- Use arxiv-mcp-server for very recent papers
-- Try `sort_by: "submitted_date"` with arXiv
-
-### MCP vs Direct API
-- **MCP tools**: Integrated into Claude Code, no API key handling needed
-- **Direct API (curl)**: Access to `/answer`, `/contents`, `/research` endpoints not in MCP
+- **Too many blogs:** add `--category publication` (plus `--exclude-domains`), or drop the category and pin venues with `--domains`.
+- **400 `UNSUPPORTED_PUBLICATION_INCLUDE_FILTER`:** `--domains` was combined with `--category publication`; drop one.
+- **Missing very recent papers:** arXiv indexes faster than Exa crawls; use `search_papers` with `sort_by: "submitted_date"`.
+- **`--lite` returns fewer results than `-n`:** lite serves cached pages only; drop `--lite` for coverage.
+- **The Research API (`/research/v1`) is retired** (410). Long-running literature reviews go through `exa_agent.py run` or the MCP `agent_run` tool.
