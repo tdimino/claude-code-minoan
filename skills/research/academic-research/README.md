@@ -4,7 +4,7 @@ The literature review skill. Search academic papers, download from ArXiv, and sy
 
 **Last updated:** 2026-04-25
 
-**Reflects:** Exa AI search API (research_paper category), ArXiv MCP server tools, Obscura stealth browser for bot-protected academic sites, and academic search patterns across 6+ reputable sources.
+**Reflects:** Exa AI search API (publication category), ArXiv MCP server tools, Obscura stealth browser for bot-protected academic sites, and academic search patterns across 6+ reputable sources.
 
 ---
 
@@ -52,7 +52,7 @@ academic-research/
 ### Exa Academic Search
 
 Key parameters for academic queries:
-- `category: "research_paper"` --- filter to academic content
+- `category: "publication"` --- scholarly papers, preprints, and journal articles (was `research paper`)
 - `includeDomains: ["arxiv.org", "scholar.google.com", "semanticscholar.org"]`
 - `startPublishedDate` / `endPublishedDate` --- time-bounded discovery
 - `numResults` --- control breadth (5 for focused, 20 for survey)
@@ -71,7 +71,7 @@ Key parameters for academic queries:
 ### Workflow: Literature Review
 
 ```
-1. Exa broad search (20 results, research_paper category)
+1. Exa broad search (20 results, publication category)
 2. Filter by relevance and date
 3. ArXiv MCP download top candidates
 4. Read full papers for depth

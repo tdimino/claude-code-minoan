@@ -4,7 +4,7 @@ Domain-specific academic research toolkit for Biblical Hebrew, Semitic linguisti
 
 **Last updated:** 2026-05-02
 
-**Reflects:** Sefaria API v3, CDLI/ORACC JSON endpoints, Omnisearch meta-router (`--academic` flag), Exa neural search (`research_paper` category), Firecrawl v2.9 (Fire-PDF parsing), Obscura stealth browser for 10 academic site types.
+**Reflects:** Sefaria API v3, CDLI/ORACC JSON endpoints, Omnisearch meta-router (`--academic` flag), Exa search (`publication` category), Firecrawl v2.9 (Fire-PDF parsing), Obscura stealth browser for 10 academic site types.
 
 ---
 
@@ -56,7 +56,7 @@ ancient-near-east-research/
 | Tool | When | Command |
 |------|------|---------|
 | Omnisearch | Broad discovery, unknown sources | `omnisearch.py "query" --academic` |
-| Exa | Domain-filtered neural search | `exa_search.py "query" --category "research paper" --domains jstor.org persee.fr` |
+| Exa | Domain-filtered neural search | `exa_search.py "query" --category publication --domains jstor.org persee.fr` |
 
 ### Source Extraction (Tiers 3--4)
 
@@ -71,7 +71,7 @@ ancient-near-east-research/
 |------|------|------|
 | 0 | Sefaria / CDLI / ORACC | Known reference, free structured data |
 | 1 | Omnisearch `--academic` | Broad discovery |
-| 2 | Exa `--category "research paper"` | Domain-filtered search |
+| 2 | Exa `--category publication` | Domain-filtered search |
 | 3 | Firecrawl `scrape` / `parse` | Page extraction, PDF-to-markdown |
 | 4 | Obscura `ane_stealth_fetch.sh` | Bot-protected sites |
 | 5 | Scrapling | Cloudflare Turnstile (last resort) |

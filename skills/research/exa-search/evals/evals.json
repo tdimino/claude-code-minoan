@@ -1,0 +1,58 @@
+{
+  "skill_name": "exa-search",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Quickly find what the default timeout behaviour of the Python requests library is.",
+      "expected_output": "A cheap lite search with highlights and no full text, answered from the excerpts with the source URL.",
+      "expectations": [
+        "exa_search.py is invoked with --lite",
+        "The search uses --highlights (or --highlights-query) and --no-text",
+        "The answer cites at least one result URL",
+        "No exa_research_async.py, deep, or agent call is made for this lookup"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Using only exa.ai pages, what is Exa Lite and how much does it cost? Cite sources.",
+      "expected_output": "A cited answer whose every source is on exa.ai, produced via exa_research.py --domains exa.ai (routed to /search) or exa_search.py --domains exa.ai.",
+      "expectations": [
+        "The command includes --domains exa.ai",
+        "Every cited URL is on exa.ai",
+        "The answer states the $4 per 1,000 requests price"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Build me a list of 8 AI infrastructure startups that announced a Series A in 2026, with CEO and headquarters.",
+      "expected_output": "An exa_agent.py run with a bounded schema (preset or custom with maxItems 8), an explicit effort, and grounded results.",
+      "expectations": [
+        "exa_agent.py run is used rather than many manual searches",
+        "The schema is bounded (--max-items 8 or maxItems in the schema)",
+        "--effort is passed explicitly",
+        "If --effort is auto or ultra, --max-cost is also passed",
+        "The reply reports the run's cost or effort tier"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Pull the key points about pricing from https://exa.ai/pricing and https://exa.ai/docs/admin/pricing.",
+      "expected_output": "exa_contents.py on both URLs with query-focused highlights; no deprecated highlight fields are sent.",
+      "expectations": [
+        "exa_contents.py is invoked with both URLs in one call",
+        "Highlights are requested via --highlights or --highlights-query",
+        "--sentences and --highlights-per-url are not used",
+        "The summary lists per-endpoint prices drawn from the pages"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Cheaply get a one-sentence answer: who maintains the Python requests library today?",
+      "expected_output": "A synthesized one-line answer via exa_search.py --text-output on the default auto type (or exa_research.py), never --lite combined with a schema flag.",
+      "expectations": [
+        "No command combines --lite with --text-output, --output-schema, --schema-file, --schema-preset, or --summary",
+        "The answer is one sentence and cites a source URL"
+      ]
+    }
+  ]
+}

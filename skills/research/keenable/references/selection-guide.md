@@ -37,8 +37,8 @@
 | Historical search (past index) | Keenable (`--query-time`) | — |
 | Extract data from URL | Keenable (`--prompt`) | Firecrawl (scrape + parse) |
 | Read a known URL | Keenable (fetch) | Firecrawl (scrape) |
-| Find similar pages | Exa (exa_similar.py) | — |
-| Academic paper search | Exa (`--category "research paper"`) | Keenable |
+| Find similar pages | Exa (`exa_search.py`, query describing the page) | — |
+| Academic paper search | Exa (`--category publication`) | Keenable |
 | Company research | Exa (`--category company`) | Keenable |
 | Crawl entire site | Firecrawl (crawl) | — |
 | Scrape JS-rendered pages | Firecrawl | — |

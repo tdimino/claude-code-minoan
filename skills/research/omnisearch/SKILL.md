@@ -163,8 +163,8 @@ python3 ~/.claude/skills/omnisearch/scripts/xpoz_search.py SUBCOMMAND "query" [o
 | AI answer with citations | **Omnisearch** (Tavily) | Agent-native answers |
 | Multi-provider parallel | **Omnisearch** `--parallel` | Dedup across providers |
 | Semantic/neural search | **Exa** directly | Superior relevance ranking |
-| Research papers | **Exa** `--category "research paper"` | Academic index |
-| Find similar pages | **Exa** `exa_similar.py` | Semantic similarity |
+| Research papers | **Exa** `--category publication` | Academic index |
+| Find similar pages | **Exa** `exa_search.py` with a query describing the page | `/findSimilar` is deprecated |
 | Single page scrape | **Firecrawl** `scrape` | Cleanest markdown |
 | Full site crawl | **Firecrawl** `crawl` | Link following |
 | News freshness filter | **Omnisearch** (Brave `--freshness`) | Hour/day/week/month |

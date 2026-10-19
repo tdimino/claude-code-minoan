@@ -78,7 +78,7 @@ python3 scripts/keenable_fetch.py URL --prompt "Extract the key findings"
 | Point-in-time search | **Keenable** | Only tool with historical index queries |
 | Extract data from URL | **Keenable** `--prompt` | Server-side LLM extraction |
 | Semantic/neural search | **Exa** | AI-powered relevance ranking |
-| Find similar pages | **Exa** | Semantic similarity |
+| Find similar pages | **Exa** | Descriptive `exa_search.py` query (`/findSimilar` deprecated) |
 | Deep site crawling | **Firecrawl** | Link following, JS rendering |
 | High-volume research | **Keenable** | 100K vs Exa 1K vs Firecrawl 500 |
 

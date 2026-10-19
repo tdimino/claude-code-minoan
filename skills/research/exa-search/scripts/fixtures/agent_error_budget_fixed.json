@@ -1,0 +1,15 @@
+{
+  "status": 400,
+  "body": {
+    "statusCode": 400,
+    "timestamp": "2026-10-19T20:01:20.272Z",
+    "error": {
+      "type": "INVALID_REQUEST",
+      "code": "INVALID_REQUEST",
+      "message": "Request body does not match Agent run schema.",
+      "detail": "[\n  {\n    \"code\": \"custom\",\n    \"path\": [\n      \"budget\",\n      \"maxCostDollars\"\n    ],\n    \"message\": \"maxCostDollars is currently supported only for metered efforts.\"\n  }\n]"
+    },
+    "path": "/agent/runs",
+    "requestId": "b499e6f9a07dd97a98658519f1787d92"
+  }
+}

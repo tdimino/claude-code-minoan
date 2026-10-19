@@ -6,20 +6,20 @@ This script tests the Exa Search skill's scripts to ensure proper API connectivi
 and feature functionality. Run after making changes to verify nothing is broken.
 
 Usage:
-    python3 test_exa.py              # Run all tests
-    python3 test_exa.py --quick      # Run quick validation only
+    python3 test_exa.py              # Offline tests + full live suite (~$0.15)
+    python3 test_exa.py --quick      # Offline tests only: no key, no network
     python3 test_exa.py --verbose    # Show detailed output
-    python3 test_exa.py --endpoint search  # Test specific endpoint
+    python3 test_exa.py --endpoint search  # Live tests for one endpoint
 
-Requires: EXA_API_KEY environment variable
+Live tests require EXA_API_KEY. Offline tests live in test_offline.py.
 """
 
 import os
 import sys
 import json
-import time
 import argparse
-from typing import Dict, Any, List, Tuple
+import subprocess
+from typing import List, Tuple
 
 # Add scripts directory to path for imports
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -59,7 +59,7 @@ class TestResults:
             f"  Skipped: {self.skipped}",
         ]
         if self.errors:
-            lines.append(f"\nErrors:")
+            lines.append("\nErrors:")
             for err in self.errors:
                 lines.append(f"  - {err}")
         return "\n".join(lines)
@@ -89,7 +89,7 @@ def test_search_with_category(results: TestResults, verbose: bool = False):
     from exa_search import search
 
     try:
-        result = search("machine learning", num_results=3, category="research paper")
+        result = search("machine learning", num_results=3, category="publication")
         if result.get("results"):
             results.record_pass("search_with_category", verbose)
         else:
@@ -117,7 +117,7 @@ def test_search_with_domain(results: TestResults, verbose: bool = False):
             if all_valid:
                 results.record_pass("search_with_domain", verbose)
             else:
-                results.record_skip("search_with_domain", "Domain filtering is best-effort", verbose)
+                results.record_fail("search_with_domain", "Off-domain result returned", verbose)
         else:
             results.record_fail("search_with_domain", "No results returned", verbose)
     except Exception as e:
@@ -179,11 +179,12 @@ def test_contents_context(results: TestResults, verbose: bool = False):
             get_context=True,
             context_max_chars=5000
         )
-        # Context field may or may not be present depending on API version
-        if result.get("results"):
+        if not result.get("results"):
+            results.record_fail("contents_context", "No results returned", verbose)
+        elif result.get("context"):
             results.record_pass("contents_context", verbose)
         else:
-            results.record_fail("contents_context", "No results returned", verbose)
+            results.record_skip("contents_context", "Deprecated context field not returned", verbose)
     except Exception as e:
         results.record_fail("contents_context", str(e), verbose)
 
@@ -225,11 +226,11 @@ def test_research_basic(results: TestResults, verbose: bool = False):
     from exa_research import research
 
     try:
-        result = research("What is Python?", num_results=3)
-        if result.get("answer"):
+        result = research("What is Python?")
+        if result.get("answer") and result.get("citations"):
             results.record_pass("research_basic", verbose)
         else:
-            results.record_fail("research_basic", "No answer returned", verbose)
+            results.record_fail("research_basic", "No answer or citations returned", verbose)
     except Exception as e:
         results.record_fail("research_basic", str(e), verbose)
 
@@ -239,47 +240,21 @@ def test_research_stream(results: TestResults, verbose: bool = False):
     from exa_research import research, process_stream
 
     try:
-        response = research("What is 2+2?", num_results=2, stream=True)
-        # Just verify we get a response object, don't actually stream
-        if hasattr(response, 'iter_lines'):
+        response = research("What is 2+2?", stream=True)
+        try:
+            streamed = process_stream(response, echo=False)
+        finally:
+            response.close()
+        if streamed["answer"] and streamed["citations"] and streamed.get("costDollars"):
             results.record_pass("research_stream", verbose)
         else:
-            results.record_fail("research_stream", "Invalid stream response", verbose)
-        response.close()  # Clean up
+            results.record_fail("research_stream", f"Incomplete stream: {list(streamed)}", verbose)
     except Exception as e:
         results.record_fail("research_stream", str(e), verbose)
 
 
-def test_research_async_models(results: TestResults, verbose: bool = False):
-    """Test async research model validation."""
-    from exa_research_async import create_research
-
-    # Test that invalid model raises error
-    try:
-        create_research("test", model="invalid-model")
-        results.record_fail("research_async_models", "Should have raised ValueError", verbose)
-    except ValueError as e:
-        if "exa-research" in str(e) and "exa-research-pro" in str(e):
-            results.record_pass("research_async_models", verbose)
-        else:
-            results.record_fail("research_async_models", f"Error message missing models: {e}", verbose)
-    except Exception as e:
-        results.record_fail("research_async_models", str(e), verbose)
 
 
-def test_research_async_list(results: TestResults, verbose: bool = False):
-    """Test listing async research jobs."""
-    from exa_research_async import list_research
-
-    try:
-        result = list_research(limit=5)
-        # Just verify we get a response with expected structure
-        if "data" in result:
-            results.record_pass("research_async_list", verbose)
-        else:
-            results.record_fail("research_async_list", "Missing 'data' field", verbose)
-    except Exception as e:
-        results.record_fail("research_async_list", str(e), verbose)
 
 
 # --- Exa Deep tests ---
@@ -306,15 +281,11 @@ def test_search_output_schema_text(results: TestResults, verbose: bool = False):
         result = search(
             "Who is the CEO of Stripe?",
             num_results=3,
-            search_type="deep",
             output_schema={"type": "text", "description": "Short one-sentence answer"}
         )
         output = result.get("output", {})
         content = output.get("content") if output else None
         if isinstance(content, str) and len(content) > 0:
-            results.record_pass("search_output_schema_text", verbose)
-        elif result.get("results"):
-            # API may not always return output block — pass if results exist
             results.record_pass("search_output_schema_text", verbose)
         else:
             results.record_fail("search_output_schema_text", "No text content in output", verbose)
@@ -343,12 +314,7 @@ def test_search_output_schema_json(results: TestResults, verbose: bool = False):
         )
         output = result.get("output", {})
         content = output.get("content") if output else None
-        if isinstance(content, dict):
-            results.record_pass("search_output_schema_json", verbose)
-        elif isinstance(content, str) and len(content) > 0:
-            # API may return text even with object schema
-            results.record_pass("search_output_schema_json", verbose)
-        elif result.get("results"):
+        if isinstance(content, dict) and content.get("answer"):
             results.record_pass("search_output_schema_json", verbose)
         else:
             results.record_fail("search_output_schema_json", "No structured output returned", verbose)
@@ -356,44 +322,8 @@ def test_search_output_schema_json(results: TestResults, verbose: bool = False):
         results.record_fail("search_output_schema_json", str(e), verbose)
 
 
-def test_preset_schemas_exist(results: TestResults, verbose: bool = False):
-    """Test that all preset schemas are valid (offline)."""
-    from exa_search import PRESET_SCHEMAS
-
-    expected = ["company", "paper-survey", "competitor-analysis", "person", "news-digest"]
-    try:
-        for name in expected:
-            if name not in PRESET_SCHEMAS:
-                results.record_fail("preset_schemas_exist", f"Missing preset: {name}", verbose)
-                return
-            schema = PRESET_SCHEMAS[name]
-            if not isinstance(schema, dict) or "type" not in schema:
-                results.record_fail("preset_schemas_exist", f"Invalid schema for {name}", verbose)
-                return
-        results.record_pass("preset_schemas_exist", verbose)
-    except Exception as e:
-        results.record_fail("preset_schemas_exist", str(e), verbose)
 
 
-def test_schema_type_validation(results: TestResults, verbose: bool = False):
-    """Test that outputSchema with non-deep type raises ValueError (offline)."""
-    from exa_search import search
-
-    try:
-        search("test query", search_type="fast", output_schema={"type": "text", "description": "test"})
-        results.record_fail("schema_type_validation", "Should have raised ValueError", verbose)
-    except ValueError as e:
-        if "deep" in str(e).lower():
-            results.record_pass("schema_type_validation", verbose)
-        else:
-            results.record_fail("schema_type_validation", f"Wrong error message: {e}", verbose)
-    except Exception as e:
-        # API key missing is OK — the validation happens before the API call
-        if "EXA_API_KEY" in str(e):
-            # Re-test with key check bypassed — validation should fire first
-            results.record_fail("schema_type_validation", f"Unexpected error: {e}", verbose)
-        else:
-            results.record_fail("schema_type_validation", f"Wrong exception type: {e}", verbose)
 
 
 def test_contents_max_age_hours(results: TestResults, verbose: bool = False):
@@ -462,9 +392,9 @@ def test_research_output_schema(results: TestResults, verbose: bool = False):
                 "key_points": {"type": "array", "items": {"type": "string"}}
             }
         }
-        result = research("What is Python?", num_results=3, output_schema=schema)
+        result = research("What is Python?", output_schema=schema)
         answer = result.get("answer")
-        if answer is not None:
+        if isinstance(answer, dict) and answer.get("answer"):
             results.record_pass("research_output_schema", verbose)
         else:
             results.record_fail("research_output_schema", "No answer returned", verbose)
@@ -472,71 +402,125 @@ def test_research_output_schema(results: TestResults, verbose: bool = False):
         results.record_fail("research_output_schema", str(e), verbose)
 
 
-def test_search_category_validation(results: TestResults, verbose: bool = False):
-    """Test that 'tweet' is no longer a valid category (offline)."""
+
+
+# --- Exa 3.0 tests ---
+
+def _cli(script: str, *argv: str) -> Tuple[int, str, str]:
+    proc = subprocess.run([sys.executable, os.path.join(SCRIPT_DIR, script), *argv],
+                          capture_output=True, text=True, timeout=300)
+    return proc.returncode, proc.stdout, proc.stderr
+
+
+def test_search_lite(results: TestResults, verbose: bool = False):
+    """Lite search returns results at the $4/1k tier."""
     from exa_search import search
 
-    valid_categories = [
-        "company", "research paper", "news", "pdf",
-        "github", "personal site", "people", "financial report"
-    ]
     try:
-        search("test", category="tweet")
-        results.record_fail("search_category_validation", "Should have rejected 'tweet' category", verbose)
-    except (ValueError, Exception) as e:
-        err = str(e).lower()
-        if "tweet" in err or "category" in err or "invalid" in err:
-            results.record_pass("search_category_validation", verbose)
+        result = search("python requests library", num_results=3, search_type="lite", get_highlights=True)
+        if result.get("results") and 0 < (result.get("costDollars", {}).get("total") or 0) <= 0.005:
+            results.record_pass("search_lite", verbose)
         else:
-            results.record_skip("search_category_validation",
-                                f"Rejected but with unexpected message: {e}", verbose)
+            results.record_fail("search_lite", f"Unexpected response: {str(result)[:200]}", verbose)
+    except Exception as e:
+        results.record_fail("search_lite", str(e), verbose)
+
+
+def test_search_lite_rejects_summary(results: TestResults, verbose: bool = False):
+    """Lite's 400 for unsupported fields surfaces verbatim with a hint."""
+    code, _, err = _cli("exa_search.py", "python requests", "--lite", "--summary", "what is it", "-n", "2")
+    if code == 1 and 'Not supported with type "lite"' in err and "drop --lite" in err:
+        results.record_pass("search_lite_rejects_summary", verbose)
+    else:
+        results.record_fail("search_lite_rejects_summary", f"exit {code}: {err[:200]}", verbose)
+
+
+def test_search_dynamic_highlights(results: TestResults, verbose: bool = False):
+    """Dynamic Highlights (beta header) returns highlights."""
+    from exa_search import search
+
+    try:
+        result = search("solar installation cost trends", num_results=3, get_text=False, dynamic_highlights=True)
+        if any(r.get("highlights") for r in result.get("results", [])):
+            results.record_pass("search_dynamic_highlights", verbose)
+        else:
+            results.record_fail("search_dynamic_highlights", "No highlights returned", verbose)
+    except Exception as e:
+        results.record_fail("search_dynamic_highlights", str(e), verbose)
+
+
+def test_research_sources_cli(results: TestResults, verbose: bool = False):
+    """exa_research.py --sources lists /answer citations."""
+    code, out, err = _cli("exa_research.py", "What is the Exa search API?", "--sources")
+    if code == 0 and "SOURCES (" in out and "URL: http" in out:
+        results.record_pass("research_sources_cli", verbose)
+    else:
+        results.record_fail("research_sources_cli", f"exit {code}: {(err or out)[-200:]}", verbose)
+
+
+def test_research_domain_filter(results: TestResults, verbose: bool = False):
+    """exa_research.py --domains routes to /search and only cites that domain."""
+    code, out, err = _cli("exa_research.py", "What is Exa Lite?", "--domains", "exa.ai", "--json")
+    try:
+        doc = json.loads(out)
+        urls = [c["url"] for c in doc.get("citations", [])]
+        urls += [c["url"] for g in doc.get("grounding", []) for c in g.get("citations", [])]
+        if code == 0 and doc.get("answer") and urls and all("exa.ai" in u for u in urls):
+            results.record_pass("research_domain_filter", verbose)
+        else:
+            results.record_fail("research_domain_filter", f"Off-domain or empty: {urls[:5]}", verbose)
+    except Exception as e:
+        results.record_fail("research_domain_filter", f"{e}: {(err or out)[:200]}", verbose)
+
+
+def test_agent_list(results: TestResults, verbose: bool = False):
+    """GET /agent/runs works."""
+    code, out, err = _cli("exa_agent.py", "list", "--limit", "3", "--json")
+    try:
+        if code == 0 and json.loads(out).get("object") == "list":
+            results.record_pass("agent_list", verbose)
+        else:
+            results.record_fail("agent_list", f"exit {code}: {err[:200]}", verbose)
+    except Exception as e:
+        results.record_fail("agent_list", f"{e}: {err[:200]}", verbose)
+
+
+def test_agent_run_minimal(results: TestResults, verbose: bool = False):
+    """A minimal-effort run ($0.012) reaches a terminal status."""
+    code, out, err = _cli("exa_agent.py", "run", "What is the capital of Crete? One word.",
+                          "--effort", "minimal", "--timeout", "180", "--json")
+    try:
+        run = json.loads(out)
+        if code == 0 and run.get("status") == "completed" and run.get("output", {}).get("text"):
+            results.record_pass("agent_run_minimal", verbose)
+        else:
+            results.record_fail("agent_run_minimal", f"status={run.get('status')} exit={code}", verbose)
+    except Exception as e:
+        results.record_fail("agent_run_minimal", f"{e}: {err[:200]}", verbose)
 
 
 def run_quick_tests(verbose: bool = False) -> TestResults:
-    """Run quick validation tests only."""
+    """Run the offline suite (test_offline.py): payloads, routing, parsing, fixtures."""
+    import test_offline
+
     results = TestResults()
-
     print("\n" + "="*60)
-    print("QUICK VALIDATION TESTS")
+    print("OFFLINE TESTS (no key, no network)")
     print("="*60)
-
-    # API Key check
-    if not check_api_key():
-        print("ERROR: EXA_API_KEY environment variable not set")
-        results.record_fail("api_key", "Not set", verbose)
-        return results
-    results.record_pass("api_key", verbose)
-
-    # Basic search
-    print("\nTesting /search endpoint...")
-    test_search_basic(results, verbose)
-
-    # Basic contents
-    print("\nTesting /contents endpoint...")
-    test_contents_basic(results, verbose)
-
-    # Model validation
-    print("\nTesting model validation...")
-    test_research_async_models(results, verbose)
-
-    # Offline Exa Deep tests
-    print("\nTesting Exa Deep (offline)...")
-    test_preset_schemas_exist(results, verbose)
-    test_schema_type_validation(results, verbose)
-
-    # Category validation
-    print("\nTesting category validation...")
-    test_search_category_validation(results, verbose)
-
+    failed = test_offline.run(verbose)
+    results.passed += len(test_offline.TESTS) - failed
+    if failed:
+        results.failed += failed
+        results.errors.append(f"{failed} offline test(s) failed (see above)")
     return results
 
 
 def run_all_tests(verbose: bool = False) -> TestResults:
-    """Run all tests."""
-    results = TestResults()
+    """Run the offline suite, then every live test."""
+    results = run_quick_tests(verbose)
 
     print("\n" + "="*60)
-    print("FULL TEST SUITE")
+    print("LIVE TEST SUITE")
     print("="*60)
 
     # API Key check
@@ -555,9 +539,9 @@ def run_all_tests(verbose: bool = False) -> TestResults:
     test_search_deep_reasoning(results, verbose)
     test_search_output_schema_text(results, verbose)
     test_search_output_schema_json(results, verbose)
-    test_preset_schemas_exist(results, verbose)
-    test_schema_type_validation(results, verbose)
-    test_search_category_validation(results, verbose)
+    test_search_lite(results, verbose)
+    test_search_lite_rejects_summary(results, verbose)
+    test_search_dynamic_highlights(results, verbose)
 
     # Contents tests
     print("\n--- /contents endpoint ---")
@@ -578,11 +562,13 @@ def run_all_tests(verbose: bool = False) -> TestResults:
     test_research_basic(results, verbose)
     test_research_stream(results, verbose)
     test_research_output_schema(results, verbose)
+    test_research_sources_cli(results, verbose)
+    test_research_domain_filter(results, verbose)
 
-    # Async research tests
-    print("\n--- /research endpoint ---")
-    test_research_async_models(results, verbose)
-    test_research_async_list(results, verbose)
+    # Agent tests
+    print("\n--- /agent/runs endpoint ---")
+    test_agent_list(results, verbose)
+    test_agent_run_minimal(results, verbose)
 
     return results
 
@@ -606,9 +592,9 @@ def run_endpoint_tests(endpoint: str, verbose: bool = False) -> TestResults:
             test_search_deep_reasoning,
             test_search_output_schema_text,
             test_search_output_schema_json,
-            test_preset_schemas_exist,
-            test_schema_type_validation,
-            test_search_category_validation,
+            test_search_lite,
+            test_search_lite_rejects_summary,
+            test_search_dynamic_highlights,
         ],
         "contents": [
             test_contents_basic,
@@ -626,16 +612,19 @@ def run_endpoint_tests(endpoint: str, verbose: bool = False) -> TestResults:
             test_research_basic,
             test_research_stream,
             test_research_output_schema,
+            test_research_sources_cli,
+            test_research_domain_filter,
         ],
-        "research": [
-            test_research_async_models,
-            test_research_async_list,
+        "agent": [
+            test_agent_list,
+            test_agent_run_minimal,
         ],
     }
 
     if endpoint not in endpoint_tests:
         print(f"Unknown endpoint: {endpoint}")
         print(f"Valid endpoints: {', '.join(endpoint_tests.keys())}")
+        results.record_fail("endpoint", f"unknown endpoint '{endpoint}'", verbose)
         return results
 
     print(f"\n--- Testing /{endpoint} endpoint ---")
@@ -656,16 +645,16 @@ Examples:
   %(prog)s --verbose           Show detailed output
   %(prog)s --endpoint search   Test only search endpoint
 
-Endpoints: search, contents, similar, answer, research
+Endpoints: search, contents, similar, answer, agent
         """
     )
 
     parser.add_argument("--quick", action="store_true",
-                        help="Run quick validation only")
+                        help="Run offline tests only (no key, no network)")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Show detailed test output")
     parser.add_argument("--endpoint", "-e",
-                        help="Test specific endpoint (search, contents, similar, answer, research)")
+                        help="Live tests for one endpoint (search, contents, similar, answer, agent)")
 
     args = parser.parse_args()
 

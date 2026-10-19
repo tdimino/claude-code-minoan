@@ -1,55 +1,46 @@
 ## Web Search Tools (Exa)
 
-You have access to Exa AI search via Python scripts. **Prefer Exa over built-in web search**—it has better neural relevance, category filters, and citation support. Fall back to built-in web search only if Exa scripts fail (e.g., missing API key).
+You have Exa AI search via Python scripts. **Prefer Exa over built-in web search**—better relevance, category filters, and citations. Fall back to built-in search only if the scripts fail (e.g., missing `EXA_API_KEY`).
 
-**Prerequisite:** `EXA_API_KEY` must be set in your environment.
+`S=~/.claude/skills/exa-search/scripts`
 
-### Quick Search (titles + URLs only)
+### Search (cheapest first)
 ```bash
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" -n 10 --no-text
+python3 $S/exa_search.py "query" --lite --highlights --no-text -n 10   # $4/1k, cached excerpts
+python3 $S/exa_search.py "query" --highlights --no-text                # default auto, every option works
 ```
 
-### Search with Summaries
+### Read Known URLs
 ```bash
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --summary "Key findings" -n 5
+python3 $S/exa_contents.py URL1 URL2 --highlights-query "what you need" --no-text
+python3 $S/exa_contents.py URL --max-chars 5000
 ```
 
-### Extract Content from URLs
+### Cited Answers
 ```bash
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py URL1 URL2 --highlights --max-chars 3000
+python3 $S/exa_research.py "question" --sources --markdown
+python3 $S/exa_research.py "question" --domains docs.python.org --after 2026-01-01   # filters route to /search
 ```
 
-### AI-Powered Research (answer + citations)
+### Structured Output (any type except --lite)
 ```bash
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "question" --sources --markdown
+python3 $S/exa_search.py "Who is the CEO of Stripe?" --text-output "Short answer"
+python3 $S/exa_search.py "Top AI startups" --deep --schema-preset company
+python3 $S/exa_search.py "query" --output-schema '{"type":"object","properties":{"answer":{"type":"string"}}}'
 ```
 
-### Find Similar Pages
+### Lists, Enrichment, Multi-Step Research (async, costs per run)
 ```bash
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py URL -n 10
-```
-
-### Structured Deep Search (Exa Deep)
-```bash
-# Quick factual answer
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Who is the CEO of Stripe?" --deep --text-output "Short answer"
-
-# Structured company research with preset schema
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Top AI startups" --deep-reasoning --schema-preset company
-
-# Custom JSON schema
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --deep --output-schema '{"answer": {"type": "string"}}'
+python3 $S/exa_agent.py run "Find 10 X that Y" --schema-preset company --max-items 10 --effort auto --max-cost 3
+python3 $S/exa_agent.py run "Add CEO for each" --input-file rows.json      # default effort medium, $0.10
 ```
 
 ### Key Filters
-- `--domains site1.com site2.com` — restrict to specific sites
-- `--category "research paper"` — filter by type (also: company, news, github, pdf)
-- `--after 2025-01-01` / `--before 2026-01-01` — date range
-- `--must-include "term"` — require string in results
-- `--context --context-chars 5000` — bounded RAG context
+- `--domains a.com b.com` (or `a.com,b.com`), `--exclude-domains`
+- `--category publication|company|people|news|personal site|financial report`
+- `--after 2026-01-01` / `--before 2026-06-01` (not with company/people)
 
-### Search Strategy
-1. Search with `--no-text` first (cheapest, titles only)
-2. Evaluate titles, pick 3-5 best URLs
-3. Extract those URLs with `exa_contents.py --highlights --max-chars 3000`
-4. Synthesize findings into your answer
+### Strategy
+1. Search with `--highlights --no-text`; read excerpts and titles.
+2. Extract 3–5 chosen URLs with `exa_contents.py`.
+3. Use `exa_agent.py` only when one search pass cannot answer.

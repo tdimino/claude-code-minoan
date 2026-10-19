@@ -209,9 +209,9 @@ jina https://x.com/username/status/123456
 | Local file → markdown | `firecrawl_api.py parse FILE` | Direct upload, no URL needed |
 | Autonomous data finding | `firecrawl_api.py agent` | No URLs needed |
 | Semantic/neural search | Exa `exa_search.py` | AI-powered relevance |
-| Find research papers | Exa `--category "research paper"` | Academic index |
+| Find research papers | Exa `--category publication` | Academic index |
 | Quick research answer | Exa `exa_research.py` | Citations + synthesis |
-| Find similar pages | Exa `exa_similar.py` | Competitive analysis |
+| Find similar pages | Exa `exa_search.py` with a query describing the page | `/findSimilar` is deprecated |
 | Claude API agent building | Native `web_search_20260209` | Built-in dynamic filtering |
 | Twitter/X content | `jina URL` | Only tool that works |
 | GitHub repo docs | `deepwiki.sh owner/repo` | AI-generated wiki |

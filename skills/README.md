@@ -86,7 +86,7 @@ python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py enable <skill-name
 |-------|-------------|
 | `academic-research` | Paper search via Exa + [ArXiv](https://arxiv.org/) |
 | `ancient-near-east-research` | Biblical Hebrew, Semitic linguistics, cuneiform, Minoan/Aegean archaeology — [Sefaria](https://www.sefaria.org/), CDLI/ORACC APIs + web discovery |
-| `exa-search` | Neural search via [Exa AI](https://exa.ai/) — 5 specialized scripts, all API endpoints |
+| `exa-search` | Search, contents, cited answers, and Agent API via [Exa AI](https://exa.ai/) 3.0 — 6 scripts |
 | `firecrawl` | Web scraping via [Firecrawl](https://firecrawl.dev/) v2 — JS rendering, site crawls, Agent API, Interact API |
 | `keenable` | Web search + page fetch via [Keenable AI](https://keenable.ai) — point-in-time search, prompt-driven extraction, 100K free/mo |
 | `geo-seo` | AI search visibility audit + artifact generator — 7-dimension scorecard (crawler access, discovery, schema, citability, SEO, entity signals, multi-engine), deployable llms.txt/schema/robots.txt, tailored by site type and scale. Grounded in [Princeton KDD 2024](https://arxiv.org/abs/2311.09735), [CMU ICLR 2026](https://arxiv.org/abs/2510.11438), and 6 more papers |

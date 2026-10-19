@@ -1,0 +1,24 @@
+data: {"choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{"content":"Exa"},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{"content":" 3.0, released on October 18, 2026"},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{"content":", is the company's most significant update to its web search API for AI agents [1][2]. It introduces a larger"},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{"content":", more capable embedding model and an expanded index that now includes billions of specialized documents like ecommerce listings, local business data, and real"},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{"content":"-time information [1]. \n\nThe update features Dynamic Highlights, which extract relevant text across multiple search results to significantly"},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{"content":" reduce token usage [1]. Additionally, the release adds Exa Lite, a cost-effective tier priced at $4 per 1,0"},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{"content":"00 requests, alongside the $7 Exa Auto tier [1][2]."},"finish_reason":null}]}
+
+data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+data: {"citations":[{"id":"https://alphasignal.ai/news/exa-3-0-beats-perplexity-on-8-benchmarks-and-slashes-search-costs","title":"Exa 3.0 adds a $4-per-1,000-request search tier","url":"https://alphasignal.ai/news/exa-3-0-beats-perplexity-on-8-benchmarks-and-slashes-search-costs"},{"id":"https://runtimewire.com/article/exa-3-search-api-launch","title":"Exa 3.0 adds cheaper search and a larger index for AI agents","url":"https://runtimewire.com/article/exa-3-search-api-launch","publishedDate":"2026-10-19T16:56:02.000Z","author":"Ryan Merket","image":"https://runtimewire.com/og/exa-3-search-api-launch.16x9.jpg?v=og2-1m2okn2"},{"id":"https://exa.ai/","title":"Exa — The world's data for AI agents","url":"https://exa.ai/"},{"id":"https://exa.ai/products/search","title":"AI Web Search for Agents — Exa Search API","url":"https://exa.ai/products/search","author":"Exa Labs","image":"https://exa.imgix.net/og-image-v4.png/"},{"id":"https://exa.ai/docs/changelog","title":"Changelog - Exa","url":"https://exa.ai/docs/changelog","image":"https://exa-52.mintlify.app/_next/image?url=%2F_mintlify%2Fapi%2Fog%3Fdivision%3DUpdates%26title%3DChangelog%26description%3DProduct%2Bupdates%2Band%2Bannouncements%2Bfrom%2BExa.%26theme%3D2cc251f5ec67b21bc572afb1&w=1200&q=100"},{"id":"https://exa.ai/docs/admin/faqs","title":"FAQs - Exa","url":"https://exa.ai/docs/admin/faqs","image":"https://exa-52.mintlify.app/_next/image?url=%2F_mintlify%2Fapi%2Fog%3Fdivision%3DAdmin%26title%3DFAQs%26description%3DAnswers%2Bto%2Bcommon%2Bquestions%2Babout%2BExa%2Bproducts%252C%2Bsearch%2Bindex%252C%2Bfreshness%252C%2Bgrounding%252C%2Bsecurity%252C%2Band%2Bpricing.%26theme%3D2cc251f5ec67b21bc572afb1&w=1200&q=100"},{"id":"https://www.therundown.ai/tools/exa-3-0","title":"Exa 3.0 | The Rundown AI","url":"https://www.therundown.ai/tools/exa-3-0"},{"id":"https://exa.ai/blog/perfect-search","title":"Perfect Web Search for AI Agents with Semantic Search Technology | Exa Blog","url":"https://exa.ai/blog/perfect-search","publishedDate":"2025-01-07T12:04:08.000Z","author":"Will Bryk","image":"https://exa.imgix.net/headphones-earth.png?fm=jpg&q=80"}]}
+
+data: {"costDollars":{"total":0.005},"requestId":"182c80d3c7f9ae0602c9bdba55a40b21"}
+
+data: [DONE]
+

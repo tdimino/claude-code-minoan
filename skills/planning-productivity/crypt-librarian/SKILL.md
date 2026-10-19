@@ -93,13 +93,13 @@ The skill includes `scripts/exa_film_search.py` (4 Exa endpoints) and the shared
 |------|---------|----------|
 | **Search** | `exa_film_search.py search "gothic horror" -n 10` | Find film lists and articles |
 | **Contents** | `exa_film_search.py contents "URL"` | Extract full content from URLs |
-| **Similar** | `exa_film_search.py similar "URL" -n 15` | Find similar films |
+| **Similar** | `exa_film_search.py similar "URL" -n 15` | Find similar films (Exa marks `/findSimilar` deprecated) |
 | **Research** | `exa_film_search.py research "query"` | AI-synthesized answer with citations |
-| **Deep Search** | `exa_search.py "query" --deep` | Comprehensive 4–12s search with structured output |
-| **Instant Search** | `exa_search.py "query" --instant` | Sub-150ms for quick lookups |
+| **Deep Search** | `exa_search.py "query" --deep` | Multi-step 4–15s search with synthesis |
+| **Lite Search** | `exa_search.py "query" --lite --highlights --no-text` | Cheapest ($4/1k) cached lookups |
 | **Image Extraction** | `exa_contents.py URL --images 10` | Extract poster/still URLs from film pages |
 | **Structured Output** | `exa_search.py "query" --deep --output-schema '{...}'` | Custom JSON schemas |
-| **Async Research** | `exa_research_async.py "question" --pro` | Premium async research |
+| **Async Research** | `exa_agent.py run "question" --effort high` | Multi-step agent research |
 | **Subpage Crawling** | `exa_contents.py URL --subpages 5` | Follow links from a film page |
 
 **Practical patterns:**
@@ -109,7 +109,7 @@ exa_contents.py "https://letterboxd.com/film/the-ninth-gate/" --images 5
 
 # Structured film search with custom schema
 exa_search.py "gothic horror pre-2010 underseen" --deep \
-  --output-schema '{"films":[{"title":"string","year":"number","director":"string"}]}'
+  --output-schema '{"type":"object","properties":{"films":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"year":{"type":"number"},"director":{"type":"string"}}}}}}'
 
 # Cost-efficient discovery (titles/URLs only, then drill into best hits)
 exa_search.py "query" -n 20 --no-text
@@ -118,7 +118,7 @@ exa_contents.py "best-hit-url" --images 5
 
 **Script paths:**
 - Skill-local: `scripts/exa_film_search.py`
-- Shared: `~/.claude/skills/exa-search/scripts/exa_search.py`, `exa_contents.py`, `exa_similar.py`, `exa_research.py`, `exa_research_async.py`
+- Shared: `~/.claude/skills/exa-search/scripts/exa_search.py`, `exa_contents.py`, `exa_similar.py`, `exa_research.py`, `exa_agent.py`
 
 Requires: `EXA_API_KEY` environment variable, `pip install requests`
 
@@ -351,8 +351,8 @@ python3 ~/.claude/skills/exa-search/scripts/exa_research.py "literary adaptation
 # Director filmography
 python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Nicolas Roeg filmography best films" --sources
 
-# Similar films from seed URLs
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py "https://letterboxd.com/film/the-ninth-gate/" -n 15
+# Similar films from a seed (describe it; /findSimilar is deprecated)
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "films like The Ninth Gate (1999): occult bibliophile thriller, Polanski" -n 15 --highlights --no-text
 ```
 
 ### Phase 3: Candidate Validation

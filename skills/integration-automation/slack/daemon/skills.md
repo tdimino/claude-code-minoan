@@ -35,9 +35,9 @@ You have access to these tools via your `--allowedTools` configuration. Use them
 |---------|---------|
 | `python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query"` | Neural web search via Exa |
 | `python3 ~/.claude/skills/exa-search/scripts/exa_research.py "query" --sources` | AI-powered research with citations |
-| `python3 ~/.claude/skills/exa-search/scripts/exa_similar.py URL` | Find semantically similar pages |
+| `python3 ~/.claude/skills/exa-search/scripts/exa_agent.py run "task" --effort medium` | Multi-step research, lists, enrichment (Agent API) |
 | `python3 ~/.claude/skills/exa-search/scripts/exa_contents.py URL` | Extract clean content from URLs |
-| `python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --category "research paper"` | Academic paper search and literature review |
+| `python3 ~/.claude/skills/exa-search/scripts/exa_search.py "query" --category publication` | Academic paper search and literature review |
 
 ## Local ML
 

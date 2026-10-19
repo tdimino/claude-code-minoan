@@ -1,0 +1,30 @@
+{
+  "id": "agent_run_470fe650ff91438c8899fc26b3f41fbf",
+  "object": "agent_run",
+  "status": "running",
+  "stopReason": null,
+  "createdAt": "2026-10-19T20:01:11.542Z",
+  "completedAt": null,
+  "request": {
+    "query": "What is the capital of Crete? Answer in one word.",
+    "effort": "minimal"
+  },
+  "output": {
+    "text": "",
+    "structured": null,
+    "grounding": []
+  },
+  "usage": {
+    "agentComputeUnits": 0,
+    "searches": 3,
+    "emails": 0,
+    "phoneNumbers": 0
+  },
+  "costDollars": {
+    "total": 0.012,
+    "agentCompute": 0,
+    "search": 0.012,
+    "emails": 0,
+    "phoneNumbers": 0
+  }
+}

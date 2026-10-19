@@ -14,7 +14,7 @@
 | Skill | Description |
 |-------|-------------|
 | `firecrawl` | Web scraping and content extraction to Markdown |
-| `exa-search` | Neural web search API with 5 specialized scripts |
+| `exa-search` | Exa 3.0 search, contents, cited answers, and Agent API (6 scripts) |
 | `cloudflare` | Cloudflare platform management via Wrangler CLI |
 | `slack` | Slack workspace integration--post, read, search, react |
 

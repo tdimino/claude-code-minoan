@@ -1,0 +1,8 @@
+{
+  "status": 400,
+  "body": {
+    "requestId": "0c3a72a241fb91e4bca7bbe2bc4da482",
+    "error": "Invalid request body | Not supported with type \"lite\": contents.summary. Use type \"auto\" for other parameters.",
+    "tag": "INVALID_REQUEST_BODY"
+  }
+}

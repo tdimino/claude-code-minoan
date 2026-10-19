@@ -6,7 +6,7 @@ Web search, academic research, scraping, and computational analysis.
 |-------|-------------|
 | `academic-research` | Paper search, literature reviews, and research synthesis via Exa and arXiv |
 | `ancient-near-east-research` | Biblical Hebrew, Semitic linguistics, cuneiform, Minoan/Aegean archaeology --- Sefaria, CDLI/ORACC APIs + web discovery |
-| `exa-search` | Neural web search with 5 specialized scripts (search, contents, similar, research, find) |
+| `exa-search` | Exa 3.0 search (lite/auto/deep), URL contents, cited answers, and the async Agent API — 6 scripts |
 | `firecrawl` | Cloud web scraping to markdown — single pages, site crawls, search, agent extraction |
 | `keenable` | Web search + page fetch via Keenable AI — point-in-time search, prompt-driven extraction, 100K free/mo |
 | `omnisearch` | Unified meta-router across 5 providers (Brave, Tavily, Xpoz, Exa, Firecrawl) — auto-routes, parallel search, dedup, social media |
@@ -26,6 +26,7 @@ Web search, academic research, scraping, and computational analysis.
 | Point-in-time search | `keenable --query-time` |
 | Extract data from URL (LLM) | `keenable --prompt "extract X"` |
 | Neural / semantic search | `exa-search` |
+| Researched lists, enrichment, multi-hop | `exa-search` (`exa_agent.py`) |
 | Academic papers | `academic-research` (Exa + arXiv MCP) |
 | ANE primary sources (Hebrew, cuneiform) | `ancient-near-east-research` (Sefaria + CDLI/ORACC) |
 | Multi-provider parallel search | `omnisearch --parallel` |

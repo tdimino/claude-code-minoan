@@ -85,7 +85,7 @@ def _run_exa_search(
         )
         if result.returncode != 0:
             return []
-        return json.loads(result.stdout)
+        return json.loads(result.stdout).get("results", [])
     except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
         return []
 
@@ -104,9 +104,10 @@ def _run_exa_contents(
         sys.executable, str(script),
         *urls,
         "--max-chars", str(max_chars),
+        "--json",
     ]
     if summary:
-        cmd.append("--summary")
+        cmd.extend(["--summary", "Key facts about this entity"])
 
     try:
         result = subprocess.run(
@@ -118,7 +119,7 @@ def _run_exa_contents(
         )
         if result.returncode != 0:
             return []
-        return json.loads(result.stdout)
+        return json.loads(result.stdout).get("results", [])
     except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
         return []
 
@@ -210,7 +211,7 @@ def main() -> None:
     parser.add_argument(
         "--categories", type=str, default="company,news",
         help="Comma-separated Exa search categories (default: company,news). "
-             "Options: company, research paper, news, pdf, github, tweet, "
+             "Options: company, publication, news, "
              "personal site, people, financial report",
     )
     parser.add_argument(

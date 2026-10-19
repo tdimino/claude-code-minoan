@@ -104,7 +104,7 @@ python3 ~/.claude/skills/keenable/scripts/keenable_setup.py --setup-mcp       # 
 | Point-in-time search | **Keenable** | Only tool that supports historical index queries |
 | Extract specific data from URL | **Keenable** `--prompt` | API-side LLM extraction, no post-processing |
 | Semantic/neural search | **Exa** | AI-powered relevance ranking |
-| Find similar pages | **Exa** `exa_similar.py` | Semantic similarity |
+| Find similar pages | **Exa** `exa_search.py` with a query describing the page | `/findSimilar` is deprecated |
 | Deep site crawling | **Firecrawl** | Link following, JS rendering |
 | Search + scrape combined | **Firecrawl** `search --scrape` | One operation |
 | High-volume usage | **Keenable** | 100K vs Exa 1K vs Firecrawl 500 |

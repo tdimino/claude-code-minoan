@@ -1,0 +1,63 @@
+{
+  "requestId": "fedfefaaf43844d3f6c1c5f8b8c58774",
+  "answer": "Exa was founded in 2021 [1][2][3]. While the company began as a search engine for general users in 2022, its API-based services for AI agents were developed and released subsequently in response to user demand [1][4].",
+  "citations": [
+    {
+      "id": "https://exa.ai/blog/announcing-series-b",
+      "title": "Exa Raises $85M to Build the Search Engine for AIs | Exa Blog",
+      "url": "https://exa.ai/blog/announcing-series-b",
+      "publishedDate": "2025-09-03T19:43:15.000Z",
+      "author": "Will Bryk",
+      "image": "https://exa.imgix.net/team_photo_lowres.png"
+    },
+    {
+      "id": "https://www.ycombinator.com/companies/exa/jobs",
+      "title": "Jobs at Exa | Y Combinator",
+      "url": "https://www.ycombinator.com/companies/exa/jobs",
+      "image": "https://bookface-images.s3.amazonaws.com/logos/0353a0ccfb7d513ccfe034122dddb72e069b43fa.png?1734553320"
+    },
+    {
+      "id": "https://lsvp.com/company/exa/",
+      "title": "Exa - Lightspeed Venture Partners",
+      "url": "https://lsvp.com/company/exa/",
+      "image": "https://lsvp.com/wp-content/uploads/2024/07/ColorColor_TypeWordmark@4x-1.jpg?1770696706"
+    },
+    {
+      "id": "https://techcrunch.com/2024/07/16/exa-raises-17m-lightspeed-nvidia-ycombinator-google-ai-models/",
+      "title": "Exa raises $17M from Lightspeed, Nvidia, Y Combinator to build a Google for AIs | TechCrunch",
+      "url": "https://techcrunch.com/2024/07/16/exa-raises-17m-lightspeed-nvidia-ycombinator-google-ai-models/",
+      "publishedDate": "2024-07-16T13:00:00.000Z",
+      "author": "Julie Bort",
+      "image": "https://techcrunch.com/wp-content/uploads/2024/07/Exa-founders.jpg?resize=1200,725"
+    },
+    {
+      "id": "https://www.cbinsights.com/company/metaphor-1",
+      "title": "Exa - Products, Competitors, Financials, Employees, Headquarters Locations",
+      "url": "https://www.cbinsights.com/company/metaphor-1",
+      "image": "https://s3-us-west-2.amazonaws.com/cbi-image-service-prd/original/0064aeac-fd81-4bcd-a2da-c45b1708f5c5.png"
+    },
+    {
+      "id": "https://exa.ai/blog/perfect-search",
+      "title": "Perfect Web Search for AI Agents with Semantic Search Technology | Exa Blog",
+      "url": "https://exa.ai/blog/perfect-search",
+      "publishedDate": "2025-01-07T12:04:08.000Z",
+      "author": "Will Bryk",
+      "image": "https://exa.imgix.net/headphones-earth.png?fm=jpg&q=80"
+    },
+    {
+      "id": "https://www.preqin.com/data/profile/asset/exa-labs/651074",
+      "title": "Exa Labs, Inc. Asset Profile | Preqin | BlackRock",
+      "url": "https://www.preqin.com/data/profile/asset/exa-labs/651074",
+      "image": "https://images.ctfassets.net/zf87m07ner47/2IXh2VFCSRumesciJ1Mhoh/51f29bdb4d9422bfb26fde6e2f09f2b0/Rebrand-Blog-Homepage-Image.png"
+    },
+    {
+      "id": "https://stockanalysis.com/private/exa/",
+      "title": "Exa Stock Price, Valuation & News",
+      "url": "https://stockanalysis.com/private/exa/",
+      "image": "https://stockanalysis.com/stockanalysis-1200x630.png"
+    }
+  ],
+  "costDollars": {
+    "total": 0.005
+  }
+}

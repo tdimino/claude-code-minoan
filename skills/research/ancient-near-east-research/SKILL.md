@@ -98,14 +98,14 @@ See `references/cuneiform-databases.md` for CDLI/ORACC API details and script co
 |------|------|------|--------------|
 | 0 | Sefaria / CDLI / ORACC | Known reference, free structured data | Genesis 1:2, P480701, deity lookup |
 | 1 | Omnisearch `--academic` | Broad discovery, unknown sources | "Minoan Semitic connections Bronze Age" |
-| 2 | Exa `--category "research paper"` | Domain-filtered neural search | `--domains jstor.org,persee.fr` |
+| 2 | Exa `--category publication` | Domain-filtered neural search | `--domains jstor.org,persee.fr` |
 | 3 | Firecrawl `scrape` / `parse` | Page extraction, PDF-to-markdown | Known URL, remote PDF |
 | 4 | Obscura `ane_stealth_fetch.sh` | Bot-protected sites | JSTOR, Scholar, Persée |
 | 5 | Scrapling | Cloudflare Turnstile | Last resort |
 
 ### Tier 1: Omnisearch (Broad Discovery)
 
-When the omnisearch skill is available, use it as the entry point for finding new scholarship. The `--academic` flag routes to Exa's research paper index.
+When the omnisearch skill is available, use it as the entry point for finding new scholarship. The `--academic` flag routes to Exa's publication index.
 
 ```bash
 # Broad ANE topic discovery
@@ -120,11 +120,11 @@ python3 ~/.claude/skills/omnisearch/scripts/omnisearch.py "Knossos excavation 20
 
 ### Tier 2: Exa Neural Search (Domain-Filtered)
 
-Direct Exa search with ANE-specific domain lists and the `research paper` category. Use when omnisearch is unavailable or when more control over domains and filtering is needed.
+Direct Exa search with ANE-specific domain lists and the `publication` category. Use when omnisearch is unavailable or when more control over domains and filtering is needed.
 
 ```bash
 python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Asherah cult Ugarit" \
-  --category "research paper" \
+  --category publication \
   --domains jstor.org persee.fr perseus.tufts.edu academia.edu \
   -n 20 --no-text
 ```
@@ -156,9 +156,9 @@ python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Asherah cult Ugarit" 
 **Similar Page Discovery:**
 
 ```bash
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py \
-  "https://www.jstor.org/stable/528927" \
-  --category "research paper" -n 15
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
+  "scholarship like Day, 'Asherah in the Hebrew Bible and Northwest Semitic Literature' (JBL 1986)" \
+  --category publication -n 15 --highlights --no-text
 ```
 
 ### Tier 3: Firecrawl (Page Extraction & PDF Parsing)
@@ -203,7 +203,7 @@ Tier 0: Check Sefaria / CDLI / ORACC (known references)
     ↓
 Tier 1: Omnisearch --academic (broad discovery, titles only)
     ↓
-Tier 2: Exa --category "research paper" --domains [ANE list] (focused search)
+Tier 2: Exa --category publication --domains [ANE list] (focused search)
     ↓
 Pick URLs → Tier 3: Firecrawl scrape / parse (extract content)
     ↓

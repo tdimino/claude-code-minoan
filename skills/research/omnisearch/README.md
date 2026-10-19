@@ -9,7 +9,7 @@ Unified web and social media search across 5 providers. Auto-routes queries to t
 | **Brave** | Google SERP, news, freshness filtering, LLM Context API | $5/1k queries |
 | **Tavily** | AI-synthesized answers with citations, content extraction | Free 1k/mo |
 | **Xpoz** | Twitter/X, Reddit, Instagram search | Free 100k/mo |
-| **Exa** | Neural/semantic search, research papers, similar pages | Per-query |
+| **Exa** | Semantic search, research papers, companies, people | Per-query |
 | **Firecrawl** | Search + scrape, site crawling | Per-page |
 
 ## Quick Start

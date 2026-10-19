@@ -79,7 +79,7 @@ Steps to evolve from current to proposed state
 
 For evaluating libraries, frameworks, and architectural patterns:
 
-- **`$exa-search`** — Search for framework documentation, architecture case studies, and benchmark data. Use `--category "research paper"` for academic sources.
+- **`$exa-search`** — Search for framework documentation, architecture case studies, and benchmark data. Use `--category publication` for academic sources.
 - **`$omnisearch`** — Multi-provider search for library comparisons, migration guides, and community discussions.
 - **`$firecrawl`** — Scrape specific documentation pages for detailed API references or migration guides.
 

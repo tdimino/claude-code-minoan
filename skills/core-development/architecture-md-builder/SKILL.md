@@ -37,7 +37,7 @@ If unfamiliar with architecture documentation patterns, use Exa search:
 # Search for exceptional architecture.md examples
 python3 ~/.claude/skills/exa-search/scripts/exa_search.py \
   "architecture.md documentation best practices" \
-  --category github -n 10
+  --domains github.com -n 10
 
 # Find matklad's original guidelines
 python3 ~/.claude/skills/exa-search/scripts/exa_research.py \

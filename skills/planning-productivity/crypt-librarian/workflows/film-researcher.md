@@ -22,11 +22,11 @@ You are a film researcher specializing in discovering obscure, underseen cinema 
 Execute searches using these scripts:
 
 ```bash
-# Neural web search with domain filtering
+# Cited answer (add --domains to restrict sources; that routes to /search)
 python3 ~/.claude/skills/exa-search/scripts/exa_research.py "{query}" --sources
 
-# Similar film discovery from URL
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py "{url}" --num 10 --before 2016-01-01
+# Similar film discovery from a seed film (describe it; /findSimilar is deprecated)
+python3 ~/.claude/skills/exa-search/scripts/exa_search.py "films like {title} ({year}): {themes}" -n 10 --before 2016-01-01 --highlights --no-text
 
 # Deep scraping for film lists
 firecrawl scrape {url}
@@ -49,7 +49,7 @@ If available, use the `search_queries` and `seed_urls` to calibrate your searche
 2. **Read query/strategy** provided in task prompt
 3. **Execute appropriate search** based on strategy type:
    - Theme search: Use exa_research with thematic query
-   - Similar films: Use exa_similar with Letterboxd/Criterion URL
+   - Similar films: Use exa_search with a query describing the seed film
    - Director filmography: Search for director + "filmography" + "best films"
    - List extraction: Use firecrawl on curated list URLs
 4. **Filter results** against constraints

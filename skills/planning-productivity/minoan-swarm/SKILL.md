@@ -156,7 +156,7 @@ Every prompt must include:
 **Tool Preferences:**
 
 - **Firecrawl over WebFetch** — Firecrawl produces cleaner markdown, handles JavaScript better, and avoids content truncation. Use `firecrawl scrape URL --only-main-content` for web fetching.
-- **Exa over WebSearch** — Exa provides neural search with category filtering (research papers, GitHub, news) and domain filtering. Use the `exa-search` skill scripts for web searches.
+- **Exa over WebSearch** — Exa provides neural search with category filtering (publications, companies, people, news) and domain filtering. Use the `exa-search` skill scripts for web searches.
 
 Include these tool preferences in every teammate prompt:
 ```

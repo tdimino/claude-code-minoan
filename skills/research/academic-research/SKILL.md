@@ -194,11 +194,11 @@ Research domain for post-transformer attention mechanisms that break the O(n^2) 
 ### Pre-Built Search Queries
 
 ```
-# Exa (research_paper category)
-"subquadratic attention mechanism" --category "research paper" --after 2024-01-01
-"block sparse attention triton kernel" --category "research paper"
-"mixture of attention heads sparse" --category "research paper"
-"linear attention transformer approximation" --category "research paper" --after 2024-06-01
+# Exa (publication category)
+"subquadratic attention mechanism" --category publication --after 2024-01-01
+"block sparse attention triton kernel" --category publication
+"mixture of attention heads sparse" --category publication
+"linear attention transformer approximation" --category publication --after 2024-06-01
 
 # ArXiv (cs.LG + cs.CL)
 search_papers({ query: "subquadratic attention sparse transformer", max_results: 20, sort_by: "submitted_date" })

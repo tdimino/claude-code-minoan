@@ -350,7 +350,7 @@ Claude Code and Codex CLI sessions on one machine message each other through a l
 - **[RLAMA](https://github.com/dontizi/rlama)** by dontizi — local RAG system
 - **[Firecrawl](https://firecrawl.dev/)** by Mendable — web scraping and content extraction
 - **[Scrapling](https://github.com/D4Vinci/Scrapling)** by D4Vinci — local stealth web scraping
-- **[Exa](https://exa.ai/)** — neural web search API
+- **[Exa](https://exa.ai/)** — web search and Agent API
 - **[Handy](https://github.com/cjpais/Handy)** by CJ Pais — push-to-talk speech-to-text
 - **[matklad's ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html)** — codebase documentation guide
 

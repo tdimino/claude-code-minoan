@@ -1,382 +1,257 @@
 #!/usr/bin/env python3
 """
-Exa Neural Search - Advanced web search with AI-powered embeddings.
+Exa Search - web search on Exa's /search endpoint (Exa 3.0, spec 2.0.0).
 
-This script provides comprehensive access to Exa's /search endpoint with all
-available parameters for neural, fast, auto, deep, and deep-reasoning search modes.
+Search types:
+- auto (default, ~1s, $7/1k): best quality/speed balance; contents for 10 results included
+- lite (--lite, $4/1k): cache-only, cheapest; accepts query, category, numResults,
+  domains, dates, contents.text/highlights, snapshotAsOf, location, moderation only
+- deep-lite (--deep-lite, ~4s, $12/1k) and deep (--deep, 4-15s, $12/1k): multi-step
+  search with synthesis
+- legacy: --fast, --instant, --deep-reasoning, --neural (still accepted, print a hint)
 
 Features:
-- 6 search types: auto, neural, fast, deep, deep-reasoning, instant
-- Structured output with outputSchema (deep/deep-reasoning only)
-- Field-level grounding with citations and confidence scores
+- Structured output (outputSchema) on every type except lite, with field-level grounding
 - 5 preset schemas: company, paper-survey, competitor-analysis, person, news-digest
-- 8 category filters: company, research paper, news, pdf, github, personal site, people, financial report
-- Domain inclusion/exclusion filtering
-- Date filtering (published date)
-- Text inclusion/exclusion filtering
-- Content retrieval options: text, summary, highlights, context
-- Subpage crawling
-- Content moderation
-- Geolocation targeting
+- Categories: company, publication, news, personal site, financial report, people
+- Domain, date, and location filters; content moderation
+- Content options: text (maxCharacters, verbosity, sections), highlights (incl. Dynamic
+  Highlights beta), summary, extras, snapshot-as-of
+- Response warnings → stderr; notices → shown with the results
 
 Usage:
     exa_search.py "AI agent frameworks" -n 10
-    exa_search.py "machine learning papers" --category "research paper" --deep
-    exa_search.py "Top AI startups" --deep-reasoning --schema-preset company
-    exa_search.py "Who is the CEO of Stripe?" --deep --text-output "Short answer"
-    exa_search.py "startup funding" --category company --after 2024-01-01
-    exa_search.py "climate change news" --category news --fast --context
+    exa_search.py "python requests timeout" --lite --highlights --no-text
+    exa_search.py "transformer papers" --category publication --deep
+    exa_search.py "Top AI startups" --deep --schema-preset company
+    exa_search.py "Who is the CEO of Stripe?" --text-output "Short answer"
+    exa_search.py "solar costs" --dynamic --no-text
 
 Requires: EXA_API_KEY environment variable
 Install: pip install requests
 """
 
-import os
-import sys
 import json
 import argparse
-import requests
-from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
-EXA_API_KEY = os.environ.get("EXA_API_KEY")
-BASE_URL = "https://api.exa.ai"
+from _exa_common import (  # PRESET_SCHEMAS is re-exported for callers that import it from here
+    CATEGORY_CHOICES, LIVECRAWL_CHOICES, PRESET_SCHEMAS, VALID_SECTIONS, ExaAPIError, add_list_arg,
+    add_schema_args, check_snapshot, context_option, date_bound, die, extras_option, format_cost,
+    format_grounding, format_notices, highlights_option, legacy, load_schema, note, parse_location, post,
+    report_warnings, resolve_category, resolve_max_age, text_option,
+)
 
-# Valid category options
-VALID_CATEGORIES = [
-    "company", "research paper", "news", "pdf", "github",
-    "personal site", "people", "financial report"
-]
+__all__ = ["PRESET_SCHEMAS", "build_search_payload", "search", "format_results"]
 
-# Preset output schemas for structured deep search
-PRESET_SCHEMAS = {
-    "company": {
-        "type": "object",
-        "required": ["companies"],
-        "properties": {
-            "companies": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "required": ["name", "description"],
-                    "properties": {
-                        "name": {"type": "string", "description": "Company name"},
-                        "description": {"type": "string", "description": "What the company does"},
-                        "ceo": {"type": "string", "description": "Current CEO"},
-                        "headquarters": {"type": "string", "description": "HQ location"},
-                        "funding": {"type": "string", "description": "Total funding raised"}
-                    }
-                }
-            }
-        }
-    },
-    "paper-survey": {
-        "type": "object",
-        "required": ["papers"],
-        "properties": {
-            "papers": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "required": ["title", "authors", "key_contribution"],
-                    "properties": {
-                        "title": {"type": "string", "description": "Paper title"},
-                        "authors": {"type": "string", "description": "Author names"},
-                        "year": {"type": "number", "description": "Publication year"},
-                        "key_contribution": {"type": "string", "description": "Main contribution"},
-                        "methodology": {"type": "string", "description": "Research methodology"},
-                        "findings": {"type": "string", "description": "Key findings"}
-                    }
-                }
-            }
-        }
-    },
-    "competitor-analysis": {
-        "type": "object",
-        "required": ["competitors"],
-        "properties": {
-            "competitors": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "required": ["name", "product"],
-                    "properties": {
-                        "name": {"type": "string", "description": "Company name"},
-                        "product": {"type": "string", "description": "Main product or service"},
-                        "market_position": {"type": "string", "description": "Market positioning"},
-                        "strengths": {"type": "array", "items": {"type": "string"}, "description": "Key strengths"},
-                        "weaknesses": {"type": "array", "items": {"type": "string"}, "description": "Key weaknesses"},
-                        "pricing": {"type": "string", "description": "Pricing model or range"}
-                    }
-                }
-            }
-        }
-    },
-    "person": {
-        "type": "object",
-        "required": ["people"],
-        "properties": {
-            "people": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "required": ["name", "title"],
-                    "properties": {
-                        "name": {"type": "string", "description": "Full name"},
-                        "title": {"type": "string", "description": "Current title or role"},
-                        "organization": {"type": "string", "description": "Current organization"},
-                        "background": {"type": "string", "description": "Professional background"},
-                        "notable_achievements": {"type": "array", "items": {"type": "string"}, "description": "Notable achievements"}
-                    }
-                }
-            }
-        }
-    },
-    "news-digest": {
-        "type": "object",
-        "required": ["stories"],
-        "properties": {
-            "stories": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "required": ["headline", "summary"],
-                    "properties": {
-                        "headline": {"type": "string", "description": "Story headline"},
-                        "source": {"type": "string", "description": "Publication source"},
-                        "date": {"type": "string", "description": "Publication date"},
-                        "summary": {"type": "string", "description": "Story summary"},
-                        "significance": {"type": "string", "description": "Why this matters"}
-                    }
-                }
-            }
-        }
-    },
+SEARCH_TYPES = ["auto", "lite", "deep-lite", "deep", "fast", "instant", "deep-reasoning", "neural"]
+DEEP_TYPES = ("deep-lite", "deep", "deep-reasoning")
+LEGACY_TYPES = {
+    "fast": "use --lite (cheaper) or the default auto.",
+    "instant": "use --lite.",
+    "deep-reasoning": "use --deep, or exa_agent.py for multi-hop research.",
+    "neural": "sent as auto (neural is no longer a documented type).",
 }
 
-def _headers() -> Dict[str, str]:
-    """Get authentication headers."""
-    if not EXA_API_KEY:
-        raise ValueError("EXA_API_KEY environment variable not set. Get your key at https://dashboard.exa.ai")
-    return {
-        "Content-Type": "application/json",
-        "x-api-key": EXA_API_KEY
-    }
 
-def search(
+def build_search_payload(
     query: str,
-    # Search type
     search_type: str = "auto",
     additional_queries: Optional[List[str]] = None,
-    # Structured output (deep/deep-reasoning only)
     output_schema: Optional[Dict[str, Any]] = None,
-    # Category
+    system_prompt: Optional[str] = None,
+    objective: Optional[str] = None,
     category: Optional[str] = None,
-    # Results
     num_results: int = 10,
-    # Domain filtering
     include_domains: Optional[List[str]] = None,
     exclude_domains: Optional[List[str]] = None,
-    # Date filtering
     start_published_date: Optional[str] = None,
     end_published_date: Optional[str] = None,
-    # Text filtering
     include_text: Optional[List[str]] = None,
     exclude_text: Optional[List[str]] = None,
-    # Content options
     get_text: bool = True,
+    max_characters: Optional[int] = None,
     get_summary: Optional[str] = None,
     get_highlights: bool = False,
     highlights_query: Optional[str] = None,
-    num_sentences: int = 3,
-    highlights_per_url: int = 3,
+    highlights_max_chars: Optional[int] = None,
+    dynamic_highlights: bool = False,
     get_context: bool = False,
     context_max_chars: Optional[int] = None,
-    # Subpages
     subpages: int = 0,
     subpage_target: Optional[str] = None,
-    # Extras
     get_links: int = 0,
     get_image_links: int = 0,
-    # Content freshness
     max_age_hours: Optional[int] = None,
     livecrawl: Optional[str] = None,
-    # Text verbosity and section filtering
+    snapshot_as_of: Optional[str] = None,
     verbosity: Optional[str] = None,
     include_sections: Optional[List[str]] = None,
     exclude_sections: Optional[List[str]] = None,
-    # Highlights
-    highlights_max_chars: Optional[int] = None,
-    # Location and moderation
-    user_location: Optional[str] = None,
+    user_location: Any = None,
     moderation: bool = False,
-) -> Dict[str, Any]:
+) -> Tuple[Dict[str, Any], List[str]]:
+    """Build the /search request body. Returns (payload, beta flags).
+
+    Validation that Exa does server-side (what lite accepts, schema limits,
+    category filter restrictions) is left to the server so its message surfaces.
     """
-    Perform a neural search using Exa's /search endpoint.
+    if search_type not in SEARCH_TYPES:
+        raise ValueError(f"Invalid search type '{search_type}'. Must be one of: {SEARCH_TYPES}")
+    if num_results < 1:
+        raise ValueError("-n/--num must be at least 1")
+    check_snapshot(snapshot_as_of, max_age_hours, livecrawl, subpages)
+    if snapshot_as_of and (category or search_type in ("deep", "deep-reasoning")):
+        raise ValueError("--snapshot-as-of does not support --category, --deep, or --deep-reasoning")
+    if additional_queries and len(additional_queries) > 10:
+        raise ValueError("--additional-queries accepts at most 10 queries")
+    highlights, betas = highlights_option(get_highlights, highlights_query, highlights_max_chars,
+                                          dynamic_highlights)
 
-    Args:
-        query: Natural language search query
-        search_type: Search method - "auto", "neural", "fast", "deep", "deep-reasoning", "instant"
-        additional_queries: Extra queries for deep/deep-reasoning search
-        output_schema: JSON schema for structured output (deep/deep-reasoning only)
-        category: Filter by category (see VALID_CATEGORIES)
-        num_results: Number of results (max 100)
-        include_domains: Only search these domains
-        exclude_domains: Exclude these domains
-        start_published_date: Published after this date (YYYY-MM-DD)
-        end_published_date: Published before this date (YYYY-MM-DD)
-        include_text: Text that must be present in results (1 string, up to 5 words)
-        exclude_text: Text that must NOT be present (1 string, up to 5 words)
-        get_text: Include full text content (default: True)
-        get_summary: Generate summary with this query
-        get_highlights: Include key excerpts (default: False)
-        highlights_query: Custom query for highlights
-        num_sentences: Sentences per highlight
-        highlights_per_url: Max highlights per result
-        get_context: Combine all results into one context string for RAG
-        context_max_chars: Max characters for context string
-        subpages: Number of subpages to crawl per result
-        subpage_target: Where to find subpage links ("sources", "references", etc.)
-        get_links: Number of links to extract per result
-        get_image_links: Number of images to extract per result
-        user_location: Two-letter country code (e.g., "US")
-        moderation: Filter unsafe content
-
-    Returns:
-        Dict with search results
-    """
-    # Validate search type
-    valid_types = ["auto", "neural", "fast", "deep", "deep-reasoning", "instant"]
-    if search_type not in valid_types:
-        raise ValueError(f"Invalid search type '{search_type}'. Must be one of: {valid_types}")
-
-    # Validate output schema requires deep search
-    if output_schema and search_type not in ("deep", "deep-reasoning"):
-        raise ValueError("outputSchema requires --deep or --deep-reasoning search type")
-
-    # Validate category
-    if category and category not in VALID_CATEGORIES:
-        raise ValueError(f"Invalid category '{category}'. Must be one of: {VALID_CATEGORIES}")
-
-    # Build payload
     payload: Dict[str, Any] = {
         "query": query,
-        "type": search_type,
+        "type": "auto" if search_type == "neural" else search_type,
         "numResults": min(num_results, 100),
     }
 
-    # Deep search additional queries
-    if additional_queries and search_type in ("deep", "deep-reasoning"):
-        payload["additionalQueries"] = additional_queries
-
-    # Structured output schema (deep/deep-reasoning only)
+    if additional_queries:
+        if search_type in DEEP_TYPES:
+            payload["additionalQueries"] = additional_queries
+        else:
+            note("--additional-queries ignored; it applies only to --deep-lite/--deep.")
     if output_schema:
         payload["outputSchema"] = output_schema
+    if system_prompt:
+        payload["systemPrompt"] = system_prompt
+    if objective:
+        payload["objective"] = objective
 
-    # Category
+    category = resolve_category(category)
     if category:
         payload["category"] = category
 
-    # Domain filtering
     if include_domains:
         payload["includeDomains"] = include_domains
     if exclude_domains:
         payload["excludeDomains"] = exclude_domains
-
-    # Date filtering
     if start_published_date:
-        payload["startPublishedDate"] = f"{start_published_date}T00:00:00.000Z"
+        payload["startPublishedDate"] = date_bound(start_published_date)
     if end_published_date:
-        payload["endPublishedDate"] = f"{end_published_date}T23:59:59.999Z"
+        payload["endPublishedDate"] = date_bound(end_published_date, end=True)
 
-    # Text filtering
     if include_text:
+        legacy("--must-include", "Exa matches it approximately at word level; prefer a sharper query or --domains.")
         payload["includeText"] = include_text
     if exclude_text:
+        legacy("--must-exclude", "Exa matches it approximately at word level; prefer --exclude-domains.")
         payload["excludeText"] = exclude_text
 
-    # Location and moderation
     if user_location:
         payload["userLocation"] = user_location
     if moderation:
         payload["moderation"] = True
 
-    # Build contents object
     contents: Dict[str, Any] = {}
 
     if get_text:
-        text_config: Dict[str, Any] = {}
-        if verbosity:
-            text_config["verbosity"] = verbosity
-        if include_sections:
-            text_config["includeSections"] = include_sections
-        if exclude_sections:
-            text_config["excludeSections"] = exclude_sections
-        contents["text"] = text_config if text_config else True
-
+        contents["text"] = text_option(max_characters, verbosity, include_sections, exclude_sections)
     if get_summary:
         contents["summary"] = {"query": get_summary}
+    if highlights is not None:
+        contents["highlights"] = highlights
 
-    if get_highlights:
-        highlights_config: Dict[str, Any] = {}
-        if highlights_max_chars:
-            highlights_config["maxCharacters"] = highlights_max_chars
-        else:
-            highlights_config["numSentences"] = num_sentences
-            highlights_config["highlightsPerUrl"] = highlights_per_url
-        if highlights_query:
-            highlights_config["query"] = highlights_query
-        contents["highlights"] = highlights_config
+    max_age = resolve_max_age(max_age_hours, livecrawl, lite=search_type == "lite")
+    if max_age is not None:
+        contents["maxAgeHours"] = max_age
+    if snapshot_as_of:
+        contents["snapshotAsOf"] = snapshot_as_of
 
-    # Content freshness
-    if max_age_hours is not None:
-        contents["maxAgeHours"] = max_age_hours
-    elif livecrawl:
-        contents["livecrawl"] = livecrawl
-
-    if get_context:
-        if context_max_chars:
-            contents["context"] = {"maxCharacters": context_max_chars}
-        else:
-            contents["context"] = True
+    context = context_option(get_context, context_max_chars)
+    if context is not None:
+        contents["context"] = context
 
     if subpages > 0:
+        legacy("--subpages", "deprecated on /search; prefer exa_contents.py URL --subpages N.")
         contents["subpages"] = subpages
         if subpage_target:
             contents["subpageTarget"] = subpage_target
 
-    if get_links > 0 or get_image_links > 0:
-        extras: Dict[str, int] = {}
-        if get_links > 0:
-            extras["links"] = get_links
-        if get_image_links > 0:
-            extras["imageLinks"] = get_image_links
+    extras = extras_option(get_links, get_image_links)
+    if extras:
         contents["extras"] = extras
 
     if contents:
         payload["contents"] = contents
+    return payload, betas
 
-    # Make request
-    response = requests.post(
-        f"{BASE_URL}/search",
-        headers=_headers(),
-        json=payload
-    )
-    response.raise_for_status()
-    return response.json()
+
+def search(query: str, **kwargs) -> Dict[str, Any]:
+    """Run a /search request. Keyword arguments match build_search_payload."""
+    payload, betas = build_search_payload(query, **kwargs)
+    return post("/search", payload, betas=betas)
+
+
+def _format_entity(entity: Dict[str, Any]) -> List[str]:
+    etype = entity.get("type", "unknown")
+    props = entity.get("properties") or {}
+    out = [f"    ENTITY ({etype}):"]
+    if etype == "company":
+        if props.get("name"):
+            out.append(f"      Name: {props['name']}")
+        if props.get("foundedYear"):
+            out.append(f"      Founded: {props['foundedYear']}")
+        if props.get("description"):
+            out.append(f"      Description: {props['description'][:200]}")
+        hq = props.get("headquarters")
+        if hq:
+            parts = [hq.get("city"), hq.get("country")]
+            out.append(f"      HQ: {', '.join(p for p in parts if p)}")
+        fin = props.get("financials") or {}
+        if fin.get("fundingTotal"):
+            out.append(f"      Total Funding: ${fin['fundingTotal']:,}")
+        if fin.get("revenueAnnual"):
+            out.append(f"      Annual Revenue: ${fin['revenueAnnual']:,}")
+        wf = props.get("workforce") or {}
+        if wf.get("total"):
+            out.append(f"      Employees: {wf['total']:,}")
+        wt = props.get("webTraffic") or {}
+        if wt.get("visitsMonthly"):
+            out.append(f"      Monthly Visits: {wt['visitsMonthly']:,}")
+    elif etype == "person":
+        if props.get("name"):
+            out.append(f"      Name: {props['name']}")
+        if props.get("location"):
+            out.append(f"      Location: {props['location']}")
+        for wh in (props.get("workHistory") or [])[:3]:
+            title = wh.get("title", "")
+            company = (wh.get("company") or {}).get("name", "")
+            if title or company:
+                out.append(f"      {title}{' @ ' + company if company else ''}")
+    elif etype == "publication":
+        if props.get("title"):
+            out.append(f"      Title: {props['title']}")
+        authors = [a.get("name") for a in (props.get("authors") or []) if a.get("name")]
+        if authors:
+            more = f" +{len(authors) - 5}" if len(authors) > 5 else ""
+            out.append(f"      Authors: {', '.join(authors[:5])}{more}")
+        for label, key in [("Year", "year"), ("Citations", "citationCount"), ("DOI", "doi")]:
+            if props.get(key) is not None:
+                out.append(f"      {label}: {props[key]}")
+    else:
+        for key, val in list(props.items())[:6]:
+            if isinstance(val, (str, int, float)):
+                out.append(f"      {key}: {str(val)[:120]}")
+    return out
 
 
 def format_results(results: Dict[str, Any], max_text_length: int = 500, show_cost: bool = False) -> str:
     """Format search results for readable display."""
     output = []
 
-    # Request info
     if results.get("requestId"):
         output.append(f"Request ID: {results['requestId']}")
-    if results.get("searchType"):
-        output.append(f"Search Type: {results['searchType']}")
+    output.extend(format_notices(results))
 
-    # Context string (for RAG)
     if results.get("context"):
         output.append(f"\n{'='*60}")
         output.append("CONTEXT STRING (for RAG):")
@@ -386,14 +261,13 @@ def format_results(results: Dict[str, Any], max_text_length: int = 500, show_cos
             ctx += "\n... [truncated]"
         output.append(ctx)
 
-    # Results
-    search_results = results.get("results", [])
+    search_results = results.get("results") or []
+    output.append(f"\n{'='*60}")
+    output.append(f"RESULTS ({len(search_results)} found):")
     if search_results:
-        output.append(f"\n{'='*60}")
-        output.append(f"RESULTS ({len(search_results)} found):")
 
         for i, r in enumerate(search_results, 1):
-            output.append(f"\n[{i}] {r.get('title', 'No title')}")
+            output.append(f"\n[{i}] {r.get('title') or 'No title'}")
             output.append(f"    URL: {r.get('url', 'No URL')}")
 
             if r.get('author'):
@@ -401,31 +275,26 @@ def format_results(results: Dict[str, Any], max_text_length: int = 500, show_cos
             if r.get('publishedDate'):
                 output.append(f"    Published: {r['publishedDate'][:10]}")
 
-            # Summary
             if r.get('summary'):
                 output.append(f"    Summary: {r['summary'][:300]}...")
 
-            # Highlights
             if r.get('highlights'):
-                output.append(f"    Highlights:")
+                output.append("    Highlights:")
                 for h in r['highlights'][:3]:
                     output.append(f"      - {h[:200]}...")
 
-            # Text
             if r.get('text'):
                 text = r['text'][:max_text_length]
                 if len(r['text']) > max_text_length:
                     text += "..."
                 output.append(f"    Text: {text}")
 
-            # Subpages
             if r.get('subpages'):
                 output.append(f"    Subpages: {len(r['subpages'])} found")
                 for sp in r['subpages'][:3]:
-                    output.append(f"      - {sp.get('title', 'No title')[:60]}")
+                    output.append(f"      - {(sp.get('title') or 'No title')[:60]}")
                     output.append(f"        {sp.get('url', '')}")
 
-            # Extras
             if r.get('extras'):
                 extras = r['extras']
                 if extras.get('links'):
@@ -433,48 +302,10 @@ def format_results(results: Dict[str, Any], max_text_length: int = 500, show_cos
                 if extras.get('imageLinks'):
                     output.append(f"    Images: {len(extras['imageLinks'])} found")
 
-            # Entity data (company/people categories)
-            if r.get('entities'):
-                for entity in r['entities']:
-                    etype = entity.get('type', 'unknown')
-                    props = entity.get('properties', {})
-                    if etype == 'company':
-                        output.append(f"    ENTITY (company):")
-                        if props.get('name'):
-                            output.append(f"      Name: {props['name']}")
-                        if props.get('foundedYear'):
-                            output.append(f"      Founded: {props['foundedYear']}")
-                        if props.get('description'):
-                            output.append(f"      Description: {props['description'][:200]}")
-                        hq = props.get('headquarters')
-                        if hq:
-                            parts = [hq.get('city'), hq.get('country')]
-                            output.append(f"      HQ: {', '.join(p for p in parts if p)}")
-                        fin = props.get('financials')
-                        if fin:
-                            if fin.get('fundingTotal'):
-                                output.append(f"      Total Funding: ${fin['fundingTotal']:,}")
-                            if fin.get('revenueAnnual'):
-                                output.append(f"      Annual Revenue: ${fin['revenueAnnual']:,}")
-                        wf = props.get('workforce')
-                        if wf and wf.get('total'):
-                            output.append(f"      Employees: {wf['total']:,}")
-                        wt = props.get('webTraffic')
-                        if wt and wt.get('visitsMonthly'):
-                            output.append(f"      Monthly Visits: {wt['visitsMonthly']:,}")
-                    elif etype == 'person':
-                        output.append(f"    ENTITY (person):")
-                        if props.get('name'):
-                            output.append(f"      Name: {props['name']}")
-                        if props.get('location'):
-                            output.append(f"      Location: {props['location']}")
-                        for wh in (props.get('workHistory') or [])[:3]:
-                            title = wh.get('title', '')
-                            company = (wh.get('company') or {}).get('name', '')
-                            if title or company:
-                                output.append(f"      {title}{' @ ' + company if company else ''}")
+            for entity in r.get('entities') or []:
+                output.extend(_format_entity(entity))
 
-    # Structured output (deep/deep-reasoning with outputSchema)
+    # Synthesized output (outputSchema): text or JSON, with field-level grounding
     if results.get("output"):
         output_data = results["output"]
         output.append(f"\n{'='*60}")
@@ -484,183 +315,134 @@ def format_results(results: Dict[str, Any], max_text_length: int = 500, show_cos
         content = output_data.get("content")
         if isinstance(content, str):
             output.append(content)
-        elif isinstance(content, dict):
-            output.append(json.dumps(content, indent=2))
         elif content is not None:
-            output.append(str(content))
+            output.append(json.dumps(content, indent=2))
+        output.extend(format_grounding(output_data.get("grounding")))
 
-        grounding = output_data.get("grounding", [])
-        if grounding:
-            output.append(f"\n{'='*60}")
-            output.append(f"GROUNDING ({len(grounding)} fields cited):")
-            output.append("-" * 40)
-            for g in grounding:
-                confidence = g.get("confidence", "unknown")
-                indicator = {"high": "[H]", "medium": "[M]", "low": "[L]"}.get(confidence, "[?]")
-                output.append(f"\n  {indicator} {g.get('field', 'unknown')}")
-                for citation in g.get("citations", []):
-                    title = citation.get("title", "No title")[:60]
-                    url = citation.get("url", "")
-                    output.append(f"      -> {title}")
-                    output.append(f"         {url}")
-
-    # Cost breakdown
-    if show_cost and results.get("costDollars"):
-        cost = results["costDollars"]
-        output.append(f"\n{'='*60}")
-        output.append(f"COST: ${cost.get('total', 0):.4f}")
-        if cost.get("breakDown"):
-            for key, val in cost["breakDown"].items():
-                if isinstance(val, (int, float)):
-                    output.append(f"  {key}: ${val:.4f}")
+    if show_cost:
+        output.extend(format_cost(results.get("costDollars")))
 
     return "\n".join(output)
 
 
+def _error_hint(error: ExaAPIError, search_type: str, category: Optional[str]) -> Optional[str]:
+    """Hint keyed on the server's own message, so it names the real cause."""
+    if error.status != 400:
+        return None
+    msg = error.message
+    if 'type "lite"' in msg or (search_type == "lite" and "Not supported" in msg):
+        return "--lite accepts a limited parameter set; drop --lite (default auto) to use this option."
+    if "outputSchema" in msg:
+        return ("/search object schemas allow at most 10 properties in total (nested and array items count) "
+                "and 2 levels; use exa_agent.py for larger shapes.")
+    if category in ("company", "people") and ("PublishedDate" in msg or "excludeDomains" in msg):
+        return ("--category company/people rejects date filters (--after/--before); "
+                "people also rejects --exclude-domains.")
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Exa Neural Search - AI-powered web search",
+        description="Exa Search - AI-powered web search (Exa 3.0)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   %(prog)s "AI agent frameworks"
-  %(prog)s "machine learning papers" --category "research paper"
+  %(prog)s "python requests timeout" --lite --highlights --no-text
+  %(prog)s "transformer interpretability" --category publication
   %(prog)s "Python libraries" --domains github.com pypi.org
-  %(prog)s "startup news" --category company --after 2024-06-01 --fast
-  %(prog)s "climate research" --deep --context
-  %(prog)s "CEO profiles" --category people --summary "background and achievements"
-  %(prog)s "Top AI startups" --deep-reasoning --schema-preset company
-  %(prog)s "Who founded OpenAI?" --deep --text-output "Short answer"
+  %(prog)s "startup news" --category news --after 2026-06-01
+  %(prog)s "Top AI startups" --deep --schema-preset company
+  %(prog)s "Who founded OpenAI?" --text-output "Short answer"
+  %(prog)s "solar cost trends" --dynamic --no-text
 
-Categories: company, research paper, news, pdf, github, personal site, people, financial report
+Types: auto (default), --lite, --deep-lite, --deep. Legacy: --fast, --instant, --deep-reasoning, --neural
+Categories: company, publication, news, personal site, financial report, people
         """
     )
 
-    # Required
     parser.add_argument("query", help="Search query")
 
-    # Search type
     type_group = parser.add_mutually_exclusive_group()
-    type_group.add_argument("--neural", action="store_true", help="Use neural embeddings search")
-    type_group.add_argument("--fast", action="store_true", help="Use fast search (~500ms)")
-    type_group.add_argument("--instant", action="store_true", help="Use instant search (sub-150ms, real-time)")
-    type_group.add_argument("--deep", action="store_true", help="Use deep search (comprehensive, 4-12s)")
-    type_group.add_argument("--deep-reasoning", action="store_true", help="Use deep-reasoning search (maximum depth, 12-50s)")
-    parser.add_argument("--additional-queries", nargs="+", help="Extra queries for deep/deep-reasoning search")
+    type_group.add_argument("--lite", action="store_true", help="Lite search: cache-only, $4/1k, limited parameters")
+    type_group.add_argument("--deep-lite", action="store_true", help="Deep-lite search: lightweight synthesis (~4s)")
+    type_group.add_argument("--deep", action="store_true", help="Deep search: multi-step with synthesis (4-15s)")
+    type_group.add_argument("--fast", action="store_true", help="(Legacy) fast search")
+    type_group.add_argument("--instant", action="store_true", help="(Legacy) instant search")
+    type_group.add_argument("--deep-reasoning", action="store_true", help="(Legacy) deep-reasoning search (12-40s)")
+    type_group.add_argument("--neural", action="store_true", help="(Legacy) neural search")
+    add_list_arg(parser, "--additional-queries", help="Extra queries for --deep-lite/--deep (max 10)")
 
-    # Structured output (deep/deep-reasoning only)
-    schema_group = parser.add_mutually_exclusive_group()
-    schema_group.add_argument("--output-schema", help="JSON schema string for structured output")
-    schema_group.add_argument("--schema-file", help="Path to JSON file containing output schema")
-    schema_group.add_argument("--schema-preset", choices=list(PRESET_SCHEMAS.keys()),
-                              help="Use preset schema: company, paper-survey, competitor-analysis, person, news-digest")
-    schema_group.add_argument("--text-output", help="Simple text output (description string)")
+    add_schema_args(parser)
+    parser.add_argument("--system-prompt", help="Instructions for the synthesized output (not with --lite)")
+    parser.add_argument("--objective", help="What the search is for; guides retrieval")
 
-    # Category and results
-    parser.add_argument("--category", "-c", choices=VALID_CATEGORIES, help="Filter by category")
+    parser.add_argument("--category", "-c", choices=CATEGORY_CHOICES, help="Filter by category")
     parser.add_argument("-n", "--num", type=int, default=10, help="Number of results (max 100)")
 
-    # Domain filtering
-    parser.add_argument("--domains", nargs="+", help="Only include these domains")
-    parser.add_argument("--exclude-domains", nargs="+", help="Exclude these domains")
+    add_list_arg(parser, "--domains", split_commas=True, help="Only include these domains (repeatable)")
+    add_list_arg(parser, "--exclude-domains", split_commas=True, help="Exclude these domains (repeatable)")
 
-    # Date filtering
     parser.add_argument("--after", help="Published after date (YYYY-MM-DD)")
     parser.add_argument("--before", help="Published before date (YYYY-MM-DD)")
 
-    # Text filtering
-    parser.add_argument("--must-include", nargs="+", help="Text that must be present")
-    parser.add_argument("--must-exclude", nargs="+", help="Text that must NOT be present")
+    add_list_arg(parser, "--must-include", help="(Deprecated) text that must be present")
+    add_list_arg(parser, "--must-exclude", help="(Deprecated) text that must NOT be present")
 
-    # Content options
-    parser.add_argument("--no-text", action="store_true", help="Don't include full text")
-    parser.add_argument("--summary", help="Generate summary with this query")
-    parser.add_argument("--highlights", action="store_true", help="Include key excerpts")
-    parser.add_argument("--highlights-query", help="Custom query for highlights")
-    parser.add_argument("--highlights-max-chars", type=int,
-                        help="Max characters for highlights (preferred over numSentences)")
-    parser.add_argument("--context", action="store_true", help="Combine results into RAG context string")
-    parser.add_argument("--context-chars", type=int, help="Max characters for context")
+    parser.add_argument("--no-text", action="store_true", help="Don't include full text (saves context, not cost)")
+    parser.add_argument("--max-chars", type=int, help="Max characters of text per result")
+    parser.add_argument("--summary", help="Generate summary with this query (not with --lite)")
+    parser.add_argument("--highlights", action="store_true", help="Include query-relevant excerpts")
+    parser.add_argument("--highlights-query", help="Custom query for highlights (implies --highlights)")
+    parser.add_argument("--highlights-max-chars", type=int, help="Fixed highlight budget per page (implies --highlights)")
+    parser.add_argument("--dynamic", action="store_true",
+                        help="Dynamic Highlights (beta): one shared budget across all results")
+    parser.add_argument("--context", action="store_true", help="(Deprecated) combine results into one context string")
+    parser.add_argument("--context-chars", type=int, help="(Deprecated) max characters for --context")
 
-    # Content freshness
     parser.add_argument("--max-age-hours", type=int,
-                        help="Max content age in hours (0=always livecrawl, -1=never). Requires contents.")
-    parser.add_argument("--livecrawl", choices=["always", "preferred", "fallback", "never"],
-                        help="(Deprecated: use --max-age-hours) Livecrawl mode")
+                        help="Max cached content age in hours (0=always fetch fresh, -1=cache only)")
+    parser.add_argument("--livecrawl", choices=LIVECRAWL_CHOICES,
+                        help="(Deprecated) mapped to --max-age-hours")
+    parser.add_argument("--snapshot-as-of", help="Page versions as of a date/time (paid tiers)")
 
-    # Text verbosity and section filtering (requires --max-age-hours 0)
-    VALID_SECTIONS = ["header", "navigation", "banner", "body", "sidebar", "footer", "metadata"]
     parser.add_argument("--verbosity", choices=["compact", "standard", "full"],
-                        help="Content verbosity level (requires --max-age-hours 0)")
-    parser.add_argument("--include-sections", nargs="+", choices=VALID_SECTIONS,
-                        help="Only include these page sections (requires --max-age-hours 0)")
-    parser.add_argument("--exclude-sections", nargs="+", choices=VALID_SECTIONS,
-                        help="Exclude these page sections (requires --max-age-hours 0)")
+                        help="Text verbosity (requires --max-age-hours 0)")
+    add_list_arg(parser, "--include-sections", choices=VALID_SECTIONS,
+                 help="Only include these page sections (requires --max-age-hours 0)")
+    add_list_arg(parser, "--exclude-sections", choices=VALID_SECTIONS,
+                 help="Exclude these page sections (requires --max-age-hours 0)")
 
-    # Subpages
-    parser.add_argument("--subpages", type=int, default=0, help="Number of subpages to crawl")
+    parser.add_argument("--subpages", type=int, default=0, help="(Deprecated here) subpages to crawl per result")
     parser.add_argument("--subpage-target", help="Where to find subpage links")
 
-    # Extras
     parser.add_argument("--links", type=int, default=0, help="Extract N links per result")
     parser.add_argument("--images", type=int, default=0, help="Extract N images per result")
 
-    # Location and moderation
-    parser.add_argument("--location", help="Two-letter country code (e.g., US)")
+    parser.add_argument("--location", help="User location: US, LAT,LON, or US,LAT,LON")
     parser.add_argument("--safe", action="store_true", help="Enable content moderation")
 
-    # Output
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
     parser.add_argument("--cost", action="store_true", help="Show cost breakdown")
 
     args = parser.parse_args()
 
-    # Determine search type
     search_type = "auto"
-    if args.neural:
-        search_type = "neural"
-    elif args.fast:
-        search_type = "fast"
-    elif args.instant:
-        search_type = "instant"
-    elif args.deep:
-        search_type = "deep"
-    elif args.deep_reasoning:
-        search_type = "deep-reasoning"
-
-    # Validate schema flags require deep/deep-reasoning
-    has_schema_flag = any([args.output_schema, args.schema_file, args.schema_preset, args.text_output])
-    if has_schema_flag and search_type not in ("deep", "deep-reasoning"):
-        print("Error: --output-schema/--schema-file/--schema-preset/--text-output require --deep or --deep-reasoning",
-              file=sys.stderr)
-        sys.exit(1)
-
-    # Resolve output schema
-    output_schema = None
-    if args.output_schema:
-        try:
-            output_schema = json.loads(args.output_schema)
-        except json.JSONDecodeError as e:
-            print(f"Error: Invalid JSON in --output-schema: {e}", file=sys.stderr)
-            sys.exit(1)
-    elif args.schema_file:
-        try:
-            with open(args.schema_file) as f:
-                output_schema = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Error: Failed to load schema file: {e}", file=sys.stderr)
-            sys.exit(1)
-    elif args.schema_preset:
-        output_schema = PRESET_SCHEMAS[args.schema_preset]
-    elif args.text_output:
-        output_schema = {"type": "text", "description": args.text_output}
+    for flag in ["lite", "deep_lite", "deep", "fast", "instant", "deep_reasoning", "neural"]:
+        if getattr(args, flag):
+            search_type = flag.replace("_", "-")
+    if search_type in LEGACY_TYPES:
+        legacy(f"--{search_type}", LEGACY_TYPES[search_type])
 
     try:
-        results = search(
+        output_schema = load_schema(args.output_schema, args.schema_file, args.schema_preset, args.text_output)
+        payload, betas = build_search_payload(
             query=args.query,
             search_type=search_type,
             additional_queries=args.additional_queries,
             output_schema=output_schema,
+            system_prompt=args.system_prompt,
+            objective=args.objective,
             category=args.category,
             num_results=args.num,
             include_domains=args.domains,
@@ -670,14 +452,17 @@ Categories: company, research paper, news, pdf, github, personal site, people, f
             include_text=args.must_include,
             exclude_text=args.must_exclude,
             get_text=not args.no_text,
+            max_characters=args.max_chars,
             get_summary=args.summary,
             get_highlights=args.highlights,
             highlights_query=args.highlights_query,
             highlights_max_chars=args.highlights_max_chars,
+            dynamic_highlights=args.dynamic,
             get_context=args.context,
             context_max_chars=args.context_chars,
             max_age_hours=args.max_age_hours,
             livecrawl=args.livecrawl,
+            snapshot_as_of=args.snapshot_as_of,
             verbosity=args.verbosity,
             include_sections=args.include_sections,
             exclude_sections=args.exclude_sections,
@@ -685,23 +470,24 @@ Categories: company, research paper, news, pdf, github, personal site, people, f
             subpage_target=args.subpage_target,
             get_links=args.links,
             get_image_links=args.images,
-            user_location=args.location,
+            user_location=parse_location(args.location),
             moderation=args.safe,
         )
-
-        if args.json:
-            print(json.dumps(results, indent=2))
-        else:
-            print(format_results(results, show_cost=args.cost))
-
-    except requests.exceptions.HTTPError as e:
-        print(f"API Error: {e}", file=sys.stderr)
-        if e.response is not None:
-            print(f"Response: {e.response.text}", file=sys.stderr)
-        sys.exit(1)
     except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+        parser.error(str(e))
+
+    try:
+        results = post("/search", payload, betas=betas)
+    except ExaAPIError as e:
+        die(e, _error_hint(e, search_type, payload.get("category")))
+    except ValueError as e:
+        die(e)
+
+    report_warnings(results)
+    if args.json:
+        print(json.dumps(results, indent=2))
+    else:
+        print(format_results(results, show_cost=args.cost))
 
 
 if __name__ == "__main__":

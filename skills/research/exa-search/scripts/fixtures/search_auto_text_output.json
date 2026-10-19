@@ -1,0 +1,62 @@
+{
+  "requestId": "6c21b5f540e58431ef55fd8733f12738",
+  "resolvedSearchType": "",
+  "results": [
+    {
+      "id": "https://exa.ai/blog/exa-3",
+      "title": "Introducing Exa 3.0 | Exa Blog",
+      "url": "https://exa.ai/blog/exa-3",
+      "publishedDate": "2026-10-19T17:00:00.000Z",
+      "author": "The Exa Team",
+      "highlights": [
+        "We\u2019re also launching Exa Lite, a new search type at $4 per 1,000 requests, built for cost-sensitive applications.\n\n...\n\n## Exa Lite\n\nExa 3.0 also includes Exa Lite, our new search type, priced at $4 per 1,000 requests.\n\nLite runs on the same index as Exa Auto. For higher quality, Exa Auto uses more compute across the retrieval stack, including candidate generation, highlights, and ranking.\n\nFor cost-sensitive applications, Lite offers strong search quality at a lower price. Together, Lite and Auto set a new Pareto frontier for search.\n\n...\n\n## Availability\n\nExa 3.0 is available today through the API, including Exa Lite, upgraded highlights, and our expanded index. Exa Lite costs $4 per 1,000 requests, Exa Auto is $7 per 1,000 requests, and the improved highlights and expanded data sources are included at no additional charge."
+      ],
+      "image": "https://exa.ai/images/blog/exa-3/benchmarks-balanced.png"
+    },
+    {
+      "id": "https://exa.ai/docs/search/quickstart",
+      "title": "Exa Search API",
+      "url": "https://exa.ai/docs/search/quickstart",
+      "highlights": [
+        "Choose a search type\n\n`type` selects a search mode, each tuned for a different balance of speed, search depth, and synthesis. `auto` is the default and works for most searches.\n\n| Type | Use it when | Typical latency |\n| --- | --- | --- |\n| `auto` | You want the best default balance of quality and speed | ~1 second |\n| `fast` | The request is latency-sensitive | ~450 ms |\n| `instant` | The request is on a real-time path such as autocomplete or voice | ~250 ms |\n| `deep-lite` | The task needs lightweight research and synthesis | ~4 seconds |\n| `deep` | The task requires multi-step search and stronger synthesis | 4\u201315 seconds |\n| `deep-reasoning` | Completeness and reasoning depth matter more than latency | 12\u201340 seconds |\n\n`instant` costs $4 per 1,000 requests with up to 10 results. Latency figures are approximate and cover the search itself with cached content. `outputSchema` adds a synthesis step and a low `contents.maxAgeHours` adds a fresh page fetch; see Budget latency and context. Deep modes run a research process rather than a single retrieval pass. See Deep Search for how that process works and how to use its additional controls.\n\nInstead of `deep-reasoning`, use Exa Agent for long-running research, list building, and multi-hop enrichment. Agent has more compute per run and returns grounded, structured results."
+      ],
+      "image": "https://exa-52.mintlify.app/_next/image?url=%2F_mintlify%2Fapi%2Fog%3Fdivision%3DSearch%26title%3DExa%2BSearch%2BAPI%26description%3DSearch%2Bthe%2Bweb%2Bin%2Bnatural%2Blanguage%2Band%2Bget%2Bclean%252C%2Brelevant%2Bpage%2Bcontent%2Bin%2Bone%2Brequest.%26theme%3D2cc251f5ec67b21bc572afb1&w=1200&q=100"
+    },
+    {
+      "id": "https://exa.ai/docs/reference/search",
+      "title": "",
+      "url": "https://exa.ai/docs/reference/search",
+      "author": "\u200b x-api-key string header required",
+      "highlights": [
+        "EXA_API ... );\n\n...\n\nconst result = await exa.search(\"<query>\", {\n  type: \"auto\",\n  contents: ... highlights ... true },\n\n...\n\n});\n\n...\n\nContent options for text, highlights, summary, extras, and freshness controls.\n\nAdditional query variations for deep-search variants. Only works with a deep-search type. When provided, these queries are used alongside the main query for broader results.\n\nRequired array length: `1 - 10` elements\n\nauto \u00b7 string lite \u00b7 string deep-lite \u00b7 string deep \u00b7 string instant \u00b7 string fast \u00b7 string deep-reasoning \u00b7 string Other values \u00b7 string\n\nThe search mode to use. Defaults to `auto`, a balanced mode recommended for most applications.\n\n- `auto`: The default. A balanced mode that optimizes for both quality and speed and is recommended for most applications.\n- `lite`: Low-cost, low-latency search for real-time and interactive experiences such as chat, voice agents, and autocomplete. Accepts only `query` (a single string), `objective`, `userIdentifier`, `metadata`, `category`, `numResults`, `contents.highlights`, `contents.text`, `contents.snapshotAsOf`, `userLocation`, `includeDomains`, `excludeDomains`, `startPublishedDate`, `endPublishedDate`, `moderation`, and `compliance`; a request that sets any other parameter is rejected. Serves cached content only; it never fetches live, so the freshness options are rejected.\n- `deep-lite`: Performs lightweight research with synthesized results and a consistent 4-second latency, lower than full deep search.\n- `deep`: Conducts comprehensive multi-step research with synthesis.\n- `instant`: Legacy. Use `lite` instead. Runs a minimum-latency search that trades some search depth for speed. Unlike `lite`, it accepts every search parameter.\n- `fast`: Legacy. Use `lite` instead. Runs a reduced-latency search for user-facing and interactive workflows. Unlike `lite`, it accepts every search parameter.\n- `deep-reasoning`: Legacy. Use `deep` instead. Runs `deep` with stronger reasoning at each step, for complex analysis and decision-making tasks. For agentic, multi-step research, use the Agent API.\n\nAllowed value: `\"auto\"`\n\nA data category to focus on. Other strings are accepted and used as category hints. `people` and `company` return higher-quality people profiles and company pages. `publication` returns scholarly publications such as research papers, preprints, and journal articles, with ... like authors, venue, and citations. ... company` and `people` ... not support ... PublishedDate` or `endPublishedDate`, and `people` also does not support `excludeDomains`. Requests that set an unsupported filter return a 400 error"
+      ],
+      "image": "https://exa-52.mintlify.app/_mintlify/api/og/v2?division=Search&title=Search&description=The+search+endpoint+lets+you+search+the+web+and+extract+contents+from+the+results.&theme=335ba899c375860fa76aa202&signature=f516d761f68fdb186cd8de1d6e093b6b0537f5c6086ebf10023066395f6eee71"
+    }
+  ],
+  "searchTime": 1620.2,
+  "costDollars": {
+    "total": 0.007,
+    "search": {
+      "neural": 0.007
+    }
+  },
+  "output": {
+    "content": "Exa Lite is a new search type introduced in Exa 3.0 that is designed for cost-sensitive, real-time, and interactive applications like chat, voice agents, and autocomplete, priced at $4 per 1,000 requests [1][2]. It runs on the same underlying index as Exa Auto but is optimized for lower cost by utilizing less compute across the retrieval stack [1]. Unlike legacy modes such as instant or fast, Lite serves exclusively cached content and rejects requests that include live-fetch or certain advanced search parameters [2]. To implement the Lite search type in your code, you specify it within the search options as demonstrated below:\n\n```javascript\nconst result = await exa.search(\"your query here\", {\n  type: \"lite\",\n  numResults: 5\n});\n```\n\nBecause Lite operates using cached data, it offers a high-performance, cost-effective solution for applications where retrieval speed and budget are prioritized over live data freshness [1][2].",
+    "grounding": [
+      {
+        "field": "content",
+        "citations": [
+          {
+            "url": "https://exa.ai/blog/exa-3",
+            "title": "Introducing Exa 3.0 | Exa Blog"
+          },
+          {
+            "url": "https://exa.ai/docs/reference/search",
+            "title": ""
+          }
+        ],
+        "confidence": "high"
+      }
+    ]
+  }
+}

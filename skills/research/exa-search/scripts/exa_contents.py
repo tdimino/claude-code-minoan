@@ -13,40 +13,34 @@ Features:
 - Crawl subpages for deeper content extraction
 - Extract links and images
 - Handle multiple URLs in a single request
-- Livecrawl for fresh content
+- Freshness control (maxAgeHours) and historical snapshots (snapshotAsOf)
+- Dynamic Highlights (beta) across all URLs in one request
+
+Billing: $1/1k pages per content type (text, highlights, summary each count).
 
 Usage:
     exa_contents.py "https://example.com/article"
     exa_contents.py URL1 URL2 URL3 --summary "Key findings"
-    exa_contents.py "https://arxiv.org/abs/2307.06435" --highlights --subpages 3
-    exa_contents.py URLs --livecrawl --timeout 30000
+    exa_contents.py "https://arxiv.org/abs/2307.06435" --highlights --no-text
+    exa_contents.py URL --max-age-hours 0 --timeout 30000
 
 Requires: EXA_API_KEY environment variable
 Install: pip install requests
 """
 
-import os
 import sys
 import json
 import argparse
-import requests
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
-EXA_API_KEY = os.environ.get("EXA_API_KEY")
-BASE_URL = "https://api.exa.ai"
-
-
-def _headers() -> Dict[str, str]:
-    """Get authentication headers."""
-    if not EXA_API_KEY:
-        raise ValueError("EXA_API_KEY environment variable not set. Get your key at https://dashboard.exa.ai")
-    return {
-        "Content-Type": "application/json",
-        "x-api-key": EXA_API_KEY
-    }
+from _exa_common import (
+    LIVECRAWL_CHOICES, VALID_SECTIONS, ExaAPIError, add_list_arg, check_snapshot, context_option, die,
+    extras_option, format_cost, format_notices, highlights_option, legacy, post, report_warnings,
+    resolve_max_age, text_option,
+)
 
 
-def get_contents(
+def build_contents_payload(
     urls: List[str],
     # Text options
     get_text: bool = True,
@@ -61,9 +55,8 @@ def get_contents(
     # Highlights options
     get_highlights: bool = False,
     highlights_query: Optional[str] = None,
-    num_sentences: int = 3,
-    highlights_per_url: int = 3,
     highlights_max_chars: Optional[int] = None,
+    dynamic_highlights: bool = False,
     # Subpages
     subpages: int = 0,
     subpage_target: Optional[str] = None,
@@ -74,12 +67,13 @@ def get_contents(
     livecrawl: Optional[str] = None,
     livecrawl_timeout: Optional[int] = None,
     max_age_hours: Optional[int] = None,
+    snapshot_as_of: Optional[str] = None,
     # Context (RAG)
     get_context: bool = False,
     context_max_chars: Optional[int] = None,
-) -> Dict[str, Any]:
+) -> Tuple[Dict[str, Any], List[str]]:
     """
-    Get clean content from specific URLs using Exa's /contents endpoint.
+    Build the /contents request body. Returns (payload, beta flags).
 
     Unlike web scraping, this uses Exa's pre-indexed data for fast extraction.
     Great for getting content from URLs you already know.
@@ -93,40 +87,31 @@ def get_contents(
         summary_schema: JSON schema for structured summaries
         get_highlights: Include key excerpts
         highlights_query: Custom query for highlights
-        num_sentences: Sentences per highlight
-        highlights_per_url: Max highlights per URL
+        highlights_max_chars: Fixed highlight budget per page
+        dynamic_highlights: Dynamic Highlights beta (shared budget; not with highlights_max_chars)
         subpages: Number of subpages to crawl per URL
         subpage_target: Where to find subpage links
         get_links: Number of links to extract per URL
         get_image_links: Number of images to extract per URL
-        livecrawl: (Deprecated: use max_age_hours) Livecrawl mode - "always", "preferred", "fallback", or "never"
-        livecrawl_timeout: Timeout in ms for livecrawling
-        max_age_hours: Max page age in hours (0=always livecrawl, -1=never livecrawl)
-        get_context: Combine all contents into one RAG context string
+        livecrawl: (Deprecated) mapped to max_age_hours
+        livecrawl_timeout: Timeout in ms for fetching fresh pages
+        max_age_hours: Max cached age in hours (0=always fetch fresh, -1=cache only)
+        snapshot_as_of: Return page versions as of this date/time
+        get_context: (Deprecated) combine all contents into one context string
         context_max_chars: Limit context string length (None = unlimited)
-
-    Returns:
-        Dict with extracted content for each URL
     """
-    # Build payload
+    check_snapshot(snapshot_as_of, max_age_hours, livecrawl, subpages, livecrawl_timeout)
+    highlights, betas = highlights_option(get_highlights, highlights_query, highlights_max_chars,
+                                          dynamic_highlights)
+
     payload: Dict[str, Any] = {
         "urls": urls
     }
 
     # Text options
     if get_text:
-        text_config: Dict[str, Any] = {}
-        if max_characters:
-            text_config["maxCharacters"] = max_characters
-        if include_html_tags:
-            text_config["includeHtmlTags"] = True
-        if verbosity:
-            text_config["verbosity"] = verbosity
-        if include_sections:
-            text_config["includeSections"] = include_sections
-        if exclude_sections:
-            text_config["excludeSections"] = exclude_sections
-        payload["text"] = text_config if text_config else True
+        payload["text"] = text_option(max_characters, verbosity, include_sections, exclude_sections,
+                                      html=include_html_tags)
 
     # Summary options
     if get_summary:
@@ -136,16 +121,8 @@ def get_contents(
         payload["summary"] = summary_config
 
     # Highlights options
-    if get_highlights:
-        highlights_config: Dict[str, Any] = {}
-        if highlights_max_chars:
-            highlights_config["maxCharacters"] = highlights_max_chars
-        else:
-            highlights_config["numSentences"] = num_sentences
-            highlights_config["highlightsPerUrl"] = highlights_per_url
-        if highlights_query:
-            highlights_config["query"] = highlights_query
-        payload["highlights"] = highlights_config
+    if highlights is not None:
+        payload["highlights"] = highlights
 
     # Subpages
     if subpages > 0:
@@ -154,37 +131,41 @@ def get_contents(
             payload["subpageTarget"] = subpage_target
 
     # Extras
-    if get_links > 0 or get_image_links > 0:
-        extras: Dict[str, int] = {}
-        if get_links > 0:
-            extras["links"] = get_links
-        if get_image_links > 0:
-            extras["imageLinks"] = get_image_links
+    extras = extras_option(get_links, get_image_links)
+    if extras:
         payload["extras"] = extras
 
     # Freshness options
-    if max_age_hours is not None:
-        payload["maxAgeHours"] = max_age_hours
-    elif livecrawl:
-        payload["livecrawl"] = livecrawl
+    max_age = resolve_max_age(max_age_hours, livecrawl)
+    if max_age is not None:
+        payload["maxAgeHours"] = max_age
     if livecrawl_timeout:
         payload["livecrawlTimeout"] = livecrawl_timeout
+    if snapshot_as_of:
+        payload["snapshotAsOf"] = snapshot_as_of
 
-    # Context for RAG applications
-    if get_context:
-        if context_max_chars:
-            payload["context"] = {"maxCharacters": context_max_chars}
-        else:
-            payload["context"] = True
+    # Context (deprecated)
+    context = context_option(get_context, context_max_chars)
+    if context is not None:
+        payload["context"] = context
 
-    # Make request
-    response = requests.post(
-        f"{BASE_URL}/contents",
-        headers=_headers(),
-        json=payload
-    )
-    response.raise_for_status()
-    return response.json()
+    return payload, betas
+
+
+def get_contents(urls: List[str], **kwargs) -> Dict[str, Any]:
+    """Get clean content from specific URLs. Keyword arguments match build_contents_payload."""
+    payload, betas = build_contents_payload(urls, **kwargs)
+    return post("/contents", payload, betas=betas)
+
+
+def failed_urls(results: Dict[str, Any]) -> List[str]:
+    """One line per URL whose status is error (statuses[].error may be null)."""
+    lines = []
+    for st in results.get("statuses") or []:
+        if st.get("status") == "error":
+            info = st.get("error") or {}
+            lines.append(f"{st.get('id')}: {info.get('tag', 'error')} (HTTP {info.get('httpStatusCode', '?')})")
+    return lines
 
 
 def format_results(results: Dict[str, Any], max_text_length: int = 2000, show_cost: bool = False) -> str:
@@ -195,14 +176,13 @@ def format_results(results: Dict[str, Any], max_text_length: int = 2000, show_co
     if results.get("requestId"):
         output.append(f"Request ID: {results['requestId']}")
 
-    # Check statuses for errors
-    statuses = results.get("statuses", [])
-    errors = [s for s in statuses if s.get("status") == "error"]
+    output.extend(format_notices(results))
+
+    # Per-URL failures
+    errors = failed_urls(results)
     if errors:
         output.append(f"\nWARNING: {len(errors)} URL(s) had errors:")
-        for err in errors:
-            error_info = err.get("error", {})
-            output.append(f"  - {err.get('id')}: {error_info.get('tag')} (HTTP {error_info.get('httpStatusCode')})")
+        output.extend(f"  - {line}" for line in errors)
 
     # Results
     content_results = results.get("results", [])
@@ -211,7 +191,7 @@ def format_results(results: Dict[str, Any], max_text_length: int = 2000, show_co
         output.append(f"CONTENTS ({len(content_results)} URLs processed):")
 
         for i, r in enumerate(content_results, 1):
-            output.append(f"\n[{i}] {r.get('title', 'No title')}")
+            output.append(f"\n[{i}] {r.get('title') or 'No title'}")
             output.append(f"    URL: {r.get('url', 'No URL')}")
 
             if r.get('author'):
@@ -227,12 +207,12 @@ def format_results(results: Dict[str, Any], max_text_length: int = 2000, show_co
 
             # Summary
             if r.get('summary'):
-                output.append(f"\n    SUMMARY:")
+                output.append("\n    SUMMARY:")
                 output.append(f"    {r['summary'][:500]}")
 
             # Highlights
             if r.get('highlights'):
-                output.append(f"\n    HIGHLIGHTS:")
+                output.append("\n    HIGHLIGHTS:")
                 for j, h in enumerate(r['highlights'], 1):
                     score = ""
                     scores = r.get('highlightScores') or []
@@ -252,7 +232,7 @@ def format_results(results: Dict[str, Any], max_text_length: int = 2000, show_co
             if r.get('subpages'):
                 output.append(f"\n    SUBPAGES ({len(r['subpages'])} found):")
                 for sp in r['subpages'][:5]:
-                    output.append(f"      - {sp.get('title', 'No title')[:50]}")
+                    output.append(f"      - {(sp.get('title') or 'No title')[:50]}")
                     output.append(f"        {sp.get('url', '')}")
                     if sp.get('summary'):
                         output.append(f"        Summary: {sp['summary'][:100]}...")
@@ -281,15 +261,8 @@ def format_results(results: Dict[str, Any], max_text_length: int = 2000, show_co
         else:
             output.append(context)
 
-    # Cost
-    if show_cost and results.get("costDollars"):
-        cost = results["costDollars"]
-        output.append(f"\n{'='*60}")
-        output.append(f"COST: ${cost.get('total', 0):.4f}")
-        if cost.get("breakDown"):
-            for key, val in cost["breakDown"].items():
-                if isinstance(val, (int, float)):
-                    output.append(f"  {key}: ${val:.4f}")
+    if show_cost:
+        output.extend(format_cost(results.get("costDollars")))
 
     return "\n".join(output)
 
@@ -302,15 +275,14 @@ def main():
 Examples:
   %(prog)s "https://arxiv.org/abs/2307.06435"
   %(prog)s URL1 URL2 URL3 --summary "Key findings"
-  %(prog)s "https://docs.python.org" --highlights --subpages 5
-  %(prog)s "https://example.com" --livecrawl always --timeout 30000
+  %(prog)s "https://docs.python.org" --highlights --no-text --subpages 5
+  %(prog)s "https://example.com" --max-age-hours 0 --timeout 30000
+  %(prog)s URL1 URL2 URL3 --dynamic --highlights-query "pricing" --no-text
   %(prog)s "https://news.ycombinator.com" --links 10 --images 5
 
-Livecrawl modes:
-  always    - Always fetch fresh content
-  preferred - Try to livecrawl, fallback to cache if fails
-  fallback  - Use index, fall back to live if not found
-  never     - Only use indexed content (default)
+Freshness (--max-age-hours): 0 = always fetch fresh, N = refetch if cache older
+than N hours, -1 = cache only. Omitted = cache when available, else fetch.
+--livecrawl still works and maps: always→0, preferred→1, never→-1, fallback→omitted.
         """
     )
 
@@ -323,25 +295,26 @@ Livecrawl modes:
     parser.add_argument("--html", action="store_true", help="Include HTML tags in text")
 
     # Text verbosity and section filtering (requires --max-age-hours 0)
-    VALID_SECTIONS = ["header", "navigation", "banner", "body", "sidebar", "footer", "metadata"]
     parser.add_argument("--verbosity", choices=["compact", "standard", "full"],
                         help="Content verbosity level (requires --max-age-hours 0)")
-    parser.add_argument("--include-sections", nargs="+", choices=VALID_SECTIONS,
-                        help="Only include these page sections (requires --max-age-hours 0)")
-    parser.add_argument("--exclude-sections", nargs="+", choices=VALID_SECTIONS,
-                        help="Exclude these page sections (requires --max-age-hours 0)")
+    add_list_arg(parser, "--include-sections", choices=VALID_SECTIONS,
+                 help="Only include these page sections (requires --max-age-hours 0)")
+    add_list_arg(parser, "--exclude-sections", choices=VALID_SECTIONS,
+                 help="Exclude these page sections (requires --max-age-hours 0)")
 
     # Summary options
     parser.add_argument("--summary", help="Generate summary with this query")
     parser.add_argument("--summary-schema", type=str, help="JSON schema for structured summaries")
 
     # Highlights options
-    parser.add_argument("--highlights", action="store_true", help="Include key excerpts")
-    parser.add_argument("--highlights-query", help="Custom query for highlights")
-    parser.add_argument("--sentences", type=int, default=3, help="Sentences per highlight")
-    parser.add_argument("--highlights-per-url", type=int, default=3, help="Max highlights per URL")
+    parser.add_argument("--highlights", action="store_true", help="Include query-relevant excerpts")
+    parser.add_argument("--highlights-query", help="Custom query for highlights (implies --highlights)")
     parser.add_argument("--highlights-max-chars", type=int,
-                        help="Max characters for highlights (preferred over numSentences)")
+                        help="Fixed highlight budget per page (implies --highlights)")
+    parser.add_argument("--dynamic", action="store_true",
+                        help="Dynamic Highlights (beta): one shared budget across all URLs")
+    parser.add_argument("--sentences", type=int, help="(Ignored) Exa deprecated numSentences")
+    parser.add_argument("--highlights-per-url", type=int, help="(Ignored) Exa deprecated highlightsPerUrl")
 
     # Subpages
     parser.add_argument("--subpages", type=int, default=0, help="Number of subpages to crawl")
@@ -353,16 +326,17 @@ Livecrawl modes:
 
     # Freshness
     parser.add_argument("--max-age-hours", type=int,
-                        help="Max page age in hours (0=always livecrawl, -1=never livecrawl)")
-    parser.add_argument("--livecrawl", choices=["always", "preferred", "fallback", "never"],
-                        help="(Deprecated: use --max-age-hours) Livecrawl mode for fresh content")
-    parser.add_argument("--timeout", type=int, help="Livecrawl timeout in ms")
+                        help="Max cached age in hours (0=always fetch fresh, -1=cache only)")
+    parser.add_argument("--livecrawl", choices=LIVECRAWL_CHOICES,
+                        help="(Deprecated) mapped to --max-age-hours")
+    parser.add_argument("--timeout", type=int, help="Fresh-fetch timeout in ms")
+    parser.add_argument("--snapshot-as-of", help="Page versions as of a date/time (paid tiers)")
 
     # Context (RAG)
     parser.add_argument("--context", action="store_true",
-                        help="Combine all contents into one RAG context string")
+                        help="(Deprecated) combine all contents into one context string")
     parser.add_argument("--context-chars", type=int,
-                        help="Limit context string length (use with --context)")
+                        help="(Deprecated) limit context string length (use with --context)")
 
     # Output
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
@@ -378,11 +352,17 @@ Livecrawl modes:
         try:
             summary_schema = json.loads(args.summary_schema)
         except json.JSONDecodeError as e:
-            print(f"Invalid JSON schema: {e}", file=sys.stderr)
-            sys.exit(1)
+            parser.error(f"Invalid JSON in --summary-schema: {e}")
+        if not args.summary:
+            parser.error("--summary-schema requires --summary")
+
+    if args.sentences is not None:
+        legacy("--sentences", "ignored; use --highlights-max-chars for a fixed budget.")
+    if args.highlights_per_url is not None:
+        legacy("--highlights-per-url", "ignored; use --highlights-max-chars for a fixed budget.")
 
     try:
-        results = get_contents(
+        payload, betas = build_contents_payload(
             urls=args.urls,
             get_text=not args.no_text,
             max_characters=args.max_chars,
@@ -394,9 +374,8 @@ Livecrawl modes:
             summary_schema=summary_schema,
             get_highlights=args.highlights,
             highlights_query=args.highlights_query,
-            num_sentences=args.sentences,
-            highlights_per_url=args.highlights_per_url,
             highlights_max_chars=args.highlights_max_chars,
+            dynamic_highlights=args.dynamic,
             subpages=args.subpages,
             subpage_target=args.subpage_target,
             get_links=args.links,
@@ -404,22 +383,28 @@ Livecrawl modes:
             livecrawl=args.livecrawl,
             livecrawl_timeout=args.timeout,
             max_age_hours=args.max_age_hours,
+            snapshot_as_of=args.snapshot_as_of,
             get_context=args.context,
             context_max_chars=args.context_chars,
         )
-
-        if args.json:
-            print(json.dumps(results, indent=2))
-        else:
-            print(format_results(results, max_text_length=args.text_limit, show_cost=args.cost))
-
-    except requests.exceptions.HTTPError as e:
-        print(f"API Error: {e}", file=sys.stderr)
-        if e.response is not None:
-            print(f"Response: {e.response.text}", file=sys.stderr)
-        sys.exit(1)
     except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        parser.error(str(e))
+
+    try:
+        results = post("/contents", payload, betas=betas)
+    except (ExaAPIError, ValueError) as e:
+        die(e)
+
+    report_warnings(results)
+    if args.json:
+        print(json.dumps(results, indent=2))
+    else:
+        print(format_results(results, max_text_length=args.text_limit, show_cost=args.cost))
+
+    errors = failed_urls(results)
+    for line in errors:
+        print(f"Failed: {line}", file=sys.stderr)
+    if errors and not results.get("results"):
         sys.exit(1)
 
 

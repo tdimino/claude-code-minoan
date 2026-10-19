@@ -203,17 +203,19 @@ ArXiv ID: 2301.00234
 
 Beyond MCP tools, Exa offers powerful direct API endpoints for academic research.
 
-### /answer - Synthesized Answers with Citations
+### Synthesized Answers with Citations
 
-Get AI-synthesized answers with academic citations. Excellent for research questions.
+`/answer` takes no source filters, so a domain-restricted answer goes through `/search` with a text `outputSchema` (`exa_research.py --domains arxiv.org` does this automatically).
 
 ```bash
-curl -s "https://api.exa.ai/answer" -X POST \
+curl -s "https://api.exa.ai/search" -X POST \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -d '{
     "query": "What are the main approaches to RLHF in large language models?",
-    "includeDomains": ["arxiv.org"]
+    "includeDomains": ["arxiv.org"],
+    "outputSchema": {"type": "text", "description": "A cited answer"},
+    "contents": {"highlights": true}
   }'
 ```
 
@@ -230,7 +232,7 @@ curl -s "https://api.exa.ai/contents" -X POST \
   -d '{
     "ids": ["https://arxiv.org/abs/2501.09686"],
     "text": true,
-    "highlights": {"numSentences": 3}
+    "highlights": true
   }'
 ```
 

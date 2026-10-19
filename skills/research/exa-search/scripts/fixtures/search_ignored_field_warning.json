@@ -1,0 +1,36 @@
+{
+  "requestId": "b2c71589ab28aa0947beefd48ae0f5b6",
+  "resolvedSearchType": "",
+  "results": [
+    {
+      "id": "https://docs.python-requests.org/en/stable/",
+      "title": "Requests: HTTP for Humans\u2122 \u00b6",
+      "url": "https://docs.python-requests.org/en/stable/",
+      "highlights": [
+        "# Requests: HTTP for Humans\u2122 \u00b6\n\nRelease v2.34.2. (Installation)\n\n \n\nRequests is an elegant and simple HTTP library for Python, built for human beings.\n\n---\n\nBehold, the power of Requests:\n\n```\n>>> r = requests.get('https://api.github.com/user', auth=('user', 'pass'))\n>>> r.status_code\n200\n>>> r.headers['content-type']\n'application/json; charset=utf8'\n>>> r.encoding\n'utf-8'\n>>> r.text\n'{\"type\":\"User\"...'\n>>> r.json()\n{'private_gists': 419, 'total_private_repos': 77, ...}\n\n```\n\nSee similar code, sans Requests.\n\nRequests allows you to send HTTP/1.1 requests extremely easily. There\u2019s no need to manually add query strings to your URLs, or to form-encode your POST data. Keep-alive and HTTP connection pooling are 100% automatic, thanks to urllib3.\n\n## Beloved Features \u00b6\n\nRequests is ready for today\u2019s web.\n\n- Keep-Alive & Connection Pooling\n- International Domains and URLs\n- Sessions with Cookie Persistence\n- Browser-style SSL Verification\n- Automatic Content Decoding\n- Basic/Digest Authentication\n- Elegant Key/Value Cookies\n- Automatic Decompression\n- Unicode Response Bodies\n- HTTP(S) Proxy Support\n- Multipart File Uploads\n- Streaming Downloads\n- Connection Timeouts\n- Chunked Requests\n- `.netrc` Support\n\nRequests officially supports Python 3.10+, and runs great on PyPy.\n\n...\n\n## The User Guide \u00b6\n\nThis part of the documentation, which is mostly prose, begins with some background information about Requests, then focuses on step-by-step instructions for getting the most out of Requests.\n\n- Installation of Requests$ python -m pip install requests Get the Source Code\n- Quickstart Make a Request Passing Parameters In URLs Response Content Binary Response Content JSON Response Content Raw Response Content Custom Headers More complicated POST requests POST a Multipart-Encoded File Response Status Codes Response Headers Cookies Redirection and History Timeouts Errors and Exceptions\n- Advanced Usage Session Objects Request and Response Objects Prepared Requests SSL Cert Verification Client Side Certificates CA Certificates Body Content Workflow Keep-Alive Streaming Uploads Chunk-Encoded Requests POST Multiple Multipart-Encoded Files Event Hooks Custom Authentication Streaming Requests Proxies Compliance HTTP Verbs Custom Verbs Link Headers Transport Adapters Blocking Or Non-Blocking? Header Ordering Timeouts\n- Authentication Basic Authentication Digest Authentication OAuth 1 Authentication OAuth 2 and OpenID Connect Authentication Other Authentication New Forms of Authentication"
+      ]
+    },
+    {
+      "id": "https://github.com/psf/requests/",
+      "title": "psf/requests",
+      "url": "https://github.com/psf/requests/",
+      "highlights": [
+        "# psf/requests\n\nA simple, yet elegant, HTTP library.\n\n- Stars: 54517\n- Forks: 13182\n- Watchers: 54517\n- Open issues: 244\n- License: Apache License 2.0\n- Homepage: https://requests.readthedocs.io/en/latest/\n- Default branch: main\n- Created: 2011-02-13T18:38:17Z\n\n...\n\n## Languages\n\n- Makefile\n- Python\n\n...\n\n# Requests\n\nVersion\nSupported Versions\nDownloads\nContributors\nDocumentation\n\n**Requests** is a simple, yet elegant, HTTP library.\n\n```python\n>>> import requests\n>>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'pass'))\n>>> r.status_code\n200\n>>> r.headers['content-type']\n'application/json; charset=utf8'\n>>> r.encoding\n'utf-8'\n>>> r.text\n'{\"authenticated\": true, ...'\n>>> r.json()\n{'authenticated': True, ...}\n```\n\nRequests allows you to send HTTP/1.1 requests extremely easily. There\u2019s no need to manually add query strings to your URLs, or to form-encode your `PUT` & `POST` data \u2014 but nowadays, just use the `json` method!\n\nRequests is one of the most downloaded Python packages today, pulling in around `300M downloads / week` \u2014 according to GitHub, Requests is currently depended upon by `4,000,000+` repositories.\n\n## Installing Requests and Supported Versions\n\nRequests is available on PyPI:\n\n```console\n$ python -m pip install requests\n```\n\nRequests officially supports Python 3.10+.\n\n## Supported Features & Best\u2013Practices\n\nRequests is ready for the demands of building robust and reliable HTTP\u2013speaking applications, for the needs of today.\n\n- Keep-Alive & Connection Pooling\n- International Domains and URLs\n- Sessions with Cookie Persistence\n- Browser-style TLS/SSL Verification\n- Basic & Digest Authentication\n- Familiar `dict`\u2013like Cookies\n- Automatic Content Decompression and Decoding\n- Multi-part File Uploads\n- SOCKS Proxy Support\n- Connection Timeouts\n- Streaming Downloads\n- Automatic honoring of `.netrc`\n- Chunked HTTP Requests"
+      ]
+    }
+  ],
+  "searchTime": 382.4,
+  "costDollars": {
+    "total": 0.004,
+    "search": {
+      "neural": 0.004
+    }
+  },
+  "warnings": [
+    {
+      "code": "IGNORED_FIELD",
+      "path": "/contents/highlights/highlightsPerUrl",
+      "message": "contents.highlights.highlightsPerUrl is no longer supported and is ignored. Remove it from the request."
+    }
+  ]
+}

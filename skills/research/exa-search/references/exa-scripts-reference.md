@@ -1,351 +1,170 @@
-# Exa Search Scripts — Full Reference
+# Exa Search Scripts: Full Reference
 
-Detailed parameter reference for all 5 Exa search scripts.
+Exa 3.0, OpenAPI spec 2.0.0 (synced 2026-10-19). All scripts live in `~/.claude/skills/exa-search/scripts/`, need `EXA_API_KEY`, and share `_exa_common.py` (auth, error envelopes, warnings/notices, cost, categories, presets). In `--json` mode stdout is exactly one JSON document; hints, warnings, and notes go to stderr. List flags (`--domains`, `--exclude-domains`, `--must-include`, `--additional-queries`, sections) accumulate across repeats; domain flags also split on commas.
 
 ---
 
-## exa_search.py — Neural Web Search
+## exa_search.py: `/search`
 
-**Command**: `python3 ~/.claude/skills/exa-search/scripts/exa_search.py`
+| Flag | API field | Notes |
+|---|---|---|
+| `query` | `query` | Required |
+| `--lite` / `--deep-lite` / `--deep` | `type` | Default `auto`. See type table in SKILL.md |
+| `--fast` / `--instant` / `--deep-reasoning` / `--neural` | `type` | Legacy; stderr hint |
+| `--additional-queries Q...` | `additionalQueries` | deep-lite/deep/deep-reasoning only; max 10 |
+| `--text-output DESC` | `outputSchema {type:text}` | Any type but lite |
+| `--output-schema JSON` / `--schema-file F` / `--schema-preset P` | `outputSchema` | ≤10 properties in total (nested and array items count), ≤2 levels |
+| `--system-prompt S` | `systemPrompt` | Guides synthesized output; not lite |
+| `--objective S` | `objective` | What the search is for |
+| `--category, -c` | `category` | company, publication, news, personal site, financial report, people (`research paper` → publication; pdf/github soft hints) |
+| `-n, --num` | `numResults` | Default 10, max 100; >10 adds $1/1k results |
+| `--domains` / `--exclude-domains` | `includeDomains` / `excludeDomains` | |
+| `--after` / `--before` | `startPublishedDate` / `endPublishedDate` | YYYY-MM-DD or full ISO |
+| `--location` | `userLocation` | `US`, `LAT,LON`, or `US,LAT,LON` |
+| `--safe` | `moderation` | |
+| `--no-text` | omit `contents.text` | Text is on by default |
+| `--max-chars N` | `contents.text.maxCharacters` | |
+| `--verbosity` / `--include-sections` / `--exclude-sections` | `contents.text.*` | Need `--max-age-hours 0` |
+| `--highlights` | `contents.highlights: true` | |
+| `--highlights-query Q` / `--highlights-max-chars N` | `contents.highlights.{query,maxCharacters}` | Imply highlights |
+| `--dynamic` | `contents.highlights.dynamic` + `Exa-Beta` header | Beta; not with `--highlights-max-chars` |
+| `--summary Q` | `contents.summary.query` | +$1/1k pages; not lite |
+| `--max-age-hours N` | `contents.maxAgeHours` | 0 fresh, -1 cache only, max 720 |
+| `--snapshot-as-of DATE` | `contents.snapshotAsOf` | PAYG: 100-request trial, ≤5 months back; excludes freshness, `--subpages`, `--category`, `--deep` |
+| `--links N` / `--images N` | `contents.extras` | Not lite |
+| `--json` / `--cost` | — | Raw JSON / cost breakdown |
+| Deprecated: `--must-include`, `--must-exclude`, `--context`, `--context-chars`, `--subpages`, `--subpage-target`, `--livecrawl` | | Sent (livecrawl mapped) with a hint |
 
-### All Parameters
-
-| Parameter | Description |
-|-----------|-------------|
-| `-n, --num` | Number of results (max 100) |
-| `--neural` | Pure embeddings-based semantic search |
-| `--instant` | Sub-150ms latency (Feb 2026) |
-| `--fast` | ~500ms latency, balanced |
-| `--deep` | Comprehensive with query expansion (4-12s) |
-| `--deep-reasoning` | Maximum depth with LLM reasoning (12-50s) |
-| `--output-schema` | JSON schema string for structured output (deep/deep-reasoning only) |
-| `--schema-file` | Path to JSON file containing output schema |
-| `--schema-preset` | Preset schema: company, paper-survey, competitor-analysis, person, news-digest |
-| `--text-output` | Simple text output with description string |
-| `--category, -c` | Filter: company, research paper, news, pdf, github, personal site, people, financial report |
-| `--domains` | Only include these domains |
-| `--exclude-domains` | Exclude these domains |
-| `--after` | Start date (YYYY-MM-DD) |
-| `--before` | End date (YYYY-MM-DD) |
-| `--must-include` | Results must contain these strings |
-| `--must-exclude` | Results must NOT contain these strings |
-| `--additional-queries` | Extra queries for deep search |
-| `--context` | Combine results into RAG context string |
-| `--context-chars` | Limit context string length |
-| `--summary` | Generate AI summaries with query |
-| `--highlights` | Include key excerpts |
-| `--subpages` | Crawl linked subpages (count) |
-| `--no-text` | Don't retrieve page text |
-| `--max-age-hours` | Max content age in hours (0=always livecrawl, -1=never) |
-| `--livecrawl` | ~~Deprecated: use --max-age-hours~~ Livecrawl mode |
-| `--verbosity` | Content verbosity: compact, standard, full (requires --max-age-hours 0) |
-| `--include-sections` | Only include these page sections (requires --max-age-hours 0) |
-| `--exclude-sections` | Exclude these page sections (requires --max-age-hours 0) |
-| `--highlights-max-chars` | Max characters for highlights (preferred over numSentences) |
-| `--cost` | Show cost breakdown |
-| `--safe` | Content moderation filter |
-| `--json` | Output raw JSON |
-
-### Examples
+Text output order: request ID, notices, results (title, URL, author, date, summary, highlights, text, subpages, extras, entities), structured output with grounding, cost. Entities render for `company`, `person`, and `publication` (title, authors, year, citations, DOI); unknown types print generically.
 
 ```bash
-# Basic search
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "AI agent frameworks"
-
-# Category-filtered
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "transformer architecture" --category "research paper" -n 20
-
-# Deep search with additional queries
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "web scraping Python" --deep --additional-queries "Python crawler" "BeautifulSoup Scrapy"
-
-# Domain-filtered
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Python tutorials" --domains docs.python.org realpython.com github.com
-
-# Date-filtered for recent content
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "OpenAI announcements" --after 2024-06-01 --category news
-
-# With content for RAG
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "React hooks best practices" --context --context-chars 10000
-
-# With summaries and highlights
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "startup funding" --category company --summary "funding history" --highlights
-
-# Instant search (sub-150ms)
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "JavaScript fetch API" --instant -n 5
-
-# People/profiles
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "machine learning engineers" --category people
-
-# With subpage crawling
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "React documentation" --subpages 3 --domains react.dev
-
-# Deep reasoning with structured output
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Top AI startups 2025" --deep-reasoning --schema-preset company --cost
-
-# Quick factual answer
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Who is the CEO of Stripe?" --deep --text-output "Short one-sentence answer"
-
-# Custom schema
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "SEC filings Tesla Q4 2025" --deep-reasoning \
-  --output-schema '{"filings": [{"date": "string", "type": "string", "key_findings": "string"}]}' \
-  --category "financial report"
-
-# Schema from file
-python3 ~/.claude/skills/exa-search/scripts/exa_search.py "Compare cloud providers" --deep --schema-file ~/schemas/cloud-comparison.json
+python3 exa_search.py "python requests timeout" --lite --highlights --no-text -n 5
+python3 exa_search.py "sparse autoencoders" --category publication --after 2026-01-01 --no-text --highlights
+python3 exa_search.py "React useEffect cleanup" --domains react.dev,developer.mozilla.org --highlights --no-text
+python3 exa_search.py "Who is the CEO of Stripe?" --text-output "One sentence"
+python3 exa_search.py "Top AI infra startups 2026" --deep --schema-preset company
+python3 exa_search.py "solar install cost trend" --dynamic --no-text -n 15
+python3 exa_search.py "pricing page" --domains example.com --snapshot-as-of 2026-07-01
 ```
 
 ---
 
-## exa_contents.py — URL Content Extraction
+## exa_contents.py: `/contents`
 
-**Command**: `python3 ~/.claude/skills/exa-search/scripts/exa_contents.py`
+| Flag | API field | Notes |
+|---|---|---|
+| `urls...` | `urls` | Required, one or more |
+| `--no-text` / `--max-chars N` / `--html` | `text` / `text.maxCharacters` / `text.includeHtmlTags` | |
+| `--verbosity` / `--include-sections` / `--exclude-sections` | `text.*` | Need `--max-age-hours 0` |
+| `--summary Q` / `--summary-schema JSON` | `summary.{query,schema}` | |
+| `--highlights` / `--highlights-query Q` / `--highlights-max-chars N` | `highlights` | |
+| `--dynamic` | `highlights.dynamic` + `Exa-Beta` | One budget across all URLs |
+| `--subpages N` / `--subpage-target T` | `subpages` / `subpageTarget` | The supported home for subpage crawling |
+| `--links N` / `--images N` | `extras` | |
+| `--max-age-hours N` / `--timeout MS` | `maxAgeHours` / `livecrawlTimeout` | |
+| `--snapshot-as-of DATE` | `snapshotAsOf` | PAYG: 1 URL per request; excludes freshness, `--timeout`, `--subpages` |
+| `--json` / `--cost` / `--text-limit N` | — | Display only |
+| Ignored with hint: `--sentences`, `--highlights-per-url` | | Exa deprecated them |
+| Deprecated: `--livecrawl` (mapped), `--context`, `--context-chars` | | |
 
-### All Parameters
+Billing: $1/1k pages per content type. Per-URL failures (`statuses[]`) print as a WARNING block and as `Failed:` lines on stderr; exit 1 when every URL failed.
 
-| Parameter | Description |
-|-----------|-------------|
-| `--summary` | Generate AI summary with query |
-| `--highlights` | Extract key excerpts |
-| `--highlights-max-chars` | Max characters for highlights (preferred over numSentences) |
-| `--subpages` | Crawl linked subpages (count) |
-| `--max-age-hours` | Max page age in hours (0=always livecrawl, -1=never livecrawl) |
-| `--livecrawl` | ~~Deprecated: use --max-age-hours~~ Fresh content mode |
-| `--verbosity` | Content verbosity: compact, standard, full (requires --max-age-hours 0) |
-| `--include-sections` | Only include these page sections (requires --max-age-hours 0) |
-| `--exclude-sections` | Exclude these page sections (requires --max-age-hours 0) |
-| `--context` | Combine contents into RAG string |
-| `--context-chars` | Limit context string length |
-| `--links` | Extract N links |
-| `--images` | Extract N images |
-| `--max-chars` | Limit text length per result |
-| `--cost` | Show cost breakdown |
-| `--json` | Output raw JSON |
+---
 
-### Examples
+## exa_research.py: `/answer` (or `/search` when filtered)
+
+| Flag | Route | Notes |
+|---|---|---|
+| `query` | both | |
+| `--model exa\|exa-pro\|exa-fast\|exa-research` | /answer | All $5/1k (probed 2026-10-19) |
+| `--system-prompt S` | both | |
+| `--location` | both | `US`, `LAT,LON`, `US,LAT,LON` |
+| `--output-schema` / `--schema-file` | both | Structured `answer`; /search route caps at 10 properties, 2 levels |
+| `--stream` | /answer | Prints deltas live (UTF-8); citations and cost follow; no `[DONE]` → STREAM_TRUNCATED, exit 1 |
+| `--no-text` | both | Omit source text |
+| `--highlights` | /search | Ignored with a hint on /answer |
+| `--domains`, `--exclude-domains`, `--after`, `--before`, `-n` | → /search | `type auto` + text schema, $7/1k, ~2s slower; stderr note |
+| `--sources` / `--markdown` / `--answer-only` / `--json` / `--cost` / `--text-limit` | display | Empty answer → stderr error, exit 4 |
+
+JSON shape (both routes): `answer`, `citations[]` (url, title, author, publishedDate, text…), `costDollars`, `requestId`; the /search route adds `route: "search"`, `grounding[]`, and any `warnings`/`notices`.
+
+---
+
+## exa_agent.py: `/agent/runs`
+
+See `agent-api.md` for effort choice and task writing.
+
+| Command / flag | API | Notes |
+|---|---|---|
+| `run QUERY` | `POST /agent/runs` | Polls `GET /agent/runs/{id}` every 4s |
+| `--effort` | `effort` | minimal, low, medium (default, always sent), high, xhigh, auto, ultra |
+| `--output-schema` / `--schema-file` / `--schema-preset` | `outputSchema` | No /search size cap |
+| `--max-items N` | `maxItems` on top-level arrays | Needs a schema; keeps list cost bounded |
+| `--system-prompt` | `systemPrompt` | |
+| `--input-file F` / `--exclude-file F` | `input.data` / `input.exclusion` | JSON array or JSONL of objects |
+| `--previous-run ID` | `previousRunId` | Continue a completed run |
+| `--data-source P` (repeatable) | `dataSources[].provider` | Exa Connect, ≤5; billed per provider call |
+| `--max-cost $` | `budget.maxCostDollars` | 1–100; auto/ultra only |
+| `--max-duration S` | `budget.maxDurationSeconds` | 300–10800; ultra only |
+| `--user-id ID` | `userIdentifier` | Opaque, no PII |
+| `--no-wait` / `--timeout S` / `--json` | — | Timeout or lost polling exits 3 with the resume command; failed/cancelled exit 1 |
+| `status ID [--wait]` / `list [--limit --cursor]` / `cancel ID` / `stop ID` | GET / GET / POST cancel / POST stop | Polling retries 3 transient errors; `stop` refuses runs known to be non-ultra |
+
+---
+
+## exa_similar.py: `/findSimilar` (deprecated endpoint)
+
+Prints a deprecation note to stderr on every run; prefer `exa_search.py` with a query describing the page. `--exclude-source` sends the native `excludeSourceDomain`; `--safe` is ignored (the endpoint has no moderation field). Flags: `url`, `-n`, `--category`, `--domains`, `--exclude-domains`, `--exclude-source`, `--after`, `--before`, `--no-text`, `--max-chars`, `--summary`, `--highlights`, `--highlights-query`, `--highlights-max-chars`, `--max-age-hours`, `--livecrawl` (mapped), `--verbosity`, sections, `--subpages`, `--subpage-target`, `--links`, `--images`, `--must-include`, `--must-exclude`, `--safe`, `--context`, `--context-chars`, `--json`, `--cost`, `--text-limit`.
+
+---
+
+## exa_research_async.py: retired
+
+The Research API returns 410 `RESEARCH_RETIRED` (probed 2026-10-19; Exa changelog 2026-04-01). The stub prints the equivalent `exa_agent.py run '…' --effort medium|high` command (`--pro` → `high`; `status`/`list` point to `exa_agent.py list`) and exits 2.
+
+---
+
+## Legacy Flag Map
+
+| Old usage | Now |
+|---|---|
+| `--fast`, `--instant` | Still sent; prefer `--lite` |
+| `--deep-reasoning` | Still sent ($15/1k); prefer `--deep` or `exa_agent.py` |
+| `--neural` | Sent as `auto` |
+| `--livecrawl always/preferred/never/fallback` | `maxAgeHours` 0 / 1 / -1 / omitted (dropped under `--lite`) |
+| `--category "research paper"` | `publication` |
+| `--sentences`, `--highlights-per-url` | Ignored (Exa ignores them too) |
+| Schema flags required `--deep` | Any type except lite |
+| `exa_research.py --domains/--after/-n` silently ignored | Routed to /search and enforced |
+| `exa_research.py --sources` printed nothing | Lists `citations` |
+| `exa_research_async.py` | `exa_agent.py run` |
+| `--domains a --domains b` kept only `b` | Accumulates |
+
+---
+
+## Errors
+
+Search, contents, and answer: `{"error": "text", "tag": "TAG"}`. Agent: `{"error": {"type", "code", "message", "detail"}}`. Both print as `API Error: HTTP <status> <TAG>: <message>` plus the request ID (body, else the `x-request-id` header) and exit 1. Network failures print `API Error: network error (<ExceptionName>): …`; a non-JSON success body prints `INVALID_JSON`. A `Hint:` keyed on the server message names known causes (lite parameter limits, schema size, company/people filter limits).
+
+Exit codes: 0 ok; 1 API/network error, failed or cancelled agent run, or all `/contents` URLs failed; 2 usage error (including the retired stub); 3 agent run still going (timeout or lost polling); 4 `exa_research.py` returned no answer.
+
+## Response Fields Worth Knowing
+
+- `warnings[]` (`IGNORED_FIELD`, …): request problems → stderr.
+- `notices[]` (`RESTRICTIONS_RELAXED`, …): how results were produced → printed with results; keep them in context.
+- `costDollars`: `total` plus `search{…}`, `contents{…}`, `summary` (search) or `agentCompute`, `search`, `emails`, `phoneNumbers` (agent). There is no `breakDown` field.
+- `resolvedSearchType` / `searchType`: deprecated; ignore.
+
+## Exa MCP (for MCP clients, not used by these scripts)
+
+`https://mcp.exa.ai/mcp` (verified 2026-10-19 against exa.ai/docs/get-started/exa-mcp and github.com/exa-labs/exa-mcp-server): default tools `web_search_exa`, `web_fetch_exa`; `agent_run` with OAuth or an API key; `web_search_advanced_exa` opt-in via `?tools=…` (an explicit list replaces the defaults). The scripts expose more of the API: categories, dates, schemas, Dynamic Highlights, snapshots, `/answer` models, and every Agent option.
+
+## Tests
 
 ```bash
-# Basic extraction
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py "https://arxiv.org/abs/2307.06435"
-
-# Multiple URLs
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py URL1 URL2 URL3
-
-# With AI summary
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py "https://docs.example.com" --summary "Key API methods"
-
-# With highlights and subpages
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py "https://docs.python.org/3/tutorial" --highlights --subpages 5
-
-# Livecrawl for fresh content
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py "https://news.ycombinator.com" --livecrawl always
-
-# Extract links and images
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py "https://example.com" --links 10 --images 5
-
-# Limit text length
-python3 ~/.claude/skills/exa-search/scripts/exa_contents.py "https://long-article.com" --max-chars 5000
+python3 test_exa.py --quick             # test_offline.py: payloads, routing, SSE/agent fixtures; no key
+python3 test_exa.py                     # offline + live (~$0.15)
+python3 test_exa.py --endpoint search   # search | contents | similar | answer | agent
 ```
 
----
-
-## exa_similar.py — Find Similar Pages
-
-**Command**: `python3 ~/.claude/skills/exa-search/scripts/exa_similar.py`
-
-### All Parameters
-
-| Parameter | Description |
-|-----------|-------------|
-| `-n, --num` | Number of results (max 100) |
-| `--category` | Filter by category |
-| `--domains` | Only these domains |
-| `--exclude-source` | Exclude source URL's domain |
-| `--after` / `--before` | Date filtering |
-| `--must-include` | Required strings |
-| `--must-exclude` | Excluded strings |
-| `--safe` | Content moderation |
-| `--max-age-hours` | Max content age in hours (0=always livecrawl, -1=never) |
-| `--livecrawl` | ~~Deprecated: use --max-age-hours~~ Livecrawl mode |
-| `--verbosity` | Content verbosity: compact, standard, full (requires --max-age-hours 0) |
-| `--include-sections` | Only include these page sections (requires --max-age-hours 0) |
-| `--exclude-sections` | Exclude these page sections (requires --max-age-hours 0) |
-| `--highlights-max-chars` | Max characters for highlights (preferred over numSentences) |
-| `--context` | RAG context string |
-| `--context-chars` | Context length limit |
-| `--summary` | Comparison summaries |
-| `--highlights` | Key excerpts |
-| `--cost` | Show cost breakdown |
-| `--json` | Output raw JSON |
-
-### Examples
-
-```bash
-# Find similar pages
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py "https://arxiv.org/abs/2307.06435"
-
-# Similar companies (exclude source)
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py "https://stripe.com" --category company --exclude-source
-
-# From specific domains
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py "https://medium.com/article" --domains medium.com substack.com
-
-# With comparison summaries
-python3 ~/.claude/skills/exa-search/scripts/exa_similar.py "https://product.com" --summary "How is this different?"
-```
-
----
-
-## exa_research.py — AI-Powered Deep Research
-
-**Command**: `python3 ~/.claude/skills/exa-search/scripts/exa_research.py`
-
-### All Parameters
-
-| Parameter | Description |
-|-----------|-------------|
-| `-n, --num` | Number of sources (default: 5, max: 20) |
-| `--domains` | Only use these domains |
-| `--after` / `--before` | Date filtering |
-| `--output-schema` | JSON schema string for structured answer output |
-| `--schema-file` | Path to JSON file containing output schema |
-| `--stream` | Stream answer in real-time |
-| `--sources` | Show detailed source info |
-| `--highlights` | Include key excerpts |
-| `--markdown` | Output as markdown with citations |
-| `--answer-only` | Only output the answer |
-| `--cost` | Show cost breakdown |
-| `--json` | Output raw JSON |
-
-### Examples
-
-```bash
-# Basic research
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "What are the main differences between React and Vue?"
-
-# With sources
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "SpaceX latest achievements" --sources
-
-# Streaming
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Explain quantum computing" --stream
-
-# Domain-filtered
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Python async best practices" --domains docs.python.org realpython.com
-
-# Markdown with citations
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Compare cloud providers" --markdown
-
-# Answer only (for piping)
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "What is RLHF?" --answer-only
-
-# Structured output with JSON schema
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Compare top 3 JavaScript frameworks" \
-  --output-schema '{"frameworks": [{"name": "string", "pros": ["string"], "cons": ["string"]}]}'
-
-# Schema from file
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "AI startup funding trends" --schema-file ~/schemas/funding.json
-
-# With cost breakdown
-python3 ~/.claude/skills/exa-search/scripts/exa_research.py "Latest SpaceX news" --sources --cost
-```
-
----
-
-## exa_research_async.py — Async Research with Pro Models
-
-**Command**: `python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py`
-
-### All Parameters
-
-| Parameter | Description |
-|-----------|-------------|
-| `--pro` | Use exa-research-pro (enhanced synthesis) |
-| `--schema` | JSON schema for structured output |
-| `--wait` | Wait for completion |
-| `--timeout` | Max seconds to wait (default: 300) |
-| `list` | List all research jobs |
-| `status <id>` | Check job status |
-
-### Examples
-
-```bash
-# Basic async research
-python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "What species of ant are similar to honeypot ants?"
-
-# Pro model, wait for completion
-python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "Compare top 5 AI agent frameworks" --pro --wait
-
-# Structured output
-python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py "Analyze AI startup funding" \
-  --schema '{"startups": [{"name": "string", "funding": "number", "focus": "string"}]}'
-
-# Job management
-python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py status r_abc123
-python3 ~/.claude/skills/exa-search/scripts/exa_research_async.py list --limit 20
-```
-
----
-
-## Cost Considerations
-
-| Operation | Approximate Cost |
-|-----------|-----------------|
-| Neural search (1-25 results) | $0.005 |
-| Neural search (26-100 results) | $0.025 |
-| Deep search (1-25 results) | $0.012 |
-| Deep search (26-100 results) | $0.060 |
-| Deep-reasoning search (1-25 results) | $0.015 |
-| Deep-reasoning search (26-100 results) | $0.075 |
-| Content text per page | $0.001 |
-| Highlights per page | $0.001 |
-| Summary per page | $0.001 |
-
-**Optimization tips:**
-- Use `--instant` for real-time lookups (sub-150ms, cheapest)
-- Use `--fast` for quick lookups (~500ms)
-- Limit results with `-n`
-- Use `--no-text` if content not needed
-- Filter by domains to reduce irrelevant results
-
----
-
-## Comparison with Exa MCP Tools
-
-| Feature | MCP Tools | Skill Scripts |
-|---------|-----------|---------------|
-| Web Search | `mcp__exa__web_search_exa` | `exa_search.py` (more options) |
-| Code Context | `mcp__exa__get_code_context_exa` | `exa_search.py --category github` |
-| Contents | N/A | `exa_contents.py` |
-| Find Similar | N/A | `exa_similar.py` |
-| Quick Answer | N/A | `exa_research.py` |
-| Async Research | N/A | `exa_research_async.py` |
-| Deep Search | N/A | `exa_search.py --deep` |
-| Deep Reasoning | N/A | `exa_search.py --deep-reasoning` |
-| Structured Output | N/A | `exa_search.py --schema-preset company` |
-| Instant Search | N/A | `exa_search.py --instant` |
-| 9 Categories | Limited | Full support |
-| Date Filtering | Limited | Full support |
-| Domain Filtering | Limited | Full support |
-| Subpage Crawling | N/A | Full support |
-| Livecrawling | N/A | Full support |
-
----
-
-## Test Suite
-
-```bash
-# Run all tests
-python3 ~/.claude/skills/exa-search/scripts/test_exa.py
-
-# Quick validation only
-python3 ~/.claude/skills/exa-search/scripts/test_exa.py --quick
-
-# Verbose output
-python3 ~/.claude/skills/exa-search/scripts/test_exa.py --verbose
-
-# Test specific endpoint
-python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint search
-python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint contents
-python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint similar
-python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint answer
-python3 ~/.claude/skills/exa-search/scripts/test_exa.py --endpoint research
-```
+Fixtures in `scripts/fixtures/` are real responses captured 2026-10-19.

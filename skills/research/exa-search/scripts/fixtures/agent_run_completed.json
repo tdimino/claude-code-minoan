@@ -1,0 +1,41 @@
+{
+  "id": "agent_run_470fe650ff91438c8899fc26b3f41fbf",
+  "object": "agent_run",
+  "status": "completed",
+  "stopReason": "schema_satisfied",
+  "createdAt": "2026-10-19T20:01:11.576Z",
+  "completedAt": "2026-10-19T20:01:16.246Z",
+  "request": {
+    "query": "What is the capital of Crete? Answer in one word.",
+    "effort": "minimal"
+  },
+  "output": {
+    "text": "Heraklion",
+    "structured": null,
+    "grounding": [
+      {
+        "field": "text",
+        "citations": [
+          {
+            "url": "https://www.heraklion.gr/en/",
+            "title": "Municipality of Heraklion"
+          }
+        ],
+        "confidence": "medium"
+      }
+    ]
+  },
+  "usage": {
+    "agentComputeUnits": 0,
+    "searches": 3,
+    "emails": 0,
+    "phoneNumbers": 0
+  },
+  "costDollars": {
+    "total": 0.012,
+    "agentCompute": 0,
+    "search": 0.012,
+    "emails": 0,
+    "phoneNumbers": 0
+  }
+}
