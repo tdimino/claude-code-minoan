@@ -3,7 +3,7 @@
  * index-transcripts.js — Build/refresh the transcript full-text index
  *
  * Usage: node index-transcripts.js [--rebuild] [--limit N] [--budget MS] [--quiet]
- *        node index-transcripts.js --session <id> | --file <path> | --stdin [--debounce SEC]
+ *        node index-transcripts.js --session <id> | --file <path> | --stdin [--debounce SEC] [--detach]
  *
  * Walks all top-level session JSONL files (subagent/tool-result payloads in
  * session subdirectories are never enumerated), extracts user+assistant text,
@@ -256,6 +256,21 @@ function readStdinJson(quiet) {
   }
 }
 
+const DETACH_LOG = path.join(os.homedir(), '.claude', 'logs', 'transcript-index-hook.log');
+
+function detachIndex({ sessionId, filePath }, debounceSec) {
+  const { spawn } = require('child_process');
+  const target = filePath ? ['--file', filePath] : ['--session', sessionId];
+  fs.mkdirSync(path.dirname(DETACH_LOG), { recursive: true });
+  const log = fs.openSync(DETACH_LOG, 'a');
+  const child = spawn(process.execPath, [__filename, ...target, '--debounce', String(debounceSec)], {
+    detached: true,
+    stdio: ['ignore', log, log],
+  });
+  child.unref();
+  fs.closeSync(log);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const flag = (name) => args.includes(name);
@@ -281,6 +296,14 @@ async function main() {
     single = { filePath: path.resolve(opt('--file')) };
   }
 
+  // --detach: re-run this single-session index in a detached child and return
+  // at once. SessionEnd hooks share a 1.5 s budget, which a large transcript
+  // overruns; the child's output goes to a log file, never the hook's pipes.
+  if (single && flag('--detach')) {
+    detachIndex(single, debounceSec);
+    return;
+  }
+
   const t0 = Date.now();
   if (single) {
     const out = await indexSession({ ...single, debounceSec, quiet });
@@ -294,15 +317,21 @@ async function main() {
   }
 
   const r = await refreshTranscriptIndex({ budgetMs, limit, quiet, rebuild });
+  // Full (hourly) runs also close phases left open by sessions that ended
+  // without a SessionEnd hook; budgeted on-search refreshes skip it
+  if (budgetMs === Infinity) {
+    r.phasesClosed = db.closeStalePhases(utils.getLiveSessionIds({ allKinds: true }));
+  }
   // --quiet still reports work done (one line) so hook/launchd logs stay useful
   // without the per-file chatter; a no-op run prints nothing.
-  if (!quiet || r.indexed || r.errored || r.pruned) {
+  if (!quiet || r.indexed || r.errored || r.pruned || r.phasesClosed) {
     const secs = (r.ms / 1000).toFixed(1);
     console.log(`Indexed ${r.indexed} session(s) in ${secs}s — ${r.skipped} unchanged, ${r.empty} with no indexable text` +
       (r.errored ? `, ${r.errored} read errors (will retry)` : '') +
       (r.remaining ? `, ${r.remaining} still pending (budget/limit reached)` : '') +
       (r.pruned ? `, ${r.pruned} deleted sessions pruned` : '') +
-      (r.titleEvents ? `, ${r.titleEvents} title events` : '') + '.');
+      (r.titleEvents ? `, ${r.titleEvents} title events` : '') +
+      (r.phasesClosed ? `, ${r.phasesClosed} stale phases closed` : '') + '.');
   }
   if (!quiet) {
     const stats = db.getTranscriptIndexStats();

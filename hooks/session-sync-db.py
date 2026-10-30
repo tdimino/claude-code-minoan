@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Stop hook: sync final session metadata to tracker.db.
+"""Stop hook: sync session metadata to tracker.db.
 
-Closes open phases, marks session as not running, and ensures the
-session row exists with up-to-date metadata. Also writes tags to DB
-if session-tags-infer has already populated session-registry.json.
+Ensures the session row exists with up-to-date metadata and writes tags
+to DB if session-tags-infer has already populated session-registry.json.
+
+Stop fires after every turn, so phase state is left alone here. With
+--session-end (SessionEnd hook) it also closes the open phase and removes
+the phase-detect window file.
 """
 import json
 import os
@@ -205,6 +208,156 @@ def ensure_session(conn, session_id, transcript_path, now):
         )
 
 
+# Tag rows that are copies of the registry: written by this hook, or by the
+# one-time migrate-to-sqlite.js import. Both are pruned when the registry
+# drops a tag; rows from any other source are left alone.
+REGISTRY_TAG_SOURCE = "hook:session-tags-infer"
+REGISTRY_TAG_SOURCES = (REGISTRY_TAG_SOURCE, "migration:session-registry")
+LOG_PATH = pathlib.Path.home() / ".claude" / "logs" / "session-sync-db.log"
+
+
+def log_error(session_id, where, exc):
+    """Hooks must never fail a turn, but a swallowed error still leaves a line."""
+    try:
+        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(LOG_PATH, "a") as f:
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {session_id[:8]} {where}: "
+                    f"{type(exc).__name__}: {exc}\n")
+    except OSError:
+        pass
+
+
+def connect():
+    conn = sqlite3.connect(str(DB_PATH), timeout=5)
+    # Autocommit mode + explicit BEGIN IMMEDIATE: the Node indexer writes
+    # this DB concurrently (Stop hook, on-search refresh, hourly job). A
+    # deferred read-then-write transaction under WAL returns BUSY_SNAPSHOT
+    # immediately instead of waiting on busy_timeout.
+    conn.isolation_level = None
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 5000")
+    return conn
+
+
+def string_list(value):
+    """A tagger tag field as clean strings: a lone string is one tag, not
+    one tag per character; non-string items are dropped."""
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    return [v.strip() for v in value if isinstance(v, str) and v.strip()]
+
+
+def read_registry_entry(session_id):
+    """This session's registry entry, or {} for any missing or malformed shape.
+    Writers replace the file via tmp+rename, so an unlocked read is whole."""
+    try:
+        with open(REGISTRY_PATH) as f:
+            doc = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+    except OSError as e:
+        log_error(session_id, "read registry", e)
+        return {}
+    sessions = doc.get("sessions") if isinstance(doc, dict) else None
+    entry = sessions.get(session_id) if isinstance(sessions, dict) else None
+    return entry if isinstance(entry, dict) else {}
+
+
+def sync_registry_tags(conn, session_id, entry, now):
+    """Mirror the registry's current tag set for this session.
+
+    The tagger rewrites its tags every few turns; appending each version left
+    up to 87 live tags per session. Registry-copy rows (REGISTRY_TAG_SOURCES)
+    the registry no longer lists are soft-removed via removed_at, so history
+    survives. A conflicting row from another source is revived but keeps its
+    source, so it is never pruned here.
+    """
+    current = set()
+    for key, tag_type in (("tags", "auto"), ("display_tags", "display"), ("user_tags", "user")):
+        for tag in string_list(entry.get(key)):
+            current.add((tag, tag_type))
+
+    placeholders = ", ".join("?" * len(REGISTRY_TAG_SOURCES))
+    conn.executemany(
+        f"""INSERT INTO session_tags (session_id, tag, tag_type, source, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(session_id, tag, tag_type) DO UPDATE SET
+              removed_at = NULL,
+              source = CASE WHEN session_tags.source IN ({placeholders})
+                            THEN excluded.source ELSE session_tags.source END""",
+        [(session_id, tag, tag_type, REGISTRY_TAG_SOURCE, now, *REGISTRY_TAG_SOURCES)
+         for tag, tag_type in current],
+    )
+    owned = conn.execute(
+        f"""SELECT tag, tag_type FROM session_tags
+            WHERE session_id = ? AND source IN ({placeholders}) AND removed_at IS NULL""",
+        (session_id, *REGISTRY_TAG_SOURCES),
+    ).fetchall()
+    conn.executemany(
+        "UPDATE session_tags SET removed_at = ? WHERE session_id = ? AND tag = ? AND tag_type = ?",
+        [(now, session_id, tag, tag_type) for tag, tag_type in owned if (tag, tag_type) not in current],
+    )
+
+
+def fill_from_registry(conn, session_id, entry):
+    """The local tagger's title/summary, labelled 'qwen-local'.
+
+    Fills empty columns and refreshes values it wrote earlier; never replaces
+    a value from another source (Claude Code's ai-title/away_summary once the
+    indexer writes them, or unlabelled titles from before provenance existed).
+    """
+    title = entry.get("title")
+    summary = entry.get("summary")
+    if isinstance(title, str) and title.strip():
+        conn.execute(
+            """UPDATE sessions SET auto_title = ?, title_source = 'qwen-local'
+               WHERE session_id = ? AND (COALESCE(auto_title, '') = '' OR title_source = 'qwen-local')""",
+            (title.strip(), session_id),
+        )
+    if isinstance(summary, str) and summary.strip():
+        conn.execute(
+            """UPDATE sessions SET summary = ?, summary_source = 'qwen-local'
+               WHERE session_id = ? AND (COALESCE(summary, '') = '' OR summary_source = 'qwen-local')""",
+            (summary.strip(), session_id),
+        )
+
+
+def end_session(session_id, now):
+    """Close the open phase, then drop the phase-detect window file.
+
+    Runs before the transcript check: after `claude purge` or a /cd move the
+    transcript is gone, but the phase must still close. The window file goes
+    only once the close has committed, or the phase would stay open forever.
+    """
+    conn = None
+    try:
+        conn = connect()
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            "UPDATE phases SET ended_at = ?, duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER) WHERE session_id = ? AND ended_at IS NULL",
+            (now, now, session_id),
+        )
+        conn.execute("COMMIT")
+    except Exception as e:
+        log_error(session_id, "close phases", e)
+        if conn:
+            try:
+                conn.execute("ROLLBACK")
+            except Exception:
+                pass
+        return
+    finally:
+        if conn:
+            conn.close()
+    try:
+        (PHASE_DIR / f"{session_id}.json").unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def main():
     try:
         data = json.loads(sys.stdin.read())
@@ -213,68 +366,39 @@ def main():
 
     session_id = data.get("session_id", "")
     transcript_path = data.get("transcript_path", "")
+    session_end = "--session-end" in sys.argv[1:]
 
     if not session_id or not DB_PATH.exists():
         return
+    now = time.strftime("%Y-%m-%dT%H:%M:%S")
+    if session_end:
+        end_session(session_id, now)
     # A session with no transcript on disk is a phantom — never upsert it
     if not transcript_path or not os.path.isfile(transcript_path):
         return
 
     conn = None
     try:
-        conn = sqlite3.connect(str(DB_PATH), timeout=5)
-        # Autocommit mode + explicit BEGIN IMMEDIATE: the Node indexer writes
-        # this DB concurrently (Stop hook, on-search refresh, hourly job). A
-        # deferred read-then-write transaction under WAL returns BUSY_SNAPSHOT
-        # immediately instead of waiting on busy_timeout, and the bare
-        # `except Exception: pass` below would silently drop the sync.
-        conn.isolation_level = None
-        conn.execute("PRAGMA journal_mode = WAL")
-        conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA busy_timeout = 5000")
-        now = time.strftime("%Y-%m-%dT%H:%M:%S")
+        conn = connect()
         conn.execute("BEGIN IMMEDIATE")
+        ensure_session(conn, session_id, transcript_path, now)
 
-        # Ensure session row exists before any FK-dependent operations
-        if transcript_path:
-            ensure_session(conn, session_id, transcript_path, now)
-
-        # Close any open phases
-        conn.execute(
-            "UPDATE phases SET ended_at = ?, duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER) WHERE session_id = ? AND ended_at IS NULL",
-            (now, now, session_id),
-        )
-
-        # Mark session as not running (redundant with ensure_session but covers no-transcript case)
-        conn.execute(
-            "UPDATE sessions SET is_running = 0, pid = NULL, modified_at = ? WHERE session_id = ?",
-            (now, session_id),
-        )
-
-        # Sync tags from registry if available
-        try:
-            with open(REGISTRY_PATH) as f:
-                registry = json.load(f).get("sessions", {})
-            entry = registry.get(session_id, {})
-            if entry:
-                tag_rows = []
-                for tag in entry.get("tags", []):
-                    tag_rows.append((session_id, tag, "auto", "hook:session-tags-infer", now))
-                for tag in entry.get("display_tags", []):
-                    tag_rows.append((session_id, tag, "display", "hook:session-tags-infer", now))
-                for tag in entry.get("user_tags", []):
-                    tag_rows.append((session_id, tag, "user", "hook:session-tags-infer", now))
-
-                if tag_rows:
-                    conn.executemany(
-                        "INSERT OR IGNORE INTO session_tags (session_id, tag, tag_type, source, created_at) VALUES (?, ?, ?, ?, ?)",
-                        tag_rows,
-                    )
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+        entry = read_registry_entry(session_id)
+        if entry:
+            # Bad tagger output must never cost the session upsert above
+            conn.execute("SAVEPOINT registry")
+            try:
+                sync_registry_tags(conn, session_id, entry, now)
+                fill_from_registry(conn, session_id, entry)
+                conn.execute("RELEASE registry")
+            except Exception as e:
+                conn.execute("ROLLBACK TO registry")
+                conn.execute("RELEASE registry")
+                log_error(session_id, "registry sync", e)
 
         conn.execute("COMMIT")
-    except Exception:
+    except Exception as e:
+        log_error(session_id, "session sync", e)
         if conn:
             try:
                 conn.execute("ROLLBACK")
@@ -283,13 +407,6 @@ def main():
     finally:
         if conn:
             conn.close()
-
-    # Clean up phase tracker temp file
-    phase_file = PHASE_DIR / f"{session_id}.json"
-    try:
-        phase_file.unlink(missing_ok=True)
-    except Exception:
-        pass
 
 
 if __name__ == "__main__":

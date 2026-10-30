@@ -222,7 +222,7 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/phase-detect.py",
-            "timeout": 3000,
+            "timeout": 5,
             "async": true
           }
         ]
@@ -281,7 +281,7 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/plan-rename.py stop",
-            "timeout": 10000
+            "timeout": 10
           },
           {
             "type": "command",
@@ -292,7 +292,13 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/session-sync-db.py",
-            "timeout": 5000,
+            "timeout": 10,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --stdin --quiet --debounce 120",
+            "timeout": 120,
             "async": true
           }
         ]
@@ -313,7 +319,17 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/plan-rename.py session_end",
-            "timeout": 10000
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/session-sync-db.py --session-end",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --stdin --quiet --debounce 10 --detach",
+            "timeout": 5
           }
         ]
       }

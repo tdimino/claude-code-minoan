@@ -127,11 +127,11 @@ node index-transcripts.js --budget 1500      # budget-limited (what search calls
 
 The indexer runs automatically through three channels:
 
-1. **Hooks**: Stop hook (async, `--stdin --quiet --debounce 120`) and SessionEnd hook (sync, `--stdin --quiet --debounce 10`) so every session is searchable within seconds of its last turn.
+1. **Hooks**: Stop hook (async, `--stdin --quiet --debounce 120`) and SessionEnd hook (`--stdin --quiet --debounce 10 --detach`: returns at once, a detached child does the work and logs to `~/.claude/logs/transcript-index-hook.log`) so every session is searchable within seconds of its last turn.
 2. **In-process**: `search-sessions.js` calls `refreshTranscriptIndex()` before every body search with a 1.5s budget, printing `Index refreshed: N session(s) in Xms — M still pending`.
 3. **Hourly launchd**: `com.claude.transcript-index` agent (plist in `scripts/`, installed in `~/Library/LaunchAgents/`, logs in `~/.claude/logs/transcript-index.{log,err}`, uses `/opt/homebrew/bin/node`).
 
-As a module it exports `indexOne`, `refreshTranscriptIndex`, `indexSession`, and `findTranscript`. CLI flags: `--rebuild --limit N --budget MS --quiet --session ID --file PATH --stdin --debounce SEC`.
+As a module it exports `indexOne`, `refreshTranscriptIndex`, `indexSession`, and `findTranscript`. CLI flags: `--rebuild --limit N --budget MS --quiet --session ID --file PATH --stdin --debounce SEC --detach`.
 
 Incremental indexing skips files whose size, mtime, and extractor version (currently EXTRACTOR_VERSION 4) all match. Bumping the version constant forces a full reindex. Deleted transcripts are pruned on full runs. Read errors are never recorded as indexed—the session stays eligible for the next run.
 
@@ -326,13 +326,13 @@ node checkpoint-session.js list --phase implementing
 node checkpoint-session.js list --limit 10
 ```
 
-Auto-checkpoints are created on git commits (`git-track-post.sh`) and phase transitions (`phase-detect.py`). Live renames also drop an auto-checkpoint.
+Auto-checkpoints are created on git commits (`git-track-post.sh`) and on entering a milestone phase (`testing`, `committing`, `deploying`) via `phase-detect.py`. Live renames also drop an auto-checkpoint.
 
 ---
 
 ## Phase Tracking
 
-Automatic workflow phase detection via PostToolUse hook (`phase-detect.py`). Rolling window of last 10 tool calls, hysteresis to prevent flickering.
+Automatic workflow phase detection via PostToolUse hook (`phase-detect.py`). Rolling window of last 10 tool calls, hysteresis to prevent flickering. A phase stays open across turns and closes at SessionEnd (`session-sync-db.py --session-end`); phases of sessions that ended without one (crash, kill) are closed by the hourly indexer run once the session is idle 12 h and not live.
 
 Phases: `exploring`, `planning`, `deepening`, `implementing`, `testing`, `reviewing`, `debugging`, `committing`, `deploying`, `discussing`.
 
@@ -456,7 +456,7 @@ This suite's `cleanupPeriodDays` is 99999 so transcripts never expire.
 
 | Operation | Before | After |
 |-----------|--------|-------|
-| Search ("kothar mac mini") | 11.1s (JSONL scan) | 0.06s (FTS5) |
+| Search (two-word query) | 11.1s (JSONL scan) | 0.06s (FTS5) |
 | List sessions | 1.4s | 0.44s |
 | Recent sessions | crash | 0.13s |
 | `claude-tracker-alive` | — | 0.25s |
@@ -534,7 +534,7 @@ The regression suite includes an expected-fail fixture documenting the semantic-
 | Script | Usage |
 |--------|-------|
 | `search-sessions.js` | `node search-sessions.js "query" [--id <prefix>] [titles <prefix>] [--open] [--copy] [--deep] [--no-refresh]` |
-| `index-transcripts.js` | `node index-transcripts.js [--rebuild] [--limit N] [--budget MS] [--quiet] [--session ID] [--file PATH] [--stdin] [--debounce SEC]` |
+| `index-transcripts.js` | `node index-transcripts.js [--rebuild] [--limit N] [--budget MS] [--quiet] [--session ID] [--file PATH] [--stdin] [--debounce SEC] [--detach]` |
 | `backfill-summaries.js` | `node backfill-summaries.js --enable [--provider claude\|openrouter] [--dry-run] [--session <id>]` |
 | `claude-tracker-pick` | `claude-tracker-pick [--here] [--project <name>] [--limit N]` |
 | `db-maintain.js` | `node db-maintain.js [--quiet]` |

@@ -373,16 +373,27 @@ def _sanitize_text(text: str) -> str:
 def auto_name_session(first_msg: str) -> str | None:
     """Generate a 3-5 word session title using a one-shot Claude call.
 
-    Returns the title string or None on failure. Costs ~$0.001 per call.
+    Returns the title string or None on failure.
+
+    Disabled by default — Tom does not want unattended LLM summarization.
+    Set TRACKER_AUTO_NAME=1 to re-enable.
     """
+    if os.environ.get("TRACKER_AUTO_NAME") != "1":
+        return None
     if not first_msg or len(first_msg.strip()) < 10:
         return None
 
     prompt = f'Generate a 3-5 word title (no quotes, no punctuation) for this session. Reply with ONLY the title, nothing else.\n\nFirst message: {first_msg[:300]}'
     try:
+        # Hermetic: no hooks, no persisted synthetic session, no nested-session
+        # detection, no exhausted-key override (see backfill-summaries.js)
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDECODE")
+               and not k.startswith("CLAUDE_CODE_")}
         result = subprocess.run(
-            ["claude", "-p", prompt, "--model", "haiku"],
-            capture_output=True, text=True, timeout=20
+            ["claude", "-p", prompt, "--model", "sonnet",
+             "--safe-mode", "--no-session-persistence"],
+            capture_output=True, text=True, timeout=20, env=env
         )
         if result.returncode == 0:
             title = result.stdout.strip().strip('"').strip("'").strip()

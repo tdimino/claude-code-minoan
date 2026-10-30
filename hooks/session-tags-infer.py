@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Stop hook subprocess: infer session tags + summary from transcript via local llama-server.
 
-Reads last 100 JSONL lines, calls Qwen 2.5 7B (llama-server on port 8787) to extract
+Reads last 100 JSONL lines, calls Qwen3.5-9B (llama-server on port 8787, reasoning off) to extract
 topic tags and a 2-4 sentence summary. Writes to ~/.claude/session-tags/{session_id}.json,
 updates session-registry.json (our self-maintained session index), and updates
 the soul-session registry with topic + summary.
 
-Requires: com.minoan.llama-tags-server launchd daemon running on Mac Mini (toms-mac-mini:8787).
+Requires: a llama-server for the tagger (default http://localhost:8787). Point it
+elsewhere with SESSION_TAGS_LLAMA_URL or a one-line URL in
+~/.claude/session-tags/llama-url (kept out of the repo).
 """
 import datetime
 import fcntl
@@ -19,6 +21,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -26,12 +29,25 @@ TAGS_DIR = pathlib.Path.home() / ".claude" / "session-tags"
 REGISTRY_PATH = pathlib.Path.home() / ".claude" / "session-registry.json"
 DB_PATH = pathlib.Path.home() / ".claude" / "tracker.db"
 TAGS_COOLDOWN = 180  # 3 minutes — matches old stop-handoff.py gate
-LLAMA_SERVER_URL = "http://toms-mac-mini:8787/v1/chat/completions"
+def _llama_server_url():
+    """Server URL: env var, else the private one-line config file, else localhost."""
+    url = os.environ.get("SESSION_TAGS_LLAMA_URL", "").strip()
+    if not url:
+        try:
+            url = (pathlib.Path.home() / ".claude" / "session-tags" / "llama-url").read_text().strip()
+        except OSError:
+            url = ""
+    url = (url or "http://localhost:8787").rstrip("/")
+    return url if url.endswith("/v1/chat/completions") else url + "/v1/chat/completions"
+
+
+LLAMA_SERVER_URL = _llama_server_url()
+LLAMA_HOST = urllib.parse.urlsplit(LLAMA_SERVER_URL).netloc
 
 # --- Prompt Configurations (switchable) ---
 
-# Qwen 2.5 7B local: system/user split, explicit JSON schema, negative constraints
-# Known bug: QwenLM/Qwen2.5 #1095 (mid-generation JSON corruption)
+# Local model (Qwen3.5-9B): system/user split, explicit JSON schema, negative constraints
+# Written for Qwen2.5's mid-generation JSON corruption (QwenLM/Qwen2.5 #1095)
 # Mitigated by: response_format json_object + temperature 0.0 + top_k 1
 QWEN_LOCAL_SYSTEM_PROMPT = """\
 You are a session title generator. Output ONLY valid JSON, nothing else.
@@ -84,7 +100,7 @@ Example output:
 TRANSCRIPT:
 {transcript}"""
 
-# Active configuration: "local" (Qwen 2.5 7B via llama-server) or "cloud" (OpenRouter)
+# Active configuration: "local" (Qwen3.5-9B via llama-server) or "cloud" (OpenRouter)
 ACTIVE_PROVIDER = "local"
 
 
@@ -176,10 +192,10 @@ def check_server_health(timeout=3):
 
 
 def infer_tags(transcript_text):
-    """Call local llama-server (Qwen 2.5 7B) to extract tags from transcript.
+    """Call the llama-server (Qwen3.5-9B) to extract tags from transcript.
 
     Uses ACTIVE_PROVIDER to select prompt format and sampling params.
-    Switchable between 'local' (Qwen 2.5 7B) and 'cloud' (OpenRouter).
+    Switchable between 'local' (Qwen3.5-9B) and 'cloud' (OpenRouter).
     """
     if ACTIVE_PROVIDER == "local":
         messages = [
@@ -414,7 +430,7 @@ def main():
             transcript_text = transcript_text[nl + 1:]
 
     if not check_server_health(timeout=3):
-        print("session-tags: llama-server unreachable at toms-mac-mini:8787 — skipping", file=sys.stderr)
+        print(f"session-tags: llama-server unreachable at {LLAMA_HOST} — skipping", file=sys.stderr)
         return
 
     try:
@@ -425,9 +441,9 @@ def main():
     except urllib.error.URLError as e:
         reason = getattr(e, 'reason', e)
         if isinstance(reason, socket.gaierror):
-            print(f"session-tags: DNS failed for toms-mac-mini — Tailscale down? ({reason})", file=sys.stderr)
+            print(f"session-tags: DNS failed for {LLAMA_HOST} — network or VPN down? ({reason})", file=sys.stderr)
         elif isinstance(reason, socket.timeout):
-            print(f"session-tags: timed out — Mac Mini asleep? ({reason})", file=sys.stderr)
+            print(f"session-tags: timed out reaching {LLAMA_HOST} — host asleep? ({reason})", file=sys.stderr)
         elif isinstance(reason, ConnectionRefusedError):
             print(f"session-tags: connection refused — llama-server not running? ({reason})", file=sys.stderr)
         else:

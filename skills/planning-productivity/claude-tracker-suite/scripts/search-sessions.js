@@ -110,7 +110,7 @@ for (let i = 0; i < args.length; i++) {
 
 if (!searchTerm && !idPrefix) {
   console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js <search-term> [--limit N] [--name] [--deep] [--open] [--copy] [--no-refresh]');
-  console.log('\x1b[90mExample: node search-sessions.js "kothar mac mini"');
+  console.log('\x1b[90mExample: node search-sessions.js "kothar soul"');
   console.log('Example: node search-sessions.js "websocket" --limit 5');
   console.log('Example: node search-sessions.js "thera" --name    (name/slug only, fast)');
   console.log('Example: node search-sessions.js --id d7b8f4dd     (lookup by session ID prefix)');

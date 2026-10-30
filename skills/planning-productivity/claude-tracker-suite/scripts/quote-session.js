@@ -22,7 +22,15 @@ const HOME = os.homedir();
 const PROJECTS_DIR = path.join(HOME, '.claude', 'projects');
 const LIB_DIR = path.join(HOME, '.claude', 'lib');
 
+const SESSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// CLAUDE_CODE_SESSION_ID (set in Claude Code's Bash tool environment) is
+// authoritative. The newest-transcript-in-cwd guess is only a fallback for
+// plain terminals: it picks the wrong session when several share a directory.
 function detectCurrentSession() {
+  const fromEnv = process.env.CLAUDE_CODE_SESSION_ID;
+  if (fromEnv && SESSION_ID_RE.test(fromEnv)) return fromEnv;
+
   const cwd = process.cwd();
   const encoded = '-' + cwd.split('/').filter(Boolean).join('-');
   const projDir = path.join(PROJECTS_DIR, encoded);
@@ -42,7 +50,9 @@ function detectCurrentSession() {
   const maxAge = 10 * 60 * 1000;
   if (Date.now() - files[0].mtime > maxAge) return null;
 
-  return path.basename(files[0].name, '.jsonl');
+  const guessed = path.basename(files[0].name, '.jsonl');
+  console.error(`note: CLAUDE_CODE_SESSION_ID unset; guessed the newest session here (${guessed.slice(0, 8)})`);
+  return guessed;
 }
 
 function formatAge(dateStr) {

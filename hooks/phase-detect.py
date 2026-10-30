@@ -27,6 +27,9 @@ TEST_PATTERNS = ["pytest", "jest", "vitest", "cargo test", "go test", "npm test"
 LINT_PATTERNS = ["eslint", "clippy", "pylint", "ruff", "flake8", "rubocop", "prettier", "biome"]
 DEBUG_PATTERNS = ["console.log", "print(", "debugger", "pdb", "byebug", "binding.pry", "gdb", "lldb"]
 COMMIT_PATTERNS = ["git commit"]
+# Entering one of these drops an auto-checkpoint; other transitions only
+# update the phases table (every transition used to checkpoint: ~94% noise)
+MILESTONE_PHASES = {"testing", "committing", "deploying"}
 DEPLOY_PATTERNS = ["git push", "gh pr create", "gh pr merge", "deploy"]
 
 
@@ -164,48 +167,63 @@ def get_git_state():
 
 
 def record_transition(session_id, phase, turn_number, confidence, tool_counts):
-    """Write phase transition and auto-checkpoint to tracker.db."""
+    """Write a phase transition to tracker.db; auto-checkpoint milestone phases.
+
+    Returns False when the write failed (locked DB, schema drift), so the
+    caller keeps the transition pending and retries on the next tool call
+    instead of believing a phase is recorded that never was.
+    """
     if not DB_PATH.exists():
-        return
+        return True
+
+    # Outside the write lock: git can take up to its 2 s timeout
+    git_branch, git_commit = get_git_state() if phase in MILESTONE_PHASES else (None, None)
 
     conn = None
     try:
-        conn = sqlite3.connect(str(DB_PATH), timeout=2)
+        conn = sqlite3.connect(str(DB_PATH), timeout=2, isolation_level=None)
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA busy_timeout = 5000")
-
         now = time.strftime("%Y-%m-%dT%H:%M:%S")
 
-        # Get previous phase for checkpoint label
+        # Take the write lock before reading the open phase: async PostToolUse
+        # hooks run concurrently, and a check outside the lock let several of
+        # them open the same phase at once
+        conn.execute("BEGIN IMMEDIATE")
         prev = conn.execute(
             "SELECT phase FROM phases WHERE session_id = ? AND ended_at IS NULL",
             (session_id,),
         ).fetchone()
         prev_phase = prev[0] if prev else None
+        # The window file can be lost (tmp cleanup, older hooks); the DB's
+        # open phase is the truth, so never reopen the phase already open
+        if prev_phase == phase:
+            conn.execute("COMMIT")
+            return True
 
-        # Close current open phase
         conn.execute(
             "UPDATE phases SET ended_at = ?, turn_end = ?, duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER) WHERE session_id = ? AND ended_at IS NULL",
             (now, turn_number, now, session_id),
         )
-
-        # Insert new phase
         conn.execute(
             "INSERT INTO phases (session_id, phase, turn_start, started_at, trigger, confidence, tool_counts) VALUES (?, ?, ?, ?, 'auto', ?, ?)",
             (session_id, phase, turn_number, now, confidence, json.dumps(tool_counts)),
         )
-
-        # Auto-checkpoint on phase transition
-        label = f"auto: {prev_phase} -> {phase} @{turn_number}" if prev_phase else f"auto: -> {phase} @{turn_number}"
-        git_branch, git_commit = get_git_state()
-        conn.execute(
-            "INSERT OR IGNORE INTO checkpoints (session_id, label, phase, git_branch, git_commit_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (session_id, label, phase, git_branch, git_commit, now),
-        )
-
-        conn.commit()
+        if phase in MILESTONE_PHASES:
+            label = f"auto: {prev_phase} -> {phase} @{turn_number}" if prev_phase else f"auto: -> {phase} @{turn_number}"
+            conn.execute(
+                "INSERT OR IGNORE INTO checkpoints (session_id, label, phase, git_branch, git_commit_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (session_id, label, phase, git_branch, git_commit, now),
+            )
+        conn.execute("COMMIT")
+        return True
     except Exception:
-        pass
+        if conn:
+            try:
+                conn.execute("ROLLBACK")
+            except Exception:
+                pass
+        return False
     finally:
         if conn:
             conn.close()
@@ -252,10 +270,10 @@ def main():
                 t = entry.get("tool", "unknown")
                 tool_counts[t] = tool_counts.get(t, 0) + 1
 
-            record_transition(session_id, detected, turn_number, confidence, tool_counts)
-            current_phase = detected
-            pending_phase = None
-            pending_count = 0
+            if record_transition(session_id, detected, turn_number, confidence, tool_counts):
+                current_phase = detected
+                pending_phase = None
+                pending_count = 0
     elif detected == current_phase:
         pending_phase = None
         pending_count = 0

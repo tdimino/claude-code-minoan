@@ -24,10 +24,12 @@
  *      trigger needed; the registry is the source of truth for searches.
  *
  * Session auto-detection (when --session is omitted):
- *   - No CLAUDE_SESSION_ID env var exists in slash-command bash context.
- *   - Heuristic: encode process.cwd() as `-Users-alice-Projects` and
- *     pick the most recently modified .jsonl in ~/.claude/projects/<encoded>/.
- *     Must be within the last 10 minutes to be considered "live".
+ *   - CLAUDE_CODE_SESSION_ID, which Claude Code sets in its Bash tool
+ *     environment (and updates on /clear), is authoritative.
+ *   - Fallback when it is unset (a plain terminal): encode process.cwd() as
+ *     `-Users-alice-Projects` and pick the most recently modified .jsonl in
+ *     ~/.claude/projects/<encoded>/, within the last 10 minutes. Wrong when
+ *     several live sessions share the directory, so it warns on stderr.
  *
  * Searchability: Phase 1 of the plan merges display_tags + tags + user_tags
  * with case-insensitive dedupe in search-sessions.js --name mode, so manual
@@ -47,6 +49,7 @@ const TAGS_DIR = path.join(HOME, '.claude', 'session-tags');
 const REGISTRY_PATH = path.join(HOME, '.claude', 'session-registry.json');
 const PROJECTS_DIR = path.join(HOME, '.claude', 'projects');
 const LIVE_SESSION_MAX_AGE_MS = 10 * 60 * 1000;  // 10 minutes
+const SESSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ---- session detection ----
 
@@ -65,6 +68,9 @@ function encodeCwdAsProjectDir(cwd) {
  * Returns null if no live session detected.
  */
 function detectCurrentSession() {
+  const fromEnv = process.env.CLAUDE_CODE_SESSION_ID;
+  if (fromEnv && SESSION_ID_RE.test(fromEnv)) return fromEnv;
+
   const cwd = process.cwd();
   const encoded = encodeCwdAsProjectDir(cwd);
   const projDir = path.join(PROJECTS_DIR, encoded);
@@ -110,7 +116,9 @@ function detectCurrentSession() {
     // Can't verify — proceed with the match
   }
 
-  return path.basename(newest.name, '.jsonl');
+  const guessed = path.basename(newest.name, '.jsonl');
+  console.error(`note: CLAUDE_CODE_SESSION_ID unset; guessed the newest session here (${guessed.slice(0, 8)})`);
+  return guessed;
 }
 
 // ---- breadcrumb helpers (live sessions) ----

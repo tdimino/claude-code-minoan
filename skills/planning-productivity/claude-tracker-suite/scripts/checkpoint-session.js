@@ -9,8 +9,9 @@
  * Creates named bookmarks within a session capturing: label, git state
  * (branch + HEAD commit), current workflow phase, and optional summary.
  *
- * Session auto-detection: encodes process.cwd() as project dir name and
- * picks the most recently modified .jsonl in ~/.claude/projects/<encoded>/.
+ * Session auto-detection: CLAUDE_CODE_SESSION_ID when set (Claude Code's Bash
+ * tool environment); otherwise the most recently modified .jsonl in
+ * ~/.claude/projects/<encoded cwd>/, with a stderr note.
  */
 
 'use strict';
@@ -24,7 +25,15 @@ const HOME = os.homedir();
 const PROJECTS_DIR = path.join(HOME, '.claude', 'projects');
 const LIB_DIR = path.join(HOME, '.claude', 'lib');
 
+const SESSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// CLAUDE_CODE_SESSION_ID (set in Claude Code's Bash tool environment) is
+// authoritative. The newest-transcript-in-cwd guess is only a fallback for
+// plain terminals: it picks the wrong session when several share a directory.
 function detectCurrentSession() {
+  const fromEnv = process.env.CLAUDE_CODE_SESSION_ID;
+  if (fromEnv && SESSION_ID_RE.test(fromEnv)) return fromEnv;
+
   const cwd = process.cwd();
   const encoded = '-' + cwd.split('/').filter(Boolean).join('-');
   const projDir = path.join(PROJECTS_DIR, encoded);
@@ -44,7 +53,9 @@ function detectCurrentSession() {
   const maxAge = 10 * 60 * 1000;
   if (Date.now() - files[0].mtime > maxAge) return null;
 
-  return path.basename(files[0].name, '.jsonl');
+  const guessed = path.basename(files[0].name, '.jsonl');
+  console.error(`note: CLAUDE_CODE_SESSION_ID unset; guessed the newest session here (${guessed.slice(0, 8)})`);
+  return guessed;
 }
 
 function getGitState() {

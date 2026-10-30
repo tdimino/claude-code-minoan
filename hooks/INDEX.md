@@ -35,7 +35,7 @@
 | `stop-handoff.py` | Throttled handoff (3min cooldown, 10min idle gate) + soul registry heartbeat |
 | `slack-stop-hook.py` | Process pending Slack messages on stop |
 | `soul-reflect.py` *(async)* | Retrospective cognitive pipeline — monologue, user model, soul state updates via Groq/OpenRouter |
-| `session-tags-infer.py` *(async)* | Infer session tags via llama-server (3-min cooldown), write sidecar JSON + session-registry.json + auto-extract notable phrases to tracker.db |
+| `session-tags-infer.py` *(async)* | Infer session tags via llama-server (3-min cooldown), write sidecar JSON + session-registry.json + auto-extract notable phrases to tracker.db. Server URL: `SESSION_TAGS_LLAMA_URL`, else a one-line `~/.claude/session-tags/llama-url`, else `http://localhost:8787` |
 | `session-sync-db.py` *(async)* | Upsert session metadata to tracker.db, close open phases, sync tags from sidecar JSON |
 | `plan-rename.py stop` | Rename random-named plans to dated slugs, symlink for write-through, open in dabarat |
 

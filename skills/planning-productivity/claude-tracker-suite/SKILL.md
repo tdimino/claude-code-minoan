@@ -72,7 +72,7 @@ All scripts use `~/.claude/lib/tracker-utils.js` for shared utilities (path deco
 
 ```bash
 # Search by topic
-claude-tracker-search "kothar mac mini"
+claude-tracker-search "kothar soul"
 
 # Lookup by session ID prefix (exact directory from JSONL ground truth)
 node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js --id d7b8f4dd
@@ -155,7 +155,7 @@ node ~/.claude/skills/claude-tracker-suite/scripts/search-regression.js
 node ~/.claude/skills/claude-tracker-suite/scripts/audit-suite.js
 ```
 
-The indexer runs automatically through three channels: Stop and SessionEnd hooks (`--stdin --quiet --debounce 120` async on Stop, `--stdin --quiet --debounce 10` sync on SessionEnd), the hourly `com.claude.transcript-index` launchd agent (plist in `scripts/`, installed in `~/Library/LaunchAgents/`, logs in `~/.claude/logs/transcript-index.{log,err}`), and in-process from `search-sessions.js` before every body search (1.5s budget). Sessions are searchable within seconds of their last turn.
+The indexer runs automatically through three channels: Stop and SessionEnd hooks (`--stdin --quiet --debounce 120` async on Stop, `--stdin --quiet --debounce 10 --detach` on SessionEnd, which hands the work to a detached child logging to `~/.claude/logs/transcript-index-hook.log`, so indexing never holds up exit; the other SessionEnd hooks still get up to 10 s), the hourly `com.claude.transcript-index` launchd agent (plist in `scripts/`, installed in `~/Library/LaunchAgents/`, logs in `~/.claude/logs/transcript-index.{log,err}`), and in-process from `search-sessions.js` before every body search (1.5s budget). Sessions are searchable within seconds of their last turn.
 
 Incremental indexing skips files whose size, mtime, and extractor version (currently EXTRACTOR_VERSION 4) all match `transcript_index_state`. Bumping the version constant forces a full reindex under new extraction rules. Read errors are never recorded as indexed—the session stays eligible for the next run, preventing a partial read from permanently masking content from search. Deleted transcripts are pruned on full (unlimited) runs.
 
@@ -393,11 +393,11 @@ node ~/.claude/skills/claude-tracker-suite/scripts/checkpoint-session.js list --
 node ~/.claude/skills/claude-tracker-suite/scripts/checkpoint-session.js list --limit 10
 ```
 
-Auto-checkpoints are created on git commits (`git-track-post.sh`) and phase transitions (`phase-detect.py`).
+Auto-checkpoints are created on git commits (`git-track-post.sh`) and on entering a milestone phase (`testing`, `committing`, `deploying`) via `phase-detect.py`.
 
 ### Phase Tracking
 
-Automatic workflow phase detection via PostToolUse hook (`phase-detect.py`). Rolling window of last 10 tool calls, hysteresis to prevent flickering.
+Automatic workflow phase detection via PostToolUse hook (`phase-detect.py`). Rolling window of last 10 tool calls, hysteresis to prevent flickering. A phase stays open across turns and closes at SessionEnd (`session-sync-db.py --session-end`); phases of sessions that ended without one (crash, kill) are closed by the hourly indexer run once the session is idle 12 h and not live.
 
 Phases: `exploring`, `planning`, `deepening`, `implementing`, `testing`, `reviewing`, `debugging`, `committing`, `deploying`, `discussing`.
 
@@ -520,7 +520,7 @@ Uses System Events clipboard-paste pattern (Cmd+D for split, then paste yazi com
 
 | Operation | Before | After |
 |-----------|--------|-------|
-| Search ("kothar mac mini") | 11.1s (JSONL scan) | 0.06s (FTS5) |
+| Search (two-word query) | 11.1s (JSONL scan) | 0.06s (FTS5) |
 | List sessions | 1.4s | 0.44s |
 | Recent sessions | crash | 0.13s |
 | `claude-tracker-alive` | — | 0.25s |
