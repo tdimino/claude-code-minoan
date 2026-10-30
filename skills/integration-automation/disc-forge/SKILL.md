@@ -1,6 +1,6 @@
 ---
 name: disc-forge
-description: "Burn Red Book audio CDs or MP3 data CDs on macOS via cdrdao, sourcing from Hoodrat HDD or local files. Audio CDs carry CD-Text from ID3 tags; MP3 discs use ISO9660+Joliet (~700 MB). Handles full-album burns and cherry-picked playlists. Triggers on 'burn CD', 'burn album', 'make audio CD', 'mixtape disc', 'soundtrack for the car'."
+description: "Burn Red Book audio CDs or MP3 data CDs on macOS via cdrdao, sourcing from a remote media host over SSH or local files. Audio CDs carry CD-Text from ID3 tags; MP3 discs use ISO9660+Joliet (~700 MB). Handles full-album burns and cherry-picked playlists. Triggers on 'burn CD', 'burn album', 'make audio CD', 'mixtape disc', 'soundtrack for the car'."
 argument-hint: "--source <path|host:/path> --name <name> [--mp3-disc] [--speed N] [--gaps] [--dry-run]"
 ---
 
@@ -15,7 +15,7 @@ Turns "burn the BSG soundtrack to a CD" or "make an MP3 disc of these mantras" i
 ## When to Use
 
 - User asks to burn an album, soundtrack, or playlist to an audio CD for a car stereo / home stereo
-- Source music lives on Hoodrat HDD (Mac Mini) or in a local folder
+- Source music lives on a remote media host (reached over SSH) or in a local folder (this machine's host and album paths: `~/.claude/agent_docs/music.md`, if present; see `references/media-layout.md`)
 - A USB CD burner is plugged into the current Mac
 - User wants either a Red Book audio CD or an MP3 data CD
 
@@ -23,11 +23,11 @@ Turns "burn the BSG soundtrack to a CD" or "make an MP3 disc of these mantras" i
 
 ## Quick Start
 
-Burn a full album from Hoodrat HDD with one command:
+Burn a full album from the media host with one command:
 
 ```bash
 python3 ~/.claude/skills/disc-forge/scripts/burn_audio_cd.py \
-  --source "mac-mini-ts:/Volumes/Hoodrat HDD/Musica/BSG.S1 - OST/" \
+  --source "media-host:/Volumes/Music Library/BSG.S1 - OST/" \
   --name BSG-S1
 ```
 
@@ -44,7 +44,7 @@ Before the first burn, make sure a blank writable CD-R or CD-RW is in the drive 
 | Stage | Script | What it does |
 |---|---|---|
 | 1 | `preflight.py` | Verifies `cdrdao` + `ffmpeg`, drive reachable, **blank writable disc inserted**. Retries `drutil status` for ~3 s after `cdrdao drive-info` (which briefly locks the drive). Surfaces the `Unsupported` drutil label as an informational note — cdrdao bypasses DiscRecording. |
-| 2 | `stage_tracks.py` | Pulls source files. Remote sources (`mac-mini-ts:/path`) use **tar-over-SSH**, not rsync. Local sources use `cp`. Filters to one format (default `mp3`) to dedupe MP3+WMA and MP3+M4A siblings. |
+| 2 | `stage_tracks.py` | Pulls source files. Remote sources (`media-host:/path`) use **tar-over-SSH**, not rsync. Local sources use `cp`. Filters to one format (default `mp3`) to dedupe MP3+WMA and MP3+M4A siblings. |
 | final | `cdrdao write` | Actual burn. `--speed 16 --eject` by default. Streams progress. |
 
 **Audio CD stages** (default):
@@ -90,11 +90,11 @@ Key `burn_audio_cd.py` flags:
 
 ## Recipes
 
-**Burn a full soundtrack from Hoodrat HDD** (the canonical path):
+**Burn a full soundtrack from the media host** (the canonical path):
 
 ```bash
 python3 ~/.claude/skills/disc-forge/scripts/burn_audio_cd.py \
-  --source "mac-mini-ts:/Volumes/Hoodrat HDD/Musica/Blade Runner - OST/" \
+  --source "media-host:/Volumes/Music Library/Blade Runner - OST/" \
   --name BladeRunner-OST
 ```
 
@@ -134,7 +134,7 @@ Volume label derives from `--name` (sanitized to uppercase A-Z/0-9/_). Stage MP3
 
 ```bash
 python3 ~/.claude/skills/disc-forge/scripts/burn_audio_cd.py \
-  --source "mac-mini-ts:/Volumes/Hoodrat HDD/Musica/Dark Side Of The Moon/" \
+  --source "media-host:/Volumes/Music Library/Dark Side Of The Moon/" \
   --name DSOTM \
   --gaps
 ```
@@ -145,8 +145,8 @@ Stage tracks manually into a single folder first, then point the orchestrator at
 
 ```bash
 mkdir -p ~/burn-staging/my-mixtape
-scp "mac-mini-ts:/Volumes/Hoodrat HDD/Musica/Blade Runner - OST/01 Main Titles.mp3" ~/burn-staging/my-mixtape/
-scp "mac-mini-ts:/Volumes/Hoodrat HDD/Musica/Inception OST [2010]/01 Half Remembered Dream.mp3" ~/burn-staging/my-mixtape/
+scp "media-host:/Volumes/Music Library/Blade Runner - OST/01 Main Titles.mp3" ~/burn-staging/my-mixtape/
+scp "media-host:/Volumes/Music Library/Inception OST [2010]/01 Half Remembered Dream.mp3" ~/burn-staging/my-mixtape/
 # ... rename files with numeric prefixes to force desired order ...
 python3 ~/.claude/skills/disc-forge/scripts/burn_audio_cd.py --source ~/burn-staging/my-mixtape --name my-mixtape
 ```
@@ -157,8 +157,8 @@ Track order is determined by `sorted()` on filenames — use numeric prefixes (`
 
 Full expansions (with *why*) live in `references/gotchas.md`.
 
-- **SMB is not reachable over Tailscale.** Port 445 is refused on `mac-mini-ts`; only port 22 works. Use SSH transport. `stage_tracks.py` already does this.
-- **Apple's bundled `rsync` (openrsync 2.6.9) splits remote paths on spaces.** `stage_tracks.py` uses tar-over-SSH instead. Never use `rsync` for Hoodrat HDD.
+- **SMB is not reachable over Tailscale.** Port 445 is refused on Tailscale addresses; only port 22 works. Use SSH transport. `stage_tracks.py` already does this.
+- **Apple's bundled `rsync` (openrsync 2.6.9) splits remote paths on spaces.** `stage_tracks.py` uses tar-over-SSH instead. Never use `rsync` for remote paths with spaces.
 - **cdrdao 1.2.6 rejects MP3 input directly.** The binary contains the literal string `"AIFF and MP3 not supported by cdrdao"`. WAV conversion is mandatory — `convert_to_wav.py` handles it. (Burn.app is the alternative if you want to skip WAV conversion — see `references/burn-app-fallback.md`.)
 - **`drutil` "Unsupported" label is a red herring** for cdrdao. It only affects Apple's DiscRecording framework (Finder burn / Music.app burn / Burn.app), not cdrdao. `preflight.py` surfaces the label as a warning, not an error.
 - **CD-Text must come from source ID3 tags, not WAVs.** PCM WAV has no tagging container. `build_toc.py` reads tags from the original file, references the matching WAV in `AUDIOFILE`.
@@ -170,12 +170,12 @@ Full expansions (with *why*) live in `references/gotchas.md`.
 |---|---|
 | `references/gotchas.md` | Full expanded failure-mode inventory from the author's first burn. Every trap explained with *why*, so the rule generalizes to novel drives and macOS versions. |
 | `references/cdrdao-toc-format.md` | cdrdao TOC syntax cheatsheet: minimal skeleton, `CD_TEXT` blocks, PREGAP semantics, special-character escaping, how to run `cdrdao show-toc` to validate. |
-| `references/hoodrat-layout.md` | Pointer to `~/.claude/agent_docs/music.md` (the canonical Hoodrat HDD layout) plus a one-line cheatsheet. |
+| `references/media-layout.md` | Where the source library lives and how to form a `--source` string; points to a private machine-local layout doc when one exists. |
 | `references/burn-app-fallback.md` | If cdrdao refuses the drive: Burn.app GUI fallback with exact click sequence. |
 
 ## Dependencies
 
 - `cdrdao` — `brew install cdrdao`
 - `ffmpeg` + `ffprobe` — `brew install ffmpeg`
-- SSH access to `mac-mini-ts` (only when sourcing from Hoodrat HDD)
+- SSH access to the media host (only when sourcing remotely)
 - A USB CD burner that speaks MMC. The ASUS SDRW-08U9M-U works despite drutil labeling it Unsupported.

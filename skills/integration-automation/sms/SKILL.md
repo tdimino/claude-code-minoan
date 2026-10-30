@@ -211,7 +211,7 @@ The command also starts a **background watcher** (`sms_watch.py`) after processi
 
 #### Mode B: `sms_respond.py` Daemon (Standalone)
 
-Standalone daemon for Mac Mini or headless deployment. Uses `claude -p` subprocess to generate responses. **Does not work from within a running Claude Code session** (subprocess nesting conflict).
+Standalone daemon for an always-on or headless machine. Uses `claude -p` subprocess to generate responses. **Does not work from within a running Claude Code session** (subprocess nesting conflict).
 
 ```bash
 python3 ~/.claude/skills/sms/scripts/sms_respond.py [OPTIONS]
@@ -230,7 +230,7 @@ python3 ~/.claude/skills/sms/scripts/sms_respond.py [OPTIONS]
 
 **Examples**:
 ```bash
-# Start auto-reply daemon in background (Mac Mini)
+# Start auto-reply daemon in background (always-on machine)
 python3 ~/.claude/skills/sms/scripts/sms_respond.py --daemon --bg
 
 # Check daemon status
@@ -240,7 +240,7 @@ python3 ~/.claude/skills/sms/scripts/sms_respond.py --status
 python3 ~/.claude/skills/sms/scripts/sms_respond.py --stop
 ```
 
-**Use this when**: Running headless on Mac Mini or outside Claude Code.
+**Use this when**: Running headless on an always-on machine or outside Claude Code.
 
 #### Shared Infrastructure
 

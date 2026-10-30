@@ -4,7 +4,7 @@ Bring a session back in a new Ghostty tab, found by session ID prefix, name, or 
 
 **Usage:**
 - `/claude-tracker-resume 1da2b718` — by session ID (8+ hex chars)
-- `/claude-tracker-resume kothar mac mini` — top transcript-search hit
+- `/claude-tracker-resume kothar soul` — top transcript-search hit
 - `/claude-tracker-resume --here <id>` — print the launcher command to run in this terminal instead of opening a tab
 - `/claude-tracker-resume` — no argument: list crashed sessions (newest per project with no live process)
 

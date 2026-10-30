@@ -68,7 +68,7 @@ FastAPI application with CORS middleware. Lifespan hook initializes SQLite sessi
 
 ### Static Serving
 
-In production mode, serves the pre-built `web/frontend/out/` directory at `/`. The `com.minoan.crypt-librarian` launchd daemon runs the server on the Mac Mini at port 4200.
+In production mode, serves the pre-built `web/frontend/out/` directory at `/`. The `com.minoan.crypt-librarian` launchd daemon runs the server on port 4200.
 
 ---
 

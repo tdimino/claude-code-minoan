@@ -61,7 +61,7 @@ See [`skills/planning-productivity/codex-tracker-suite/README.md`](../skills/pla
 Find past sessions by topic, content, name, or ID. Searches the FTS5 transcript index in `~/.claude/tracker-transcripts.db`; the index is refreshed in-process before every search (1.5 s budget) and by Stop/SessionEnd hooks, so a session from a minute ago is findable. Sub-100 ms on a 6 GB corpus.
 
 ```bash
-claude-tracker-search "kothar mac mini"           # Full-text search
+claude-tracker-search "kothar soul"               # Full-text search
 claude-tracker-search "twitter banner" --open     # Resume the top hit in a Ghostty tab
 claude-tracker-search --id 1da2b718               # Lookup by session ID prefix
 claude-tracker-search --name knossot              # Match names/slugs/titles only

@@ -1,6 +1,6 @@
 # VELVET CATALOGUE — Web App Reference
 
-Local-only web interface hosted on Mac Mini via launchd (`com.minoan.crypt-librarian`). Accessible at `http://kothar.local:4200`.
+Local-only web interface served by a launchd daemon (`com.minoan.crypt-librarian`) on port 4200: `http://localhost:4200`, or `http://<host>.local:4200` from another machine on the LAN.
 
 ## Stack
 

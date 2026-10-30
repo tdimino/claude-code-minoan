@@ -4,26 +4,26 @@ Every one of these cost turns the first time the author tried to burn an audio C
 
 ## 1. SMB is not reachable over Tailscale
 
-**Symptom:** `open smb://mac-mini-ts/...` silently fails. `osascript -e 'mount volume "smb://..."'` returns error `-5016`.
+**Symptom:** `open smb://media-host/...` silently fails. `osascript -e 'mount volume "smb://..."'` returns error `-5016`.
 
-**Cause:** macOS's File Sharing (smbd) only binds to the LAN interface, not the Tailscale `utun` interface. `mac-mini-ts` resolves to a Tailscale IP (`100.x.y.z`), and port 445 is actively refused on that IP. Only port 22 (SSH) works over Tailscale. Verify with:
+**Cause:** macOS's File Sharing (smbd) only binds to the LAN interface, not the Tailscale `utun` interface. A Tailscale hostname resolves to a Tailscale IP, and port 445 is actively refused on that IP. Only port 22 (SSH) works over Tailscale. Verify with:
 
 ```bash
-nc -zv $(ssh -G mac-mini-ts | awk '/^hostname/{print $2}') 22 445
+nc -zv $(ssh -G media-host | awk '/^hostname/{print $2}') 22 445
 ```
 
-**Rule:** Never attempt SMB for Hoodrat HDD. Use SSH as the transport. `stage_tracks.py` does this via tar-over-SSH.
+**Rule:** Never attempt SMB over Tailscale. Use SSH as the transport. `stage_tracks.py` does this via tar-over-SSH.
 
 ## 2. Apple's bundled `rsync` splits remote paths on spaces
 
-**Symptom:** `rsync` errors like `rsync: unrecognized option --info=progress2` or `rsync(NNN): error: /Volumes/Hoodrat: (l)stat: No such file or directory` followed by the path fragmented into separate tokens.
+**Symptom:** `rsync` errors like `rsync: unrecognized option --info=progress2` or `rsync(NNN): error: /Volumes/Music: (l)stat: No such file or directory` followed by the path fragmented into separate tokens.
 
-**Cause:** macOS ships `openrsync 2.6.9` (Apple's fork) as `/usr/bin/rsync`. It is NOT GNU rsync 3.x. When given `mac-mini-ts:"/Volumes/Hoodrat HDD/..."`, the remote shell expansion leaks quoting and openrsync sees the path as multiple unrelated arguments.
+**Cause:** macOS ships `openrsync 2.6.9` (Apple's fork) as `/usr/bin/rsync`. It is NOT GNU rsync 3.x. When given `media-host:"/Volumes/Music Library/..."`, the remote shell expansion leaks quoting and openrsync sees the path as multiple unrelated arguments.
 
-**Rule:** For any Hoodrat HDD path (all of which have spaces), use **tar-over-SSH** instead:
+**Rule:** For any remote path with spaces, use **tar-over-SSH** instead:
 
 ```bash
-ssh mac-mini-ts 'cd "/Volumes/Hoodrat HDD/Musica/ALBUM/" && tar cf - *.mp3' | tar xf - -C ./local-staging/
+ssh media-host 'cd "/Volumes/Music Library/ALBUM/" && tar cf - *.mp3' | tar xf - -C ./local-staging/
 ```
 
 The quoting only has to survive one shell hop (the outer single-quoted ssh command), and tar archives with flat basenames.
@@ -81,11 +81,11 @@ open /Applications/Burn.app
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/Burn.app
 ```
 
-## 7. Hoodrat HDD albums often have duplicate formats
+## 7. Library albums often have duplicate formats
 
 **Symptom:** A 26-track album appears as 52 files in Finder. `check_duration.py` reports double the expected runtime.
 
-**Cause:** Many Hoodrat HDD albums were copied from Windows-era media libraries that kept both MP3 and WMA versions, or from iTunes-era libraries that kept both MP3 and M4A. The duplicates share track numbers and filenames up to the extension.
+**Cause:** Many library albums were copied from Windows-era media libraries that kept both MP3 and WMA versions, or from iTunes-era libraries that kept both MP3 and M4A. The duplicates share track numbers and filenames up to the extension.
 
 **Rule:** Always filter to a single format at stage time. `stage_tracks.py --format mp3` is the default. `check_duration.py` also prints a format histogram so leftover duplicates surface loudly.
 

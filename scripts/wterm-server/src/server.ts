@@ -25,6 +25,15 @@ const ALLOWED_ORIGINS = new Set([
   `http://127.0.0.1:${PORT}`,
 ]);
 
+// Extra hostnames whose browser origins are allowed on any port, over http
+// or https: comma-separated, e.g. WTERM_ALLOWED_HOSTS=my-server,my-server.local
+const ALLOWED_HOSTS = new Set(
+  (process.env.WTERM_ALLOWED_HOSTS ?? "")
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean),
+);
+
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html",
   ".js": "application/javascript",
@@ -67,7 +76,8 @@ function json(res: ServerResponse, data: unknown, status = 200): void {
 function corsOrigin(req: IncomingMessage): string {
   const origin = req.headers.origin ?? "";
   if (ALLOWED_ORIGINS.has(origin)) return origin;
-  if (origin.match(/^https?:\/\/mac-mini-ts(:\d+)?$/)) return origin;
+  const m = origin.match(/^https?:\/\/([^/:]+)(:\d+)?$/);
+  if (m && ALLOWED_HOSTS.has(m[1].toLowerCase())) return origin;
   return "";
 }
 

@@ -24,8 +24,8 @@ MP3 DATA CD (--mp3-disc — plays in MP3-capable stereos, 700 MB capacity):
 --dry-run skips the cdrdao write step so the full pipeline can be validated.
 
 Usage:
-    # Audio CD from Hoodrat HDD
-    burn_audio_cd.py --source "mac-mini-ts:/Volumes/Hoodrat HDD/Musica/BSG.S1 - OST/" --name BSG-S1
+    # Audio CD from a remote media host
+    burn_audio_cd.py --source "media-host:/Volumes/Music Library/BSG.S1 - OST/" --name BSG-S1
 
     # MP3 data CD (modern car stereos)
     burn_audio_cd.py --source ~/burn-staging/mantras --name mantras --mp3-disc
@@ -85,7 +85,7 @@ def main() -> int:
     ap.add_argument(
         "--source",
         required=True,
-        help="Source path: local directory OR ssh-style host:/path (e.g. mac-mini-ts:/Volumes/...)",
+        help="Source path: local directory OR ssh-style host:/path (e.g. media-host:/Volumes/...)",
     )
     ap.add_argument(
         "--name",

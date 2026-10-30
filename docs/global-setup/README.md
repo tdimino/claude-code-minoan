@@ -463,9 +463,9 @@ Implementation plans persisted to `~/.claude/plans/`. Named by project, date, an
 
 ```
 plans/
-├── 2026-02-07-daimonic-radio-stt-openclaw-mac-mini.md
+├── 2026-02-07-daimonic-radio-stt-openclaw.md
 ├── 2026-02-03-feat-soul-engine-training-data-pipeline-plan.md
-├── 2026-02-12-kothar-mac-mini-soul.md
+├── 2026-02-12-kothar-soul.md
 ├── 2026-02-09-pre-islamic-arabian-goddess-research.md
 └── zesty-kindling-giraffe.md          # auto-named, will be renamed by plan-rename.py
 ```

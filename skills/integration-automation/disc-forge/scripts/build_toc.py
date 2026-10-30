@@ -15,7 +15,7 @@ Gap semantics:
     pop-album-style 2-second spacers.
 
 Track order is determined by sorted() on the filenames, which lines up with
-the `NN Title.mp3` convention used throughout Hoodrat HDD.
+the common `NN Title.mp3` convention.
 
 Usage:
     build_toc.py --wav-dir ~/burn-staging/BSG-S1-wav \\

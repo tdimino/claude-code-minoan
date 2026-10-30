@@ -26,7 +26,7 @@ wterm-server (Node.js)
 
 ## Deployment
 
-Deploy on any macOS machine — your primary laptop, a headless Mac Mini, a build server. The install script auto-detects `$HOME` and `node` path.
+Deploy on any macOS machine — your primary laptop, a headless home server, a build server. The install script auto-detects `$HOME` and `node` path.
 
 ### Local (same machine)
 
@@ -52,7 +52,7 @@ bash ~/.claude/skills/wterm/scripts/status.sh
 
 Access: `http://localhost:3036` or `https://wterm.localhost` (via portless).
 
-### Remote (e.g. Mac Mini via SSH)
+### Remote (any host you reach over SSH)
 
 ```bash
 # 1. Copy to remote machine
@@ -67,6 +67,8 @@ ssh <host> 'mkdir -p ~/.config/env && echo "WTERM_AUTH_TOKEN=$(openssl rand -hex
 # 4. Install LaunchAgent on remote
 ssh <host> 'bash ~/.claude/skills/wterm/launchd/install.sh install'
 ```
+
+To open the UI from a browser at `http://<host>:3036`, allow that hostname's origin: set `WTERM_ALLOWED_HOSTS=<host>` (comma-separated, any port, http or https) in the server's environment. Only `localhost`, `127.0.0.1` and `wterm.localhost` are allowed by default.
 
 Access from any tailnet device: `http://<hostname>:3036`
 
