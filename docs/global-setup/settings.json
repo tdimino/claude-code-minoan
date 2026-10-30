@@ -48,7 +48,7 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/mycelium-arrive.sh",
-            "timeout": 8000,
+            "timeout": 8,
             "async": true
           }
         ]
@@ -123,7 +123,7 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/image-optimize.py",
-            "timeout": 8000
+            "timeout": 8
           }
         ]
       },
@@ -157,17 +157,17 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/plan-session-rename.py",
-            "timeout": 5000
+            "timeout": 5
           },
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/lint-on-write.py",
-            "timeout": 10000
+            "timeout": 10
           },
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/mycelium-context.py",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       },
@@ -177,12 +177,12 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/lint-on-write.py",
-            "timeout": 10000
+            "timeout": 10
           },
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/mycelium-context.py",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       },
@@ -192,7 +192,7 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/image-budget.py",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       },
@@ -202,7 +202,7 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/image-budget.py",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       },
@@ -212,7 +212,7 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/image-budget.py",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       },
@@ -286,7 +286,7 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/mycelium-depart.sh",
-            "timeout": 10000,
+            "timeout": 10,
             "async": true
           },
           {
@@ -347,7 +347,7 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/mycelium-subagent.py",
-            "timeout": 5000
+            "timeout": 5
           },
           {
             "type": "command",
