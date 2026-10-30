@@ -2,7 +2,7 @@
 
 Session management for Claude Code. Search, resume, spawn, and open sessions across projects—with full-text transcript search, title/nickname history, Ghostty terminal integration, named sessions, workspace save/restore, crash recovery, git-aware tracking, and new machine bootstrapping.
 
-**Last updated:** 2026-09-07
+**Last updated:** 2026-10-30
 
 **Terminal target:** Ghostty (the only target). cmux, tmux, Terminal.app, and VS Code are retired. Cursor is supported as an editor-only sidebar (`--cursor` opens the project in the editor; the session always resumes in Ghostty).
 
@@ -51,7 +51,7 @@ claude-tracker-suite/
     index-transcripts.js                   # Incremental transcript FTS indexer (module + CLI)
     backfill-summaries.js                  # LLM summary backfill (disabled by default)
     claude-tracker-pick                    # fzf picker with preview
-    db-maintain.js                         # Weekly FTS optimize + WAL checkpoint
+    db-maintain.js                         # Weekly FTS optimize, WAL truncate, VACUUM when >25% free
     audit-suite.js                         # Self-audit → AUDIT.md
     search-regression.js                   # Recall regression fixtures
     open-sessions.js                       # List top N sessions, open in Ghostty tabs
@@ -87,7 +87,7 @@ claude-tracker-search "rare term" --deep        # raw JSONL scan, bypasses index
 
 Default path: transcript FTS + metadata FTS, merged, with former-title fallback. Before every body search, `search-sessions.js` runs an in-process index refresh (1.5s budget) so sessions from today are searchable within seconds of their last turn. Multi-word queries match per-term at the session level (terms may land in different messages), expand through synonym groups (`references/synonyms.json`), and fall back from AND to OR with a labeled notice. Ranking: IDF-weighted saturated match-density with a short-session damp. Results carry highlighted snippets.
 
-The index lives in a sidecar `tracker-transcripts.db`, ATTACHed on demand—hooks that write one row per session event open an 11MB `tracker.db`, not a 300MB one.
+The index lives in a sidecar `tracker-transcripts.db`, ATTACHed on demand—hooks that write one row per session event open a ~37 MB `tracker.db`, not the ~200 MB sidecar.
 
 ### Metadata bm25 column weights
 
@@ -135,7 +135,7 @@ A transcript that only grew since its last pass (same inode, same extractor vers
 
 As a module it exports `indexOne`, `refreshTranscriptIndex`, `indexSession`, `findTranscript`, `isWorktree`, and `sanityCheck`. CLI flags: `--rebuild --limit N --budget MS --quiet --session ID --file PATH --stdin --debounce SEC --detach`.
 
-Incremental indexing skips files whose size, mtime, and extractor version (currently EXTRACTOR_VERSION 4) all match. Bumping the version constant forces a full reindex. Deleted transcripts are pruned on full runs. Read errors are never recorded as indexed—the session stays eligible for the next run.
+Incremental indexing skips files whose size, mtime, and extractor version (currently EXTRACTOR_VERSION 8) all match. Bumping the version constant forces a full reindex. Saved state written by different extraction rules, or a transcript rewritten in place, gets a full read instead of an increment; a concurrent writer that commits first makes the late one retry as a full read rather than count the same span twice. Deleted transcripts are pruned on full runs. Read errors are never recorded as indexed—the session stays eligible for the next run.
 
 Since v4, the indexer also extracts **title history events**: `/rename` custom-title lines (source `user`) and slug changes (source `slug`). Custom-title lines route by the line's own `sessionId`—a `/rename` issued after `/resume` targets the previous session, not the file it was written into. This corrects a known upstream behavior where Claude Code's metadata scanner assigns the rename to the wrong session.
 

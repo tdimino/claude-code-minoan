@@ -169,7 +169,7 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 |------|---------|
 | `claude-tracker` | List recent sessions with LIVE/INACTIVE status from Claude Code's PID files |
 | `claude-tracker-search` | FTS5 transcript search (index refreshed on every search, sessions from today included) |
-| `claude-tracker-recent` | Recent sessions straight from `tracker.db`—the fast listing |
+| `claude-tracker-recent` | Recent sessions straight from `tracker.db`—the fast listing (`--since 30m`, `--all` adds headless sessions) |
 | `claude-tracker-alive` | Live vs. stale sessions (`--json`, `--stale`, `--all-kinds`) |
 | `claude-tracker-resume` | Find crashed sessions and reopen them in Ghostty tabs (`--open`, `--workspace`) |
 | `ghostty-resume.sh` | The one terminal opener: session ID → new Ghostty tab or split (`--split right`) |
@@ -179,9 +179,11 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 
 All CLIs are thin wrappers over `skills/planning-productivity/claude-tracker-suite/scripts/` and share `lib/tracker-utils.js` (session parsing, live detection) and `lib/tracker-db.js` (Node's built-in `node:sqlite`, no npm dependency). Ghostty is the only terminal target; cmux, tmux, Terminal.app and VS Code resume paths are retired. On Ghostty ≥ 1.3 the opener drives the native AppleScript dictionary (no keystrokes, no clipboard); older builds fall back to Cmd-T plus a single paste.
 
+The transcript index lives in a sidecar `tracker-transcripts.db`. Stop and SessionEnd hooks plus an hourly launchd job keep it current, reading a grown transcript only from the byte where the last pass stopped (~0.1 s per hourly run). Search indexes what was said—typed prompts, slash-command arguments, replies—not skill bodies, system reminders, or compaction summaries. A weekly `db-maintain.js` job merges FTS segments, truncates WALs, and VACUUMs a database once a quarter of it is free pages; failures exit 1 to `~/.claude/logs/db-maintain.err`.
+
 ### Session Cost Tracking
 
-The extractor (`extractSessionMeta` in `lib/tracker-utils.js`) streams each JSONL transcript once. Cost is Claude Code's own `cost-state` total plus the usage written after it; sessions without one are priced per message at that message's model, with streaming duplicates counted once.
+The extractor (`extractSessionMeta` in `lib/tracker-utils.js`) streams each JSONL transcript once. Cost is Claude Code's own `cost-state` total plus the usage written after it; sessions without one are priced per message at that message's model, with streaming duplicates counted once. A cost that includes a model with no price row carries `+estimated` in `cost_source`.
 
 ```bash
 sqlite3 ~/.claude/tracker.db "SELECT short_id, num_turns, printf('\$%.2f', total_cost_usd), model_short FROM sessions ORDER BY total_cost_usd DESC LIMIT 10;"

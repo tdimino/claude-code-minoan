@@ -9,62 +9,43 @@ allowed-tools: Bash(claude-tracker*), Bash(node ~/.claude/skills/claude-tracker-
 
 Search, browse, monitor, and manage Claude Code session history across all projects.
 
-## Tools Overview
+## Tools
 
-| Tool | Purpose |
-|------|---------|
-| `claude-tracker-search` | Search sessions by keyword or ID prefix |
-| `claude-tracker-pick` | Interactive fzf picker: fuzzy-find recent sessions, preview, Enter resumes in Ghostty |
-| `index-transcripts.js` | Build/refresh the transcript full-text index (FTS5 over user+assistant text) and extract title history events |
-| `backfill-summaries.js` | Generate missing session summaries (claude CLI or OpenRouter; disabled by default, `--enable` to run) |
-| `audit-suite.js` | Self-audit: inventory, portability, daemons, DB coverage, search recall → AUDIT.md |
-| `search-regression.js` | Recall regression fixtures for the search stack (exit 1 on regression) |
-| `open-sessions.js` | List top N sessions, open selected in Ghostty tabs |
-| `claude-tracker-resume` | Find and resume crashed/inactive sessions |
-| `claude-tracker-alive` | Check which sessions have running processes |
-| `claude-tracker-watch` | Daemon: auto-summarize new sessions, update active-projects.md |
-| `claude-tracker` | List recent sessions with status badges |
-| `new-session.sh` | Start a new session in Ghostty or headless, with optional prompt |
-| `resume-session.sh` | Open a session in a Ghostty tab (optionally open project in Cursor) |
-| `detect-projects.js` | Scan sessions to find all projects, check CLAUDE.md coverage |
-| `bootstrap-claude-setup.js` | Generate complete ~/.claude/ config for new machine |
-| `update-active-projects.py` | Regenerate active-projects.md with enriched session data |
-| `checkpoint-session.js` | Create/query named bookmarks within sessions |
-| `quote-session.js` | Capture/search notable phrases with FTS5 |
-| `tag-session.js` | Manual session tagging with provenance |
-| `claude-tracker-recent` | Show last N sessions with full metadata (title, tags, summary, cost, model) |
-| `claude-wrapper.sh` | Shell function `cc` for named Claude sessions with auto tab titles |
-| `save-workspace.js` | Snapshot alive sessions to `~/.claude/workspace-state.json` |
-| `restore-workspace.sh` | Restore saved sessions into Ghostty tabs |
-| `open-file-explorer.sh` | Open yazi file explorer in a Ghostty split pane |
+Commands on PATH (`~/.local/bin`) are thin wrappers around scripts in `scripts/`; scripts run directly with `node` or `bash` from `~/.claude/skills/claude-tracker-suite/scripts/`.
 
-## Standalone Scripts
+**Everyday use**
 
-Commands delegate to standalone Node.js scripts (avoids shell escaping issues with inline `node -e`):
+| Tool | Invoked by | Purpose |
+|------|-----------|---------|
+| `claude-tracker-search` → `search-sessions.js` | `/claude-tracker-search` | Keyword search, `--id` prefix lookup, `titles <id>` timeline |
+| `claude-tracker-recent` → `recent-sessions.js` | `/claude-tracker-recent` | Last N sessions with title, tags, summary, model, cost (headless sdk-cli sessions only with `--all`) |
+| `claude-tracker` → `list-sessions.js` | `/claude-tracker` | Recent sessions with status badges |
+| `claude-tracker-alive` | Direct | Which sessions have running processes |
+| `claude-tracker-resume` | `/claude-tracker-resume` | Find and reopen crashed sessions; `--workspace` restores the last stamp |
+| `scripts/claude-tracker-pick` | Direct | fzf picker with preview; Enter→Ghostty, Ctrl-O→current terminal, Ctrl-Y→copy |
+| `scripts/open-sessions.js` | Direct | List top N sessions, open the selected ones in Ghostty tabs |
+| `scripts/new-session.sh` | `/spawn` | New interactive, prompt-driven, or headless session |
+| `scripts/resume-session.sh` | Direct | Open a session in a Ghostty tab, optionally the project in Cursor |
+| `~/.claude/scripts/ghostty-resume.sh` | Direct | The suite's single terminal opener (tabs and splits) |
+| `scripts/checkpoint-session.js` | `/checkpoint`, `/checkpoint-list` | Named bookmarks within sessions |
+| `scripts/quote-session.js` | `/quote`, `/quote-search` | Capture and search tagged phrases (FTS5) |
+| `scripts/tag-session.js` | `/tag` | Manual session tags with provenance |
 
-| Script | Called By | Purpose |
-|--------|-----------|---------|
-| `scripts/search-sessions.js` | `/claude-tracker-search` | Keyword search or `--id` prefix lookup across all sessions |
-| `scripts/open-sessions.js` | Direct invocation | List top N sessions, open selected in Ghostty tabs |
-| `scripts/list-sessions.js` | `/claude-tracker` | List recent sessions with status badges |
-| `scripts/new-session.sh` | `/spawn` | Start new interactive or prompt-driven session in Ghostty or headless |
-| `scripts/resume-session.sh` | Direct invocation | Open session in Ghostty tab, optionally open project in Cursor |
-| `scripts/detect-projects.js` | Direct invocation | Project discovery and CLAUDE.md scaffolding |
-| `scripts/bootstrap-claude-setup.js` | Direct invocation | New machine setup generator |
-| `scripts/checkpoint-session.js` | `/checkpoint`, `/checkpoint-list` | Create and query session checkpoints |
-| `scripts/quote-session.js` | `/quote`, `/quote-search` | Capture and search tagged phrases via FTS5 |
-| `scripts/tag-session.js` | `/tag` | Manual session tagging with provenance |
-| `scripts/recent-sessions.js` | `/claude-tracker-recent` | Last N sessions with title, tags, summary, model, cost |
-| `scripts/claude-wrapper.sh` | Source in `.zshrc` | Shell function `cc` for named sessions with tab titles |
-| `scripts/save-workspace.js` | Direct / launchd | Snapshot alive sessions to workspace-state.json (deduped; never overwrites a good snapshot with an empty one) |
-| `scripts/restore-workspace.sh` | Direct invocation | Restore sessions from workspace-state.json into Ghostty tabs |
-| `scripts/claude-tracker-pick` | Direct invocation | fzf session picker with preview; Enter→Ghostty, Ctrl-O→current terminal, Ctrl-Y→copy |
-| `scripts/index-transcripts.js` | Hooks / launchd / in-process | Incremental transcript FTS indexer (EXTRACTOR_VERSION 4; prunes deleted; extracts title history events) |
-| `scripts/backfill-summaries.js` | Direct invocation | Hermetic summary backfill, claude or OpenRouter provider (disabled by default) |
-| `scripts/audit-suite.js` | Direct invocation | Suite self-audit → AUDIT.md |
-| `scripts/search-regression.js` | After search changes | Recall fixtures incl. expected-fail semantic-gap marker |
-| `scripts/open-file-explorer.sh` | Direct invocation | Open yazi in a Ghostty split pane |
-| `~/.claude/scripts/ghostty-resume.sh` | Direct invocation | The single terminal opener for the suite—opens sessions in Ghostty tabs or splits |
+**Index, maintenance, and setup** (details in `references/operations.md`)
+
+| Tool | Invoked by | Purpose |
+|------|-----------|---------|
+| `scripts/index-transcripts.js` | Hooks / launchd / in-process | Incremental transcript FTS indexer; session metadata and title history |
+| `scripts/db-maintain.js` | Weekly launchd | FTS optimize, WAL truncate, VACUUM when a quarter of pages are free |
+| `scripts/search-regression.js` | After search changes | Recall fixtures (exit 1 on regression) |
+| `scripts/audit-suite.js` | Direct | Self-audit → AUDIT.md |
+| `scripts/backfill-summaries.js` | Direct | Hermetic summary backfill (disabled by default, `--enable`) |
+| `scripts/save-workspace.js`, `scripts/restore-workspace.sh` | launchd / direct | Snapshot live sessions; restore them into Ghostty tabs |
+| `scripts/claude-wrapper.sh` | Source in `.zshrc` | `cc` shell function for named sessions |
+| `scripts/open-file-explorer.sh` | Direct | yazi in a Ghostty split |
+| `scripts/detect-projects.js`, `~/.claude/scripts/update-active-projects.py` | Direct | Project discovery; regenerate active-projects.md |
+| `scripts/bootstrap-claude-setup.js` | Direct | Generate a `~/.claude/` setup for a new machine |
+| `claude-tracker-watch` | — | Dormant summarize daemon (Claude Code no longer writes the file it watches) |
 
 All scripts use `~/.claude/lib/tracker-utils.js` for shared utilities (path decoding, session parsing, live-session detection, git remote detection) and `~/.claude/lib/tracker-db.js` for SQLite access (node:sqlite `DatabaseSync`, WAL mode, singleton lazy-open). No npm dependencies—the DB module uses Node's built-in `node:sqlite` (Node >= 22.13).
 
@@ -88,9 +69,6 @@ claude-tracker-alive
 
 # Resume crashed sessions in Ghostty
 claude-tracker-resume --open
-
-# Start auto-summarize daemon
-claude-tracker-watch --daemon
 ```
 
 ## Search
@@ -116,53 +94,6 @@ Before every body search, `search-sessions.js` runs an in-process index refresh 
 | `--no-refresh` | Skip the on-demand index catch-up before searching |
 | `titles <id-prefix>` | Print the chronological title/nickname timeline for a session (all rename, slug, cache, and summarizer events) |
 
-## Transcript Index & Summary Backfill
-
-```bash
-# Incremental index refresh (skips unchanged files; runs automatically via hooks and launchd)
-node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js
-
-# Full rebuild (also forced automatically when EXTRACTOR_VERSION bumps)
-node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --rebuild
-
-# Single session (what the hooks call)
-node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --session <id>
-node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --stdin --quiet --debounce 120
-
-# Budget-limited refresh (what search-sessions.js calls in-process)
-node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --budget 1500
-
-# Backfill missing summaries — DISABLED BY DEFAULT, requires --enable
-# (or TRACKER_SUMMARIZER=1). Hermetic when run: --safe-mode
-# --no-session-persistence, no hooks fire, no synthetic sessions persist.
-node ~/.claude/skills/claude-tracker-suite/scripts/backfill-summaries.js --enable
-node ~/.claude/skills/claude-tracker-suite/scripts/backfill-summaries.js --enable --session <id-prefix>  # force one
-
-# OpenRouter backend instead of claude CLI (default model moonshotai/kimi-k2;
-# key from OPENROUTER_API_KEY or ~/.config/env/secrets.env)
-node ~/.claude/skills/claude-tracker-suite/scripts/backfill-summaries.js --enable --provider openrouter
-
-# Preview excerpts without any LLM calls (no gate needed)
-node ~/.claude/skills/claude-tracker-suite/scripts/backfill-summaries.js --dry-run
-
-# NOTE: the watcher-daemon auto-name path (update-active-projects.py) is also
-# gated off by default; set TRACKER_AUTO_NAME=1 to re-enable it.
-
-# Recall regression suite — run after touching search code or synonyms
-node ~/.claude/skills/claude-tracker-suite/scripts/search-regression.js
-
-# Suite self-audit → AUDIT.md (P0-P3 findings)
-node ~/.claude/skills/claude-tracker-suite/scripts/audit-suite.js
-```
-
-The indexer runs automatically through three channels: Stop and SessionEnd hooks (`--stdin --quiet --debounce 120` async on Stop, `--stdin --quiet --debounce 10 --detach` on SessionEnd, which hands the work to a detached child logging to `~/.claude/logs/transcript-index-hook.log`, so indexing never holds up exit; the other SessionEnd hooks still get up to 10 s), the hourly `com.claude.transcript-index` launchd agent (plist in `scripts/`, installed in `~/Library/LaunchAgents/`, logs in `~/.claude/logs/transcript-index.{log,err}`), and in-process from `search-sessions.js` before every body search (1.5s budget). Sessions are searchable within seconds of their last turn.
-
-Incremental indexing skips files whose size, mtime, and extractor version (currently EXTRACTOR_VERSION 4) all match `transcript_index_state`. Bumping the version constant forces a full reindex under new extraction rules. Read errors are never recorded as indexed—the session stays eligible for the next run, preventing a partial read from permanently masking content from search. Deleted transcripts are pruned on full (unlimited) runs.
-
-Since v4, the indexer also extracts **title history events** from each transcript: `/rename` custom-title lines (source `user`), slug changes (source `slug`). Custom-title lines route by the line's own `sessionId` field, not the containing file—a `/rename` after `/resume` writes into the active transcript but targets the previous session. Claude Code's own metadata scanner gets this wrong, overwriting the active session's title with the rename target's title. Consecutive duplicate title values within a file collapse to a single event.
-
-Known lexical limit: a session can only be found by words that actually occur in it—the `[expected fail]` regression fixture documents this; a semantic (rlama) layer is the designated future fix.
-
 ## Interactive Picker (restart recovery)
 
 ```bash
@@ -185,18 +116,6 @@ claude-tracker-resume --days 14          # Widen the look-back window (default 7
 
 A crashed session is the newest transcript per project (within the look-back window) that has no live Claude process, for projects with no live tab at all. Liveness comes from `~/.claude/sessions/<pid>.json` PID files via `tracker-utils.getLiveSessions()`. Sessions older than 3 days show an OLD badge.
 
-## Workspace Stamp & Restore (claude + codex)
-
-Survive a logout/reboot with every agent session intact:
-
-```bash
-node ~/.claude/skills/claude-tracker-suite/scripts/save-workspace.js   # Stamp now (also runs every 5 min via launchd)
-claude-tracker-resume --workspace --dry-run                            # Preview the restore
-claude-tracker-resume --workspace                                      # Reopen every session in Ghostty tabs, in order
-```
-
-The stamp (`~/.claude/workspace-state.json`) captures all live **Claude Code** sessions (from the authoritative `~/.claude/sessions/<pid>.json` PID files) and **Codex CLI** sessions (native binary PIDs joined to their open rollout files via `lsof`; the earliest-opened rollout is the main thread, its filename carries the UUID). Entries are TTY-ordered so tabs restore in their original order. Empty-protection means a post-logout stamp never clobbers the last good one. Restore warns when the stamp is >15 min old and reports per-agent counts.
-
 ## Alive Detection
 
 Check which sessions have running Claude processes:
@@ -210,19 +129,6 @@ claude-tracker-alive --json              # Machine-readable output
 ```
 
 Source of truth is Claude Code's PID files (`~/.claude/sessions/<pid>.json`), verified against one `ps` pass via `getLiveSessions()`. Matching is by sessionId—a crashed session next to a live sibling in the same directory is no longer reported RUNNING. Sessions >3 days without a process show an OLD badge.
-
-## Auto-Summarize Daemon
-
-Watch for new sessions and auto-populate summary cache:
-
-```bash
-claude-tracker-watch --status            # Check if daemon is running
-claude-tracker-watch --daemon            # Start in background
-claude-tracker-watch --stop              # Stop running daemon
-claude-tracker-watch --verbose           # Foreground with debug output
-```
-
-Dormant: it watches `sessions-index.json`, which Claude Code no longer writes, so it never fires on current versions. Kept for reference; see `references/daemon-setup.md` for the launchd agents that do run (workspace-snapshot, transcript-index, db-maintain).
 
 ## Recent Sessions (Full Metadata)
 
@@ -246,35 +152,6 @@ claude-tracker                           # All recent sessions
 Status badges: ACTIVE (process running, recent heartbeat), STALE (process exists but no recent activity), OLD (older than 24 hours), CRASHED (process not found, no clean exit).
 
 When speculator is running, the session listing includes Ghostty tab count and window count in the header, plus TTY badges per session showing which Ghostty tab it occupies.
-
-## Detect Projects
-
-```bash
-node ~/.claude/skills/claude-tracker-suite/scripts/detect-projects.js                # List all
-node ~/.claude/skills/claude-tracker-suite/scripts/detect-projects.js --suggest      # Suggest additions
-node ~/.claude/skills/claude-tracker-suite/scripts/detect-projects.js --scaffold     # Create CLAUDE.md stubs
-node ~/.claude/skills/claude-tracker-suite/scripts/detect-projects.js --since 30d    # Recent only
-```
-
-## Update Active Projects
-
-```bash
-python3 ~/.claude/scripts/update-active-projects.py              # Regenerate active-projects.md
-python3 ~/.claude/scripts/update-active-projects.py --summarize  # Show sessions needing summaries
-```
-
-The generated table includes Model, Turns, and Cost columns from enriched session data (extracted from JSONL transcripts). Git worktree sessions show a tree emoji badge. The auto-name path (one-shot `claude --model haiku` call for sessions without summaries) is disabled by default—set `TRACKER_AUTO_NAME=1` to re-enable it. Native Claude Code session summaries stopped generating around v2.1.31 (February 2026), so `sessions-index.json` summary fields are stale for newer sessions; use `backfill-summaries.js` or the transcript index instead.
-
-## Bootstrap New Setup
-
-Generate a complete `~/.claude/` configuration for a new machine:
-
-```bash
-node ~/.claude/skills/claude-tracker-suite/scripts/bootstrap-claude-setup.js --user "Name" --dry-run
-node ~/.claude/skills/claude-tracker-suite/scripts/bootstrap-claude-setup.js --user "Name"
-```
-
-Creates directory structure, global CLAUDE.md, userModel template, agent_docs stubs, and project CLAUDE.md scaffolds. Follow up with `/claude-md-manager` to enrich generated files.
 
 ## Resume in Ghostty Tab
 
@@ -330,7 +207,7 @@ Headless and prompt-driven modes use `claude -p` (the Agent SDK CLI). Terminal m
 ## Workflow: Monitor Active Work
 
 1. `claude-tracker-alive` — see what's running vs stale
-2. `claude-tracker-watch --daemon` — keep summaries auto-updated
+2. `claude-tracker-recent --since 1d` — today's sessions with titles, summaries, and cost
 3. Read `~/.claude/agent_docs/active-projects.md` — curated project overview
 
 ## Native Claude Code Features
@@ -347,186 +224,13 @@ Claude Code 2.1.263+ provides session management primitives that overlap with pa
 
 This suite's `cleanupPeriodDays` is 99999 so transcripts never expire.
 
-## SQLite Database (`tracker.db`)
+## Operations and Database
 
-Single SQLite database at `~/.claude/tracker.db` consolidates all session metadata, git tracking, tags, and three capabilities: checkpoints, phase tracking, and tagged phrases.
+Load these only when the task needs them:
 
-**API module**: `~/.claude/lib/tracker-db.js` — synchronous node:sqlite `DatabaseSync` (built into Node >= 22.13, no native module to rebuild), WAL mode, singleton lazy-open. The compat shim keeps the `prepare/run/get/all/exec/pragma/transaction` surface the call sites were written against and throws on a missing named parameter. `isAvailable()` is a real open probe (attempts a read-only open); `tryDb()` in `tracker-utils.js` prints `tracker-db unavailable: <reason> — falling back to JSONL scan` to stderr once per process instead of failing silently.
-
-```bash
-# Query directly
-sqlite3 ~/.claude/tracker.db "SELECT COUNT(*) FROM sessions;"
-sqlite3 ~/.claude/tracker.db "SELECT phase, COUNT(*) FROM phases GROUP BY phase;"
-sqlite3 ~/.claude/tracker.db "SELECT phrase, GROUP_CONCAT(tag) FROM tagged_phrases tp LEFT JOIN tagged_phrase_tags tpt ON tpt.phrase_id = tp.id GROUP BY tp.id ORDER BY tp.timestamp DESC LIMIT 10;"
-```
-
-**Migration** (idempotent): `node ~/.claude/scripts/migrate-to-sqlite.js`
-
-### Title / Nickname History
-
-The `title_history` table records every name a session has ever had, with provenance. Sources: `user` (from `/rename` custom-title lines), `slug` (auto-nickname from Claude Code), `cache` (May 2026 metadata import from `session-summaries.json`), `summarizer` (from `backfill-summaries.js`).
-
-```bash
-# Print the title timeline for a session
-node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js titles <id-prefix>
-
-# Query raw history
-sqlite3 ~/.claude/tracker.db "SELECT title, source, observed_at FROM title_history WHERE session_id LIKE 'abc%' ORDER BY observed_at;"
-```
-
-Title events are extracted during transcript indexing (`index-transcripts.js` v4+). `/rename` entries route by the line's own `sessionId`—a rename issued after `/resume` targets the previous session, not the file it was written into. This corrects a known upstream behavior where Claude Code's metadata scanner assigns the rename to the wrong session.
-
-Default search automatically surfaces sessions findable only by a former title under a "former-title matches" heading. The `titles` subcommand prints the full chronological timeline: timestamp, source, title value, and cross-session rename provenance.
-
-### Checkpoints
-
-Named bookmarks within sessions capturing label, git state, workflow phase, and modified files.
-
-```bash
-# Manual checkpoint
-node ~/.claude/skills/claude-tracker-suite/scripts/checkpoint-session.js create "finished auth module"
-node ~/.claude/skills/claude-tracker-suite/scripts/checkpoint-session.js create "pre-deploy" --summary "about to push"
-
-# List checkpoints
-node ~/.claude/skills/claude-tracker-suite/scripts/checkpoint-session.js list
-node ~/.claude/skills/claude-tracker-suite/scripts/checkpoint-session.js list --phase implementing
-node ~/.claude/skills/claude-tracker-suite/scripts/checkpoint-session.js list --limit 10
-```
-
-Auto-checkpoints are created on git commits (`git-track-post.sh`) and on entering a milestone phase (`testing`, `committing`, `deploying`) via `phase-detect.py`.
-
-### Phase Tracking
-
-Automatic workflow phase detection via PostToolUse hook (`phase-detect.py`). Rolling window of last 10 tool calls, hysteresis to prevent flickering. A phase stays open across turns and closes at SessionEnd (`session-sync-db.py --session-end`); phases of sessions that ended without one (crash, kill) are closed by the hourly indexer run once the session is idle 12 h and not live.
-
-Phases: `exploring`, `planning`, `deepening`, `implementing`, `testing`, `reviewing`, `debugging`, `committing`, `deploying`, `discussing`.
-
-```bash
-# Query current phase for a session
-sqlite3 ~/.claude/tracker.db "SELECT phase, started_at FROM phases WHERE session_id = 'abc...' AND ended_at IS NULL;"
-
-# Phase history
-sqlite3 ~/.claude/tracker.db "SELECT phase, started_at, ended_at, duration_ms FROM phases WHERE session_id = 'abc...' ORDER BY started_at;"
-
-# Phase analytics
-sqlite3 ~/.claude/tracker.db "SELECT phase, COUNT(*) as transitions, AVG(duration_ms)/1000 as avg_seconds FROM phases GROUP BY phase;"
-```
-
-### Tagged Phrases
-
-Notable excerpts captured from sessions with tags, searchable via FTS5.
-
-```bash
-# Capture a phrase
-node ~/.claude/skills/claude-tracker-suite/scripts/quote-session.js capture "assumptions are the enemy" --tags principle,design
-
-# Search phrases (FTS5)
-node ~/.claude/skills/claude-tracker-suite/scripts/quote-session.js search "assumptions"
-
-# List by tag
-node ~/.claude/skills/claude-tracker-suite/scripts/quote-session.js tag principle
-
-# List recent phrases
-node ~/.claude/skills/claude-tracker-suite/scripts/quote-session.js list --limit 20
-```
-
-Phrases are also auto-extracted by the `session-tags-infer.py` Stop hook during LLM inference.
-
-## Named Sessions (`cc` Wrapper)
-
-Shell function that wraps `claude` with automatic Ghostty tab naming and tracker tagging.
-
-```bash
-# Source in .zshrc (one-time setup)
-source ~/.claude/skills/claude-tracker-suite/scripts/claude-wrapper.sh
-
-# Start a named session
-cc --name "kothar-refactor"
-
-# Resume with a name
-cc --resume abc12345 --name "auth-fix"
-
-# Default: tab title = basename of cwd
-cc
-```
-
-The `cc` function sets the Ghostty tab title via OSC 1 escape sequence before launching `claude`, then tags the session with the name in `tracker.db` on exit. Tab title resets to the directory basename when the session ends.
-
-## Tab Auto-Naming
-
-`new-session.sh`, `resume-session.sh`, and `ghostty-resume.sh` all accept `--name` to label the session. Claude Code sets the Ghostty tab title itself (`-n` / derived name)—no OSC injection is needed.
-
-## Workspace Save/Restore
-
-Snapshot running Claude sessions and restore them after a Ghostty restart.
-
-### Save
-
-```bash
-# Snapshot current sessions
-node ~/.claude/skills/claude-tracker-suite/scripts/save-workspace.js
-
-# Preview without writing
-node ~/.claude/skills/claude-tracker-suite/scripts/save-workspace.js --dry-run
-```
-
-Detects alive sessions via PID files (`~/.claude/sessions/<pid>.json`) verified against `ps`, matches them to tracker DB entries, and writes `~/.claude/workspace-state.json` with session IDs, project directories, and tab titles. Title precedence: custom_title → auto_title → slug → summary. Deduplicates by sessionId (multiple PIDs from forks and MCP children resolve to one entry). Never overwrites a good snapshot with an empty one—after a crash or logout with zero live sessions, the previous snapshot is preserved.
-
-### Restore
-
-```bash
-# Restore all saved sessions into Ghostty tabs
-~/.claude/skills/claude-tracker-suite/scripts/restore-workspace.sh
-
-# Preview what would be restored
-~/.claude/skills/claude-tracker-suite/scripts/restore-workspace.sh --dry-run
-
-# Restore at most 3 sessions
-~/.claude/skills/claude-tracker-suite/scripts/restore-workspace.sh --limit 3
-
-# Slow stagger for a loaded machine
-~/.claude/skills/claude-tracker-suite/scripts/restore-workspace.sh --stagger 3
-```
-
-Opens each session in a new Ghostty tab via `ghostty-resume.sh`. Default stagger is 1 second between tabs. Skips sessions that are still running, missing project directories, and missing transcripts—each with a reason, never aborting on one failure. Reports per-agent counts.
-
-### Automatic Snapshots (launchd)
-
-A launchd plist at `scripts/com.claude.workspace-snapshot.plist` runs `save-workspace.js` every 300 seconds. Install:
-
-```bash
-cp ~/.claude/skills/claude-tracker-suite/scripts/com.claude.workspace-snapshot.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.claude.workspace-snapshot.plist
-```
-
-## Yazi File Explorer
-
-Open a yazi file manager in a Ghostty split pane for project browsing.
-
-```bash
-# Open yazi in a left split (default, sidebar-style)
-~/.claude/skills/claude-tracker-suite/scripts/open-file-explorer.sh
-
-# Open at a specific directory
-~/.claude/skills/claude-tracker-suite/scripts/open-file-explorer.sh ~/my-project
-
-# Split to the right instead
-~/.claude/skills/claude-tracker-suite/scripts/open-file-explorer.sh --right
-```
-
-Uses System Events clipboard-paste pattern (Cmd+D for split, then paste yazi command). Requires yazi: `brew install yazi ffmpegthumbnailer unar jq poppler fd ripgrep fzf zoxide`.
-
-## Performance
-
-| Operation | Before | After |
-|-----------|--------|-------|
-| Search (two-word query) | 11.1s (JSONL scan) | 0.06s (FTS5) |
-| List sessions | 1.4s | 0.44s |
-| Recent sessions | crash | 0.13s |
-| `claude-tracker-alive` | — | 0.25s |
-| Live detection | 881ms | ~100ms |
-| Index backlog (85 files) | — | 1.3s |
-| Opener (per tab) | — | ~1–2s |
+- **Indexing and maintenance** — how the transcript index stays current (hooks, hourly launchd, in-process refresh), byte-offset increments, the `Sanity:` line, rebuilds, summary backfill, the regression suite and self-audit: `references/operations.md`.
+- **Workspace snapshots, `cc` wrapper, tab naming, yazi, project detection, bootstrap, performance**: `references/operations.md`.
+- **`tracker.db` directly** — schema-level queries, title history, checkpoints, phase tracking, tagged phrases: `references/database.md`.
 
 ## Related Systems
 
@@ -539,6 +243,8 @@ Uses System Events clipboard-paste pattern (Cmd+D for split, then paste yazi com
 
 For detailed schemas and infrastructure:
 
+- `references/operations.md` — Indexing pipeline and schedule, summary backfill, workspace stamp/restore, `cc` wrapper, yazi, project tools, bootstrap, performance
+- `references/database.md` — `tracker.db` API module, direct queries, title history, checkpoints, phases, tagged phrases
 - `references/data-schemas.md` — Session index, summary cache, JSONL transcript schemas, title_history schema; data source locations; shared library API
 - `references/search-mechanics.md` — Transcript FTS indexing pipeline, search query resolution, synonym expansion, AND-to-OR fallback, former-title fallback, ranking algorithm
 - `references/daemon-setup.md` — Watcher daemon lifecycle and launchd plist template
