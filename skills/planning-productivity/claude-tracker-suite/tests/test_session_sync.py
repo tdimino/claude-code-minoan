@@ -2,6 +2,7 @@
 
 Run: python3 -m unittest discover -s tests -p 'test_*.py'   (from the suite directory)
 """
+import datetime
 import json
 import unittest
 
@@ -30,6 +31,43 @@ class SessionSync(HookEnv):
     def test_stop_without_registry_upserts_session(self):
         self.stop()
         self.assertEqual(self.rows("SELECT project_path FROM sessions WHERE session_id = ?"), [("/tmp/fixture",)])
+
+    # ---- timestamps -------------------------------------------------------
+    # The indexer writes UTC ('…Z'); the hook's values sort against them, so
+    # they must be UTC too. UTC+14 makes a local time impossible to pass off.
+
+    def assert_utc_now(self, value):
+        self.assertTrue(value.endswith("Z"), value)
+        at = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        self.assertLess(abs((datetime.datetime.now(datetime.timezone.utc) - at).total_seconds()), 120, value)
+
+    def test_modified_at_is_utc_on_insert_and_update(self):
+        self.env["TZ"] = "Pacific/Kiritimati"
+        self.stop()
+        self.assert_utc_now(self.rows("SELECT modified_at FROM sessions WHERE session_id = ?")[0][0])
+        self.execute("UPDATE sessions SET modified_at = '2000-01-01T00:00:00.000Z' WHERE session_id = ?", self.sid)
+        self.stop()
+        self.assert_utc_now(self.rows("SELECT modified_at FROM sessions WHERE session_id = ?")[0][0])
+
+    def test_live_title_change_is_observed_in_utc(self):
+        self.env["TZ"] = "Pacific/Kiritimati"
+        self.stop()
+        with self.transcript.open("a") as f:
+            f.write(json.dumps({"type": "custom-title", "sessionId": self.sid, "customTitle": "Renamed"}) + "\n")
+        self.stop()
+        [(observed,)] = self.rows("SELECT observed_at FROM title_history WHERE session_id = ? AND title = 'Renamed'")
+        self.assert_utc_now(observed)
+
+    def test_phase_duration_is_unaffected_by_the_time_zone(self):
+        # Phase times stay in the hook's local clock, start and end alike
+        self.env["TZ"] = "Pacific/Kiritimati"
+        self.hook("phase-detect.py", {"session_id": self.sid, "tool_name": "Edit", "tool_input": {},
+                                      "hook_event_name": "PostToolUse"})
+        self.hook("phase-detect.py", {"session_id": self.sid, "tool_name": "Edit", "tool_input": {},
+                                      "hook_event_name": "PostToolUse"})
+        self.stop("--session-end")
+        [(ms,)] = self.rows("SELECT duration_ms FROM phases WHERE session_id = ?")
+        self.assertLess(abs(ms), 60_000)
 
     # ---- tags -------------------------------------------------------------
 

@@ -234,7 +234,7 @@ function auditDaemons() {
   health.indexHooksRegistered = parseInt(hooks, 10) || 0;
   if (health.indexHooksRegistered < 2) {
     finding('P1', 'daemons', `index-transcripts.js hook registered ${health.indexHooksRegistered}/2 times in settings.json`,
-      'Expected one Stop entry (--debounce 120, async) and one SessionEnd entry (--debounce 10).');
+      'Expected one Stop entry (--debounce 30, async) and one SessionEnd entry (--debounce 10).');
   }
 
   const launchdEntry = sh('launchctl list 2>/dev/null | grep workspace-snapshot');

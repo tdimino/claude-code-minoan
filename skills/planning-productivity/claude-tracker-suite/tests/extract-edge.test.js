@@ -140,6 +140,37 @@ describe('usage and cost', () => {
     assert.equal(m.costSource, 'cost-state');
   });
 
+  it('a model with no price row is costed at the fallback rate and flagged as estimated', () => {
+    // fallback = sonnet-5-5 $2/$10: 10 in + 100 out
+    const m = meta([asst('msg_u', 'claude-nova-1', usage(10, 100))]);
+    close(m.totalCostUsd, (10 * 2 + 100 * 10) / 1e6);
+    assert.equal(m.costSource, 'computed+estimated');
+  });
+
+  it('an unpriced message covered by a later cost-state does not flag the total', () => {
+    const m = meta([
+      asst('msg_u', 'claude-nova-1', usage(0, 100)),
+      { type: 'cost-state', sessionId: OWN, totalCostUSD: 0.5 },
+      asst('msg_p', 'claude-sonnet-5-5', usage(0, 10)),
+    ]);
+    assert.equal(m.costSource, 'cost-state+computed');
+    const after = meta([
+      { type: 'cost-state', sessionId: OWN, totalCostUSD: 0.5 },
+      asst('msg_u2', 'claude-nova-1', usage(0, 10)),
+    ]);
+    assert.equal(after.costSource, 'cost-state+computed+estimated');
+  });
+
+  it('a cost-state that says it priced an unknown model is an estimate too', () => {
+    const m = meta([{ type: 'cost-state', sessionId: OWN, totalCostUSD: 0.5, hasUnknownModelCost: true }]);
+    assert.equal(m.costSource, 'cost-state+estimated');
+    const later = meta([
+      { type: 'cost-state', sessionId: OWN, totalCostUSD: 0.5, hasUnknownModelCost: true },
+      { type: 'cost-state', sessionId: OWN, totalCostUSD: 0.6, hasUnknownModelCost: false },
+    ]);
+    assert.equal(later.costSource, 'cost-state');
+  });
+
   it('<synthetic> records never count, even with usage', () => {
     const m = meta([asst('msg_s', '<synthetic>', usage(5, 999))]);
     assert.deepEqual([m.outputTokens, m.model, m.costSource], [0, null, null]);
@@ -148,7 +179,8 @@ describe('usage and cost', () => {
 
 describe('titles and summaries', () => {
   it('falls back to agent-name for the title and the compact summary for the recap', () => {
-    const recap = 'This session is being continued from a previous conversation. ' + 'z'.repeat(500);
+    // Content only: the preamble Claude Code prepends is stripped (next test)
+    const recap = 'Refactored the parser. ' + 'z'.repeat(500);
     const m = meta([
       human('go'),
       user(recap, { isCompactSummary: true }),
@@ -158,6 +190,30 @@ describe('titles and summaries', () => {
     assert.deepEqual([m.summary, m.summarySource, m.compactCount], [recap.slice(0, 400), 'compact', 1]);
   });
 
+  it('the compact summary drops Claude Code\'s preamble and first section heading', () => {
+    const preamble = 'This session is being continued from a previous conversation that ran out of context. ' +
+      'The summary below covers the earlier portion of the conversation.\n\nSummary:\n';
+    const body = '   The user asked to fix the parser.\n2. Key Technical Concepts:\n   - FTS5';
+    for (const heading of ['1. Primary Request and Intent:\n', '## User requests (verbatim)\n']) {
+      const m = meta([human('go'), user(preamble + heading + body, { isCompactSummary: true })]);
+      assert.equal(m.summary, body.trim());
+    }
+    // 2.1.314 puts a tools-used reminder between the preamble and "Summary:"
+    const current = preamble.replace('\n\nSummary:\n',
+      '\n\n<system-reminder>\n<tools-used-before-summary>Bash, Read</tools-used-before-summary>\n</system-reminder>\nSummary:\n');
+    const m = meta([human('go'), user(current + '1. Primary Request and Intent:\n' + body, { isCompactSummary: true })]);
+    assert.equal(m.summary, body.trim());
+    // ...and some versions write the tag bare, or bold the heading
+    const bare = preamble.replace('\n\nSummary:\n', '\n\n<tools-used-before-summary>Bash</tools-used-before-summary>\nSummary:\n');
+    const b = meta([human('go'), user(bare + '1. **Primary Request and Intent**\n' + body, { isCompactSummary: true })]);
+    assert.equal(b.summary, body.trim());
+  });
+
+  it('a compact summary whose first line is content keeps it', () => {
+    const text = 'This session is being continued from a previous conversation.\n\nSummary:\n1. Fixed it: tests pass';
+    assert.equal(meta([human('go'), user(text, { isCompactSummary: true })]).summary, '1. Fixed it: tests pass');
+  });
+
   it('an ai-title or agent-name addressed to another session is not this session\'s title', () => {
     const m = meta([
       human('go'),
@@ -165,6 +221,52 @@ describe('titles and summaries', () => {
       { type: 'agent-name', sessionId: FOREIGN, agentName: 'not-mine' },
     ]);
     assert.equal(m.autoTitle, null);
+  });
+});
+
+describe('search text', () => {
+  it('skill bodies, transcript-only records and compact summaries are not indexed', () => {
+    const p = path.join(dir, `${OWN}-fts.jsonl`);
+    const records = [
+      human('Fix the parser'),
+      user('Base directory for this skill: /x/skills/foo\n\n# Foo skill body', { isMeta: true }),
+      user('This session is being continued from a previous conversation. Summary of earlier work.', { isCompactSummary: true, isVisibleInTranscriptOnly: true }),
+      user('Only shown in the transcript view', { isVisibleInTranscriptOnly: true }),
+      asst('msg_1', 'claude-opus-5-5', usage(1, 1)),
+    ];
+    fs.writeFileSync(p, records.map(r => JSON.stringify(r)).join('\n') + '\n');
+    const { messages } = utils.extractTranscript(p, { fileSessionId: OWN });
+    assert.deepEqual(messages, [{ role: 'user', text: 'Fix the parser' }, { role: 'assistant', text: 'ok' }]);
+  });
+});
+
+describe('typed slash-command arguments', () => {
+  const extract = (records) => {
+    const p = path.join(dir, `${OWN}-cmd-${n++}.jsonl`);
+    fs.writeFileSync(p, records.map(r => JSON.stringify(r)).join('\n') + '\n');
+    return utils.extractTranscript(p, { fileSessionId: OWN });
+  };
+  const cmd = (name, args) => human(`<command-message>${name}</command-message>\n<command-name>/${name}</command-name>\n<command-args>${args}</command-args>`);
+
+  it('are searchable as /name args, while the skill body they expand into is not', () => {
+    const { messages } = extract([
+      cmd('skill-optimizer', 'Analyze this site for the bag claim'),
+      user('Base directory for this skill: /x\n\n# Skill body', { isMeta: true }),
+    ]);
+    assert.deepEqual(messages, [{ role: 'user', text: '/skill-optimizer Analyze this site for the bag claim' }]);
+  });
+
+  it('a command with no arguments adds nothing to search', () => {
+    assert.deepEqual(extract([cmd('clear', '')]).messages, []);
+  });
+});
+
+describe('entrypoint', () => {
+  const ep = (...kinds) => meta(kinds.map(k => human('x', { entrypoint: k }))).entrypoint;
+  it('a headless session later resumed interactively is interactive, in either order', () => {
+    assert.equal(ep('sdk-cli', 'cli'), 'cli');
+    assert.equal(ep('cli', 'sdk-cli'), 'cli');
+    assert.equal(ep('sdk-cli', 'sdk-cli'), 'sdk-cli');
   });
 });
 

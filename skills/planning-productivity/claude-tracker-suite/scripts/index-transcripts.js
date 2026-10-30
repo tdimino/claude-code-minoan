@@ -35,7 +35,7 @@ const db = require(path.join(os.homedir(), '.claude', 'lib', 'tracker-db.js'));
 
 // Bump when extraction rules change (noise filters, skip prefixes, caps,
 // metadata fields) — forces reindex of sessions indexed under older rules
-const EXTRACTOR_VERSION = 6; // v6: era-aware turn counting, last-record usage dedupe, 1-hour cache-write pricing
+const EXTRACTOR_VERSION = 8; // v8: compact-summary preamble stripped, +estimated cost source, worktree detection from subdirectories
 
 // --debounce: a session that grew less than this since its last index pass
 // is not worth re-extracting mid-conversation
@@ -65,13 +65,74 @@ function logIndexError(sessionId, err) {
 }
 
 /**
- * A linked worktree's checkout has a .git FILE (pointing into the main
- * repo's .git/worktrees/); a main checkout has a .git directory.
- * null when the cwd is unknown or gone.
+ * Is the cwd inside a linked worktree? Walks up to the nearest .git: a
+ * directory is a main checkout; a file is a worktree when its gitdir points
+ * into .git/worktrees/, and a submodule when it points into .git/modules/.
+ * null when the cwd is unknown, gone, or outside any repository.
  */
 function isWorktree(cwd) {
-  if (!cwd) return null;
-  try { return fs.statSync(path.join(cwd, '.git')).isFile(); } catch { return null; }
+  if (!cwd || !fs.existsSync(cwd)) return null;
+  for (let dir = path.resolve(cwd); ; dir = path.dirname(dir)) {
+    const dotGit = path.join(dir, '.git');
+    let stat = null;
+    try { stat = fs.statSync(dotGit); } catch (e) {
+      // Only "no .git here" means keep walking; anything else is unknowable
+      if (e.code !== 'ENOENT' && e.code !== 'ENOTDIR') return null;
+    }
+    if (stat && stat.isDirectory()) return false;
+    if (stat && stat.isFile()) {
+      try {
+        const gitdir = /^gitdir:\s*(.+)$/m.exec(fs.readFileSync(dotGit, 'utf8'));
+        if (!gitdir) return null;
+        return /[\\/]worktrees[\\/][^\\/]+[\\/]?$/.test(gitdir[1].trim());
+      } catch { return null; }
+    }
+    if (path.dirname(dir) === dir) return null;
+  }
+}
+
+// Metadata that a correct extraction never produces for a real session; a
+// Claude Code format change shows up here first
+const SANITY_CHECKS = [
+  ['zero-turn transcript over 100 KB', 'COALESCE(s.num_turns, 0) = 0 AND t.transcript_size > 102400'],
+  ['output with no model', 's.total_output_tokens > 0 AND s.model IS NULL'],
+  ['output with no cost source', 's.total_output_tokens > 0 AND s.cost_source IS NULL'],
+  ['estimated cost', "s.cost_source LIKE '%+estimated'"],
+];
+
+/**
+ * Indexed sessions active in the last `days` that fail a sanity check.
+ * Returns [[label, [sessionId…]]] for the checks that found any.
+ */
+function sanityCheck(days = 7) {
+  const d = db.ensureTranscripts();
+  return SANITY_CHECKS.map(([label, where]) => [label, d.prepare(`
+    SELECT s.session_id FROM sessions s
+    JOIN transcripts.transcript_index_state t ON t.session_id = s.session_id
+    WHERE s.modified_at >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?) AND ${where}
+    ORDER BY s.modified_at DESC`).all(`-${days} days`).map(r => r.session_id)])
+    .filter(([, ids]) => ids.length);
+}
+
+function formatSanity(found) {
+  const sessions = new Set(found.flatMap(([, ids]) => ids)).size;
+  const parts = found.map(([label, ids]) =>
+    `${ids.length} ${label} (${ids.slice(0, 5).map(id => id.slice(0, 8)).join(' ')}${ids.length > 5 ? ' …' : ''})`);
+  return `Sanity: ${sessions} recent session(s) look wrong: ${parts.join(', ')}.`;
+}
+
+/**
+ * Does a saved offset still sit just past a newline? Claude Code only
+ * appends; a file rewritten in place keeps its inode but not its line breaks.
+ */
+function endsLineAt(filePath, offset) {
+  if (!offset) return true;
+  let fd;
+  try {
+    fd = fs.openSync(filePath, 'r');
+    const b = Buffer.alloc(1);
+    return fs.readSync(fd, b, 0, 1, offset - 1) === 1 && b[0] === 0x0a;
+  } catch { return false; } finally { if (fd !== undefined) fs.closeSync(fd); }
 }
 
 function isCurrent(prior, stat) {
@@ -80,40 +141,84 @@ function isCurrent(prior, stat) {
 }
 
 /**
- * Index one transcript if its size/mtime/extractor version changed.
- * Returns {status: 'indexed'|'skipped'|'errored'|'missing', messages, titleEvents}.
+ * Can the last pass be continued from its byte offset? Only when it is the
+ * same file (path and inode), under the same extraction rules, and has only
+ * grown since. Anything else (shrank, replaced, moved, rules changed, or a
+ * pass from before resume state existed) gets a full rebuild.
+ */
+function canResume(prior, file, stat) {
+  return !!prior && prior.byte_offset != null && prior.line_no != null
+    && (prior.extractor_version || 1) === EXTRACTOR_VERSION
+    && prior.file_path === file.filePath
+    && prior.inode === stat.ino
+    && stat.size >= prior.transcript_size
+    && stat.size >= prior.byte_offset;
+}
+
+/**
+ * Index one transcript if its size/mtime/extractor version changed: an
+ * increment from the last byte offset when possible (canResume), else a
+ * full pass. Cost is proportional to the bytes appended since last time.
+ * Returns {status: 'indexed'|'appended'|'skipped'|'errored'|'missing', messages, titleEvents}.
  */
 async function indexOne(file, states, { quiet = true, force = false } = {}) {
   const sessionId = path.basename(file.filePath, '.jsonl');
   let stat;
   try { stat = fs.statSync(file.filePath); } catch { return { status: 'missing', messages: 0, titleEvents: 0 }; }
 
+  // The pass-wide snapshot is only a fast skip; another writer (a Stop hook
+  // during the hourly pass) may have moved this session's state since, so
+  // anything that resumes reads the state row fresh
   if (!force && isCurrent(states.get(sessionId), stat)) {
+    return { status: 'skipped', messages: 0, titleEvents: 0 };
+  }
+  const prior = db.getTranscriptResumeState(sessionId);
+  if (!force && isCurrent(prior, stat)) {
     return { status: 'skipped', messages: 0, titleEvents: 0 };
   }
 
   // One synchronous pass (tracker-utils extractTranscript) yields FTS rows,
   // title events and the session metadata row. Title events route by their
   // own sessionId; see extractRecord.
-  const { messages, titleEvents, meta, hadError } = utils.extractTranscript(file.filePath, { fileSessionId: sessionId });
-  if (hadError) {
-    // No state write — the session stays eligible for the next run
-    if (!quiet) console.log(`  ! read error, will retry next run: ${sessionId.slice(0, 8)}`);
-    return { status: 'errored', messages: 0, titleEvents: 0 };
+  for (let attempt = 0; ; attempt++) {
+    let resume = null;
+    if (attempt === 0 && !force && canResume(prior, file, stat) && prior.acc_json) {
+      const why = utils.checkResumeState(prior.acc_json);
+      if (why && why !== 'rules changed') logIndexError(sessionId, `resume state ${why}; re-reading the whole file`);
+      if (!why && endsLineAt(file.filePath, prior.byte_offset)) {
+        resume = { acc: prior.acc_json, start: prior.byte_offset, startLine: prior.line_no };
+      }
+    }
+    const { messages, titleEvents, meta, end, lines, acc, hadError } =
+      utils.extractTranscript(file.filePath, { fileSessionId: sessionId, resume });
+    if (hadError) {
+      // No state write — the session stays eligible for the next run
+      logIndexError(sessionId, 'read error, will retry next run');
+      return { status: 'errored', messages: 0, titleEvents: 0 };
+    }
+    try {
+      db.indexTranscript(sessionId, {
+        filePath: file.filePath,
+        projectDir: file.projectDir,
+        transcriptSize: stat.size,
+        mtimeMs: stat.mtimeMs,
+        messages,
+        titleEvents,
+        extractorVersion: EXTRACTOR_VERSION,
+        meta,
+        file: { projectPath: utils.decodeProjectPath(file.projectDir), mtime: stat.mtime.toISOString(),
+          isWorktree: isWorktree(meta.cwd), authoritative: true },
+        appendFrom: resume ? prior.message_count || 0 : null,
+        expect: resume ? { byteOffset: prior.byte_offset, messageCount: prior.message_count } : null,
+        resume: { byteOffset: end, lineNo: lines, inode: stat.ino, accJson: acc },
+      });
+    } catch (e) {
+      // Lost the race to another writer: a whole-file pass is always consistent
+      if (e && e.code === 'STALE_RESUME' && attempt === 0) continue;
+      throw e;
+    }
+    return { status: resume ? 'appended' : 'indexed', messages: messages.length, titleEvents: titleEvents.length };
   }
-  db.indexTranscript(sessionId, {
-    filePath: file.filePath,
-    projectDir: file.projectDir,
-    transcriptSize: stat.size,
-    mtimeMs: stat.mtimeMs,
-    messages,
-    titleEvents,
-    extractorVersion: EXTRACTOR_VERSION,
-    meta,
-    file: { projectPath: utils.decodeProjectPath(file.projectDir), mtime: stat.mtime.toISOString(),
-      isWorktree: isWorktree(meta.cwd), authoritative: true },
-  });
-  return { status: 'indexed', messages: messages.length, titleEvents: titleEvents.length };
 }
 
 /**
@@ -129,15 +234,15 @@ async function refreshTranscriptIndex({ budgetMs = Infinity, limit = Infinity, q
   const states = rebuild ? new Map() : db.getTranscriptIndexStates();
   const allFiles = utils.getAllSessionFiles();
 
-  const r = { indexed: 0, skipped: 0, empty: 0, errored: 0, remaining: 0,
+  const r = { indexed: 0, appended: 0, skipped: 0, empty: 0, errored: 0, remaining: 0,
     messages: 0, titleEvents: 0, pruned: 0, ms: 0 };
 
   let i = 0;
   for (; i < allFiles.length; i++) {
-    if (r.indexed >= limit || Date.now() - t0 > budgetMs) break;
+    if (r.indexed + r.appended >= limit || Date.now() - t0 > budgetMs) break;
     let out;
     try {
-      out = await indexOne(allFiles[i], states, { quiet });
+      out = await indexOne(allFiles[i], states, { quiet, force: rebuild });
     } catch (err) {
       if (isDbLevelError(err)) throw err;
       // The transaction rolled back, so no state was recorded: the session
@@ -147,7 +252,11 @@ async function refreshTranscriptIndex({ budgetMs = Infinity, limit = Infinity, q
     }
     if (out.status === 'skipped') r.skipped++;
     else if (out.status === 'errored') r.errored++;
-    else if (out.status === 'indexed') {
+    else if (out.status === 'appended') {
+      r.appended++;
+      r.messages += out.messages;
+      r.titleEvents += out.titleEvents;
+    } else if (out.status === 'indexed') {
       r.indexed++;
       r.messages += out.messages;
       r.titleEvents += out.titleEvents;
@@ -293,7 +402,7 @@ async function main() {
     const out = await indexSession({ ...single, debounceSec, quiet });
     if (!quiet) {
       const id = (out.sessionId || '?').slice(0, 8);
-      console.log(`${id}: ${out.status}` + (out.status === 'indexed'
+      console.log(`${id}: ${out.status}` + (out.status === 'indexed' || out.status === 'appended'
         ? ` — ${out.messages} messages, ${out.titleEvents} title events, ${Date.now() - t0}ms` : ''));
     }
     db.close();
@@ -308,14 +417,21 @@ async function main() {
   }
   // --quiet still reports work done (one line) so hook/launchd logs stay useful
   // without the per-file chatter; a no-op run prints nothing.
-  if (!quiet || r.indexed || r.errored || r.pruned || r.phasesClosed) {
+  if (!quiet || r.indexed || r.appended || r.errored || r.pruned || r.phasesClosed) {
     const secs = (r.ms / 1000).toFixed(1);
-    console.log(`Indexed ${r.indexed} session(s) in ${secs}s — ${r.skipped} unchanged, ${r.empty} with no indexable text` +
+    console.log(`Indexed ${r.indexed} session(s) in full and ${r.appended} by increment in ${secs}s — ${r.skipped} unchanged, ${r.empty} with no indexable text` +
       (r.errored ? `, ${r.errored} errors (will retry; see logs/transcript-index-errors.log)` : '') +
       (r.remaining ? `, ${r.remaining} still pending (budget/limit reached)` : '') +
       (r.pruned ? `, ${r.pruned} deleted sessions pruned` : '') +
       (r.titleEvents ? `, ${r.titleEvents} title events` : '') +
       (r.phasesClosed ? `, ${r.phasesClosed} stale phases closed` : '') + '.');
+  }
+  // Printed even under --quiet: the hourly log is where a regression shows
+  if (budgetMs === Infinity) {
+    try {
+      const found = sanityCheck();
+      if (found.length) console.log(formatSanity(found));
+    } catch (e) { console.error(`transcript-index: sanity check failed: ${e.message}`); }
   }
   if (!quiet) {
     const stats = db.getTranscriptIndexStats();
@@ -326,7 +442,7 @@ async function main() {
   db.close();
 }
 
-module.exports = { indexOne, refreshTranscriptIndex, indexSession, findTranscript, EXTRACTOR_VERSION };
+module.exports = { indexOne, refreshTranscriptIndex, indexSession, findTranscript, isWorktree, sanityCheck, EXTRACTOR_VERSION };
 
 if (require.main === module) {
   main().catch(err => { console.error(err); process.exit(1); });

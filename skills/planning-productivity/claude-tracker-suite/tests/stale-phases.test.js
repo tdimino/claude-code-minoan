@@ -57,6 +57,21 @@ describe('stale open phases', () => {
     ]);
   });
 
+  it('a session time in UTC ends a local-time phase at the same instant', () => {
+    // Phases are stamped in the hooks' local clock, sessions in UTC: 14:00Z
+    // is 10:00 in New York (EDT), half an hour after the phase began
+    const UTC = 'cccccccc-0000-4000-8000-000000000004';
+    const run = (code) => execFileSync('node', ['-e',
+      `const db = require(${JSON.stringify(path.join(REPO_LIB, 'tracker-db.js'))}); ${code}`],
+      { env: { ...env, TZ: 'America/New_York' }, encoding: 'utf8' });
+    run(`const d = db.getDb();
+      d.prepare("INSERT INTO sessions (session_id, short_id, project_dir, project_path, project_name, created_at, modified_at) VALUES (?, 'cccccccc', 'p', '/p', 'p', '2026-10-01T13:00:00.000Z', '2026-10-01T14:00:00.000Z')").run(${JSON.stringify(UTC)});
+      d.prepare("INSERT INTO phases (session_id, phase, turn_start, started_at, trigger) VALUES (?, 'testing', 1, '2026-10-01T09:30:00', 'auto')").run(${JSON.stringify(UTC)});
+      db.closeStalePhases(new Set()); db.close();`);
+    const [row] = JSON.parse(run(`console.log(JSON.stringify(db.getDb().prepare("SELECT ended_at, duration_ms FROM phases WHERE session_id = ?").all(${JSON.stringify(UTC)})));`));
+    assert.deepEqual(row, { ended_at: '2026-10-01T10:00:00', duration_ms: 30 * 60000 });
+  });
+
   it('runs as part of the full (hourly) indexer pass', () => {
     db(`db.getDb().prepare("UPDATE phases SET ended_at = NULL WHERE session_id = ?").run(${JSON.stringify(DEAD)});`);
     execFileSync('node', [path.join(SCRIPTS, 'index-transcripts.js'), '--quiet'], { env, encoding: 'utf8' });

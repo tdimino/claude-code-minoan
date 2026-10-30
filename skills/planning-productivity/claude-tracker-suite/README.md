@@ -119,7 +119,7 @@ The index lives in a sidecar `tracker-transcripts.db`, ATTACHed on demand—hook
 ## Transcript Indexing
 
 ```bash
-node index-transcripts.js                    # incremental (skips unchanged files)
+node index-transcripts.js                    # incremental: unchanged files skipped, grown ones read from their last byte offset
 node index-transcripts.js --rebuild          # full rebuild
 node index-transcripts.js --session <id>     # single session (what hooks call)
 node index-transcripts.js --budget 1500      # budget-limited (what search calls in-process)
@@ -127,11 +127,13 @@ node index-transcripts.js --budget 1500      # budget-limited (what search calls
 
 The indexer runs automatically through three channels:
 
-1. **Hooks**: Stop hook (async, `--stdin --quiet --debounce 120`) and SessionEnd hook (`--stdin --quiet --debounce 10 --detach`: returns at once, a detached child does the work and logs to `~/.claude/logs/transcript-index-hook.log`) so every session is searchable within seconds of its last turn.
+1. **Hooks**: Stop hook (async, `--stdin --quiet --debounce 30`) and SessionEnd hook (`--stdin --quiet --debounce 10 --detach`: returns at once, a detached child does the work and logs to `~/.claude/logs/transcript-index-hook.log`) so every session is searchable within seconds of its last turn.
 2. **In-process**: `search-sessions.js` calls `refreshTranscriptIndex()` before every body search with a 1.5s budget, printing `Index refreshed: N session(s) in Xms — M still pending`.
 3. **Hourly launchd**: `com.claude.transcript-index` agent (plist in `scripts/`, installed in `~/Library/LaunchAgents/`, logs in `~/.claude/logs/transcript-index.{log,err}`, uses `/opt/homebrew/bin/node`).
 
-As a module it exports `indexOne`, `refreshTranscriptIndex`, `indexSession`, and `findTranscript`. CLI flags: `--rebuild --limit N --budget MS --quiet --session ID --file PATH --stdin --debounce SEC --detach`.
+A transcript that only grew since its last pass (same inode, same extractor version) is read from the byte offset where that pass stopped, with the extraction state saved alongside; a shrunk or replaced file is re-read whole. Full runs end with a sanity line when any session active in the last 7 days looks wrong (zero turns on a transcript over 100 KB, output with no model or no cost source, a cost estimated for a model with no price row); a clean run prints none.
+
+As a module it exports `indexOne`, `refreshTranscriptIndex`, `indexSession`, `findTranscript`, `isWorktree`, and `sanityCheck`. CLI flags: `--rebuild --limit N --budget MS --quiet --session ID --file PATH --stdin --debounce SEC --detach`.
 
 Incremental indexing skips files whose size, mtime, and extractor version (currently EXTRACTOR_VERSION 4) all match. Bumping the version constant forces a full reindex. Deleted transcripts are pruned on full runs. Read errors are never recorded as indexed—the session stays eligible for the next run.
 
@@ -498,7 +500,7 @@ Tables: `sessions`, `sessions_fts`, `title_history`, `checkpoints`, `phases`, `t
 
 ### DB Maintenance
 
-`db-maintain.js` merges FTS segments and truncates WALs on both databases, skipping when an indexer is mid-run. Scheduled Sundays 04:30 via `com.claude.db-maintain.plist`.
+`db-maintain.js` merges FTS segments and truncates WALs on both databases, and VACUUMs a database when more than a quarter of its pages are free (after a reindex or prune), skipping when an indexer is mid-run unless `--force`. Failures go to stderr and exit 1, even under `--quiet`. Scheduled Sundays 04:30 via `com.claude.db-maintain.plist` (logs in `~/.claude/logs/db-maintain.{log,err}`).
 
 ### Self-Audit and Regression
 
@@ -537,13 +539,13 @@ The regression suite includes an expected-fail fixture documenting the semantic-
 | `index-transcripts.js` | `node index-transcripts.js [--rebuild] [--limit N] [--budget MS] [--quiet] [--session ID] [--file PATH] [--stdin] [--debounce SEC] [--detach]` |
 | `backfill-summaries.js` | `node backfill-summaries.js --enable [--provider claude\|openrouter] [--dry-run] [--session <id>]` |
 | `claude-tracker-pick` | `claude-tracker-pick [--here] [--project <name>] [--limit N]` |
-| `db-maintain.js` | `node db-maintain.js [--quiet]` |
+| `db-maintain.js` | `node db-maintain.js [--quiet] [--force]` |
 | `audit-suite.js` | `node audit-suite.js` |
 | `search-regression.js` | `node search-regression.js [--json]` |
 | `open-sessions.js` | `node open-sessions.js [--limit N] [--yes] [--json] [--list]` |
 | `resume-session.sh` | `bash resume-session.sh <session-id> [--project <path>] [--name <title>] [--cursor]` |
 | `list-sessions.js` | `node list-sessions.js [--limit 20]` |
-| `recent-sessions.js` | `node recent-sessions.js [--limit N] [--project <name>] [--model <name>] [--since <dur>] [--json]` |
+| `recent-sessions.js` | `node recent-sessions.js [--limit N] [--project <name>] [--model <name>] [--since <dur>] [--all] [--json]` (`--all` includes headless sdk-cli sessions) |
 | `new-session.sh` | `bash new-session.sh [dir] [--prompt "text"] [--headless] [--model <name>] [--name <title>] [--output-format text] [--cursor]` |
 | `claude-wrapper.sh` | `source claude-wrapper.sh` then `cc [--name <title>] [--resume <id>]` |
 | `save-workspace.js` | `node save-workspace.js [--dry-run\|--json]` |

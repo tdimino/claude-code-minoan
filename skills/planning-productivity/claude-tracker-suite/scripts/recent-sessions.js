@@ -30,6 +30,7 @@ let projectFilter = null;
 let modelFilter = null;
 let sinceFilter = null;
 let copyFirst = false;   // clipboard is opt-in: never clobber what the user copied
+let includeHeadless = false;   // --all: also list `claude -p` / SDK sessions
 
 const args = process.argv.slice(2);
 for (let i = 0; i < args.length; i++) {
@@ -43,6 +44,9 @@ for (let i = 0; i < args.length; i++) {
     case '--copy':
       copyFirst = true;
       break;
+    case '--all':
+      includeHeadless = true;
+      break;
     case '--project':
       projectFilter = args[++i];
       break;
@@ -54,10 +58,11 @@ for (let i = 0; i < args.length; i++) {
       break;
     case '--help':
     case '-h':
-      console.log('Usage: recent-sessions.js [--limit N] [--json] [--project <name>] [--model <name>] [--since <duration>] [--copy]');
+      console.log('Usage: recent-sessions.js [--limit N] [--json] [--project <name>] [--model <name>] [--since <duration>] [--all] [--copy]');
       console.log('');
       console.log('  --limit N          Max sessions to show (default: 10)');
       console.log('  --json             Machine-readable JSON output');
+      console.log('  --all              Include headless sessions (claude -p, SDK spawns), hidden by default');
       console.log('  --copy             Copy the first resume command to the clipboard');
       console.log('  --project <name>   Filter by project name (substring)');
       console.log('  --model <name>     Filter by model (e.g. opus, sonnet)');
@@ -72,9 +77,8 @@ function parseSince(s) {
   if (!m) { console.error('Invalid --since format. Use: 7d, 24h, 30m, 2w'); return null; }
   const n = parseInt(m[1], 10);
   const unit = { m: 60000, h: 3600000, d: 86400000, w: 604800000 }[m[2]];
-  const d = new Date(Date.now() - n * unit);
-  const offset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offset).toISOString().slice(0, 19);
+  // modified_at is stored as UTC ISO ('…Z'), so the cutoff is too
+  return new Date(Date.now() - n * unit).toISOString();
 }
 
 function formatTags(tags) {
@@ -99,7 +103,8 @@ const sessions = trackerDb.getRecentSessions({
   limit,
   project: projectFilter,
   model: modelFilter,
-  since: sinceFilter
+  since: sinceFilter,
+  headless: includeHeadless,
 });
 
 if (sessions.length === 0) {

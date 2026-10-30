@@ -6,7 +6,7 @@ Three launchd agents ship in `scripts/` and are the ones that matter today (copy
 |-------|------|---------|------|
 | `com.claude.workspace-snapshot` | `save-workspace.js` | every 300 s | `/tmp/claude-workspace-snapshot.{log,err}` |
 | `com.claude.transcript-index` | `index-transcripts.js --quiet` | hourly + at load | `~/.claude/logs/transcript-index.{log,err}` |
-| `com.claude.db-maintain` | `db-maintain.js` | Sunday 04:30 | `/tmp/claude-db-maintain.{log,err}` |
+| `com.claude.db-maintain` | `db-maintain.js` | Sunday 04:30 | `~/.claude/logs/db-maintain.{log,err}` |
 
 All use `/opt/homebrew/bin/node` (Homebrew). The transcript indexer also runs from the Stop hook (async) and the SessionEnd hook (`--detach`, so indexing never holds up exit), so the hourly agent is a safety net for sessions that die without a hook, for pruning deleted transcripts, and for closing phases those sessions left open.
 

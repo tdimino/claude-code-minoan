@@ -22,9 +22,9 @@
     <key>RunAtLoad</key>
     <false/>
     <key>StandardOutPath</key>
-    <string>/tmp/claude-db-maintain.log</string>
+    <string>/Users/tomdimino/.claude/logs/db-maintain.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/claude-db-maintain.err</string>
+    <string>/Users/tomdimino/.claude/logs/db-maintain.err</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>

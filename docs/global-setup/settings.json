@@ -297,7 +297,7 @@
           },
           {
             "type": "command",
-            "command": "node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --stdin --quiet --debounce 120",
+            "command": "node ~/.claude/skills/claude-tracker-suite/scripts/index-transcripts.js --stdin --quiet --debounce 30",
             "timeout": 120,
             "async": true
           }

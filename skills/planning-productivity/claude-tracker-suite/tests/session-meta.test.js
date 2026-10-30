@@ -19,6 +19,7 @@ const RICH = '11111111-1111-4111-8111-111111111111';
 const OTHER = '22222222-2222-4222-8222-222222222222';
 const PLAIN = '33333333-3333-4333-8333-333333333333';
 const SYN = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const HEADLESS = '44444444-4444-4444-8444-444444444444';
 const PROJECT_DIR = '-tmp-fixture-project';
 
 function makeHome() {
@@ -51,6 +52,7 @@ describe('indexer writes session metadata', () => {
     t = runner(home);
     fs.copyFileSync(path.join(FIXTURES, 'rich.jsonl'), transcript(home, RICH + '.jsonl'));
     fs.copyFileSync(path.join(FIXTURES, 'no-cost-state.jsonl'), transcript(home, PLAIN + '.jsonl'));
+    fs.copyFileSync(path.join(FIXTURES, 'headless.jsonl'), transcript(home, HEADLESS + '.jsonl'));
     // Only a <synthetic> assistant record: the transcript has no real model
     fs.writeFileSync(transcript(home, SYN + '.jsonl'), [
       { type: 'user', sessionId: SYN, timestamp: '2026-10-04T10:00:00.000Z', origin: { kind: 'human' }, message: { role: 'user', content: 'hello' } },
@@ -129,9 +131,16 @@ describe('indexer writes session metadata', () => {
     assert.deepEqual(rows.filter(r => r.session_id === OTHER).map(r => r.title), ['Other session name']);
   });
 
+  it('listings hide headless (sdk-cli) sessions unless asked for them', () => {
+    const ids = (opts) => JSON.parse(t.node(`console.log(JSON.stringify(db.getRecentSessions(${JSON.stringify(opts)}).map(r => r.session_id)))`));
+    assert.ok(!ids({ limit: 50 }).includes(HEADLESS));
+    assert.ok(ids({ limit: 50, headless: true }).includes(HEADLESS));
+    assert.ok(ids({ limit: 50 }).includes(RICH));
+  });
+
   it('ignores .orphaned-* copies', () => {
     const states = t.query('SELECT file_path FROM transcripts.transcript_index_state').map(r => path.basename(r.file_path)).sort();
-    assert.deepEqual(states, [RICH + '.jsonl', PLAIN + '.jsonl', SYN + '.jsonl'].sort());
+    assert.deepEqual(states, [RICH + '.jsonl', PLAIN + '.jsonl', SYN + '.jsonl', HEADLESS + '.jsonl'].sort());
   });
 });
 
@@ -168,6 +177,24 @@ describe('upsertSessionMeta precedence', () => {
   it('missing fields never erase stored values', () => {
     upsert({});
     assert.equal(row().model, 'claude-opus-5-5');
+  });
+});
+
+describe('recent-sessions --since', () => {
+  // modified_at is UTC ('…Z'); the cutoff must be too, whatever the local zone
+  it('keeps only sessions active within the window, west of UTC', () => {
+    const home = makeHome();
+    try {
+      const t = runner(home);
+      const ago = (min) => new Date(Date.now() - min * 60000).toISOString();
+      t.node(`db.initSchema(); const ins = db.getDb().prepare("INSERT INTO sessions (session_id, short_id, project_dir, project_path, project_name, created_at, modified_at, entrypoint) VALUES (?, ?, 'p', '/p', 'p', ?, ?, 'cli')");
+        ins.run('a0000000-0000-4000-8000-000000000001', 'a0000000', ${JSON.stringify(ago(10))}, ${JSON.stringify(ago(10))});
+        ins.run('b0000000-0000-4000-8000-000000000002', 'b0000000', ${JSON.stringify(ago(120))}, ${JSON.stringify(ago(120))});
+        db.close();`);
+      const out = execFileSync('node', [path.join(SCRIPTS, 'recent-sessions.js'), '--since', '30m', '--json'],
+        { env: { ...process.env, HOME: home, TZ: 'America/New_York' }, encoding: 'utf8' });
+      assert.deepEqual(JSON.parse(out).map(r => r.shortId), ['a0000000']);
+    } finally { fs.rmSync(home, { recursive: true, force: true }); }
   });
 });
 

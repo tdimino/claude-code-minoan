@@ -14,6 +14,7 @@ import pathlib
 import sqlite3
 import sys
 import time
+from datetime import datetime, timezone
 
 DB_PATH = pathlib.Path.home() / ".claude" / "tracker.db"
 REGISTRY_PATH = pathlib.Path.home() / ".claude" / "session-registry.json"
@@ -370,7 +371,10 @@ def main():
 
     if not session_id or not DB_PATH.exists():
         return
+    # Phases and tags keep the local clock their other writers use;
+    # session times sort against the indexer's UTC ISO strings
     now = time.strftime("%Y-%m-%dT%H:%M:%S")
+    now_utc = datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
     if session_end:
         end_session(session_id, now)
     # A session with no transcript on disk is a phantom — never upsert it
@@ -381,7 +385,7 @@ def main():
     try:
         conn = connect()
         conn.execute("BEGIN IMMEDIATE")
-        ensure_session(conn, session_id, transcript_path, now)
+        ensure_session(conn, session_id, transcript_path, now_utc)
 
         entry = read_registry_entry(session_id)
         if entry:
