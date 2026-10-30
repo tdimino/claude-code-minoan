@@ -12,13 +12,12 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const readline = require('readline');
 
 const LIB_DIR = path.join(os.homedir(), '.claude', 'lib');
 const trackerDb = require(path.join(LIB_DIR, 'tracker-db'));
 const {
-  loadSessionsIndex, loadSummaryCache, parseSessionEnriched,
-  readSessionSlug, readCustomTitle, decodeProjectPath,
+  loadSessionsIndex, loadSummaryCache, extractSessionMeta,
+  readSessionSlug, decodeProjectPath, SESSION_FILE_RE,
   loadGitTracking
 } = require(path.join(LIB_DIR, 'tracker-utils'));
 
@@ -58,6 +57,10 @@ function collectSessions() {
     .filter(d => d.isDirectory());
 
   const sessions = [];
+  // [sessionId, meta, file] — written through upsertSessionMeta after the bulk
+  // insert, so source labels and title/summary precedence always apply
+  const metas = [];
+  let unreadable = 0;
   let jsonlCount = 0;
 
   for (const dir of projectDirs) {
@@ -67,7 +70,7 @@ function collectSessions() {
 
     let jsonls;
     try {
-      jsonls = fs.readdirSync(projDir).filter(f => f.endsWith('.jsonl'));
+      jsonls = fs.readdirSync(projDir).filter(f => SESSION_FILE_RE.test(f));
     } catch { continue; }
 
     for (const jsonl of jsonls) {
@@ -83,59 +86,40 @@ function collectSessions() {
             && existing.total_cost_usd > 0) continue;
       }
 
-      const regEntry = registry[sessionId] || {};
       const sumEntry = summaries[sessionId] || {};
       const idxEntry = sessionsIndex[sessionId] || {};
 
-      // Extract first line for cwd, slug
-      let cwd = null;
-      let slug = null;
-      let firstPrompt = null;
-      let createdAt = null;
-      let lastUserMsgAt = null;
-
-      try {
-        const fd = fs.openSync(filePath, 'r');
-        const buf = Buffer.alloc(8192);
-        const bytesRead = fs.readSync(fd, buf, 0, 8192, 0);
-        fs.closeSync(fd);
-        const partial = buf.toString('utf-8', 0, bytesRead);
-        const lines = partial.split('\n');
-        for (let i = 0; i < Math.min(20, lines.length); i++) {
-          if (!lines[i]) continue;
-          try {
-            const obj = JSON.parse(lines[i]);
-            if (obj.cwd && !cwd) cwd = obj.cwd;
-            if (obj.slug && !slug) slug = obj.slug;
-            if (obj.type === 'user' && !firstPrompt) {
-              const content = obj.message?.content;
-              if (typeof content === 'string') {
-                firstPrompt = content.slice(0, 500);
-              } else if (Array.isArray(content)) {
-                const textBlock = content.find(b => b.type === 'text');
-                if (textBlock) firstPrompt = textBlock.text.slice(0, 500);
-              }
-            }
-            if (obj.timestamp && !createdAt) createdAt = obj.timestamp;
-            if (obj.type === 'user' && obj.timestamp) lastUserMsgAt = obj.timestamp;
-          } catch { /* skip */ }
-        }
-      } catch { /* file unreadable */ }
-
-      slug = slug || readSessionSlug(filePath) || null;
-
-      let enriched = {};
-      if (!SKIP_ENRICH) {
-        try { enriched = parseSessionEnriched(filePath); } catch { /* skip */ }
+      // Transcript-sourced fields come from the shared extractor (one
+      // streaming pass; plan "Field sources"). --skip-enrich leaves them to
+      // the indexer and imports only the cache/registry fallbacks.
+      const meta = SKIP_ENRICH ? {} : extractSessionMeta(filePath);
+      if (!meta) {
+        // Read failed: writing what was extracted would zero stored counts
+        unreadable++;
+        log(`  ! unreadable, skipped: ${filePath}`);
+        continue;
       }
+      const fileInfo = { projectDir: dir.name, projectPath, transcriptPath: filePath,
+        transcriptSize: stat.size, mtime: stat.mtime.toISOString() };
+      // Old summarizer cache text ranks lowest ('cache'): it fills gaps only
+      const cacheTitle = sumEntry.title || null;
+      const cacheSummary = sumEntry.summary || idxEntry.summary || null;
+      if (cacheTitle || cacheSummary) {
+        metas.push([sessionId, { autoTitle: cacheTitle, titleSource: cacheTitle ? 'cache' : null,
+          summary: cacheSummary, summarySource: cacheSummary ? 'cache' : null }, fileInfo]);
+      }
+      if (!SKIP_ENRICH) metas.push([sessionId, meta, { ...fileInfo, authoritative: true }]);
+      const slug = meta.slug || readSessionSlug(filePath) || null;
+      const cwd = meta.cwd || null;
 
-      const customTitle = readCustomTitle(filePath) || regEntry.title || idxEntry.customTitle || null;
-      const autoTitle = sumEntry.title || null;
-      const summary = regEntry.summary || sumEntry.summary || enriched.summary || idxEntry.summary || null;
-      firstPrompt = firstPrompt || enriched.firstPrompt || idxEntry.firstPrompt || sumEntry.first_msg || null;
-
-      const model = enriched.model || sumEntry.model || null;
-      const modelShort = enriched.modelShort || (model ? model.replace('claude-opus-4-6', 'opus-4.6').replace(/^claude-/, '') : null);
+      // Registry titles are Qwen guesses, not user renames: the Stop hook
+      // (session-sync-db.py) files them as auto_title with title_source
+      // 'qwen-local'. custom_title is only ever the user's own. Automatic
+      // titles and summaries go through upsertSessionMeta (above), never
+      // the bulk insert, which has no source labels.
+      const customTitle = meta.customTitle || idxEntry.customTitle || null;
+      const firstPrompt = meta.firstPrompt || idxEntry.firstPrompt || sumEntry.first_msg || null;
+      const model = meta.model || sumEntry.model || null;
 
       sessions.push({
         session_id: sessionId,
@@ -148,25 +132,25 @@ function collectSessions() {
         transcript_size: stat.size,
         slug,
         custom_title: customTitle,
-        auto_title: autoTitle,
-        summary,
+        auto_title: null,
+        summary: null,
         first_prompt: firstPrompt,
-        created_at: createdAt || idxEntry.created || stat.birthtime.toISOString(),
+        created_at: meta.createdAt || idxEntry.created || stat.birthtime.toISOString(),
         modified_at: idxEntry.modified || stat.mtime.toISOString(),
-        last_user_msg_at: lastUserMsgAt,
-        duration_ms: enriched.totalDurationMs || 0,
+        last_user_msg_at: meta.lastUserMsgAt || null,
+        duration_ms: meta.durationMs || 0,
         model,
-        model_short: modelShort,
-        version: enriched.version || null,
-        num_turns: enriched.numTurns || sumEntry.num_turns || idxEntry.messageCount || 0,
-        total_input_tokens: enriched.totalInputTokens || 0,
-        total_output_tokens: enriched.totalOutputTokens || 0,
-        cache_read_tokens: enriched.cacheReadTokens || 0,
-        cache_creation_tokens: enriched.cacheCreationTokens || 0,
-        total_cost_usd: enriched.totalCostUsd || sumEntry.total_cost_usd || 0,
-        git_branch: idxEntry.gitBranch || null,
+        model_short: meta.modelShort || (model ? model.replace(/^claude-/, '') : null),
+        version: meta.version || null,
+        num_turns: meta.numTurns || sumEntry.num_turns || idxEntry.messageCount || 0,
+        total_input_tokens: meta.inputTokens || 0,
+        total_output_tokens: meta.outputTokens || 0,
+        cache_read_tokens: meta.cacheReadTokens || 0,
+        cache_creation_tokens: meta.cacheCreationTokens || 0,
+        total_cost_usd: meta.totalCostUsd || sumEntry.total_cost_usd || 0,
+        git_branch: meta.gitBranch || idxEntry.gitBranch || null,
         git_remote: null,
-        is_worktree: enriched.isWorktree ? 1 : 0,
+        is_worktree: 0,
         is_sidechain: idxEntry.isSidechain ? 1 : 0,
         is_running: 0,
         pid: null,
@@ -176,6 +160,7 @@ function collectSessions() {
     }
   }
 
+  if (unreadable) log(`\n  ${unreadable} transcript(s) unreadable and skipped`);
   log(`\n  Found ${jsonlCount} JSONL files, ${Object.keys(registry).length} registry entries, ${Object.keys(summaries).length} cached summaries`);
 
   if (DRY_RUN) {
@@ -190,6 +175,10 @@ function collectSessions() {
     progress(Math.min(i + BATCH_SIZE, sessions.length), sessions.length, 'Sessions');
   }
   log('');
+  // Same write path as the indexer: source columns, precedence, v5 fields
+  trackerDb.getDb().transaction(() => {
+    for (const [sessionId, meta, file] of metas) trackerDb.upsertSessionMeta(sessionId, meta, file);
+  })();
 
   return sessions.length;
 }

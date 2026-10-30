@@ -181,7 +181,7 @@ All CLIs are thin wrappers over `skills/planning-productivity/claude-tracker-sui
 
 ### Session Cost Tracking
 
-The enrichment pipeline (`parseSessionEnriched` in `lib/tracker-utils.js`) scans full JSONL transcripts to aggregate token usage from every API call, then computes USD cost using Anthropic's published per-model pricing.
+The extractor (`extractSessionMeta` in `lib/tracker-utils.js`) streams each JSONL transcript once. Cost is Claude Code's own `cost-state` total plus the usage written after it; sessions without one are priced per message at that message's model, with streaming duplicates counted once.
 
 ```bash
 sqlite3 ~/.claude/tracker.db "SELECT short_id, num_turns, printf('\$%.2f', total_cost_usd), model_short FROM sessions ORDER BY total_cost_usd DESC LIMIT 10;"

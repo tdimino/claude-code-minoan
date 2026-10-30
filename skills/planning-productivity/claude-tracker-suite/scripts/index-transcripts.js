@@ -5,9 +5,12 @@
  * Usage: node index-transcripts.js [--rebuild] [--limit N] [--budget MS] [--quiet]
  *        node index-transcripts.js --session <id> | --file <path> | --stdin [--debounce SEC] [--detach]
  *
- * Walks all top-level session JSONL files (subagent/tool-result payloads in
- * session subdirectories are never enumerated), extracts user+assistant text,
- * and writes it to transcript_messages / transcript_fts in the sidecar DB.
+ * Walks all top-level <uuid>.jsonl session files (subagent/tool-result
+ * payloads in session subdirectories and the .orphaned and .superseded copies are
+ * never enumerated). One pass per file extracts user+assistant text into
+ * transcript_messages / transcript_fts in the sidecar DB, title events into
+ * title_history, and the session metadata row (titles, summary, first
+ * prompt, model, turns, cost) into sessions.
  *
  * Incremental by default: sessions whose file size and mtime match
  * transcript_index_state are skipped. --rebuild reindexes everything.
@@ -27,93 +30,48 @@
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 const utils = require(path.join(os.homedir(), '.claude', 'lib', 'tracker-utils.js'));
 const db = require(path.join(os.homedir(), '.claude', 'lib', 'tracker-db.js'));
 
-// Bump when extraction rules change (noise filters, skip prefixes, caps) —
-// forces reindex of sessions indexed under older rules
-const EXTRACTOR_VERSION = 4; // v4: title/nickname history extraction
+// Bump when extraction rules change (noise filters, skip prefixes, caps,
+// metadata fields) — forces reindex of sessions indexed under older rules
+const EXTRACTOR_VERSION = 6; // v6: era-aware turn counting, last-record usage dedupe, 1-hour cache-write pricing
 
-// Guard against pathological single messages (huge pasted dumps)
-const MAX_MESSAGE_CHARS = 20000;
-// Skip system-injected turns: command wrappers, tool results rendered as user turns
-const SKIP_PREFIXES = ['<command-', '<local-command', '<task-notification', '<system-reminder'];
 // --debounce: a session that grew less than this since its last index pass
 // is not worth re-extracting mid-conversation
 const DEBOUNCE_GROWTH_BYTES = 256 * 1024;
 
 const PROJECTS_DIR = path.join(os.homedir(), '.claude', 'projects');
+const ERROR_LOG = path.join(os.homedir(), '.claude', 'logs', 'transcript-index-errors.log');
 
-function shouldSkip(text) {
-  if (!text) return true;
-  const head = text.trimStart().slice(0, 40);
-  for (const p of SKIP_PREFIXES) {
-    if (head.startsWith(p)) return true;
-  }
-  return utils.isTranscriptNoise(text.slice(0, 2000));
+/**
+ * Errors from the database itself (locked, full, corrupt, read-only) stop a
+ * pass: every later file would fail the same way. Anything else belongs to
+ * one transcript and must not block the sessions after it.
+ */
+function isDbLevelError(err) {
+  return !!err && err.code === 'ERR_SQLITE_ERROR'
+    && /locked|busy|full|disk|corrupt|malformed|readonly|not a database/i.test(String(err.message));
+}
+
+/** One line per failed session, kept even under --quiet (hooks run quiet). */
+function logIndexError(sessionId, err) {
+  const line = `${new Date().toISOString()} ${String(sessionId).slice(0, 8)} ${err && err.stack ? err.stack.split('\n')[0] : err}\n`;
+  try {
+    fs.mkdirSync(path.dirname(ERROR_LOG), { recursive: true });
+    fs.appendFileSync(ERROR_LOG, line);
+  } catch { /* the stderr line below still reports it */ }
+  console.error(`transcript-index: ${line.trim()}`);
 }
 
 /**
- * Stream one JSONL transcript, returning {messages, titleEvents, hadError}.
- * hadError=true means the read did not reach a clean EOF — the caller must
- * NOT record index state, or the incremental skip would permanently mask a
- * partially-read session from search.
- *
- * Title events: custom-title lines route by their OWN sessionId — a /rename
- * after /resume writes into the active file but targets another session
- * (anthropics/claude-code#27202; Claude Code's scanner gets this wrong, we
- * don't). Lines carry no timestamp; the nearest preceding timestamped line
- * dates the event. Consecutive duplicates (Claude Code rewrites the line
- * constantly) collapse to one event per actual change.
+ * A linked worktree's checkout has a .git FILE (pointing into the main
+ * repo's .git/worktrees/); a main checkout has a .git directory.
+ * null when the cwd is unknown or gone.
  */
-function extractMessages(filePath, fileSessionId) {
-  return new Promise((resolve) => {
-    const messages = [];
-    const titleEvents = [];
-    const lastTitleByTarget = new Map();
-    let lastSlug = null;
-    let lastTimestamp = null;
-    let lineNo = 0;
-    let hadError = false;
-    let stream, rl;
-    try {
-      stream = fs.createReadStream(filePath);
-      rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-    } catch {
-      return resolve({ messages, titleEvents, hadError: true });
-    }
-    rl.on('line', (line) => {
-      lineNo++;
-      let data;
-      try { data = JSON.parse(line); } catch { return; }
-      if (data.timestamp) lastTimestamp = data.timestamp;
-
-      if (data.type === 'custom-title' && data.customTitle) {
-        const target = data.sessionId || fileSessionId;
-        if (lastTitleByTarget.get(target) !== data.customTitle) {
-          lastTitleByTarget.set(target, data.customTitle);
-          titleEvents.push({ sessionId: target, title: data.customTitle, source: 'user',
-            observedAt: lastTimestamp, firstSeenSeq: lineNo });
-        }
-        return;
-      }
-      if (data.slug && data.slug !== lastSlug) {
-        lastSlug = data.slug;
-        titleEvents.push({ sessionId: fileSessionId, title: data.slug, source: 'slug',
-          observedAt: lastTimestamp || data.timestamp || null, firstSeenSeq: lineNo });
-      }
-
-      if (data.type !== 'user' && data.type !== 'assistant') return;
-      if (data.isSidechain) return;
-      const text = utils.extractMessageText(data.message && data.message.content);
-      if (!text || shouldSkip(text)) return;
-      messages.push({ role: data.type, text: text.slice(0, MAX_MESSAGE_CHARS) });
-    });
-    rl.on('close', () => resolve({ messages, titleEvents, hadError }));
-    rl.on('error', () => { hadError = true; resolve({ messages, titleEvents, hadError }); });
-    stream.on('error', () => { hadError = true; resolve({ messages, titleEvents, hadError }); });
-  });
+function isWorktree(cwd) {
+  if (!cwd) return null;
+  try { return fs.statSync(path.join(cwd, '.git')).isFile(); } catch { return null; }
 }
 
 function isCurrent(prior, stat) {
@@ -134,7 +92,10 @@ async function indexOne(file, states, { quiet = true, force = false } = {}) {
     return { status: 'skipped', messages: 0, titleEvents: 0 };
   }
 
-  const { messages, titleEvents, hadError } = await extractMessages(file.filePath, sessionId);
+  // One synchronous pass (tracker-utils extractTranscript) yields FTS rows,
+  // title events and the session metadata row. Title events route by their
+  // own sessionId; see extractRecord.
+  const { messages, titleEvents, meta, hadError } = utils.extractTranscript(file.filePath, { fileSessionId: sessionId });
   if (hadError) {
     // No state write — the session stays eligible for the next run
     if (!quiet) console.log(`  ! read error, will retry next run: ${sessionId.slice(0, 8)}`);
@@ -148,6 +109,9 @@ async function indexOne(file, states, { quiet = true, force = false } = {}) {
     messages,
     titleEvents,
     extractorVersion: EXTRACTOR_VERSION,
+    meta,
+    file: { projectPath: utils.decodeProjectPath(file.projectDir), mtime: stat.mtime.toISOString(),
+      isWorktree: isWorktree(meta.cwd), authoritative: true },
   });
   return { status: 'indexed', messages: messages.length, titleEvents: titleEvents.length };
 }
@@ -171,7 +135,16 @@ async function refreshTranscriptIndex({ budgetMs = Infinity, limit = Infinity, q
   let i = 0;
   for (; i < allFiles.length; i++) {
     if (r.indexed >= limit || Date.now() - t0 > budgetMs) break;
-    const out = await indexOne(allFiles[i], states, { quiet });
+    let out;
+    try {
+      out = await indexOne(allFiles[i], states, { quiet });
+    } catch (err) {
+      if (isDbLevelError(err)) throw err;
+      // The transaction rolled back, so no state was recorded: the session
+      // stays eligible and is retried next run
+      logIndexError(path.basename(allFiles[i].filePath, '.jsonl'), err);
+      out = { status: 'errored' };
+    }
     if (out.status === 'skipped') r.skipped++;
     else if (out.status === 'errored') r.errored++;
     else if (out.status === 'indexed') {
@@ -216,6 +189,11 @@ function findTranscript(sessionId) {
  * by less than DEBOUNCE_GROWTH_BYTES — bounds churn for chatty sessions.
  */
 async function indexSession({ sessionId, filePath, debounceSec = 0, quiet = true } = {}) {
+  // Only real transcripts (<uuid>.jsonl): an .orphaned or .superseded copy
+  // would otherwise become a bogus session row
+  if (filePath && !utils.SESSION_FILE_RE.test(path.basename(filePath))) {
+    return { sessionId: sessionId || path.basename(filePath), status: 'not-a-transcript', messages: 0, titleEvents: 0 };
+  }
   if (!sessionId && filePath) sessionId = path.basename(filePath, '.jsonl');
   let file = null;
   if (filePath && fs.existsSync(filePath)) {
@@ -238,8 +216,14 @@ async function indexSession({ sessionId, filePath, debounceSec = 0, quiet = true
       }
     }
   }
-  const out = await indexOne(file, states, { quiet });
-  return { sessionId, ...out };
+  try {
+    const out = await indexOne(file, states, { quiet });
+    return { sessionId, ...out };
+  } catch (err) {
+    if (isDbLevelError(err)) throw err;
+    logIndexError(sessionId, err);
+    return { sessionId, status: 'errored', messages: 0, titleEvents: 0 };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -327,7 +311,7 @@ async function main() {
   if (!quiet || r.indexed || r.errored || r.pruned || r.phasesClosed) {
     const secs = (r.ms / 1000).toFixed(1);
     console.log(`Indexed ${r.indexed} session(s) in ${secs}s — ${r.skipped} unchanged, ${r.empty} with no indexable text` +
-      (r.errored ? `, ${r.errored} read errors (will retry)` : '') +
+      (r.errored ? `, ${r.errored} errors (will retry; see logs/transcript-index-errors.log)` : '') +
       (r.remaining ? `, ${r.remaining} still pending (budget/limit reached)` : '') +
       (r.pruned ? `, ${r.pruned} deleted sessions pruned` : '') +
       (r.titleEvents ? `, ${r.titleEvents} title events` : '') +

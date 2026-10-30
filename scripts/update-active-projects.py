@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import re
+import sqlite3
 import subprocess
 import sys
 import time
@@ -29,6 +30,7 @@ PROJECTS_DIR = Path.home() / ".claude" / "projects"
 AGENT_DOC = Path.home() / ".claude" / "agent_docs" / "active-projects.md"
 SUMMARY_CACHE = Path.home() / ".claude" / "session-summaries.json"
 LOG_FILE = Path.home() / ".claude" / "logs" / "update-agent-docs.log"
+TRACKER_DB = Path.home() / ".claude" / "tracker.db"
 MAX_PROJECTS = 10
 MAX_SESSIONS_PER_PROJECT = 3
 MAX_LINES_HEAD = 60  # First N lines for metadata + opening messages
@@ -184,96 +186,38 @@ def parse_session(jsonl_path: Path) -> dict | None:
 
 
 def enrich_session(jsonl_path: Path) -> dict:
-    """Extract model, token usage, turns, duration, cost, and worktree status from JSONL.
+    """Model, turns, tokens, cost and worktree flag for a session, from tracker.db.
 
-    Reads head (100 lines) for model/cwd and tail (300 lines) for usage stats.
+    The transcript indexer (index-transcripts.js) fills these from the whole
+    transcript after every turn: cost is Claude Code's own cost-state plus the
+    usage after it, turns count human prompts only. A session it has not
+    reached yet reads as empty rather than as a guess from the file's tail.
     """
-    model = ""
-    cwd = ""
-    total_input = 0
-    total_output = 0
-    num_turns = 0
-    total_duration_ms = 0
-    total_cost_usd = 0.0
-
-    try:
-        with open(jsonl_path) as f:
-            # Head: find model and cwd
-            for i, line in enumerate(f):
-                if i >= 100:
-                    break
-                try:
-                    obj = json.loads(line)
-                    if not cwd and obj.get("cwd"):
-                        cwd = obj["cwd"]
-                    if obj.get("type") == "assistant" and not model:
-                        msg = obj.get("message", {})
-                        model = msg.get("model", "")
-                except json.JSONDecodeError:
-                    continue
-
-        # Tail: usage stats + cost
-        tail_lines = _tail(jsonl_path, 300)
-        for line in tail_lines:
-            try:
-                obj = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            if obj.get("type") == "assistant":
-                msg = obj.get("message", {})
-                if not model:
-                    model = msg.get("model", "")
-                usage = msg.get("usage", {})
-                if usage.get("output_tokens"):
-                    total_input += usage.get("input_tokens", 0)
-                    total_output += usage.get("output_tokens", 0)
-
-            if obj.get("type") == "system" and obj.get("subtype") == "turn_duration":
-                num_turns += 1
-                total_duration_ms += obj.get("durationMs", 0)
-
-            # Cost from result messages (last one is cumulative)
-            if obj.get("type") == "result" and obj.get("total_cost_usd"):
-                total_cost_usd = obj["total_cost_usd"]
-            if obj.get("costUsd"):
-                total_cost_usd = max(total_cost_usd, obj["costUsd"])
-    except OSError:
-        pass
-
-    # Detect git worktree
-    is_worktree = False
-    if cwd:
-        try:
-            result = subprocess.run(
-                ["git", "-C", cwd, "rev-parse", "--git-dir"],
-                capture_output=True, text=True, timeout=3
-            )
-            if result.returncode == 0 and "/worktrees/" in result.stdout:
-                is_worktree = True
-        except (subprocess.TimeoutExpired, OSError):
-            pass
-
-    # Shorten model for display
-    model_short = (
-        model.replace("claude-opus-4-6", "opus-4.6")
-        .replace("claude-opus-4-5-20251101", "opus-4.5")
-        .replace("claude-sonnet-4-5-20250929", "sonnet-4.5")
-        .replace("claude-haiku-4-5-20251001", "haiku-4.5")
-    )
-    if model_short.startswith("claude-"):
-        model_short = model_short[7:]
-
-    return {
-        "model": model,
-        "model_short": model_short,
-        "total_input_tokens": total_input,
-        "total_output_tokens": total_output,
-        "num_turns": num_turns,
-        "total_duration_ms": total_duration_ms,
-        "total_cost_usd": total_cost_usd,
-        "is_worktree": is_worktree,
+    out = {
+        "model": "", "model_short": "", "total_input_tokens": 0, "total_output_tokens": 0,
+        "num_turns": 0, "total_duration_ms": 0, "total_cost_usd": 0.0, "is_worktree": False,
     }
+    try:
+        conn = sqlite3.connect(f"file:{TRACKER_DB}?mode=ro", uri=True, timeout=2)
+        try:
+            row = conn.execute(
+                "SELECT model, model_short, total_input_tokens, total_output_tokens, num_turns,"
+                " duration_ms, total_cost_usd, is_worktree FROM sessions WHERE session_id = ?",
+                (jsonl_path.stem,),
+            ).fetchone()
+        finally:
+            conn.close()
+    except sqlite3.Error as e:
+        log.warning("tracker.db read failed for %s: %s", jsonl_path.stem[:8], e)
+        return out
+    if row:
+        out.update({
+            "model": row[0] or "", "model_short": row[1] or "",
+            "total_input_tokens": row[2] or 0, "total_output_tokens": row[3] or 0,
+            "num_turns": row[4] or 0, "total_duration_ms": row[5] or 0,
+            "total_cost_usd": row[6] or 0.0, "is_worktree": bool(row[7]),
+        })
+    return out
 
 
 def _read_tail_messages(jsonl_path: Path) -> list[dict]:

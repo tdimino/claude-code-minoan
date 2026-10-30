@@ -149,7 +149,7 @@ All tracker scripts use `~/.claude/lib/tracker-utils.js`:
 | `loadSessionsIndex()` | Every transcript as a flat array, titles/summaries from tracker.db |
 | `loadSummaryCache()` | Load cached summaries |
 | `parseSession()` | Parse JSONL for messages, keywords, metadata |
-| `parseSessionEnriched()` | Extract model, tokens, turns, duration, cost, worktree status from JSONL |
+| `extractSessionMeta()` | One streaming pass over a JSONL transcript: titles, summary, first prompt, model, turns, duration, cost (`cost-state` plus deduped usage), entrypoint, PR link |
 | `getLiveSessions({allKinds})` | Live sessions from PID files, verified against `ps`, TTY-ordered |
 | `getStaleSessions({windowDays})` | Newest transcript per project with no live process (crash candidates) |
 | `buildSessionStatus()` | Per-file `isRunning`/`pid`/`tty`/`liveName` by sessionId, plus VS Code workspace flag |

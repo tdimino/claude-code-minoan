@@ -3,10 +3,7 @@
 // Run: node --test tests/   (from the suite directory)
 //
 // Targets utils.extractSessionMeta(filePath), which is SYNCHRONOUS (chunked
-// fs.readSync, the same reader Phase 3's byte-offset indexing needs). Until it
-// exists, the legacy parseSessionEnriched is adapted to the same shape, so the
-// assertions fail for the real reasons (dead `summary` records, duplicated
-// usage, first-model pricing) rather than for a missing function.
+// fs.readSync, the same reader Phase 3's byte-offset indexing needs).
 //
 // Rules pinned here (plan "Field sources"):
 //   - session id: first record carrying sessionId ?? session_id
@@ -29,35 +26,7 @@ const utils = require(path.join(LIB_DIR, 'tracker-utils.js'));
 
 const fixture = (name) => path.join(__dirname, 'fixtures', name);
 
-function legacyAdapter(filePath) {
-  const r = utils.parseSessionEnriched(filePath);
-  return {
-    sessionId: undefined,
-    model: r.model || null,
-    firstPrompt: r.firstPrompt || null,
-    numTurns: r.numTurns,
-    totalCostUsd: r.totalCostUsd,
-    costSource: undefined,
-    summary: r.summary || null,
-    summarySource: undefined,
-    autoTitle: undefined,
-    customTitle: undefined,
-    entrypoint: undefined,
-    prUrl: undefined,
-    lastPrompt: undefined,
-    cwd: undefined,
-    gitBranch: undefined,
-  };
-}
-
-const extract = (filePath) => (utils.extractSessionMeta
-  ? utils.extractSessionMeta(filePath)
-  : legacyAdapter(filePath));
-
-// Until Phase 2 lands extractSessionMeta, failures report as todo (expected),
-// not as a red run; the assertions themselves are unchanged and become
-// enforced the moment the function exists.
-const PENDING = !utils.extractSessionMeta && 'Phase 2: extractSessionMeta not implemented yet';
+const extract = (filePath) => utils.extractSessionMeta(filePath);
 
 const close = (actual, expected) =>
   assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≉ ${expected}`);
@@ -71,7 +40,34 @@ function assertRich(meta) {
   close(meta.totalCostUsd, richCost());
 }
 
-describe('rich session (ai-title, cost-state, away_summary, duplicates)', { todo: PENDING }, () => {
+// Per-million-token prices from the /claude-api skill (2026-10-06 table);
+// a 5-minute cache write is 1.25x input on every model.
+describe('pricing', () => {
+  const M = 1_000_000;
+  const cases = [
+    // model, [input, output, cacheRead, cacheWrite] $/M
+    ['claude-fable-5-1', [10, 50, 0.25, 12.5]],
+    ['claude-fable-5', [10, 50, 1.0, 12.5]],
+    ['claude-opus-5-5', [4, 20, 0.2, 5]],
+    ['claude-opus-5', [5, 25, 0.5, 6.25]],
+    ['claude-opus-4-6', [5, 25, 0.5, 6.25]],
+    ['claude-opus-4-1-20250805', [15, 75, 1.5, 18.75]],
+    ['claude-sonnet-5-5', [2, 10, 0.2, 2.5]],
+    ['claude-sonnet-5', [2, 10, 0.2, 2.5]],
+    ['claude-sonnet-4-6', [3, 15, 0.3, 3.75]],
+    ['claude-haiku-5-5', [0.1, 0.5, 0.01, 0.125]],
+  ];
+  for (const [model, [inp, out, read, write]] of cases) {
+    it(model, () => {
+      close(utils.calculateCostUsd(model, M, 0, 0, 0), inp);
+      close(utils.calculateCostUsd(model, 0, M, 0, 0), out);
+      close(utils.calculateCostUsd(model, 0, 0, M, 0), read);
+      close(utils.calculateCostUsd(model, 0, 0, 0, M), write);
+    });
+  }
+});
+
+describe('rich session (ai-title, cost-state, away_summary, duplicates)', () => {
   const meta = extract(fixture('rich.jsonl'));
 
   it('reads the session id from the records', () => {
@@ -120,7 +116,7 @@ describe('rich session (ai-title, cost-state, away_summary, duplicates)', { todo
   });
 });
 
-describe('session without cost-state (computed cost)', { todo: PENDING }, () => {
+describe('session without cost-state (computed cost)', () => {
   const meta = extract(fixture('no-cost-state.jsonl'));
 
   it('dedupes usage by message.id and prices each message at its own model', () => {
@@ -145,7 +141,7 @@ describe('session without cost-state (computed cost)', { todo: PENDING }, () => 
   });
 });
 
-describe('headless sdk-cli session (no origin fields, session_id key)', { todo: PENDING }, () => {
+describe('headless sdk-cli session (no origin fields, session_id key)', () => {
   const meta = extract(fixture('headless.jsonl'));
 
   it('reads the session id from session_id', () => {
@@ -162,12 +158,12 @@ describe('headless sdk-cli session (no origin fields, session_id key)', { todo: 
   });
 });
 
-// Opt-in; it is not marked todo, so with no extractor it fails red through
-// the legacy adapter (which returns empty past the V8 string limit).
+// Opt-in: the legacy whole-file parser returned empty past the V8 string limit.
 describe('very large transcript (> V8 string limit)', { skip: process.env.TRACKER_TEST_LARGE !== '1' && 'set TRACKER_TEST_LARGE=1 (writes ~600 MB to the OS temp dir)' }, () => {
   it('still extracts metadata that sits on both sides of 600 MB of filler', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tracker-large-'));
-    const file = path.join(dir, '55555555-5555-4555-8555-555555555555.jsonl');
+    // Named after the fixture's own session: titles route by session id
+    const file = path.join(dir, '11111111-1111-4111-8111-111111111111.jsonl');
     try {
       const lines = fs.readFileSync(fixture('rich.jsonl'), 'utf8').split('\n').slice(0, -1);
       // Head: the first human prompt; tail: titles, summaries, cost-state.
