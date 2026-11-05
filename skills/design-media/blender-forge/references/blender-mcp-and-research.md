@@ -23,11 +23,37 @@ looking at a scene live.
 | gltf-transform CLI | `inspect`, `optimize`, Meshopt/Draco, WebP/KTX2 textures | 4.5.1 | MIT | Shrinking GLBs for the web. |
 | TRELLIS.2, Hunyuan3D, Meshy, Rodin | Image/text → textured mesh | Active | MIT / Tencent / commercial | Rough new shapes only. TRELLIS needs CUDA (Mac ports unverified); the rest are uploads. Use the `meshy` skill for Meshy. |
 
-### Installing the official MCP server (not done here)
+### Installing the official MCP server (done and smoke-tested 2026-11-05, v1.0.3, Blender 5.2.3)
 
-Install its add-on from projects.blender.org/lab/blender_mcp into Blender 5.1+, start it from the add-on panel,
-then register the MCP server in Claude Code as the project's README says. Keep scans out of any session where
-model-written code runs live, or use `execute_blender_code_for_cli` on copies.
+There are two parts. The release page (projects.blender.org/lab/blender_mcp/releases) has `mcp-<v>.zip` (the
+Blender add-on) and `blender-<v>.mcpb` (the MCP server, a zip with a `pyproject.toml`). Read both before
+installing. In v1.0.3 the add-on binds `localhost:9876` and the server only connects there: there is no
+telemetry and no outside HTTP.
+
+```bash
+# 1. Server: unpack the .mcpb to a stable folder and build its environment.
+mkdir -p ~/.local/share/blender-mcp/1.0.3 && unzip -q blender-1.0.3.mcpb -d ~/.local/share/blender-mcp/1.0.3
+uv sync --directory ~/.local/share/blender-mcp/1.0.3
+# 2. Add-on: install and enable it in Blender's user preferences.
+blender --command extension install-file -r user_default -e mcp-1.0.3.zip
+# 3. Register with Claude Code (all projects). The tools appear in the next session.
+claude mcp add blender -s user -e BLENDER_PATH=/opt/homebrew/bin/blender -- \
+  uv run --directory ~/.local/share/blender-mcp/1.0.3 blender-mcp
+```
+
+**Using it:**
+- **Tools without a running Blender** (26 in all): `search_api_docs`, `search_manual_docs`, and every `*_for_cli`
+  tool. The CLI tools open a `.blend` in a background Blender found through `BLENDER_PATH`.
+- **Live tools** (`execute_blender_code`, screenshots, scene summaries): open Blender, allow **Preferences →
+  System → Allow Online Access**, then start the server under **Preferences → Add-ons → MCP**, or tick its
+  auto-start box. The add-on counts as a network extension, even though it only uses localhost, so Blender
+  refuses it until online access is on. Headless: `blender --background --online-mode --command blender_mcp`.
+- **Search with plain words** (`spin`, `remove_doubles`, `film transparent`). Dotted paths such as
+  `bmesh.ops.spin` return no hits.
+- **Port 9876 is also the community server's default.** Don't run both add-ons at once.
+- **Return data** from `execute_blender_code` by assigning a JSON-serialisable dict to `result`.
+- **Scans:** keep them out of any session where model-written code runs live, or use the `*_for_cli` tools on
+  copies.
 
 ## What the research says works
 

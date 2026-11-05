@@ -7,7 +7,11 @@ argument-hint: "[vessel | tablet | clean <mesh> | turntable <glb> | encode <fram
 # Blender Forge
 
 Headless Blender, driven by scripts that each write a result, a JSON report and renders to look at. Run, read
-the report and the contact sheet, fix, run again. That loop is what makes agents good at Blender; one-shot code
+the report and the contact sheet, fix, run again.
+
+The official Blender MCP server (installed as `blender` in Claude Code) complements the scripts. Use it for
+looking at a live scene and searching the API docs (`search_api_docs` with plain words, e.g. `spin`). The
+scripts stay the reproducible path; setup and caveats are in the reference. That loop is what makes agents good at Blender; one-shot code
 is not. See `references/blender-mcp-and-research.md`.
 
 **Arguments:**
