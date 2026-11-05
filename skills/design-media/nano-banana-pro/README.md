@@ -1,6 +1,6 @@
 # Nano Banana Pro
 
-The image generation skill. Generate and edit professional-quality images using Google's Gemini 3 Pro Image model---text-to-image, image editing, multi-turn refinement, batch workflows, and a cinematic style guide for documentary-quality output.
+The image generation skill. Generate and edit professional-quality images using Google's Gemini 3 Pro Image model---text-to-image, image editing, multi-turn refinement, batch workflows, and a cinematic style guide for documentary-quality output. Text-to-image generation also supports Atlas Cloud as an explicit opt-in provider while Gemini remains the default.
 
 **Last updated:** 2026-02-27
 
@@ -37,7 +37,8 @@ nano-banana-pro/
     compose_images.py                      # Compose from multiple reference images
     generate_with_references.py            # Style-consistent generation with references
     multi_turn_chat.py                     # Iterative refinement via conversation
-    gemini_images.py                       # Shared API client library
+    gemini_images.py                       # Shared Gemini API client library
+    atlas_images.py                        # Optional Atlas Cloud text-to-image client
     test_connection.py                     # Verify API key and connectivity
 ```
 
@@ -86,11 +87,12 @@ Effective prompts follow a structure: **subject + setting + lighting + style + m
 
 ## Scripts
 
-All scripts use `GEMINI_API_KEY` from environment.
+Gemini scripts use `GEMINI_API_KEY`. The optional Atlas path uses `ATLASCLOUD_API_KEY`.
 
 | Script | Usage |
 |--------|-------|
 | `generate_image.py` | `python3 generate_image.py "A bronze-age craftsman at a forge"` |
+| `generate_image.py` (Atlas) | `python3 generate_image.py "A bronze-age craftsman at a forge" --provider atlas` |
 | `edit_image.py` | `python3 edit_image.py input.png "Add dramatic rim lighting"` |
 | `generate_with_references.py` | `python3 generate_with_references.py "Same style" --ref style.png` |
 | `compose_images.py` | `python3 compose_images.py --images a.png b.png --prompt "Merge"` |
