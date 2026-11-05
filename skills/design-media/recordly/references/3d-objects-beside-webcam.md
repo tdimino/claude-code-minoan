@@ -17,10 +17,12 @@ rules, and the split is typical of cultural-heritage work:
 | Template objects | Generated in the browser from code: lathe-swept tables and cups, clay tablets, signs cut from the Noto Sans Linear A font, CC0 photo textures from ambientCG. Opened with `?set=template&open=<id>`. | Yes, once the viewer itself is public. They are what its production build shows. |
 | Scanned originals (INSCRIBE, University of Bologna) | Photogrammetry meshes served by the dev server only | **No.** The data licence allows scientific, non-profit use and forbids publishing without INSCRIBE's written permission. Keep them out of every frame. |
 
-The template objects are not files. They exist only as meshes with a custom three.js `ShaderMaterial`, and
-`GLTFExporter` does not export custom shader materials, so an exported GLB would lose the carved glow and the
-procedural stone. **Film the viewer instead of exporting from it.** If the viewer is unreleased, clear it with its
-owner first.
+The viewer carves its templates in the browser with a custom three.js `ShaderMaterial`, and `GLTFExporter` cannot
+export that, so don't export from the running viewer. Its newer site build ships each template **baked** by its own
+Blender pipeline: a GLB (12,500 triangles, albedo embedded) with `normal-ao.webp` (object-space normal and
+occlusion) and `groove.webp` (where strokes glow). The `blender-forge` skill's `turntable.py` renders those files
+with the baked look and the stroke glow (**verified** 2026-11-05 on a libation table). If the viewer is
+unreleased, clear the object with its owner before posting it.
 
 **Other sources:** museum scans on Sketchfab carry a licence per model. The Fitzwilliam Museum's Minoan double axe,
 for example, is CC BY 4.0, which means credit "Fitzwilliam Museum, CC BY 4.0" in the post. Read each model's
@@ -79,15 +81,24 @@ shows the scene beneath. The page must not paint a background.
 
 ## Route C: transparent turntable over the recording
 
-Browsers cannot record alpha directly. Chrome's `MediaRecorder` has no transparency option, and its WebCodecs
-`VideoEncoder` rejects `alpha: 'keep'` for every codec. Capture PNG frames and let ffmpeg encode them.
+**From a GLB (verified 2026-11-05):** the `blender-forge` skill renders the frames and does steps 2–3 in one go:
+
+```bash
+F=~/.claude/skills/blender-forge/scripts
+blender -b --factory-startup --python $F/turntable.py -- --glb obj.glb --out turn --frames 360 --glow 3
+python3 $F/encode_turntable.py turn --over take.mp4 --height 0.6   # take.turntable.mp4, object on the right
+```
+
+**From a browser page instead:** browsers cannot record alpha directly. Chrome's `MediaRecorder` has no
+transparency option, and its WebCodecs `VideoEncoder` rejects `alpha: 'keep'` for every codec. Capture PNG frames
+and let ffmpeg encode them.
 
 1. **Frames.** Render with a transparent clear (`alpha: true`, `setClearColor(0x000000, 0)`,
    `preserveDrawingBuffer: true`). Step the rotation by a fixed angle per frame rather than by time, so every frame is
    captured. Save `canvas.toDataURL('image/png')` per frame (agent-browser `eval`, or Playwright). For
    `<model-viewer>`, set `camera-orbit` per frame and save `modelViewer.toBlob()`. A 12-second loop at 30 fps is
    360 frames, at 30° a second.
-2. **Encode with alpha.** This ffmpeg build has `libvpx-vp9` and `prores_ks`:
+2. **Encode with alpha.** This ffmpeg build has `libvpx-vp9` and `prores_ks` (`encode_turntable.py` runs both):
 
    ```bash
    ffmpeg -framerate 30 -i frame_%04d.png -c:v libvpx-vp9 -pix_fmt yuva420p -crf 30 -b:v 0 turntable.webm
@@ -106,9 +117,12 @@ Browsers cannot record alpha directly. Chrome's `MediaRecorder` has no transpare
 
    `-stream_loop -1` repeats the turntable for the whole take, and `shortest=1` ends with the take.
 
-**Inside Recordly instead (untested):** image annotations accept JPG, PNG, GIF and WebP. An animated WebP keeps full
-alpha, but this ffmpeg build has no WebP encoder (use `img2webp` from Google's `webp` tools). GIF alpha is one bit
-with 256 colours, which bands on stone. Whether Recordly's export plays animated annotations has not been checked.
+**Not inside Recordly:** image annotations accept JPG, PNG, GIF and WebP, and the editor preview plays an animated
+GIF or WebP (it is an `<img>`), but the export freezes it. At export setup, `modernFrameRenderer.ts`
+(`setupAnnotationLayer`) draws each image annotation once into a canvas and makes it a static sprite texture, and the
+per-frame `updateAnnotationLayer` only toggles that sprite's visibility between `startMs` and `endMs`. The MP4 and GIF
+exporters share this renderer, so an animated annotation exports as a single still frame. Read in the v1.4.0 source,
+`src/lib/exporter/modernFrameRenderer.ts` and `annotationRenderer.ts`. Use Route C for a turning object.
 
 ## Composition for X
 
