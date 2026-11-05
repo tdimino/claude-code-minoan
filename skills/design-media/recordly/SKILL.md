@@ -1,76 +1,114 @@
 ---
 name: recordly
-description: "Polish screen recordings with Recordly (open-source Screen Studio alternative) — auto-zooms, cursor animations, webcam overlays, styled backgrounds, timeline editing. Also includes Slant: browser-based 3D perspective renderer with 12 animation presets and MP4/GIF export. Triggers on screen recording, demo video, Recordly, screen capture polish, product walkthrough, 3D perspective, Slant."
-argument-hint: "[install | launch | open <file> | slant]"
+description: "Record and polish screen videos with Recordly (open-source Screen Studio alternative, v1.4.0): display or window capture with a live webcam bubble, microphone and system audio, auto-zoom, cursor effects, local Whisper captions, aspect-ratio presets, timeline trims and MP4/GIF export. Also includes Slant, a browser-based 3D perspective renderer with 12 animation presets. This skill should be used when recording oneself on camera over a screen (talking head over slides, PDFs, tablets or a website), making a video for X/Twitter, polishing a demo or walkthrough, or adding a 3D perspective effect. Triggers on record myself, talking head, screen and webcam, video for X, Twitter video, screen recording, demo video, product walkthrough, Recordly, Slant, 3D perspective."
+argument-hint: "[install | launch | drive | x-check <file> | slant]"
 ---
 
 # Recordly
 
-Open-source screen recorder and editor for polished product demos, walkthroughs, tutorials, and social clips. Records screen or window, then provides a timeline editor with auto-zoom, cursor effects, webcam overlays, styled backgrounds, and MP4/GIF export. All effects are 2D pan-and-zoom with motion blur — not 3D perspective transforms.
+Desktop recorder and editor (`webadderallorg/Recordly`, AGPL-3.0). It records a display or a single window with
+microphone, system audio and a live webcam, then opens a timeline editor for trims, zooms, captions, framing and export.
+On macOS it captures through native ScreenCaptureKit helpers and needs macOS 14 or later. Effects are 2D pan and zoom
+with motion blur. For 3D perspective, use Slant (below).
 
-Fork of OpenScreen (`siddharthvaddem/openscreen`, 10.6K stars, MIT). Recordly adds: webcam zoom-reactive scaling, `.recordly` project persistence, auto-captions (Whisper), enhanced cursor effects (sway, click bounce, loop mode), native capture backends. AGPL 3.0.
+The Homebrew cask installs v1.4.0 to `/Applications/Recordly.app` (bundle id `dev.recordly.app`), signed Developer ID
+Application: Fido Tech (54QUWA9PZA), notarized and stapled.
+
+Arguments: `install` runs `scripts/install_recordly.sh`, `launch` runs `scripts/launch_recordly.sh`, `drive` follows
+"Drive with agent-desktop", `x-check <file>` runs `scripts/check_x_export.py`, `slant` opens `scripts/slant.html`.
 
 ## When to Use
 
-- Recording polished screen demos for PRs, docs, or social media
-- Post-processing raw screen recordings with auto-zoom, cursor smoothing, and styled frames
-- Creating product walkthrough videos with webcam overlay
-- Polishing recordings captured via `compound-engineering:feature-video`
+- Recording the user on webcam over a window: a photo of an artifact, a PDF, a website, a slide.
+- Placing a 3D object beside the user's face. See `references/3d-objects-beside-webcam.md`.
+- Short clips for X, demos for PRs and docs, product walkthroughs.
+- Polishing a raw capture from `compound-engineering:feature-video` (open it in Recordly, add zooms and a frame,
+  export).
 
-**When not to use**: For raw screen capture without polish (use macOS screenshot, OBS, or QuickTime). For headless/batch video processing (use ffmpeg). For device frame mockups with phone/laptop bezels (use Rotato or Shots.so). For audio mixing or voiceover (use a dedicated audio editor).
+**Not for:** raw capture with no editing (QuickTime), batch or headless video work (ffmpeg), device bezels (Rotato,
+Shots.so), audio mixing.
 
-## Quick Start
-
-```bash
-# Install Recordly (clone, build, handle macOS quarantine)
-bash scripts/install_recordly.sh
-
-# Launch Recordly (or open a file directly)
-bash scripts/launch_recordly.sh
-bash scripts/launch_recordly.sh path/to/recording.mp4
-bash scripts/launch_recordly.sh path/to/project.recordly
-```
-
-## Installation
-
-Run the install script to clone, install dependencies, and build:
+## Install and Launch
 
 ```bash
-bash scripts/install_recordly.sh
+S=~/.claude/skills/recordly/scripts
+bash $S/install_recordly.sh                 # Homebrew cask; upgrades when already installed
+bash $S/install_recordly.sh --from-source   # clone and build in ~/tools/recordly
+bash $S/launch_recordly.sh                  # files passed at launch are ignored; open them from HUD → More
 ```
 
-The script clones `webadderall/Recordly` to `~/tools/recordly/`, runs `npm install`, builds the platform-appropriate app, and handles macOS quarantine.
+Recordly needs **Screen Recording**, **Microphone** and **Camera**. It does not add itself to the Screen Recording list,
+so the user adds `/Applications/Recordly.app` there with **+**. The microphone and camera prompts appear when a device is
+chosen in the HUD. Steps and verification are in the reference below.
 
-Alternatively, download prebuilt releases from `https://github.com/webadderall/Recordly/releases`. On Arch Linux: `yay -S recordly-bin`.
+Update through `brew upgrade --cask recordly` and leave Recordly's experimental update channel off, so one updater owns
+the installed version. The app is notarized, so it opens without clearing quarantine. If Gatekeeper ever rejects it,
+inspect `spctl -a -vv /Applications/Recordly.app` before doing anything else.
 
-## Integration with feature-video
+## Record, Edit, Export
 
-Raw screen captures from `compound-engineering:feature-video` look unprofessional without post-processing — jarring mouse movements, no zoom on key interactions, plain backgrounds. Recordly fixes this:
+1. **HUD:** choose a display or a window, the microphone, system audio and the webcam. A countdown precedes the take.
+2. **Take:** record, then stop. The editor opens on the take.
+3. **Editor:** trims, manual zoom regions and automatic zoom suggestions, speed regions, text and image annotations,
+   extra audio regions, Whisper captions (run locally), the webcam bubble (size, preset or custom position, mirror,
+   roundness, shadow, zoom-reactive scaling), wallpaper, padding, corners, crop and aspect-ratio presets.
+4. **Save and export:** save the `.recordly` project to keep the editor state, then export MP4 or GIF with quality and
+   output-size settings.
 
-1. Launch Recordly: `bash scripts/launch_recordly.sh`
-2. Open the raw recording file in Recordly
-3. Apply auto-zoom, cursor effects, and background styling
-4. Export as MP4 and use the polished video in the PR description
+## Drive with agent-desktop
 
-## 3D Perspective Mode (Slant)
+The agent prepares and finishes. The user records. The agent's part:
 
-Flat screen recordings look generic on social media. Rendering them on a 3D plane with camera animation, HDRI reflections, and depth of field makes them look like Slant it ($69) or Screen Studio output — for free.
+1. `agent-desktop launch Recordly --cdp` to get a DevTools port.
+2. Through `agent-browser --cdp <port>`, set the source, microphone and webcam, and turn on **Hide HUD from recording**.
+3. Report the setup and stop. The user presses **Record** and stops the take.
+4. In the editor, set the aspect, webcam position and captions, then export.
+5. Fill the native save dialog with `agent-desktop`.
+
+The HUD and editor are web content that macOS accessibility cannot see, so `agent-browser` drives them over CDP and
+`agent-desktop` handles launch, System Settings and the save dialog. The native **open** dialog defeats both, so the
+user picks files there. Commands, control names and failure modes are in `references/driving-with-agent-desktop.md`. The
+control map for v1.4.0 is in `references/ui-map-v1.4.0.json`.
+
+## Gotchas
+
+- **Auto-zoom follows the cursor.** A talking-head take with a still mouse yields no zoom suggestions. Add manual zoom
+  regions on the sign groups or lines being discussed, since small text is unreadable at 720p playback.
+- **The export codec is not guaranteed.** Recordly asks for H.264 High (`avc1.640034`) and silently falls back to Main
+  or Baseline when the encoder refuses. Its `copy-source` audio mode can mux MP3 or ALAC into the MP4. X rejects both,
+  so run the check below on every export.
+- **Notifications land in the take.** Turn on a Focus mode before recording a display.
+
+## Export for X
+
+The checker defaults to a free X account: 140 s and 512 MB per video, played back at 720p. On a free account, plan
+takes under 2:20. Export from Recordly at **1:1** or **16:9**, MP4, **Original** size, Balanced, 30 fps. Then check it:
 
 ```bash
-# Open the 3D perspective renderer in any modern browser
-open scripts/slant.html
+python3 ~/.claude/skills/recordly/scripts/check_x_export.py clip.mp4          # PASS, WARN or FAIL per rule; exit 1 on any FAIL
+python3 ~/.claude/skills/recordly/scripts/check_x_export.py clip.mp4 --fix    # writes clip.x.mp4 beside it, never over it
 ```
 
-1. Drop a screen recording onto the viewport (or use the file picker)
-2. Pick an animation preset (12 built-in: Hero Float, Dramatic Tilt, Orbit, Slide In, Push/Pull, Isometric, Carousel, Cinematic Pan, etc.)
-3. Adjust background (gradient, solid color, or HDRI environment), depth of field, screen reflections
-4. Export as MP4 (Twitter-ready, H.264), WebM, or GIF (GitHub PRs where GIFs render inline)
+- `--fix` re-encodes to H.264 High, yuv420p and AAC-LC 128k, scales to 720 on the short side (1080 with `--premium`),
+  caps the frame rate at 60, and squares the pixels while keeping the displayed shape and rotation. It cannot fix length
+  or aspect, so trim in Recordly, or change the preset.
+  An Original-size export plus `--fix` gives a sharper 720p file than Recordly's Low preset (648).
+- `--premium` switches to Premium caps (under 4 h, 16 GB, 1080p).
+- The rules come from X's Help Center and the developer media best-practices page (read 2026-11-05). They are cited in
+  the script header, along with where the two sources conflict.
+- Posting stays with the user, because a post publishes.
+- Tests: `bash ~/.claude/skills/recordly/scripts/test_check_x_export.sh` builds synthetic clips with ffmpeg and runs
+  44 checks. The HE-AAC and HEVC fixtures need macOS's `aac_at` and `libx265`, and print SKIP where those are missing.
 
-Self-contained HTML file — Three.js r183 from CDN, no build step, no server, no local dependencies. See `README.md` for the full preset gallery, export format details, and browser support matrix.
+## Slant: 3D Perspective
+
+`open ~/.claude/skills/recordly/scripts/slant.html` opens a self-contained Three.js page (r183 from CDN, no build).
+Drop a recording, pick one of 12 presets, adjust the background and depth of field, export MP4, WebM or GIF. Presets,
+codecs and controls are in `README.md`.
 
 ## Links
 
-- **Repo**: `github.com/webadderall/Recordly`
-- **Releases**: `github.com/webadderall/Recordly/releases`
-- **Upstream (OpenScreen)**: `github.com/siddharthvaddem/openscreen`
-- **License**: AGPL 3.0
+- Repo and releases: `github.com/webadderallorg/Recordly`
+- Homebrew cask: `Casks/r/recordly.rb` in `Homebrew/homebrew-cask`
+- Upstream: `github.com/siddharthvaddem/openscreen` (MIT)
+- Extensions: `marketplace.recordly.dev/extensions`

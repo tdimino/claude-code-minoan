@@ -1,0 +1,41 @@
+{
+  "recordly_version": "1.4.0",
+  "captured": "2026-11-05",
+  "macos": "15.6.1",
+  "drivers": {"web": "agent-browser --cdp (port from agent-desktop launch Recordly --cdp)", "native": "agent-desktop"},
+  "hud": {
+    "page": "index.html?windowType=hud-overlay",
+    "match_by": "button title",
+    "buttons": ["Screen", "Enable microphone", "Enable webcam overlay", "Countdown delay", "Record", "More", "Hide HUD", "Close App"],
+    "toggled_titles": {"Enable microphone": "Disable microphone", "Enable webcam overlay": "Disable webcam overlay"},
+    "mic_menu": ["Enable system audio", "Turn Off Microphone", "<device name>"],
+    "webcam_menu": ["Turn Off Webcam", "Hide Floating Preview", "<camera name>"],
+    "more_menu": ["Hide HUD from recording", "Recordings Path", "Open video file", "Open project", "Light", "Dark", "System", "<languages>"],
+    "menus_survive_reconnect": false
+  },
+  "editor": {
+    "page": "?windowType=editor",
+    "header": ["Open projects", "Undo", "Redo", "Rename project", "Open presets", "Export"],
+    "tabs": ["Scene", "Cursor", "Webcam", "Captions", "Settings", "Extensions"],
+    "frame": ["<aspect button: current ratio>", "Crop Video", "Add Layer"],
+    "timeline": ["Add Zoom (Z)", "Suggest Zooms from Cursor", "Split Clip (C)", "Skip Back", "Play", "Skip Forward", "Mute/Unmute", "Preview volume"],
+    "aspect_menu": {"role": "menuitem", "items": ["Native", "16:9", "9:16", "1:1", "4:3", "4:5", "16:10", "10:16"]},
+    "export_menu": {
+      "format": ["MP4", "GIF"],
+      "size_16x9": ["Low 1152 x 648", "Medium 1440 x 810", "High 1728 x 972", "Original 1920 x 1080"],
+      "size_1x1": ["Low 648 x 648", "Medium 810 x 810", "High 972 x 972", "Original 1080 x 1080"],
+      "quality": ["Fast", "Balanced", "Quality"],
+      "fps": ["24", "30", "60"],
+      "submit": "Export Video"
+    },
+    "webcam_tab": ["↖", "↑", "↗", "←", "•", "→", "↙", "↓", "↘", "Webcam Width", "Webcam Height", "Margin", "Webcam Roundness", "Webcam Shadow", "Upload footage"],
+    "captions_tab": ["Select Model", "Auto Detect", "Download Model", "Generate Captions", "Clear Captions", "Text Color", "Font Size", "Rows", "Bottom Offset", "Max Width", "Box Radius", "Background Opacity"],
+    "menus_need_pointer_event": true,
+    "menus_survive_reconnect": true
+  },
+  "native_dialogs": {
+    "open": {"title": "Import Media or Recordly Project", "automatable": false, "handled_by": "user"},
+    "save": {"title": "Save Exported Video", "fields": {"Save As:": "export-<epoch-ms>.mp4", "Where:": "Downloads"}, "buttons": ["Cancel", "Save"], "automatable": true}
+  },
+  "pilot_export": {"aspect": "1:1", "settings": ["MP4", "Original 1080 x 1080", "Balanced", "30"], "ffprobe": "h264 High yuv420p 1080x1080 30fps, aac LC 48kHz mono, 6.0 s, 6.1 MB"}
+}

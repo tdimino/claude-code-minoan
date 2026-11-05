@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # Launch Recordly — detect install location and open
 # Usage: bash launch_recordly.sh [recording-or-project-file]
+# Recordly 1.4.0 ignores files handed to it at launch on macOS. Open them from the HUD: More → Open video file /
+# Open project. To drive Recordly from an agent, launch it with: agent-desktop launch Recordly --cdp
 
 set -euo pipefail
 
 FILE_ARG="${1:-}"
+if [ -n "$FILE_ARG" ] && [ "$(uname -s)" = "Darwin" ]; then
+    echo "Note: Recordly ignores files passed at launch. Open $FILE_ARG from the HUD: More → Open video file (or Open project)."
+fi
 
 # macOS: /Applications or built from source
 if [ -d "/Applications/Recordly.app" ]; then

@@ -4,18 +4,20 @@ Screen recording polish and 3D perspective rendering for product demos, walkthro
 
 Two modes:
 
-- **Recordly GUI** — 2D recording polish with auto-zoom, cursor animations, webcam overlays, styled backgrounds, and timeline editing. Fork of [OpenScreen](https://github.com/siddharthvaddem/openscreen) (10.6K stars, MIT). AGPL 3.0.
+- **Recordly GUI** — display or window capture with mic, system audio and a live webcam bubble, then 2D polish: auto-zoom, cursor animations, Whisper captions, styled backgrounds, aspect presets and timeline editing. v1.4.0, built on [OpenScreen](https://github.com/siddharthvaddem/openscreen) (MIT). AGPL 3.0.
 - **Slant** — Browser-based 3D perspective renderer. Drop a flat screen recording, pick an animation preset, export as MP4 or GIF. Self-contained HTML file, no build step, no server.
 
 ## Quick Start
 
 ```bash
-# Install Recordly GUI (clone, build, macOS quarantine fix)
+# Install or upgrade Recordly GUI (Homebrew cask; --from-source to build)
 bash scripts/install_recordly.sh
 
-# Launch Recordly GUI
+# Launch Recordly GUI (open recordings from its HUD: More → Open video file)
 bash scripts/launch_recordly.sh
-bash scripts/launch_recordly.sh path/to/recording.mp4
+
+# Check an export against X's upload rules; --fix writes an X-ready copy
+python3 scripts/check_x_export.py clip.mp4 --fix
 
 # Open 3D perspective renderer in browser
 open scripts/slant.html
@@ -80,12 +82,12 @@ All loaded from CDN at runtime — zero local dependencies:
 | Depth of field | — | Yes | — | Yes |
 | Animation presets | — | 12 | — | 35+ |
 | Export MP4 | Yes | Yes | Yes | Yes |
-| Export GIF | — | Yes | Yes | — |
-| Price | Free (AGPL) | Free | $89 | $69 |
+| Export GIF | Yes | Yes | Yes | — |
+| Price | Free (AGPL) | Free | Paid | Paid |
 | Runs locally | Yes | Yes (browser) | Yes | Yes (browser) |
-| Build step | npm install | None | Installer | None |
+| Install | Homebrew cask | None | Installer | None |
 
-## Limitations
+## Slant Limitations
 
 - Slant does not add device frames (phone/laptop bezels) — it renders the 3D perspective effect only
 - No audio mixing — source video audio is not included in exports
@@ -96,7 +98,7 @@ All loaded from CDN at runtime — zero local dependencies:
 
 ## Links
 
-- **Recordly repo**: [github.com/webadderall/Recordly](https://github.com/webadderall/Recordly)
+- **Recordly repo**: [github.com/webadderallorg/Recordly](https://github.com/webadderallorg/Recordly)
 - **Upstream (OpenScreen)**: [github.com/siddharthvaddem/openscreen](https://github.com/siddharthvaddem/openscreen)
 - **Three.js**: [threejs.org](https://threejs.org/)
 - **Poly Haven HDRIs**: [polyhaven.com](https://polyhaven.com/)

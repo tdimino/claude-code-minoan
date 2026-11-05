@@ -1,0 +1,12 @@
+[
+  {"query": "I want to record myself talking about Linear A for X. Set it up so my webcam shows over the tablet photo.", "should_trigger": true},
+  {"query": "set up Recordly with my webcam and mic", "should_trigger": true},
+  {"query": "make a talking head video over my slides for twitter", "should_trigger": true},
+  {"query": "is this mp4 ok to upload to X? ~/Movies/clip.mp4", "should_trigger": true},
+  {"query": "record a demo video of the kaphtor lexicon site with zooms on the clicks", "should_trigger": true},
+  {"query": "take a screenshot of this page", "should_trigger": false},
+  {"query": "clean up the background noise in this podcast audio", "should_trigger": false},
+  {"query": "post this tweet: Ya Diktu is out", "should_trigger": false},
+  {"query": "convert this mkv to webm with ffmpeg", "should_trigger": false},
+  {"query": "transcribe this Zoom recording into text", "should_trigger": false}
+]
