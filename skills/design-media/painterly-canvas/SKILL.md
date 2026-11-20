@@ -29,7 +29,7 @@ Choose from the brief: a page hero or background with no controls is `still` (ad
 
 ## Workflow
 
-1. **Copy the starter.** `assets/painterly-starter.html` is a tested 470-line kernel: surfaces, hashing, color, day state, terrain, camera, stroke engine, chunks, far layer, sorted near layer, post, loop. Copy it into the project and edit. Do not rebuild the kernel from memory, because its failure modes are subtle and already solved there.
+1. **Copy the starter.** `assets/painterly-starter.html` is a tested 545-line kernel: surfaces, hashing, color, day state, terrain, camera, stroke engine, chunks, far layer, sorted near layer, post, loop. Copy it into the project and edit. Do not rebuild the kernel from memory, because its failure modes are subtle and already solved there.
 2. **Compose before detailing.** Set the spawn pose, time of day and the terrain shaping near the origin so the first frame is a picture. An endless world still needs a composed opening view.
 3. **Add content as data plus a painter.** Each new thing is a record created in `buildChunk` (position, size, color, a stable `id`) and a branch on `it.kind` in the sorted draw loop that paints it with `stroke()`. Keep generation and painting separate: chunks hold static data, motion is computed from `t` at draw time.
 4. **Route every color through the chain**: base HSL → `grade(col, ds)` → `mix(col, ds.fog, fogAt(depth))`. Anything that skips it stays noon-bright at dusk.
@@ -40,7 +40,7 @@ Choose from the brief: a page hero or background with no controls is `still` (ad
    agent-browser screenshot /abs/path/shots/noon.png
    ```
    Check noon (`tod=0.5`), dusk (`0.74`) and night (`0.95`), a pose that looks across water if the scene has any, and a second `frame` value: the strokes should shift slightly while the picture stays the same.
-6. **Measure if it grew.** Open the page with `?stats=1`, walk or turn, and read `window.__paintStats`. Its `stroke` field counts calls to the canvas context's `stroke()` method in the last painted frame (one brushstroke costs up to four). Stay under 20,000.
+6. **Measure if it grew.** Open the page with `?stats=1`, walk or turn, and read `window.__paintStats`. Its `stroke` field counts calls to the canvas context's `stroke()` method in the last painted frame (one brushstroke costs up to five). Stay under 20,000.
 
 Read the genesis only for a specific technique, by line range. It is about 130,000 tokens, and `references/genesis-map.md` says where each system lives and maps starter names to genesis names.
 
@@ -57,12 +57,12 @@ Run the commands from the project directory, giving the script its full path ins
    ```
    `--mode still|scene|world` sets the scope. `--seed none` (default) lets the model write its own engine, `starter` sends the kernel to build on, `full` adds the references. Each call prints a cost ceiling first and refuses to start above `--max-cost` (default $5). `--dry-run` prints the ceiling and calls nothing.
 2. **Read the check.** Each world is saved as `painted-worlds/<session>/NNN_<model>.html` with a JSON sidecar (model, usage, cost, check result). The script runs `scripts/check_world.py` on it and exits 3 when the document is truncated or breaks a rule. Treat the file as untrusted code: it is saved with a no-network Content-Security-Policy, and a `check_world` error means do not open it.
-3. **Look.** Render the stills of Workflow step 5, plus the same `?frame` URL twice to confirm identical pixels.
-4. **Revise or take over.** Send a critique and the screenshots back, and the model returns the next numbered draft. `--model` may name a different model than the one that painted it.
+3. **Look.** Run `python3 scripts/check_world.py <file> --browser`, which loads each pose twice in `agent-browser` and fails if the pixels differ (unseeded randomness in the paint path). Then render the stills of Workflow step 5 and read them.
+4. **Revise or take over.** Send a critique and the screenshots back. The model answers with search-and-replace edits, which the script applies to the parent to make the next numbered draft. An edit whose search text is missing or ambiguous is rejected and listed, the script exits 3, and the draft is saved as `.partial.html` so the next revise does not start from it. `--model` may name a different model than the one that painted it.
    ```bash
    python3 scripts/first_world.py revise estuary "The far shore is flat fill. Water needs moving strokes." --shots shots/noon.png shots/dusk.png
    ```
-   After a round or two, edit the file by hand with the references: a revision resends and rewrites the whole document, so each round costs as much as the first.
+   The series stops at 65,536 output tokens, reasoning included, so a whole-file rewrite only fits a world under about 1,200 lines (`--whole`). A model paints one bounded scene per call: build a larger world by hand from the kernel and use the models for studies of single subjects. After a round or two, edit the file by hand with the references.
 
 `python3 scripts/check_world.py file.html` also works alone on any painterly page, as a static first pass before the browser.
 
@@ -101,7 +101,7 @@ The starter is a centered 16:10 card. For a full-bleed hero, set `W` and `H` fro
 | `drift` | Hand wobble in px | 0.7 architecture, 1–1.8 plants, 2 ground |
 | `impasto` | Paint thickness: under-shadow and lit ridge | 0.2 washes, 0.42 ground, 0.55 petals |
 | Strokes per m² | Ground coverage | 0.4–0.7 |
-| Stroke fade range | Where ground strokes dissolve | 34–50 m |
+| Stroke fade range | Where ground strokes dissolve and washes take over | 30–44 m |
 | Paint rate | `STEP` | 1/12 s |
 
 ## References

@@ -47,9 +47,11 @@ python3 scripts/first_world.py paint "A fishing village on a tidal estuary" --mo
 python3 scripts/first_world.py paint "Terraced olive hills" --only neon hydrogen carbon   # same brief, in parallel
 python3 scripts/first_world.py revise estuary "Water needs moving strokes" --shots noon.png dusk.png
 python3 scripts/check_world.py painted-worlds/estuary/001_neon.html     # static check, also run on every draft
+python3 scripts/check_world.py painted-worlds/estuary/001_neon.html --browser   # then load each pose twice and compare pixels
+python3 scripts/test_first_world.py                                     # offline tests, no key
 ```
 
-Drafts land in `painted-worlds/<session>/NNN_<model>.html` beside a JSON sidecar with usage, cost and the check result. Every call prints a cost ceiling and refuses to start above `--max-cost`. Generated pages are untrusted code, so each is saved with a no-network Content-Security-Policy.
+Drafts land in `painted-worlds/<session>/NNN_<model>.html` beside a JSON sidecar with usage, cost and the check result. A revision comes back as search-and-replace edits, applied locally to the parent draft: an edit that does not match exactly one place is rejected and reported, and a draft that lost an edit is saved as `.partial.html`. Every call prints a cost ceiling and refuses to start above `--max-cost`. Generated pages are untrusted code, so each is saved with a no-network Content-Security-Policy.
 
 ## Structure
 
@@ -57,14 +59,15 @@ Drafts land in `painted-worlds/<session>/NNN_<model>.html` beside a JSON sidecar
 painterly-canvas/
 ├── SKILL.md                            Workflow, the rules the look depends on, dials. Start here
 ├── assets/
-│   ├── painterly-starter.html          470-line kernel to copy, render-tested
+│   ├── painterly-starter.html          545-line kernel to copy, render-tested
 │   ├── prompts/first-world.md          System brief sent to the model: rules and URL test contract
 │   └── genesis/
 │       ├── PROVENANCE.md               Author, source URL, checksum, fetch command, rights
 │       └── endless-painted-world.html  The source work. Gitignored: fetch it locally
 ├── scripts/
 │   ├── first_world.py                  paint, revise, models, list: Gemini 4 drafts through OpenRouter
-│   └── check_world.py                  Static check of any painterly page against the rules
+│   ├── check_world.py                  Static check of any painterly page, plus a twice-loaded pixel comparison (--browser)
+│   └── test_first_world.py             Offline tests: edit application, token clamp, document extraction
 ├── references/
 │   ├── stroke-engine.md                Read when changing how marks look
 │   ├── world-pipeline.md               Read when changing what is drawn and in what order
@@ -79,14 +82,14 @@ painterly-canvas/
 
 | Limitation | Improve by |
 |---|---|
-| Starter strokes are slabs | Port feathered ends (`stroke-engine.md` §2) |
-| Mid-ground and far shores read as flat fill | Add per-quad washes past 25 m (`world-pipeline.md` §7) |
-| Far terrain slides as the view turns | Sample the horizon on a world grid, as the washes already are |
+| Far terrain still resamples as the walker moves (turning is fixed) | Give each ring its own world lattice, crossfaded |
+| Close steep faces get one wash per quad, not a clipped grid of strokes | Port the third wash rule (`world-pipeline.md` §7) |
+| Far cells at a waterline show vertical-edged blocks | Color each far cell from its four vertices, not its center |
 | Objects float on the land | Add cast shadows and water reflections (`world-pipeline.md` §7) |
 | No weather, buildings, landmarks, collision or audio | Port one system at a time from `living-details.md` |
 | Paint can show over a steep ridge | Tune the `maxCz + 4.5` ground sort bias per scene |
-| `check_world.py` reads text only: it cannot tell whether `Math.random` reaches the paint path | Add a browser pass that hashes the same `?frame` URL twice |
-| `revise` resends and rewrites the whole file each round | Ask the model for search-and-replace edits |
+| A model call stops at 65,536 output tokens, so one call paints one bounded scene | Build larger worlds by hand on the kernel, with model drafts as studies |
+| `revise` still sends the whole file in, though only edits come back | Send the functions the critique names, not the document |
 | Evals and trigger tests are written but unrun | Run `evals/evals.json` and the description-optimization loop |
 
 ## Origin & Attribution

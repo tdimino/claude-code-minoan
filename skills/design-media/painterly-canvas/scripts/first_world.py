@@ -4,7 +4,10 @@ first_world.py: have a Gemini 4 model paint the first draft of a world, through 
 
 The session folder is the memory. Every world a model returns is saved as
 NNN_<model>.html beside a JSON sidecar, and `revise` sends the latest world,
-a critique and optional screenshots back for the next one.
+a critique and optional screenshots back for the next one. A revision comes
+back as search-and-replace edits, which are applied here: a block whose search
+text is missing or ambiguous is rejected and reported. The raw edits are kept
+as NNN_<model>.edits.txt.
 
 Usage:
     python3 first_world.py models
@@ -21,7 +24,8 @@ Environment:
     OPENROUTER_API_KEY   required for paint and revise
 
 Exit codes: 0 ok, 1 API failure or no document returned, 2 usage,
-3 a world was saved but is truncated or fails check_world.
+3 a world was saved but is truncated, lost edits or fails check_world, or
+a revise applied no edit and saved none.
 """
 
 import argparse
@@ -63,6 +67,29 @@ MODES = {
     "scene": "A bounded place to look around and walk through.",
     "world": "Endless terrain generated in chunks as the walker moves, with distinct regions and landmarks.",
 }
+
+# The Gemini 4 series stops at 65,536 output tokens, reasoning included, whatever the catalog lists.
+OUTPUT_CAP = 65536
+
+EDIT_RULES = """Return edits, not the document. Each edit is one block in exactly this form:
+
+<<<<<<< SEARCH
+lines copied character for character from the current file
+=======
+the lines that replace them
+>>>>>>> REPLACE
+
+Rules for edits:
+- The SEARCH text must occur exactly once in the file. Include enough neighbouring lines to make it unique, and no more.
+- Blocks are applied in order, each to the result of the one before.
+- To insert, SEARCH for the line the new code goes next to and repeat that line in the replacement.
+- To delete, leave the replacement empty.
+- Write nothing but edit blocks and at most three sentences saying what changed. Do not return the whole file.
+The output rules, hard limits and test contract still hold for the edited file."""
+
+EDIT_OPEN = re.compile(r"^<{7} SEARCH[ \t]*$")
+EDIT_MID = re.compile(r"^={7}[ \t]*$")
+EDIT_CLOSE = re.compile(r"^>{7} REPLACE")
 
 CSP_MARK = "data-painterly-csp"
 CSP_META = (
@@ -206,6 +233,80 @@ def extract_html(text: str) -> tuple[str | None, bool, str]:
     return text[start.start():end + 7] + "\n", True, outside
 
 
+def _find_loose(text: str, search: str) -> list[tuple[int, int]]:
+    """Spans where `search` matches line by line, ignoring trailing whitespace."""
+    want = [line.rstrip() for line in search.split("\n")]
+    lines = text.split("\n")
+    starts = [0]
+    for line in lines:
+        starts.append(starts[-1] + len(line) + 1)
+    spans = []
+    for i in range(len(lines) - len(want) + 1):
+        if all(lines[i + k].rstrip() == want[k] for k in range(len(want))):
+            spans.append((starts[i], starts[i + len(want)] - 1))
+    return spans
+
+
+def parse_edits(response: str) -> tuple[list[tuple[str, str | None]], bool, str]:
+    """Read SEARCH/REPLACE blocks line by line, so a malformed block can never swallow the one after it.
+
+    Returns (blocks, cut_off, outside). A block is (search, replace); replace is None for a block that opened
+    again before it closed. cut_off is true when the response ends inside a block. outside is the text
+    between blocks.
+    """
+    blocks, outside = [], []
+    state, search, replace = "idle", [], []
+    for line in response.replace("\r\n", "\n").split("\n"):
+        if EDIT_OPEN.match(line):
+            if state != "idle":
+                blocks.append(("\n".join(search), None))
+            state, search, replace = "search", [], []
+        elif state == "search" and EDIT_MID.match(line):
+            state = "replace"
+        elif state == "replace" and EDIT_CLOSE.match(line):
+            blocks.append(("\n".join(search), "\n".join(replace)))
+            state = "idle"
+        elif state == "search":
+            search.append(line)
+        elif state == "replace":
+            replace.append(line)
+        else:
+            outside.append(line)
+    return blocks, state != "idle", "\n".join(outside).strip()
+
+
+def apply_edits(source: str, response: str) -> tuple[str, list[dict]]:
+    """Apply SEARCH/REPLACE blocks in order. A block whose SEARCH text is absent or ambiguous is rejected.
+
+    Returns (edited text, one record per block: {"ok", "reason", "search"}).
+    """
+    text, log = source, []
+    for search, replace in parse_edits(response)[0]:
+        entry = {"ok": False, "reason": None, "search": search[:160]}
+        log.append(entry)
+        if replace is None:
+            entry["reason"] = "malformed block"
+            continue
+        if not search.strip():
+            entry["reason"] = "empty SEARCH"
+            continue
+        at = text.find(search)
+        if at >= 0 and text.find(search, at + 1) < 0:  # find from at + 1 also catches overlapping repeats
+            spans = [(at, at + len(search))]
+        elif at >= 0:
+            entry["reason"] = f"SEARCH matches {max(2, text.count(search))} places"
+            continue
+        else:
+            spans = _find_loose(text, search)
+            if len(spans) != 1:
+                entry["reason"] = "SEARCH not found" if not spans else f"SEARCH matches {len(spans)} places"
+                continue
+        a, b = spans[0]
+        text = text[:a] + replace + text[b:]
+        entry["ok"] = True
+    return text, log
+
+
 def inject_csp(html: str) -> str:
     """Add a no-network Content-Security-Policy. The model's code is untrusted."""
     if CSP_MARK in html:
@@ -258,7 +359,7 @@ def build_body(model_id: str, entry: dict, user_content, args) -> dict:
             {"role": "user", "content": user_content},
         ],
         "stream": True,
-        "max_tokens": min(args.max_tokens, ceiling),
+        "max_tokens": min(args.max_tokens, ceiling, OUTPUT_CAP),
         "usage": {"include": True},
     }
     if args.effort != "none":
@@ -281,7 +382,22 @@ def run_job(key: str, job: dict, args) -> dict:
     say(f"  [{label}] calling {job['model_id']} (max {job['body']['max_tokens']:,} tokens)")
     started = time.monotonic()
     result = stream_completion(key, job["body"], label)
-    html, complete, outside = extract_html(result["text"])
+    retried = False
+    # Retry only a call that never started: a stream that broke midway has already been billed, and a second
+    # full call could spend past --max-cost.
+    if result["error"] and result["finish"] is None and not result["text"] and result["error"].startswith("connection failed"):
+        say(f"  [{label}] {result['error']}. Retrying once.")
+        retried = True
+        result = stream_completion(key, job["body"], label)
+
+    edit_log = None
+    if job.get("edit_source") is not None and "<<<<<<< SEARCH" in result["text"]:
+        (session_dir / f"{stem}.edits.txt").write_text(result["text"], encoding="utf-8")
+        html, edit_log = apply_edits(job["edit_source"], result["text"])
+        complete = True
+        _, cut_off, outside = parse_edits(result["text"])
+    else:
+        html, complete, outside = extract_html(result["text"])
 
     record = {
         "model": job["model_id"],
@@ -302,10 +418,29 @@ def run_job(key: str, job: dict, args) -> dict:
         "usage": result["usage"],
         "cost_usd": (result["usage"] or {}).get("cost"),
         "outside_document": outside[:2000] or None,
+        "retried": retried,
     }
 
     status = 0
-    if html is None:
+    if edit_log is not None:
+        rejected = [e for e in edit_log if not e["ok"]]
+        record["edits"] = {"applied": len(edit_log) - len(rejected), "rejected": rejected, "cut_off": cut_off}
+        # A revision that lost a block may call code the lost block defined, so it is saved as .partial.html
+        # and is never picked as the parent of the next revise.
+        path = session_dir / (f"{stem}.partial.html" if rejected or cut_off else f"{stem}.html")
+        record["sha256_as_returned"] = hashlib.sha256(html.encode("utf-8")).hexdigest()
+        record["csp_injected"] = not args.no_csp
+        if not args.no_csp:
+            html = inject_csp(html)
+        if len(rejected) == len(edit_log):
+            path = session_dir / f"{stem}.edits.txt"  # nothing applied: no new world to save
+            status = 3
+        else:
+            path.write_text(html, encoding="utf-8")
+            record["check"] = check_html(html)
+            if rejected or cut_off or record["check"]["errors"]:
+                status = 3
+    elif html is None:
         path = session_dir / f"{stem}.response.txt"
         path.write_text(result["text"], encoding="utf-8")
         status = 1
@@ -342,13 +477,26 @@ def report(outcomes: list[dict]) -> int:
         )
         if rec["error"]:
             print(f"  API error: {rec['error']}")
-        if rec["finish_reason"] == "length":
+        edits = rec.get("edits")
+        if rec["finish_reason"] == "length" and not edits:
             print(
                 "  Stopped at the output cap. A .partial.html file is cut short: raise --max-tokens "
                 "or narrow the brief. A .html file is whole, and the model was cut off after it."
             )
+        if edits:
+            print(f"  Edits: {edits['applied']} applied, {len(edits['rejected'])} rejected.")
+            for e in edits["rejected"]:
+                print(f"    rejected ({e['reason']}): {(e['search'].splitlines() or [''])[0][:90]}")
+            if edits["cut_off"]:
+                print("    The last edit block was cut off and dropped.")
+            if not edits["applied"]:
+                print("  No edit applied, so no new world was saved. The raw response is in the .edits.txt file.")
+            elif edits["rejected"] or edits["cut_off"]:
+                print("  Some edits were lost, so the world is saved as .partial.html and the next revise will not start from it.")
         if "check" in rec:
             print("  " + format_report(rec["check"], "check_world").replace("\n", "\n  "))
+        elif edits:
+            pass
         elif not rec["error"]:
             print("  No HTML document in the response: see the .response.txt file.")
     if len(outcomes) > 1:
@@ -441,12 +589,16 @@ def cmd_revise(args) -> int:
     if shots and "image" not in (entry.get("architecture") or {}).get("input_modalities", []):
         die(f"{model_id} does not take images. Drop --shots or pick another model.")
 
+    source_text = source.read_text(encoding="utf-8")
+    how = (
+        "Return the complete revised document under the same output rules and test contract, keeping what already works."
+        if args.whole else EDIT_RULES
+    )
     text = (
-        "Revise the world below. Return the complete revised document under the same output rules "
-        "and test contract, keeping what already works.\n\n"
+        f"Revise the world below.\n\n{how}\n\n"
         f"Critique: {args.critique}\n\n"
         + (f"{len(shots)} screenshot(s) of the current world are attached.\n\n" if shots else "")
-        + f'<file name="{source.name}">\n{source.read_text(encoding="utf-8")}\n</file>'
+        + f'<file name="{source.name}">\n{source_text}\n</file>'
     )
     content = [{"type": "text", "text": text}] + [
         {"type": "image_url", "image_url": {"url": data_url(shot)}} for shot in shots
@@ -455,6 +607,7 @@ def cmd_revise(args) -> int:
         "command": "revise", "model_id": model_id, "alias": alias, "entry": entry,
         "session_dir": session_dir, "stem": f"{next_index(session_dir):03d}_{alias}",
         "critique": args.critique, "parent": source.name, "shots": [str(s) for s in shots],
+        "edit_source": None if args.whole else source_text,
         "body": build_body(model_id, entry, content, args),
     }
     return launch(key, [job], args)
@@ -484,7 +637,8 @@ def cmd_list(args) -> int:
 
 def add_call_options(p: argparse.ArgumentParser) -> None:
     p.add_argument("--out", type=Path, default=Path("painted-worlds"), help="sessions folder (default ./painted-worlds)")
-    p.add_argument("--max-tokens", type=int, default=96000, help="output cap, reasoning included (default 96000)")
+    p.add_argument("--max-tokens", type=int, default=OUTPUT_CAP,
+                   help=f"output cap, reasoning included (default and maximum {OUTPUT_CAP})")
     p.add_argument("--effort", choices=["none", "low", "medium", "high"], default="high", help="reasoning effort")
     p.add_argument("--temperature", type=float)
     p.add_argument("--max-cost", type=float, default=5.0, help="refuse to start above this cost ceiling in dollars")
@@ -515,6 +669,8 @@ def main() -> int:
     revise.add_argument("--model", default="neon")
     revise.add_argument("--from", dest="source", type=Path, help="revise this file instead of the session's latest")
     revise.add_argument("--shots", nargs="+", type=Path, metavar="IMAGE", help="screenshots of the current world")
+    revise.add_argument("--whole", action="store_true",
+                        help="ask for the whole file back instead of edits (only fits worlds under about 1,200 lines)")
     add_call_options(revise)
     revise.set_defaults(func=cmd_revise)
 

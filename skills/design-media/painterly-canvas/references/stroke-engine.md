@@ -43,18 +43,18 @@ One stroke is a quadratic curve drawn several times with `lineCap = 'butt'`, eac
 |---|---|---|
 | Under-shadow | Offset `+0.28 W`, width `0.58 W`, hue +10, light −18, when `impasto > 0.2` | Offset `+0.28 W` plus 0.75 px down, width `0.58 W`, hue +10, sat ×0.88, light −19, alpha `× impasto × 0.40`, only when `impasto > 0.22` and `W > 2.8` |
 | Body | Width `0.78 W`, alpha ×0.85 | Width `0.76 W`, alpha ×0.84, ends shortened when feathered |
-| Dark streak | Always: offset `+0.22 W`, width `0.22 W`, hue +12, light −8 | Only as a feather band: offset `(0.24 + 0.05 r) W`, width `0.23 W`, hue +12, light −8, alpha ×0.66 |
-| Lit ridge | Offset `−0.27 W`, width `0.20 W`, hue −9, sat +10, light `+12 + 9 × impasto` | Offset `−(0.27 + 0.04 r) W`, same color shifts, alpha ×0.72, overshoots each end by 3–9% of the length |
+| Dark streak | Offset `+0.22 W`, width `0.22 W`, hue +12, light −8, alpha ×0.60. On a feathered stroke: offset `(0.23 + 0.04 r) W`, alpha ×0.64 | Only as a feather band: offset `(0.24 + 0.05 r) W`, width `0.23 W`, hue +12, light −8, alpha ×0.66 |
+| Lit ridge | Offset `−0.27 W`, width `0.20 W`, hue −9, sat +10, light `+12 + 9 × impasto`. On a feathered stroke it runs past the stroke's start by 3–7% of the length and past its end by three quarters of that | Offset `−(0.27 + 0.04 r) W`, same color shifts, alpha ×0.72, overshoots each end by 3–9% of the length |
 | Body-only cutoff | `W < 3` or `L < 8` | `W <= 3.1` or `L <= 8` |
 
 The shadow side shifts hue up and darker, the lit side shifts hue down and lighter. That warm-light, cool-shadow split keeps a single mark from reading as a flat rectangle.
 
 Small strokes draw the body only: the passes would overlap into mud, and small strokes are the majority by count.
 
-Two genesis behaviors the starter simplifies away:
+Two more behaviors, both in the genesis and the starter:
 
-- **No under-shadow at low impasto.** Genesis terrain washes (0.16–0.18), water strokes and sky sit at or below the 0.22 threshold, so they are two- or three-pass marks with no cast shadow.
-- **Feathering** for large strokes (`W > 4.2` and `L > 13`): the body is shortened by 7.5% at each end, and three thin bands overshoot the ends by different jittered amounts, so the stroke tapers into ragged bristle tips. The dark streak exists only as one of those bands. The starter's marks look like slabs next to the genesis because it omits this. Port it for marks above about 13 px long.
+- **No under-shadow at low impasto.** Genesis terrain washes (0.16–0.18), water strokes and sky sit at or below the 0.22 threshold, so they are two- or three-pass marks with no cast shadow. The starter's threshold is 0.2.
+- **Feathering** for large strokes (`W > 4.2` and `L > 13`): every pass sharing the same two endpoints is what makes a mark end in a square cut. So the body is pulled in from each end (7.5% in the genesis, 8% in the starter), and three thin bristle bands run past it by different hashed amounts, so the stroke tapers into ragged tips. The dark streak exists only as one of those bands, and the lit ridge overshoots the body by 3–7%. In the starter the two light bristles share one path and one canvas call, so a feathered mark costs five calls at most. Tip lengths come from jitter channels 6–9 of the stroke's own id: they re-roll with its epoch and hold still between. If a scene runs over budget, raise `FEATHER_L` so mid-size marks keep the cheaper four-pass recipe.
 
 ## 3. Parameters
 
@@ -80,7 +80,7 @@ Ids are stable, non-negative integers, unique among everything in view.
 - **Chunk content (genesis)**: a counter seeded from the chunk hash, `(seed & 0x0fffffff) || 1`. Ranges of different chunks can overlap by chance. The cost is two distant strokes sharing a jitter stream, which nobody sees, but the starter's packing removes the possibility.
 - **Multi-stroke objects**: the starter reserves 40 ids per tree and uses `tr.id + 1 + k` for its dabs. The genesis draws one id from the chunk counter per canopy blob (1166–1168).
 - **Global sets**: fixed bases far apart. Starter: far washes 700000+, sky 900000+. Genesis: sky 900000+, clouds 910000+, petals 920000+, stars 930000+.
-- **Derived from position**: the genesis keys a terrain quad's washes as `abs(round(xm * 7.3 + zm * 13.7)) + 500000`. The starter keys far washes from a hash of their world grid cell.
+- **Derived from position**: the genesis keys a terrain quad's washes as `abs(round(xm * 7.3 + zm * 13.7)) + 500000`. The starter packs a far wash's grid coordinates under a per-grid base (700000 and 765536), and gives each mid-ground quad wash an id in its own block from 600,000,000.
 - **Never** the array index of a per-frame list, the loop counter of a sorted draw list, or anything derived from screen position. Those change as the camera moves, and the stroke re-rolls every frame.
 
 ## 5. The genesis primitives

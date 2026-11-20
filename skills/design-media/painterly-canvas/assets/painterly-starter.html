@@ -175,10 +175,10 @@ function fillPoly(c, pts, style) {
   c.strokeStyle = style; c.lineWidth = 1.25; c.stroke(); // same-color outline seals antialiasing seams between quads
 }
 
-// --- 7. STROKE ENGINE: one brushstroke = up to four offset curves; jitter is hashed from (id, epoch) ---
-function curveLine(c, x0, y0, mx, my, x1, y1, style, lw) {
-  c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo(mx, my, x1, y1); c.strokeStyle = style; c.lineWidth = lw; c.stroke();
-}
+// --- 7. STROKE ENGINE: one brushstroke = up to five offset curves; jitter is hashed from (id, epoch) ---
+// A mark wider than FEATHER_W px and longer than FEATHER_L px is feathered: its body is pulled in from both ends and thin
+// bristle bands run past it by hashed amounts, so each end breaks into ragged tips instead of a square cut.
+const FEATHER_W = 4.2, FEATHER_L = 13;
 // id: stable non-negative integer. hold: frames between re-jitters. drift: hand wobble in px. impasto: 0..1 paint thickness.
 function stroke(c, x, y, len, wid, ang, curve, col, alpha, impasto, id, frame, hold = 4, drift = 1.5) {
   if (!isFinite(x + y + len + wid + ang) || len < 1 || wid < 0.5 || alpha < 0.02) return;
@@ -190,23 +190,43 @@ function stroke(c, x, y, len, wid, ang, curve, col, alpha, impasto, id, frame, h
   const ca = cos(a), sa = sin(a), nx = -sa, ny = ca, hl = L / 2, bend = curve + j2 * 2;
   const x0 = px - ca * hl, y0 = py - sa * hl, x1 = px + ca * hl, y1 = py + sa * hl, mx = px + nx * bend, my = py + ny * bend;
   const [h, s, l] = col;
-  const at = (o, style, lw) => curveLine(c, x0 + nx * o, y0 + ny * o, mx + nx * o, my + ny * o, x1 + nx * o, y1 + ny * o, style, lw);
+  // seg adds one curve to the current path at normal offset o. e0 moves its start along the stroke (+ inward, − past the
+  // start) and e1 moves its end (+ past the end, − inward). Curves in one path share one style and one stroke() call.
+  const seg = (o, e0, e1) => {
+    c.moveTo(x0 + nx * o + ca * e0, y0 + ny * o + sa * e0);
+    c.quadraticCurveTo(mx + nx * o, my + ny * o, x1 + nx * o + ca * e1, y1 + ny * o + sa * e1);
+  };
+  const paint = (style, lw) => { c.strokeStyle = style; c.lineWidth = lw; c.stroke(); };
   c.lineCap = 'butt';
-  if (Wd < 3 || L < 8) { at(0, css([h + j3 * 6, s + j4 * 6, l + j5 * 4], alpha * 0.86), Wd * 0.85); return; } // too small to read as layered
-  if (impasto > 0.2) at(Wd * 0.28, css([h + 10, s * 0.88, l - 18], alpha * impasto * 0.4), Wd * 0.58);      // thick paint casts a shadow
-  at(0, css([h + j3 * 7, s + j4 * 7, l + j5 * 5], alpha * 0.85), Wd * 0.78);                                 // body
-  at(Wd * 0.22, css([h + 12, s + 5, l - 8], alpha * 0.6), max(1, Wd * 0.22));                                // bristle streak, cooler and darker
-  at(-Wd * 0.27, css([h - 9, s + 10, l + 12 + impasto * 9], alpha * 0.7), max(1, Wd * 0.2));                 // lit ridge, warmer and lighter
+  if (Wd < 3 || L < 8) { c.beginPath(); seg(0, 0, 0); paint(css([h + j3 * 6, s + j4 * 6, l + j5 * 4], alpha * 0.86), Wd * 0.85); return; } // too small to read as layered
+  const feather = Wd > FEATHER_W && L > FEATHER_L, pull = feather ? L * 0.08 : 0;
+  if (impasto > 0.2) { c.beginPath(); seg(Wd * 0.28, pull, -pull); paint(css([h + 10, s * 0.88, l - 18], alpha * impasto * 0.4), Wd * 0.58); } // thick paint casts a shadow
+  c.beginPath(); seg(0, pull, -pull); paint(css([h + j3 * 7, s + j4 * 7, l + j5 * 5], alpha * 0.85), Wd * 0.78);                                // body
+  if (feather) {
+    // Tip lengths come from four more hash channels, so every tip re-rolls with the stroke's epoch and holds still between.
+    const t6 = jitter(id, epoch, 6) * 0.5 + 0.5, t7 = jitter(id, epoch, 7) * 0.5 + 0.5, t8 = jitter(id, epoch, 8) * 0.5 + 0.5, t9 = jitter(id, epoch, 9) * 0.5 + 0.5;
+    c.beginPath(); seg(Wd * (0.23 + j5 * 0.04), -L * 0.05 * t6, L * (0.01 + 0.07 * t7));                                                         // dark bristle, cooler
+    paint(css([h + 12 + j2 * 6, s + 5, l - 8], alpha * 0.64), max(1, Wd * 0.22));
+    c.beginPath(); seg(Wd * (-0.05 + j3 * 0.04), -L * (0.02 + 0.07 * t8), L * 0.04 * t6); seg(Wd * (0.1 - j1 * 0.04), L * 0.03, L * (0.02 + 0.06 * t9)); // two light bristles, one call
+    paint(css([h - 3 + j4 * 5, s + 6, l + 3], alpha * 0.5), max(0.9, Wd * 0.16));
+  } else {
+    c.beginPath(); seg(Wd * 0.22, 0, 0); paint(css([h + 12, s + 5, l - 8], alpha * 0.6), max(1, Wd * 0.22));                                      // bristle streak, cooler and darker
+  }
+  const over = feather ? L * (0.03 + abs(j2) * 0.04) : 0;                                                                                          // the ridge overshoots a feathered body
+  c.beginPath(); seg(-Wd * 0.27, -over, over * 0.75); paint(css([h - 9, s + 10, l + 12 + impasto * 9], alpha * 0.7), max(1, Wd * 0.2));            // lit ridge, warmer and lighter
 }
 
 // --- 8. CHUNKS: the near field is built once per chunk from a seed hashed from its coordinates ---
 const CHUNK = 20, RADIUS = 3, CELLS = 5, chunks = new Map();
 const FLOWERS = [[4, 82, 56], [48, 90, 60], [280, 50, 66], [40, 30, 95]];
+const QWASH_BASE = 600000000; // quad-wash ids: above the last chunk block (1,000,000 + 1024 * 1024 * 512), below 2^31
 function buildChunk(cx, cz) {
   const rand = rng(hash(cx, cz, 9001)), x0 = cx * CHUNK, z0 = cz * CHUNK, step = CHUNK / CELLS;
   // Each chunk owns a block of 512 ids packed from its coordinates: stable across rebuilds, unique across loaded chunks,
-  // and clear of the global blocks below 1,000,000 (far washes 700000+, sky 900000+).
-  let id = 1000000 + ((cx & 1023) * 1024 + (cz & 1023)) * 512;
+  // and clear of the global blocks below 1,000,000 (far washes 700000+, sky 900000+). Its quads' washes take a second
+  // block of 64 at QWASH_BASE, two per quad.
+  const slot = (cx & 1023) * 1024 + (cz & 1023);
+  let id = 1000000 + slot * 512;
   const quads = [], strokes = [], tufts = [], trees = [];
   const corner = (x, z) => { const y = height(x, z); return y < WATER ? WATER_COL : landColor(x, z, y); };
   for (let iz = 0; iz < CELLS; iz++) for (let ix = 0; ix < CELLS; ix++) {
@@ -214,6 +234,7 @@ function buildChunk(cx, cz) {
     quads.push({
       pts: [[x, groundY(x, z), z], [x + step, groundY(x + step, z), z], [x + step, groundY(x + step, z + step), z + step], [x, groundY(x, z + step), z + step]],
       xm, zm, water, c0: water ? WATER_COL : corner(x, z), c2: water ? WATER_COL : corner(x + step, z + step), // opposite corners, for a gradient fill
+      wid: QWASH_BASE + slot * 64 + (iz * CELLS + ix) * 2,
     });
   }
   for (let i = 0; i < 280; i++) { // ground strokes: world-anchored paint that carries the terrain's color and grain
@@ -252,7 +273,28 @@ const skyRand = rng(1874);
 const skyStrokes = Array.from({ length: 420 }, (_, i) => ({
   id: 900000 + i, az: skyRand() * TAU, el: 0.01 + skyRand() * 0.62, len: 70 + skyRand() * 90, wid: 13 + skyRand() * 15, ang: (skyRand() - 0.5) * 0.2,
 }));
-const RINGS = [300, 230, 175, 132, 100, 76, 58, 44], COLS = 40, WASH = 30;
+const RINGS = [300, 230, 175, 132, 100, 76, 58, 44];
+// Far washes sit on two world grids: a fine one where the far layer begins, a coarse one beyond. Every cell gets a wash,
+// and across FAR_WASH_FADE the fine grid fades out as the coarse one fades in, so the handoff between them never pops a band of paint.
+// Ids pack the low 8 bits of each grid coordinate under a per-grid base: unique inside any 256-cell window (3 km on the
+// fine grid, 7.7 km on the coarse), far wider than the 600 m the far layer spans. Both blocks end below the sky's 900000.
+const FAR_WASH_GRIDS = [{ size: 12, reach: 140, base: 700000 }, { size: 30, reach: RINGS[0] - 30, base: 765536 }];
+const FAR_WASH_FADE = [110, 140];
+function collectFarWashes(cam, bands) {
+  const [cx0, , cz0] = cam.pos, inner = RINGS[RINGS.length - 1];
+  FAR_WASH_GRIDS.forEach((g, level) => {
+    const gx0 = floor((cx0 - g.reach) / g.size), gz0 = floor((cz0 - g.reach) / g.size), n = ceil((2 * g.reach) / g.size) + 1;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const gx = gx0 + i, gz = gz0 + j, x = (gx + 0.5) * g.size, z = (gz + 0.5) * g.size, dx = x - cx0, dz = z - cz0, d = hypot(dx, dz);
+      if (d < inner || d > g.reach || dx * cam.fwd[0] + dz * cam.fwd[2] < 0) continue;
+      const blend = smooth(FAR_WASH_FADE[0], FAR_WASH_FADE[1], d), fade = level === 0 ? 1 - blend : blend * (1 - smooth(g.reach - 30, g.reach, d)); // the coarse grid thins out toward its far edge
+      if (fade < 0.05) continue;
+      let b = 0;
+      while (b < RINGS.length - 2 && d < RINGS[b + 1]) b++; // bucket by ring band, for painter's order
+      bands[b].push({ x, z, d, ux: dx / d, uz: dz / d, size: g.size, fade, wk: hash(gx, gz, 731 + level), id: g.base + (((gx & 255) << 8) | (gz & 255)) });
+    }
+  });
+}
 function skyDir(cam, az, el) {
   const ce = cos(el), d = [sin(az) * ce, sin(el), cos(az) * ce];
   const cz = d[0] * cam.fwd[0] + d[1] * cam.fwd[1] + d[2] * cam.fwd[2];
@@ -283,24 +325,20 @@ function renderFar(c, cam, frame, ds) {
     c.fillStyle = css([46, 96, 78]); c.beginPath(); c.arc(sun.sx, sun.sy, 17, 0, TAU); c.fill();
   }
   const halfFov = 0.85 + abs(cam.pitch) * 0.3; // widen the fan when pitched so no sky wedge shows at the edges
-  const rows = RINGS.map((dist) => Array.from({ length: COLS + 1 }, (_, ci) => {
-    const az = cam.yaw + ((ci / COLS) * 2 - 1) * halfFov, x = cx0 + sin(az) * dist, z = cz0 + cos(az) * dist, hy = height(x, z);
+  // Column azimuths sit on a world-fixed lattice, so turning in place re-uses the same terrain samples and the far
+  // silhouette turns rigidly with the view instead of reshaping. The step divides the full
+  // circle evenly, so a whole turn lands back on the same samples, and it stays fixed when pitch widens the fan.
+  const dAz = TAU / 148, az0 = floor((cam.yaw - halfFov) / dAz) * dAz, cols = ceil((cam.yaw + halfFov - az0) / dAz);
+  const rows = RINGS.map((dist) => Array.from({ length: cols + 1 }, (_, ci) => {
+    const az = az0 + ci * dAz, x = cx0 + sin(az) * dist, z = cz0 + cos(az) * dist, hy = height(x, z);
     return { x, z, hy, y: max(hy, WATER), p: project(cam, [x, max(hy, WATER), z], 1) };
   }));
-  // Washes sit on a world grid, not on the camera-relative ring grid, so they stay put on the land as the view turns.
-  const bands = RINGS.map(() => []), R0 = RINGS[0], gx0 = floor((cx0 - R0) / WASH), gz0 = floor((cz0 - R0) / WASH), n = ceil((2 * R0) / WASH) + 1;
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-    const wk = hash(gx0 + i, gz0 + j, 731);
-    if (!(wk & 1)) continue;
-    const x = (gx0 + i + 0.5) * WASH, z = (gz0 + j + 0.5) * WASH, dx = x - cx0, dz = z - cz0, d = hypot(dx, dz);
-    if (d < RINGS[RINGS.length - 1] || d > R0 - WASH || dx * cam.fwd[0] + dz * cam.fwd[2] < 0) continue;
-    let b = 0;
-    while (b < RINGS.length - 2 && d < RINGS[b + 1]) b++;
-    bands[b].push({ x, z, d, wk, ux: dx / d, uz: dz / d });
-  }
+  // Washes sit on world grids, not on the camera-relative ring grid, so they stay put on the land as the view turns.
+  const bands = RINGS.map(() => []);
+  collectFarWashes(cam, bands);
   for (let ri = 0; ri < RINGS.length - 1; ri++) { // outermost band first: painter's order
     const fog = fogAt((RINGS[ri] + RINGS[ri + 1]) / 2);
-    for (let ci = 0; ci < COLS; ci++) {
+    for (let ci = 0; ci < cols; ci++) {
       const a = rows[ri][ci], b = rows[ri][ci + 1], cc = rows[ri + 1][ci + 1], d = rows[ri + 1][ci];
       let pts = [a.p, b.p, cc.p, d.p];
       if (pts.some((p) => !p)) { const cl = clipPoly(cam, [a, b, cc, d].map((v) => [v.x, v.y, v.z]), 0.5); if (!cl) continue; pts = cl.screen; }
@@ -310,10 +348,10 @@ function renderFar(c, cam, frame, ds) {
     for (const w of bands[ri]) { // this band's washes, over its cells and under every nearer band
       const hy = height(w.x, w.z), p = project(cam, [w.x, max(hy, WATER), w.z], 1);
       if (!p || p.sx < -150 || p.sx > W + 150) continue;
-      const nxw = w.x - w.ux * WASH / 2, nzw = w.z - w.uz * WASH / 2, pn = project(cam, [nxw, groundY(nxw, nzw), nzw], 1);
+      const nxw = w.x - w.ux * w.size / 2, nzw = w.z - w.uz * w.size / 2, pn = project(cam, [nxw, groundY(nxw, nzw), nzw], 1);
       const col = mix(grade(hy < WATER ? WATER_COL : landColor(w.x, w.z, hy), ds), ds.fog, fogAt(w.d));
-      stroke(c, p.sx, p.sy, WASH * p.scale * 1.2, clamp(pn ? abs(pn.sy - p.sy) * 1.4 : 4, 4, 30), 0, 0,
-        [col[0] + ((w.wk >>> 3) % 9) - 4, col[1] + 4, col[2] + ((w.wk >>> 7) % 9) - 4], 0.5, 0.15, 700000 + (w.wk % 90000), frame, 6, 1);
+      stroke(c, p.sx, p.sy, w.size * p.scale * 1.2, clamp(pn ? abs(pn.sy - p.sy) * 1.4 : 4, 4, 30), 0, 0,
+        [col[0] + ((w.wk >>> 3) % 9) - 4, col[1] + 4, col[2] + ((w.wk >>> 7) % 9) - 4], 0.5 * w.fade, 0.15, w.id, frame, 6, 1);
     }
   }
 }
@@ -324,6 +362,35 @@ const linen = mk(); linen.width = linen.height = 48;
   for (let i = 0; i < 48; i += 3) { l.beginPath(); l.moveTo(i + 0.5, 0); l.lineTo(i + 0.5, 48); l.moveTo(0, i + 0.5); l.lineTo(48, i + 0.5); l.stroke(); } }
 const linenPat = ctx.createPattern(linen, 'repeat');
 const farCache = { valid: false, x: 0, y: 0, z: 0, yaw: 0, pitch: 0, tod: -1, frame: -99 };
+
+// Mid-ground washes. Ground strokes thin and fade out over 30-44 m, so from WASH_NEAR on each quad also gets one or two
+// broad strokes of its own colour, laid along whichever of its edges runs more nearly across the screen. A wash is its
+// own draw-list item, sorted just behind its quad's farthest corner: after the fills of its row, before the paint on it.
+const WASH_NEAR = 25, WASH_FULL = 36;
+function quadWash(c, q, sc, depth, fg, frame) {
+  const fade = smooth(WASH_NEAR, WASH_FULL, depth);
+  if (fade < 0.05) return;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, cx = 0, cy = 0;
+  for (const p of sc) {
+    minX = min(minX, p.sx); maxX = max(maxX, p.sx); minY = min(minY, p.sy); maxY = max(maxY, p.sy); cx += p.sx; cy += p.sy;
+  }
+  const bw = maxX - minX, bh = maxY - minY;
+  if (bw < 7 || maxX < 0 || minX > W || maxY < 0 || minY > H) return;
+  cx /= sc.length; cy /= sc.length;
+  let ang = 0;
+  if (!q.water) { // water washes stay level; land washes follow the quad's across-screen edge, folded into -90..90 degrees
+    const ax = sc[1].sx - sc[0].sx, ay = sc[1].sy - sc[0].sy, bx = sc[2].sx - sc[1].sx, by = sc[2].sy - sc[1].sy;
+    const useA = abs(ax) * hypot(bx, by) >= abs(bx) * hypot(ax, ay), ex = useA ? ax : bx, ey = useA ? ay : by;
+    ang = clamp(atan2(ex < 0 ? -ey : ey, abs(ex)), -0.45, 0.45);
+  }
+  const base = fg(mix(q.c0, q.c2, 0.5)), flip = hash(q.wid, 0, 77) & 1 ? 1 : -1; // broken colour: neighbours lean opposite ways
+  const stack = bh > max(26, bw * 0.68) ? 2 : 1, len = clamp(bw * 1.5, 16, 92), alpha = (q.water ? 0.42 : 0.46) * fade;
+  for (let k = 0; k < stack; k++) { // a quad seen face-on (a slope toward the camera) gets two washes, one above the other
+    const sgn = k ? -flip : flip, y = stack === 1 ? cy : minY + bh * (k ? 0.7 : 0.3);
+    stroke(c, cx + (k ? 4 : -2), y, len, clamp(stack === 1 ? bh * 0.85 : bh * 0.42, 5, 24), ang, q.water ? 0 : -1.3,
+      [base[0] + 4.5 * sgn, base[1] + 5, base[2] + 4.2 * sgn], alpha, 0.18, q.wid + k, frame, q.water ? 2 : 4, 1.2);
+  }
+}
 
 function render(c, cam, frame, t, ds) {
   const [cx0, cy0, cz0] = cam.pos;
@@ -342,10 +409,15 @@ function render(c, cam, frame, t, ds) {
     if (mx * mx + mz * mz > 85 * 85 || mx * cam.fwd[0] + mz * cam.fwd[2] < -CHUNK) continue;
     // A quad sorts one quad-depth behind its farthest corner. Sorting on its mean depth lets the quad cover
     // its own far strokes and lets the next row's fill slice strokes along a straight line.
-    for (const q of ch.quads) { const clip = clipPoly(cam, q.pts); if (clip) list.push({ z: clip.maxCz + 4.5, kind: 'ground', q, clip }); }
+    for (const q of ch.quads) {
+      const clip = clipPoly(cam, q.pts);
+      if (!clip) continue;
+      list.push({ z: clip.maxCz + 4.5, kind: 'ground', q, clip });
+      if (clip.cz > WASH_NEAR) list.push({ z: clip.maxCz + 1, kind: 'wash', q, clip });
+    }
     for (const s of ch.strokes) {
       const d = hypot(s.x - cx0, s.z - cz0);
-      if (d > 50) continue;
+      if (d > 44) continue;
       const p = project(cam, [s.x, s.y, s.z], 0.35);
       if (p && p.sx > -100 && p.sx < W + 100) list.push({ z: p.cz + 0.4, kind: 'paint', s, p, d });
     }
@@ -359,19 +431,22 @@ function render(c, cam, frame, t, ds) {
   list.sort((a, b) => b.z - a.z);
 
   for (const it of list) {
-    const depth = it.kind === 'ground' ? it.clip.cz : it.p.cz, fog = fogAt(depth);
+    const depth = it.clip ? it.clip.cz : it.p.cz, fog = fogAt(depth);
     const fg = (col) => mix(grade(col, ds), ds.fog, fog);
-    if (it.kind === 'ground') {
+    if (it.kind === 'wash') {
+      quadWash(c, it.q, it.clip.screen, depth, fg, frame);
+    } else if (it.kind === 'ground') {
       const q = it.q, sc = it.clip.screen;
       const lift = q.water ? sin(t * 2 + q.xm * 0.3 + q.zm * 0.2) : 0; // gentle shimmer, kept small so quad edges do not show
-      let style = css(fg([(q.c0[0] + q.c2[0]) / 2, (q.c0[1] + q.c2[1]) / 2, (q.c0[2] + q.c2[2]) / 2 + lift]));
+      const avg = mix(q.c0, q.c2, 0.5); // through RGB: averaging hue numbers turns a meadow-to-rock quad teal
+      let style = css(fg([avg[0], avg[1], avg[2] + lift]));
       if (!q.water && sc.length === 4 && depth < 44 && hypot(sc[2].sx - sc[0].sx, sc[2].sy - sc[0].sy) > 20) {
         style = c.createLinearGradient(sc[0].sx, sc[0].sy, sc[2].sx, sc[2].sy); // corner-to-corner gradient hides the quad grid up close
         style.addColorStop(0, css(fg(q.c0))); style.addColorStop(1, css(fg(q.c2)));
       }
       fillPoly(c, sc, style);
     } else if (it.kind === 'paint') {
-      const { s, p } = it, fade = 1 - smooth(34, 50, it.d);
+      const { s, p } = it, fade = 1 - smooth(30, 44, it.d); // washes carry the ground from 36 m, so strokes can stop at 44
       // Project the stroke's far end so paint lies in perspective. Land strokes keep their world direction;
       // water strokes run along the camera's right vector, which lies in the water plane, so ripples read level.
       const tip = s.water ? project(cam, [s.x + cam.right[0] * 1.6, s.y, s.z + cam.right[2] * 1.6], 0.2) : project(cam, [s.x + s.dx, s.y + s.dy, s.z + s.dz], 0.2);

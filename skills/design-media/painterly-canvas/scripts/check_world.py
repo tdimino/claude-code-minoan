@@ -2,22 +2,31 @@
 """
 check_world.py: static check of a painterly-canvas HTML file against the skill's rules.
 
-It reads the file as text and never executes it. Errors are rule breaks that make
-the page unsafe to open or impossible to verify (network access, WebGL, no
-?frame=N, a truncated document). Warnings need a human or a browser to judge.
+By default it reads the file as text and never executes it. Errors are rule breaks
+that make the page unsafe to open or impossible to verify (network access, WebGL,
+no ?frame=N, a truncated document). Warnings need a human or a browser to judge.
+
+With --browser, a file that passed the static check is then opened in
+agent-browser: each pose is loaded twice and the canvas pixels compared. That
+catches Math.random or wall-clock time reaching the paint path, which the text
+check cannot see.
 
 Usage:
     python3 check_world.py scene.html
     python3 check_world.py scene.html --json
+    python3 check_world.py scene.html --browser --pose "frame=5&tod=0.74&px=-124&yaw=-1.5"
 
-Exit codes: 0 no errors, 1 errors found, 2 usage.
+Exit codes: 0 no errors, 1 errors found, 2 usage or the browser could not be run.
 """
 
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
+
+DEFAULT_POSES = ["frame=5&tod=0.5&stats=1", "frame=5&tod=0.95&stats=1"]
 
 # (pattern, message). Each match is an error, reported with its line number.
 ERROR_PATTERNS = [
@@ -123,13 +132,64 @@ def format_report(result: dict, name: str = "") -> str:
     out = [f"{verdict}  {name}  ({stats['bytes']:,} bytes, {stats['lines']:,} lines)"]
     out += [f"  error    {e}" for e in result["errors"]]
     out += [f"  warning  {w}" for w in result["warnings"]]
+    for pose in result.get("browser", []):
+        out.append(f"  browser  ?{pose['query']}  {'same pixels twice' if pose['same'] else 'DIFFERENT PIXELS'}  {pose['hash']}")
     return "\n".join(out)
+
+
+HASH_JS = (
+    "(()=>{const c=document.querySelector('canvas');if(!c)return 'no-canvas';const d=c.toDataURL();"
+    "let h=5381;for(let i=0;i<d.length;i++)h=((h<<5)+h+d.charCodeAt(i))|0;"
+    "return h+':'+d.length+':'+JSON.stringify(window.__paintStats||null)})()"
+)
+
+
+def _browser(*argv: str) -> str:
+    done = subprocess.run(["agent-browser", *argv], capture_output=True, text=True, timeout=120)
+    if done.returncode != 0:
+        raise RuntimeError((done.stderr or done.stdout).strip()[:300])
+    return done.stdout.strip()
+
+
+def browser_pass(path: Path, queries: list[str]) -> dict:
+    """Open each ?query twice in agent-browser and compare canvas hashes. Executes the page.
+
+    The static check cannot see Math.random reaching the paint path. Two loads of one forced
+    frame can: any pixel that differs is unseeded randomness or time leaking into the picture.
+    """
+    errors: list[str] = []
+    poses = []
+    base = path.resolve().as_uri()
+    for query in queries:
+        url = f"{base}?{query}"
+        hashes = []
+        _browser("errors", "--clear")  # the buffer holds every error since the session began: start each pose clean
+        for _ in range(2):
+            _browser("open", url)
+            hashes.append(json.loads(_browser("eval", HASH_JS)))
+        console = _browser("errors")
+        if "stats=1" in query and hashes[0].endswith(":null"):
+            errors.append(f"?{query}: nothing was painted when the page loaded (window.__paintStats is unset)")
+        pose = {"query": query, "hash": hashes[0], "same": hashes[0] == hashes[1]}
+        poses.append(pose)
+        if hashes[0] == "no-canvas":
+            errors.append(f"?{query}: no canvas in the page")
+        elif not pose["same"]:
+            errors.append(f"?{query}: two loads painted different pixels (unseeded randomness or time in the paint path)")
+        if console:
+            errors.append(f"?{query}: console errors: {console[:200]}")
+    return {"errors": errors, "poses": poses}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Static check of a painterly-canvas HTML file.")
     parser.add_argument("files", nargs="+", type=Path)
     parser.add_argument("--json", action="store_true", help="print one JSON object keyed by file")
+    parser.add_argument("--browser", action="store_true",
+                        help="after a clean static check, load each pose twice in agent-browser and compare pixels. "
+                             "This executes the page.")
+    parser.add_argument("--pose", action="append", metavar="QUERY",
+                        help="query string for --browser, repeatable (default: frame=5&tod=0.5&stats=1 and frame=5&tod=0.95&stats=1)")
     args = parser.parse_args()
 
     results = {}
@@ -137,7 +197,15 @@ def main() -> int:
         if not path.is_file():
             print(f"not a file: {path}", file=sys.stderr)
             return 2
-        results[str(path)] = check_html(path.read_text(encoding="utf-8", errors="replace"))
+        results[str(path)] = result = check_html(path.read_text(encoding="utf-8", errors="replace"))
+        if args.browser and not result["errors"]:  # never execute a file that failed the static check
+            try:
+                seen = browser_pass(path, args.pose or DEFAULT_POSES)
+            except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as e:
+                print(f"browser pass failed to run: {e}", file=sys.stderr)
+                return 2
+            result["errors"] += seen["errors"]
+            result["browser"] = seen["poses"]
 
     if args.json:
         print(json.dumps(results, indent=2))

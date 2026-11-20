@@ -98,7 +98,10 @@ Chunks hold only static data. Anything that moves (wind sway, water shimmer, she
 - **Landmark impostors** (2384–2470): from about 102 m to 580 m, towns, lighthouses with a sweeping beam, harbors, aqueducts and vineyards are painted into the far canvas as a few strokes each, with lit windows at night. Landmarks are therefore visible long before the near renderer picks them up at about 220 m.
 - The fan widens with pitch (2247–2256), up to a half-angle of 1.38 rad and 132 columns. Looking steeply up or down a hillside, a fixed fan exposes wedges of sky at the screen edges.
 
-**Grid cells are camera-relative.** The grid's azimuths are measured from the camera's yaw, so each cell slides over the land as the view turns. In the genesis the wash's key is world-derived but its position follows the cell. The starter moves the washes onto a 30 m world grid, bucketed into ring bands for painter's order, so they stay put on the land.
+**Grid cells are camera-relative.** The grid's azimuths are measured from the camera's yaw, so each cell slides over the land as the view turns. In the genesis the wash's key is world-derived but its position follows the cell. The starter corrects both halves that turning exposes:
+
+- **Washes sit on two world grids**, a 12 m grid out to 140 m and a 30 m grid beyond, every cell painted, bucketed into ring bands for painter's order. Across 110–140 m the fine grid fades out as the coarse one fades in, so walking never pops a ring of paint. Ids pack the grid coordinates, so no two washes in view share a jitter stream.
+- **Column azimuths snap to a world-fixed lattice** (`floor((yaw − halfFov) / dAz) * dAz`), so turning in place re-uses the same terrain samples and the silhouette turns rigidly. On ridged relief this cut the pixels changed by a 0.2 rad turn from 2.4% to 0.9%. Walking still resamples the rings, which stay centered on the camera.
 
 **The cache.** Sky and horizon are painted to `farCanvas` and reused until something invalidates them (5471–5479):
 
@@ -121,7 +124,7 @@ Canvas 2D has no depth buffer. Everything near is pushed into one array with a s
   - beyond 26 m each quad gets one or two broad strokes at alpha 0.44–0.52 and impasto 0.18–0.28, with a position-derived id and hold 4
   - close steep, rock, chalk or snow quads (depth up to 34 m, more than 48×40 px visible) get a clipped grid of 2–6 by 2–6 large strokes, 46–156 px long and 16–44 px wide, at alpha 0.48 and impasto 0.24
   
-  Without these the foreground is over-painted or the 34–76 m band lies flat. The starter omits them, and its mid-ground is flatter for it.
+  Without these the foreground is over-painted or the 34–76 m band lies flat. The starter has the first two rules (`quadWash`): a wash is its own draw-list item sorted at `maxCz + 1`, after the fills of its row and before the paint standing on its quad, and ground strokes fade over 30–44 m as the washes take over. It omits the third rule, the clipped grid on close steep faces: a gorge or cliff scene needs it.
 - **Gradient fills.** Under 44 m, each quad's two stored corner colors are graded and cloud-shadowed separately and joined by a linear gradient along the screen diagonal (5685–5701). Water quads build a two-stop shimmer gradient from a sine of time and position. Flat color per quad shows the quad grid near the camera.
 - Large objects are split into several items (a pier is nine segments) so they interleave correctly with what passes between their parts.
 - Every item paints through one `if (it.kind === ...)` chain. No scene graph, no classes.
@@ -175,7 +178,7 @@ Both are cheap. The weave gives every stroke a shared substrate, and without it 
 
 ## 11. Budgets
 
-The unit throughout is calls to `CanvasRenderingContext2D.prototype.stroke`, the canvas method. One brushstroke (the starter's `stroke()` function, the genesis's `paintedStroke`) costs one to four of them.
+The unit throughout is calls to `CanvasRenderingContext2D.prototype.stroke`, the canvas method. One brushstroke (the starter's `stroke()` function, the genesis's `paintedStroke`) costs one to five of them.
 
 Fixed by the genesis constants:
 
