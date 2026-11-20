@@ -21,11 +21,11 @@ Use `threejs-particle-canvas` or `webgpu-threejs-tsl` when the brief needs real 
 | `still` | One composed view, breathing in place, no input | Starter with the loop kept, input and chunk streaming removed: build the chunks around the fixed pose once at boot |
 | `scene` | A bounded place with look and walk | Starter as is, terrain and content replaced |
 | `world` | Endless terrain with regions and landmarks | Starter plus `references/world-pipeline.md` §3–6 |
-| `extend` | New content inside the genesis world | A copy of the genesis file, navigated by `references/genesis-map.md` |
+| `extend` | New content inside a finished world | A copy of `assets/worlds/se-to-i-ja.html`, navigated by `references/se-to-i-ja-map.md`; or, when the genesis is named, a copy of the genesis file, navigated by `references/genesis-map.md` |
 
-Choose from the brief: a page hero or background with no controls is `still` (add drag-to-look if asked), a place to look or walk around is `scene`, an endless or explorable world is `world`, and any request naming Endless Painted World or the genesis is `extend`. A `--mode` argument overrides the choice. Default to `scene`.
+Choose from the brief: a page hero or background with no controls is `still` (add drag-to-look if asked), a place to look or walk around is `scene`, an endless or explorable world is `world`, and a request to add to SE-TO-I-JA, the Zakros world, Endless Painted World or the genesis is `extend`. A `--mode` argument overrides the choice. Default to `scene`.
 
-**`extend` output is a modified copy of an unlicensed third-party work.** Say so in the final message: it is fine for private study and prototyping, and it needs George Kenwright's permission before being published, deployed or committed to a public repository. If `assets/genesis/endless-painted-world.html` is absent, fetch it and verify the checksum with the commands in `assets/genesis/PROVENANCE.md` before reading it.
+**The two `extend` targets carry different rights.** SE-TO-I-JA is ours: its output may be published, with the credits in its ledger kept. **`extend` output from the genesis is a modified copy of an unlicensed third-party work.** Say so in the final message: it is fine for private study and prototyping, and it needs George Kenwright's permission before being published, deployed or committed to a public repository. If `assets/genesis/endless-painted-world.html` is absent, fetch it and verify the checksum with the commands in `assets/genesis/PROVENANCE.md` before reading it.
 
 ## Workflow
 
@@ -112,11 +112,13 @@ The starter is a centered 16:10 card. For a full-bleed hero, set `W` and `H` fro
 | `references/world-pipeline.md` | Changing what is drawn and in what order: fields, regions, chunks, far-horizon cache, draw list, quad washes, color chain, post, budgets |
 | `references/living-details.md` | Adding cloud shadow, wind, rain, walk-in interiors, click targets, collision, synthesized audio, URL presets, rare events |
 | `references/genesis-map.md` | Reading the genesis: the starter-to-genesis name map, a section-by-section line index and a technique lookup table |
+| `references/se-to-i-ja-map.md` | Reading or extending the Zakros world: its modules and functions by line, its URL contract, and where each technique lives |
 
 ## Assets
 
 - `assets/painterly-starter.html`: the kernel to copy. A compact reimplementation of the genesis's method, and its `stroke()` follows the layer recipe of the genesis's `paintedStroke`. Rendered and checked at noon, dusk shoreline and night. What it lacks against the genesis is tabled under "Known limitations and what to improve" in `README.md`.
 - `assets/prompts/first-world.md`: the system brief `first_world.py` sends: output rules, the method and the URL test contract. Edit it to change what every model is asked for.
+- `assets/worlds/se-to-i-ja.html`: a finished bounded world built on the starter, 1,970 lines: Minoan Zakros with a palace, a gorge, creatures, a dance, sound, inscriptions written stroke by stroke and a ledger of sources. Ours to modify and publish. A worked example of buildings, figures, canvas labels, touch controls and quality tiers, and the `extend` target. Lines of embedded data are several thousand characters long: read by range from `references/se-to-i-ja-map.md`, never whole.
 - `assets/genesis/endless-painted-world.html`: the source work, unmodified, for study and for `extend` mode. Not distributed with the skill: fetch it per `PROVENANCE.md` when absent. Supports `?at=<preset>` and `?frame=N`. Preset names are listed in `references/living-details.md` §6.
 - `assets/genesis/PROVENANCE.md`: author, source URL, checksum, fetch command and rights. The genesis carries no license. Study it and write fresh code, and never copy its blocks into anything that ships without the author's permission.
 

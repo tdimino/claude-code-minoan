@@ -13,7 +13,7 @@ A software camera projects world points to the screen, and everything visible is
 | `still` | One composed view, breathing in place |
 | `scene` | A bounded place with look and walk (default) |
 | `world` | Endless terrain with regions and landmarks |
-| `extend` | New content inside a copy of the genesis world |
+| `extend` | New content inside a copy of a finished world: SE-TO-I-JA (ours) or the genesis |
 
 ## Why it exists
 
@@ -61,6 +61,7 @@ painterly-canvas/
 ├── assets/
 │   ├── painterly-starter.html          545-line kernel to copy, render-tested
 │   ├── prompts/first-world.md          System brief sent to the model: rules and URL test contract
+│   ├── worlds/se-to-i-ja.html          A finished bounded world on the starter: Minoan Zakros. Ours to extend and publish
 │   └── genesis/
 │       ├── PROVENANCE.md               Author, source URL, checksum, fetch command, rights
 │       └── endless-painted-world.html  The source work. Gitignored: fetch it locally
@@ -72,7 +73,8 @@ painterly-canvas/
 │   ├── stroke-engine.md                Read when changing how marks look
 │   ├── world-pipeline.md               Read when changing what is drawn and in what order
 │   ├── living-details.md               Read when adding weather, interiors, clicks or audio
-│   └── genesis-map.md                  Read before opening the genesis: name map and line index
+│   ├── genesis-map.md                  Read before opening the genesis: name map and line index
+│   └── se-to-i-ja-map.md               Read before opening the Zakros world: modules, functions and techniques by line
 └── evals/
     ├── evals.json                      Three test prompts with verifiable expectations
     └── files/flicker-bug.html          A painted shoreline with two stroke-engine faults, for eval 2
