@@ -217,7 +217,7 @@ function stroke(c, x, y, len, wid, ang, curve, col, alpha, impasto, id, frame, h
 }
 
 // --- 8. CHUNKS: the near field is built once per chunk from a seed hashed from its coordinates ---
-const CHUNK = 20, RADIUS = 3, CELLS = 5, chunks = new Map();
+const CHUNK = 20, RADIUS = 4, CELLS = 5, chunks = new Map();
 const FLOWERS = [[4, 82, 56], [48, 90, 60], [280, 50, 66], [40, 30, 95]];
 const QWASH_BASE = 600000000; // quad-wash ids: above the last chunk block (1,000,000 + 1024 * 1024 * 512), below 2^31
 function buildChunk(cx, cz) {
@@ -366,7 +366,7 @@ const farCache = { valid: false, x: 0, y: 0, z: 0, yaw: 0, pitch: 0, tod: -1, fr
 // Mid-ground washes. Ground strokes thin and fade out over 30-44 m, so from WASH_NEAR on each quad also gets one or two
 // broad strokes of its own colour, laid along whichever of its edges runs more nearly across the screen. A wash is its
 // own draw-list item, sorted just behind its quad's farthest corner: after the fills of its row, before the paint on it.
-const WASH_NEAR = 25, WASH_FULL = 36;
+const WASH_NEAR = 25, WASH_FULL = 36, NEAR_FADE = 64, NEAR_END = 78; // NEAR_END stays under RADIUS x CHUNK, the distance always loaded
 function quadWash(c, q, sc, depth, fg, frame) {
   const fade = smooth(WASH_NEAR, WASH_FULL, depth);
   if (fade < 0.05) return;
@@ -406,14 +406,18 @@ function render(c, cam, frame, t, ds) {
   const list = [];
   for (const ch of chunks.values()) {
     const mx = ch.x0 + CHUNK / 2 - cx0, mz = ch.z0 + CHUNK / 2 - cz0;
-    if (mx * mx + mz * mz > 85 * 85 || mx * cam.fwd[0] + mz * cam.fwd[2] < -CHUNK) continue;
+    if (mx * mx + mz * mz > 95 * 95 || mx * cam.fwd[0] + mz * cam.fwd[2] < -CHUNK) continue;
     // A quad sorts one quad-depth behind its farthest corner. Sorting on its mean depth lets the quad cover
     // its own far strokes and lets the next row's fill slice strokes along a straight line.
+    // The near layer ends at NEAR_END, inside the ring of chunks that is always loaded, and everything in it fades
+    // out over the last metres. So ground, washes and trees ease in one by one as the walker nears, never a row at a time.
     for (const q of ch.quads) {
+      const rd = hypot(q.xm - cx0, q.zm - cz0);
+      if (rd > NEAR_END) continue;
       const clip = clipPoly(cam, q.pts);
       if (!clip) continue;
-      list.push({ z: clip.maxCz + 4.5, kind: 'ground', q, clip });
-      if (clip.cz > WASH_NEAR) list.push({ z: clip.maxCz + 1, kind: 'wash', q, clip });
+      list.push({ z: clip.maxCz + 4.5, kind: 'ground', q, clip, rd });
+      if (clip.cz > WASH_NEAR) list.push({ z: clip.maxCz + 1, kind: 'wash', q, clip, rd });
     }
     for (const s of ch.strokes) {
       const d = hypot(s.x - cx0, s.z - cz0);
@@ -426,13 +430,17 @@ function render(c, cam, frame, t, ds) {
       const p = project(cam, [tf.x, tf.y, tf.z]);
       if (p && p.sx > -40 && p.sx < W + 40) list.push({ z: p.cz, kind: 'tuft', tf, p });
     }
-    for (const tr of ch.trees) { const p = project(cam, [tr.x, tr.y, tr.z]); if (p && p.sx > -260 && p.sx < W + 260) list.push({ z: p.cz - 0.3, kind: 'tree', tr, p }); }
+    for (const tr of ch.trees) {
+      const rd = hypot(tr.x - cx0, tr.z - cz0), p = rd > NEAR_END ? null : project(cam, [tr.x, tr.y, tr.z]);
+      if (p && p.sx > -260 && p.sx < W + 260) list.push({ z: p.cz - 0.3, kind: 'tree', tr, p, rd });
+    }
   }
   list.sort((a, b) => b.z - a.z);
 
   for (const it of list) {
     const depth = it.clip ? it.clip.cz : it.p.cz, fog = fogAt(depth);
     const fg = (col) => mix(grade(col, ds), ds.fog, fog);
+    c.globalAlpha = it.rd > NEAR_FADE ? 1 - smooth(NEAR_FADE, NEAR_END, it.rd) : 1;
     if (it.kind === 'wash') {
       quadWash(c, it.q, it.clip.screen, depth, fg, frame);
     } else if (it.kind === 'ground') {
@@ -478,6 +486,7 @@ function render(c, cam, frame, t, ds) {
     }
   }
 
+  c.globalAlpha = 1;
   c.save();
   c.globalCompositeOperation = 'multiply';
   c.fillStyle = linenPat; c.fillRect(0, 0, W, H);
