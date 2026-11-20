@@ -10,6 +10,7 @@ Local ML inference, RAG, browser automation, messaging, telephony, physical medi
 | `claude-peers` | Peer discovery, messaging, and lifecycle management between Claude Code and Codex CLI via Unix socket MCP; the broker wakes recipients natively (Claude inbox socket, `codex queue`) and a Stop/PreToolUse hook catches missed wakes |
 | `codex-cto` | Codex CLI as CTO: GPT-5.4-Pro plans, GPT-5.4 reviews, Claude Code executes |
 | `codex-orchestrator` | Spawn parallel-safe, persona-driven Codex subagents without replacing project `AGENTS.md`; includes all 12 GPT-6-Astra effort/tier permutations |
+| `gemini-orchestrator` | Hand one bounded task to a Gemini 4 model (Neon, Hydrogen, Carbon, Argon) through a single OpenRouter call with no agent harness: eight tool-less personas, context packing, a cost gate quoted before sending, an egress guard, a check of every quoted citation against the pack, and a spend ledger |
 | `disc-forge` | Burn Red Book audio CDs on macOS via [cdrdao](https://cdrdao.sourceforge.net/) with CD-Text from ID3 tags — works with USB burners `drutil` labels "Unsupported" |
 | `figma-mcp` | Convert Figma designs to production code via MCP |
 | `linkedin-export` | Parse, search, analyze LinkedIn GDPR data exports (23 CSV types) |

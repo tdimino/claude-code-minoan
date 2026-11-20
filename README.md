@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-97-green.svg" alt="Skills"></a>
+  <a href="#available-skills"><img src="https://img.shields.io/badge/Skills-98-green.svg" alt="Skills"></a>
   <a href="commands/README.md"><img src="https://img.shields.io/badge/Commands-21-purple.svg" alt="Commands"></a>
   <a href="hooks/README.md"><img src="https://img.shields.io/badge/Hooks-50-orange.svg" alt="Hooks"></a>
 </p>
@@ -77,7 +77,7 @@ Configure hooks in `~/.claude/settings.json` — see [hooks/README.md](hooks/REA
 
 ## Deep Dives
 
-### [Skills](skills/README.md) — 97 skills across 5 categories
+### [Skills](skills/README.md) — 98 skills across 5 categories
 
 Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md` entry point, optional scripts, and reference docs.
 
@@ -86,7 +86,7 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 | Category | Count | Notable Skills |
 |----------|-------|---------------|
 | Core Development | 15 | `fable`, `skill-optimizer`, `claude-agent-sdk`, `claude-md-manager`, `dag-typesafe`, `glossary`, `autoresearch`, `claude-usage`, `architecture-md-builder`, `stop-slop`, `test-harness-auditor`, `user-model-builder` |
-| Integration & Automation | 31 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator` (parallel-safe personas), `obscura`, `stock-monitor` |
+| Integration & Automation | 32 | `opencli`, `cloudflare`, `rlama`, `llama-cpp`, `slack`, `sms`, `telegram`, `mycelium`, `open-interpreter`, `codex-orchestrator` (parallel-safe personas), `gemini-orchestrator` (Gemini 4 over OpenRouter, no harness), `obscura`, `stock-monitor` |
 | Design & Media | 35 | `minoan-frontend-design` (70% win rate), `scroll-cinema`, `conductor-motion`, `vellum-editorial`, `gpt-atelier`, `nano-banana-pro`, `gemini-forge`, `sprite-forge` (Retro Diffusion + fal genmedia, pipeline profiles), `image-well`, `image-forge`, `paper-design`, `pretext`, `shadcn`, `meshy`, `particle-swarm-sim`, `tamarru`, `recordly` (agent-driven screen + webcam recording, X export check), `blender-forge` (headless Blender: inscribed vessels and tablets, scan cleanup, transparent turntables) |
 | Research | 10 | `omnisearch`, `geo-seo`, `academic-research`, `ancient-near-east-research`, `exa-search`, `firecrawl`, `keenable`, `scrapling`, `openplanter`, `reverse-trace` |
 | Planning & Productivity | 8 | `minoan-swarm`, `skill-toggle`, `super-ralph-wiggum`, `claude-tracker-suite` (FTS5 transcript search, title/nickname history, fzf picker, checkpoints, workflow phases, tagged phrases, workspace save/restore, cost tracking via optional SQLite), `codex-tracker-suite` (native App Server search, inspection, status, and safe resume commands), `travel-requirements-expert` |
@@ -94,6 +94,8 @@ Custom Claude Code capabilities organized by domain. Each skill has a `SKILL.md`
 Toggle skills on/off: `python3 ~/.claude/skills/skill-toggle/scripts/skill_toggle.py list`
 
 **Parallel-safe Codex personas**: `codex-orchestrator` passes each role through per-invocation `developer_instructions` while leaving Codex's global, repository, and nested `AGENTS.md` chain untouched. Independent read-only agents can fan out immediately; agents that write overlapping files should still run serially or in separate worktrees.
+
+**Gemini without a harness**: `gemini-orchestrator` hands one bounded task to a Gemini 4 model through a single OpenRouter call. The model has no tools, so the skill packs the files it needs with numbered lines, quotes the cost ceiling before sending, refuses a request that holds a key or a denied email address, and checks every quotation in the answer against the packed files. Needs `OPENROUTER_API_KEY` and `uv`.
 
 **Codex argv hygiene (2026-09-19)**: `codex exec -i/--image` is variadic, so the launchers now emit it after `resume` and terminate options with `--` before the prompt; captured-output profiles print Codex's own diagnostics when a run yields nothing. Codex CLI 0.155.x did not change PTY or prompt handling.
 
