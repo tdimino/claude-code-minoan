@@ -1,0 +1,70 @@
+{
+  "skill_name": "painterly-canvas",
+  "notes": "Expectations marked (Transcript) can only be graded from the run transcript, not from output files. Eval 3 requires assets/genesis/endless-painted-world.html to be present with the PROVENANCE checksum, and agent-browser to be installed. Eval 4 requires OPENROUTER_API_KEY and spends about $1 to $3.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Make me a single HTML file of a lavender field at dusk that looks like an oil painting and gently moves. No libraries. I want to be able to look around by dragging.",
+      "expected_output": "One self-contained HTML file using Canvas 2D that opens on a dusk-lit lavender field painted in breathing brushstrokes, with drag-to-look.",
+      "files": [],
+      "expectations": [
+        "The output is a single HTML file with no external script, stylesheet or image references, and it uses getContext('2d') with no WebGL or imported library",
+        "Brushstroke jitter is computed from a hash of a stable stroke id and a frame epoch of the form floor((frame + id % hold) / hold), and no Math.random() is reachable from the paint path",
+        "With no URL parameters the opening time of day is dusk: the tod default lies between 0.68 and 0.80",
+        "Lavender is its own content type, created as data when terrain is built and painted with the brushstroke function at a hue between 255 and 290, in rows or clumps",
+        "Pointer drag on the canvas changes yaw and pitch",
+        "The file accepts a ?frame=N URL parameter that paints one deterministic frame",
+        "No weather system, interiors or audio were added",
+        "(Transcript) A ?frame=N screenshot was saved and opened with the Read tool before the final message"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "In my painted shoreline page the brushstrokes on the ground and water flicker like TV static whenever the camera moves, and when I stand still the whole picture pulses every few frames. Here is the file. Fix it.",
+      "expected_output": "A diagnosis naming a per-frame draw-list index used as the ground-stroke id as the cause of the static, and a missing per-id stagger in the epoch as the cause of the pulse, with both fixed in the file and nothing else changed.",
+      "files": ["evals/files/flicker-bug.html"],
+      "expectations": [
+        "The diagnosis names the per-frame draw-list index (sid: list.length) passed as the ground-stroke id as the cause of the flicker, and does not blame Math.random()",
+        "The diagnosis names the missing id-based offset in the epoch calculation as the cause of the synchronized pulse",
+        "The fixed ground-stroke call passes the stroke's stored id assigned when the tile is built, and the per-frame sid field is removed or unused",
+        "The fixed epoch expression has the form floor((frame + id % hold) / hold) or an equivalent per-id stagger",
+        "The existing Math.random() calls in update(), which nudge the walker's heading, are left in place, and no Math.random() is added to any function called from the paint path",
+        "(Guard) The repaint step STEP is unchanged",
+        "(Transcript) Two ?frame=N screenshots at consecutive frames, or one before and one after moving the pose, were taken and read before the final message"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Using the Endless Painted World template, add a stone well beside the fountain in the hilltop town square that I can click to hear a splash. Tell me which parts of the file you changed.",
+      "expected_output": "A modified copy of the genesis file with a well created in the town landmark builder, gathered and painted in the sorted draw loop, registered as a click target and as an obstacle, and wired to a synthesized splash, plus a note on the rights position.",
+      "files": [],
+      "expectations": [
+        "(Transcript) The genesis file was read by line range or grep, not loaded in full",
+        "The SHA-256 of assets/genesis/endless-painted-world.html in the skill directory still equals the checksum in PROVENANCE.md; the change was made in a copy",
+        "The well is created as data in buildLandmark for town features with an id from nextId(), placed clear of the central fountain",
+        "The well is pushed in the gather phase of renderWorld and painted from its own it.kind branch using the genesis's painters (paintedStroke, drawPaintedSegment, drawPaintedPoly3D or cylGrad), with day grading and fog applied as in the fountain branch",
+        "A click target for the well is pushed onto interactState.lastClickPts during painting and handled in handleWorldClick",
+        "The well blocks walking: hitsStructure tests it as it tests fountains",
+        "The splash uses the existing playNoiseBurst or playTone helpers, not an audio file",
+        "The final message lists the changed functions or line ranges",
+        "The final message tells the user the modified file derives from an unlicensed third-party work and needs the author's permission before publishing",
+        "(Transcript) The result was opened with ?at=town and a screenshot was read"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Have Google's Neon model paint me a first version of a walkable harbor town in the painterly style, then get it to fix whatever looks wrong.",
+      "expected_output": "A painted-worlds session holding a first draft from google/gemini-4-neon and at least one revision, each with a JSON sidecar, plus a report of cost and of what the revision changed.",
+      "files": [],
+      "expectations": [
+        "(Transcript) The draft was requested with scripts/first_world.py paint, not a hand-written OpenRouter request",
+        "A painted-worlds/<session>/ folder in the working directory, outside the skill folder, holds 001_neon.html and 001_neon.json, and the sidecar's model is google/gemini-4-neon",
+        "(Transcript) The check_world result was read before the draft was opened in a browser, and no draft with a check_world error was opened",
+        "(Transcript) Stills of the draft were rendered with ?frame and at least two ?tod values, and the screenshots were read",
+        "(Transcript) scripts/first_world.py revise was run with a critique that names specific visible faults, and with --shots pointing at the rendered screenshots",
+        "The session holds a second numbered draft whose sidecar names the first as its parent",
+        "The final message states the total cost from the sidecars and which draft is recommended"
+      ]
+    }
+  ]
+}

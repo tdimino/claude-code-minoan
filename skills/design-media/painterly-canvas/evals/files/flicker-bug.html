@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coastal Study</title>
+<style>
+html,body{margin:0;height:100%;background:#f4f1ea;display:flex;align-items:center;justify-content:center}
+canvas{width:min(960px,calc(100vw - 24px),calc((100vh - 24px)*1.6));aspect-ratio:16/10;border-radius:8px;cursor:grab;touch-action:none;outline:none;box-shadow:0 10px 30px -10px rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+<script>
+// Coastal Study: a painted shoreline to wander. Canvas 2D, no libraries.
+// URL: ?frame=N paints one frame and stops. ?tod= ?px= ?pz= ?yaw= ?pitch= set the view.
+(() => {
+'use strict';
+const { PI, abs, atan2, ceil, cos, exp, floor, hypot, max, min, sin, tan } = Math;
+const TAU = PI * 2;
+const params = new URLSearchParams(location.search);
+const num = (k, d) => (params.has(k) && isFinite(parseFloat(params.get(k))) ? parseFloat(params.get(k)) : d);
+
+// --- 1. SURFACES: visible canvas, a back buffer, and a cached far layer ---
+const W = 960, H = 600, DPR = min(2, window.devicePixelRatio || 1);
+const FOCAL = (H / 2) / tan((54 * PI / 180) / 2);
+const canvas = document.getElementById('c');
+const mk = () => document.createElement('canvas');
+const back = mk(), far = mk();
+for (const cv of [canvas, back, far]) { cv.width = W * DPR; cv.height = H * DPR; }
+const ctx = canvas.getContext('2d', { alpha: false });
+const bctx = back.getContext('2d', { alpha: false });
+const fctx = far.getContext('2d', { alpha: false });
+const paintCalls = params.has('stats') ? { stroke: 0, fill: 0 } : null;
+if (paintCalls) for (const k of ['stroke', 'fill']) {
+  const P = CanvasRenderingContext2D.prototype, orig = P[k];
+  P[k] = function (...a) { paintCalls[k]++; return orig.apply(this, a); };
+}
+
+// --- 2. MATH + HASHING: everything random is a pure function of integers ---
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a || 1), 0, 1); return t * t * (3 - 2 * t); };
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hash(a, b, salt = 0) {
+  let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(salt | 0, 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+const hash01 = (a, b, s) => hash(a, b, s) / 4294967296;
+const jitter = (id, epoch, k) => hash(id, epoch, k) / 2147483648 - 1; // -1..1, stable within an epoch
+function noise(x, z, salt) {
+  const ix = floor(x), iz = floor(z), fx = x - ix, fz = z - iz;
+  const ux = fx * fx * (3 - 2 * fx), uz = fz * fz * (3 - 2 * fz);
+  const a = hash01(ix, iz, salt), b = hash01(ix + 1, iz, salt), c = hash01(ix, iz + 1, salt), d = hash01(ix + 1, iz + 1, salt);
+  return a + (b - a) * ux + (c + (d - c) * ux - (a + (b - a) * ux)) * uz;
+}
+const fbm = (x, z, salt) =>
+  noise(x, z, salt) * 0.57 + noise(x * 2.03 + 11.7, z * 2.03 - 7.3, salt + 13) * 0.29 + noise(x * 4.1 - 5.1, z * 4.1 + 19.4, salt + 29) * 0.14;
+
+// --- 3. COLOR: store HSL triples, mix through RGB so blends never swing round the hue wheel ---
+function hsl2rgb(h, s, l) {
+  h = ((h % 360) + 360) % 360; s = clamp(s, 0, 100) / 100; l = clamp(l, 0, 100) / 100;
+  const a = s * min(l, 1 - l), f = (n) => { const k = (n + h / 30) % 12; return (l - a * max(-1, min(k - 3, 9 - k, 1))) * 255; };
+  return [f(0), f(8), f(4)];
+}
+function rgb2hsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const hi = max(r, g, b), lo = min(r, g, b), d = hi - lo, l = (hi + lo) / 2;
+  if (d < 1e-6) return [0, 0, l * 100];
+  const h = hi === r ? ((g - b) / d + 6) % 6 : hi === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, min(100, (d / (1 - abs(2 * l - 1))) * 100), l * 100];
+}
+const hex2hsl = (hex) => { const n = parseInt(hex.slice(1), 16); return rgb2hsl((n >> 16) & 255, (n >> 8) & 255, n & 255); };
+function mix(a, b, t) {
+  if (t <= 0) return a;
+  const A = hsl2rgb(a[0], a[1], a[2]), B = hsl2rgb(b[0], b[1], b[2]);
+  return rgb2hsl(A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + (B[2] - A[2]) * t);
+}
+const css = (c, a = 1) => `hsla(${c[0] | 0},${clamp(c[1], 0, 100) | 0}%,${clamp(c[2], 0, 100) | 0}%,${a.toFixed(2)})`;
+
+// --- 4. DAY STATE: one object per frame; every color in the scene passes through grade() then fog ---
+const SKY = [ // time of day, then zenith / mid / horizon
+  [0.00, '#0a1330', '#182a58', '#27457a'],
+  [0.25, '#30508c', '#8a80ac', '#f6d2a0'],
+  [0.50, '#4a80c0', '#8ab4de', '#f2e6c6'],
+  [0.75, '#26386e', '#8a5276', '#f6be68'],
+  [1.00, '#0a1330', '#182a58', '#27457a'],
+].map(([t, ...c]) => ({ t, c: c.map(hex2hsl) }));
+function dayState(tod) {
+  const u = ((tod % 1) + 1) % 1;
+  let i = 0;
+  while (i < SKY.length - 2 && u > SKY[i + 1].t) i++;
+  const k0 = SKY[i], k1 = SKY[i + 1], f = smooth(k0.t, k1.t, u);
+  const [top, mid, hor] = k0.c.map((c, j) => mix(c, k1.c[j], f));
+  const sunEl = -cos(u * TAU);
+  return {
+    u, top, mid, hor, fog: hor, sunEl, sunAz: (u - 0.25) * TAU,
+    day: clamp((sunEl + 0.25) / 1.05, 0, 1), night: clamp((0.12 - sunEl) / 0.85, 0, 1), golden: max(0, 1 - abs(sunEl) / 0.42),
+  };
+}
+function grade(c, ds) {
+  if (ds.golden > 0.01) c = mix(c, [28, 76, 56], ds.golden * 0.32);
+  if (ds.night > 0.01) c = mix(c, [224, 50, max(8, c[2] * 0.36)], ds.night * 0.72);
+  return c;
+}
+// One fog curve for both layers. Two different curves leave a visible band where the near field meets the far.
+const fogAt = (d) => 0.85 * (1 - exp(-max(0, d - 18) / 140));
+
+// --- 5. TERRAIN: height and color are pure functions of world position, so any distance can sample them ---
+const WATER = -1.2, WATER_COL = [206, 50, 50];
+function height(x, z) {
+  const hills = (fbm(x * 0.012, z * 0.012, 301) - 0.47) * 22, roll = sin(x * 0.05) * cos(z * 0.043) * 1.3;
+  const spawn = 1 - smooth(10, 40, hypot(x, z)); // keep the opening view gentle and dry
+  return (hills + roll) * (1 - spawn) + spawn;
+}
+const groundY = (x, z) => max(height(x, z), WATER);
+function landColor(x, z, y) {
+  const warm = smooth(0.45, 0.66, fbm(x * 0.006 + 3, z * 0.006 - 2, 101));
+  const wash = (fbm(x * 0.03, z * 0.03, 811) - 0.5) * 9;
+  let c = mix([88, 44, 42 + wash], [50, 50, 52 + wash], warm);          // meadow -> wheat
+  c = mix(c, [42, 44, 70], 1 - smooth(WATER + 0.3, WATER + 1.6, y));    // shore sand
+  return mix(c, [224, 20, 52 + wash], smooth(7, 11, y));                // high rock
+}
+
+// --- 6. CAMERA: software projection; near-plane clipping keeps polygons from exploding underfoot ---
+function camera(px, py, pz, yaw, pitch) {
+  const cy = cos(yaw), sy = sin(yaw), cp = cos(pitch), sp = sin(pitch);
+  const fwd = [sy * cp, sp, cy * cp], right = [cy, 0, -sy];
+  const up = [fwd[1] * right[2] - fwd[2] * right[1], fwd[2] * right[0] - fwd[0] * right[2], fwd[0] * right[1] - fwd[1] * right[0]];
+  return { pos: [px, py, pz], fwd, right, up, yaw, pitch };
+}
+function toCam(cam, p) {
+  const dx = p[0] - cam.pos[0], dy = p[1] - cam.pos[1], dz = p[2] - cam.pos[2];
+  return [
+    dx * cam.right[0] + dy * cam.right[1] + dz * cam.right[2],
+    dx * cam.up[0] + dy * cam.up[1] + dz * cam.up[2],
+    dx * cam.fwd[0] + dy * cam.fwd[1] + dz * cam.fwd[2],
+  ];
+}
+function project(cam, p, near = 0.4) {
+  const c = toCam(cam, p);
+  if (c[2] < near) return null;
+  const scale = FOCAL / c[2]; // pixels per world meter at this depth
+  return { sx: W / 2 + c[0] * scale, sy: H / 2 - c[1] * scale, cz: c[2], scale };
+}
+function clipPoly(cam, pts, near = 0.35) {
+  const cs = pts.map((p) => toCam(cam, p)), out = [];
+  for (let i = 0; i < cs.length; i++) {
+    const a = cs[i], b = cs[(i + 1) % cs.length], aIn = a[2] >= near;
+    if (aIn) out.push(a);
+    if (aIn !== (b[2] >= near)) { const t = (near - a[2]) / (b[2] - a[2]); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, near]); }
+  }
+  if (out.length < 3) return null;
+  let cz = 0, maxCz = 0;
+  const screen = out.map((c) => { cz += c[2]; maxCz = max(maxCz, c[2]); const s = FOCAL / c[2]; return { sx: W / 2 + c[0] * s, sy: H / 2 - c[1] * s }; });
+  return { screen, cz: cz / out.length, maxCz };
+}
+function fillPoly(c, pts, style) {
+  c.beginPath(); c.moveTo(pts[0].sx, pts[0].sy);
+  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].sx, pts[i].sy);
+  c.closePath(); c.fillStyle = style; c.fill();
+  c.strokeStyle = style; c.lineWidth = 1.25; c.stroke(); // same-color outline seals antialiasing seams between quads
+}
+
+// --- 7. STROKE ENGINE: one brushstroke = up to four offset curves; jitter is hashed from (id, epoch) ---
+function curveLine(c, x0, y0, mx, my, x1, y1, style, lw) {
+  c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo(mx, my, x1, y1); c.strokeStyle = style; c.lineWidth = lw; c.stroke();
+}
+// id: stable non-negative integer. hold: frames between re-jitters. drift: hand wobble in px. impasto: 0..1 paint thickness.
+function brush(c,x, y, len, wid, ang, curve, col, alpha, impasto, id, frame, hold = 4, drift = 1.5) {
+  if (!isFinite(x + y + len + wid + ang) || len < 1 || wid < 0.5 || alpha < 0.02) return;
+  if (x < -200 || x > W + 200 || y < -200 || y > H + 200) return;
+  const epoch = floor(frame / hold);
+  const j1 = jitter(id, epoch, 1), j2 = jitter(id, epoch, 2), j3 = jitter(id, epoch, 3), j4 = jitter(id, epoch, 4), j5 = jitter(id, epoch, 5);
+  const px = x + j1 * drift, py = y + j2 * drift * 0.7, a = ang + j3 * 0.1;
+  const L = min(320, len * (1 + j4 * 0.15)), Wd = min(46, wid * (1 + j5 * 0.14));
+  const ca = cos(a), sa = sin(a), nx = -sa, ny = ca, hl = L / 2, bend = curve + j2 * 2;
+  const x0 = px - ca * hl, y0 = py - sa * hl, x1 = px + ca * hl, y1 = py + sa * hl, mx = px + nx * bend, my = py + ny * bend;
+  const [h, s, l] = col;
+  const at = (o, style, lw) => curveLine(c, x0 + nx * o, y0 + ny * o, mx + nx * o, my + ny * o, x1 + nx * o, y1 + ny * o, style, lw);
+  c.lineCap = 'butt';
+  if (Wd < 3 || L < 8) { at(0, css([h + j3 * 6, s + j4 * 6, l + j5 * 4], alpha * 0.86), Wd * 0.85); return; } // too small to read as layered
+  if (impasto > 0.2) at(Wd * 0.28, css([h + 10, s * 0.88, l - 18], alpha * impasto * 0.4), Wd * 0.58);      // thick paint casts a shadow
+  at(0, css([h + j3 * 7, s + j4 * 7, l + j5 * 5], alpha * 0.85), Wd * 0.78);                                 // body
+  at(Wd * 0.22, css([h + 12, s + 5, l - 8], alpha * 0.6), max(1, Wd * 0.22));                                // bristle streak, cooler and darker
+  at(-Wd * 0.27, css([h - 9, s + 10, l + 12 + impasto * 9], alpha * 0.7), max(1, Wd * 0.2));                 // lit ridge, warmer and lighter
+}
+
+// --- 8. CHUNKS: the near field is built once per chunk from a seed hashed from its coordinates ---
+const CHUNK = 20, RADIUS = 3, CELLS = 5, chunks = new Map();
+const FLOWERS = [[4, 82, 56], [48, 90, 60], [280, 50, 66], [40, 30, 95]];
+function makeTile(cx, cz) {
+  const rand = rng(hash(cx, cz, 9001)), x0 = cx * CHUNK, z0 = cz * CHUNK, step = CHUNK / CELLS;
+  // Each chunk owns a block of 512 ids packed from its coordinates: stable across rebuilds, unique across loaded chunks,
+  // and clear of the global blocks below 1,000,000 (far washes 700000+, sky 900000+).
+  let id = 1000000 + ((cx & 1023) * 1024 + (cz & 1023)) * 512;
+  const quads = [], strokes = [], tufts = [], trees = [];
+  const corner = (x, z) => { const y = height(x, z); return y < WATER ? WATER_COL : landColor(x, z, y); };
+  for (let iz = 0; iz < CELLS; iz++) for (let ix = 0; ix < CELLS; ix++) {
+    const x = x0 + ix * step, z = z0 + iz * step, xm = x + step / 2, zm = z + step / 2, water = height(xm, zm) < WATER;
+    quads.push({
+      pts: [[x, groundY(x, z), z], [x + step, groundY(x + step, z), z], [x + step, groundY(x + step, z + step), z + step], [x, groundY(x, z + step), z + step]],
+      xm, zm, water, c0: water ? WATER_COL : corner(x, z), c2: water ? WATER_COL : corner(x + step, z + step), // opposite corners, for a gradient fill
+    });
+  }
+  for (let i = 0; i < 280; i++) { // ground strokes: world-anchored paint that carries the terrain's color and grain
+    const x = x0 + rand() * CHUNK, z = z0 + rand() * CHUNK, y = height(x, z), water = y < WATER;
+    const gx = (height(x + 1, z) - height(x - 1, z)) / 2, gz = (height(x, z + 1) - height(x, z - 1)) / 2;
+    const ang = water ? 0 : hypot(gx, gz) > 0.3 ? atan2(gz, gx) + PI / 2 : sin(x * 0.08 + z * 0.06) * 0.7; // follow contours on slopes
+    const half = 1.1 + rand() * 0.9, dx = cos(ang) * half, dz = sin(ang) * half, base = water ? WATER_COL : landColor(x, z, y);
+    strokes.push({
+      id: id++, x, y: max(y, WATER) + 0.05, z, dx, dz, dy: groundY(x + dx, z + dz) - max(y, WATER), wid: 0.6 + rand() * 0.5, water,
+      col: [base[0] + (rand() - 0.5) * 16, base[1] + (rand() - 0.5) * 14, base[2] + (rand() - 0.5) * 14],
+    });
+  }
+  for (let i = 0; i < 70; i++) {
+    const x = x0 + rand() * CHUNK, z = z0 + rand() * CHUNK, y = height(x, z);
+    if (y < WATER + 0.3) continue;
+    const flower = rand() < 0.3;
+    tufts.push({ id: id++, x, y, z, flower, h: 0.35 + rand() * 0.5, col: flower ? FLOWERS[floor(rand() * FLOWERS.length)] : [84 + rand() * 30, 46, 34 + rand() * 16] });
+  }
+  for (let i = 0; i < 3; i++) {
+    const x = x0 + rand() * CHUNK, z = z0 + rand() * CHUNK, y = height(x, z);
+    if (rand() < 0.6 && y > WATER + 0.8 && y < 8 && hypot(x, z) > 12) { trees.push({ id, x, y, z, h: 5 + rand() * 5, hue: 96 + rand() * 40 }); id += 40; } // a tree reserves 40 ids
+  }
+  return { cx, cz, x0, z0, quads, strokes, tufts, trees };
+}
+function ensureChunks(px, pz) {
+  const pcx = floor(px / CHUNK), pcz = floor(pz / CHUNK);
+  for (let dz = -RADIUS; dz <= RADIUS; dz++) for (let dx = -RADIUS; dx <= RADIUS; dx++) {
+    const key = `${pcx + dx},${pcz + dz}`;
+    if (!chunks.has(key)) chunks.set(key, makeTile(pcx + dx, pcz + dz));
+  }
+  for (const [key, ch] of chunks) if (abs(ch.cx - pcx) > RADIUS + 1 || abs(ch.cz - pcz) > RADIUS + 1) chunks.delete(key);
+}
+
+// --- 9. FAR LAYER: sky plus a ring-and-column horizon grid, painted to its own canvas and reused ---
+const skyRand = rng(1874);
+const skyStrokes = Array.from({ length: 420 }, (_, i) => ({
+  id: 900000 + i, az: skyRand() * TAU, el: 0.01 + skyRand() * 0.62, len: 70 + skyRand() * 90, wid: 13 + skyRand() * 15, ang: (skyRand() - 0.5) * 0.2,
+}));
+const RINGS = [300, 230, 175, 132, 100, 76, 58, 44], COLS = 40, WASH = 30;
+function skyDir(cam, az, el) {
+  const ce = cos(el), d = [sin(az) * ce, sin(el), cos(az) * ce];
+  const cz = d[0] * cam.fwd[0] + d[1] * cam.fwd[1] + d[2] * cam.fwd[2];
+  if (cz < 0.2) return null;
+  const cx = d[0] * cam.right[0] + d[1] * cam.right[1] + d[2] * cam.right[2], cy = d[0] * cam.up[0] + d[1] * cam.up[1] + d[2] * cam.up[2];
+  return { sx: W / 2 + (cx / cz) * FOCAL, sy: H / 2 - (cy / cz) * FOCAL };
+}
+function renderFar(c, cam, frame, ds) {
+  const [cx0, , cz0] = cam.pos, horizonY = H / 2 + tan(cam.pitch) * FOCAL;
+  const g = c.createLinearGradient(0, horizonY - H * 0.8, 0, horizonY + 10);
+  g.addColorStop(0, css(ds.top)); g.addColorStop(0.55, css(ds.mid)); g.addColorStop(1, css(ds.hor));
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const starA = smooth(0.3, 0.6, ds.night) * 0.8, stars = [];
+  for (const s of skyStrokes) {
+    const p = skyDir(cam, s.az, s.el);
+    if (!p) continue;
+    const col = mix(ds.hor, ds.top, smooth(0, 0.55, s.el));
+    brush(c,p.sx, p.sy, s.len, s.wid, s.ang, (s.id % 5) - 2, [col[0] + ((s.id % 5) - 2) * 2, col[1], col[2] + ((s.id % 7) - 3) * 0.9], 0.42, 0.1, s.id, frame, 6, 2);
+    if (starA > 0.02 && s.id % 2) stars.push(p);
+  }
+  c.fillStyle = `rgba(255,246,214,${starA.toFixed(2)})`; // stars after every sky stroke, so none is half covered
+  for (const p of stars) { c.beginPath(); c.arc(p.sx, p.sy, 1.3, 0, TAU); c.fill(); }
+  const sun = ds.sunEl > -0.12 ? skyDir(cam, ds.sunAz, max(0.03, ds.sunEl * 0.9)) : null;
+  if (sun) {
+    const halo = c.createRadialGradient(sun.sx, sun.sy, 4, sun.sx, sun.sy, 110);
+    halo.addColorStop(0, 'rgba(255,240,190,0.85)'); halo.addColorStop(1, 'rgba(255,240,190,0)');
+    c.fillStyle = halo; c.beginPath(); c.arc(sun.sx, sun.sy, 110, 0, TAU); c.fill();
+    c.fillStyle = css([46, 96, 78]); c.beginPath(); c.arc(sun.sx, sun.sy, 17, 0, TAU); c.fill();
+  }
+  const halfFov = 0.85 + abs(cam.pitch) * 0.3; // widen the fan when pitched so no sky wedge shows at the edges
+  const rows = RINGS.map((dist) => Array.from({ length: COLS + 1 }, (_, ci) => {
+    const az = cam.yaw + ((ci / COLS) * 2 - 1) * halfFov, x = cx0 + sin(az) * dist, z = cz0 + cos(az) * dist, hy = height(x, z);
+    return { x, z, hy, y: max(hy, WATER), p: project(cam, [x, max(hy, WATER), z], 1) };
+  }));
+  // Washes sit on a world grid, not on the camera-relative ring grid, so they stay put on the land as the view turns.
+  const bands = RINGS.map(() => []), R0 = RINGS[0], gx0 = floor((cx0 - R0) / WASH), gz0 = floor((cz0 - R0) / WASH), n = ceil((2 * R0) / WASH) + 1;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const wk = hash(gx0 + i, gz0 + j, 731);
+    if (!(wk & 1)) continue;
+    const x = (gx0 + i + 0.5) * WASH, z = (gz0 + j + 0.5) * WASH, dx = x - cx0, dz = z - cz0, d = hypot(dx, dz);
+    if (d < RINGS[RINGS.length - 1] || d > R0 - WASH || dx * cam.fwd[0] + dz * cam.fwd[2] < 0) continue;
+    let b = 0;
+    while (b < RINGS.length - 2 && d < RINGS[b + 1]) b++;
+    bands[b].push({ x, z, d, wk, ux: dx / d, uz: dz / d });
+  }
+  for (let ri = 0; ri < RINGS.length - 1; ri++) { // outermost band first: painter's order
+    const fog = fogAt((RINGS[ri] + RINGS[ri + 1]) / 2);
+    for (let ci = 0; ci < COLS; ci++) {
+      const a = rows[ri][ci], b = rows[ri][ci + 1], cc = rows[ri + 1][ci + 1], d = rows[ri + 1][ci];
+      let pts = [a.p, b.p, cc.p, d.p];
+      if (pts.some((p) => !p)) { const cl = clipPoly(cam, [a, b, cc, d].map((v) => [v.x, v.y, v.z]), 0.5); if (!cl) continue; pts = cl.screen; }
+      const xm = (a.x + b.x + cc.x + d.x) / 4, zm = (a.z + b.z + cc.z + d.z) / 4, ym = (a.hy + b.hy + cc.hy + d.hy) / 4;
+      fillPoly(c, pts, css(mix(grade(ym < WATER ? WATER_COL : landColor(xm, zm, ym), ds), ds.fog, fog)));
+    }
+    for (const w of bands[ri]) { // this band's washes, over its cells and under every nearer band
+      const hy = height(w.x, w.z), p = project(cam, [w.x, max(hy, WATER), w.z], 1);
+      if (!p || p.sx < -150 || p.sx > W + 150) continue;
+      const nxw = w.x - w.ux * WASH / 2, nzw = w.z - w.uz * WASH / 2, pn = project(cam, [nxw, groundY(nxw, nzw), nzw], 1);
+      const col = mix(grade(hy < WATER ? WATER_COL : landColor(w.x, w.z, hy), ds), ds.fog, fogAt(w.d));
+      brush(c,p.sx, p.sy, WASH * p.scale * 1.2, clamp(pn ? abs(pn.sy - p.sy) * 1.4 : 4, 4, 30), 0, 0,
+        [col[0] + ((w.wk >>> 3) % 9) - 4, col[1] + 4, col[2] + ((w.wk >>> 7) % 9) - 4], 0.5, 0.15, 700000 + (w.wk % 90000), frame, 6, 1);
+    }
+  }
+}
+
+// --- 10. NEAR LAYER + POST: gather, depth-sort back to front, paint, then unify with canvas weave and vignette ---
+const linen = mk(); linen.width = linen.height = 48;
+{ const l = linen.getContext('2d'); l.strokeStyle = 'rgba(105,92,72,0.05)'; l.lineWidth = 1;
+  for (let i = 0; i < 48; i += 3) { l.beginPath(); l.moveTo(i + 0.5, 0); l.lineTo(i + 0.5, 48); l.moveTo(0, i + 0.5); l.lineTo(48, i + 0.5); l.stroke(); } }
+const linenPat = ctx.createPattern(linen, 'repeat');
+const farCache = { valid: false, x: 0, y: 0, z: 0, yaw: 0, pitch: 0, tod: -1, frame: -99 };
+
+function paintFrame(c, cam, frame, t, ds) {
+  const [cx0, cy0, cz0] = cam.pos;
+  const dirty = !farCache.valid || hypot(cx0 - farCache.x, cz0 - farCache.z) > 0.25 || abs(cy0 - farCache.y) > 0.2 ||
+    abs(cam.yaw - farCache.yaw) > 0.003 || abs(cam.pitch - farCache.pitch) > 0.003 || abs(ds.u - farCache.tod) > 0.001 || frame - farCache.frame >= 3;
+  if (dirty) { // the cache only pays while the camera rests; walking or turning repaints the far layer every frame
+    fctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    renderFar(fctx, cam, frame, ds);
+    Object.assign(farCache, { valid: true, x: cx0, y: cy0, z: cz0, yaw: cam.yaw, pitch: cam.pitch, tod: ds.u, frame });
+  }
+  c.drawImage(far, 0, 0, W, H);
+
+  const list = [];
+  for (const ch of chunks.values()) {
+    const mx = ch.x0 + CHUNK / 2 - cx0, mz = ch.z0 + CHUNK / 2 - cz0;
+    if (mx * mx + mz * mz > 85 * 85 || mx * cam.fwd[0] + mz * cam.fwd[2] < -CHUNK) continue;
+    // A quad sorts one quad-depth behind its farthest corner. Sorting on its mean depth lets the quad cover
+    // its own far strokes and lets the next row's fill slice strokes along a straight line.
+    for (const q of ch.quads) { const clip = clipPoly(cam, q.pts); if (clip) list.push({ z: clip.maxCz + 4.5, kind: 'ground', q, clip }); }
+    for (const s of ch.strokes) {
+      const d = hypot(s.x - cx0, s.z - cz0);
+      if (d > 50) continue;
+      const p = project(cam, [s.x, s.y, s.z], 0.35);
+      if (p && p.sx > -100 && p.sx < W + 100) list.push({ z: p.cz + 0.4, kind: 'paint', s, p, d, sid: list.length });
+    }
+    for (const tf of ch.tufts) {
+      if (hypot(tf.x - cx0, tf.z - cz0) > 38) continue;
+      const p = project(cam, [tf.x, tf.y, tf.z]);
+      if (p && p.sx > -40 && p.sx < W + 40) list.push({ z: p.cz, kind: 'tuft', tf, p });
+    }
+    for (const tr of ch.trees) { const p = project(cam, [tr.x, tr.y, tr.z]); if (p && p.sx > -260 && p.sx < W + 260) list.push({ z: p.cz - 0.3, kind: 'tree', tr, p }); }
+  }
+  list.sort((a, b) => b.z - a.z);
+
+  for (const it of list) {
+    const depth = it.kind === 'ground' ? it.clip.cz : it.p.cz, fog = fogAt(depth);
+    const fg = (col) => mix(grade(col, ds), ds.fog, fog);
+    if (it.kind === 'ground') {
+      const q = it.q, sc = it.clip.screen;
+      const lift = q.water ? sin(t * 2 + q.xm * 0.3 + q.zm * 0.2) : 0; // gentle shimmer, kept small so quad edges do not show
+      let style = css(fg([(q.c0[0] + q.c2[0]) / 2, (q.c0[1] + q.c2[1]) / 2, (q.c0[2] + q.c2[2]) / 2 + lift]));
+      if (!q.water && sc.length === 4 && depth < 44 && hypot(sc[2].sx - sc[0].sx, sc[2].sy - sc[0].sy) > 20) {
+        style = c.createLinearGradient(sc[0].sx, sc[0].sy, sc[2].sx, sc[2].sy); // corner-to-corner gradient hides the quad grid up close
+        style.addColorStop(0, css(fg(q.c0))); style.addColorStop(1, css(fg(q.c2)));
+      }
+      fillPoly(c, sc, style);
+    } else if (it.kind === 'paint') {
+      const { s, p } = it, fade = 1 - smooth(34, 50, it.d);
+      // Project the stroke's far end so paint lies in perspective. Land strokes keep their world direction;
+      // water strokes run along the camera's right vector, which lies in the water plane, so ripples read level.
+      const tip = s.water ? project(cam, [s.x + cam.right[0] * 1.6, s.y, s.z + cam.right[2] * 1.6], 0.2) : project(cam, [s.x + s.dx, s.y + s.dy, s.z + s.dz], 0.2);
+      if (!tip) continue;
+      const gust = s.water ? 0 : sin(s.x * 0.07 + s.z * 0.04 - t * 2.1) * 0.06;
+      const len = clamp(hypot(tip.sx - p.sx, tip.sy - p.sy) * 2, 9, 110);
+      brush(c,p.sx, p.sy, len, clamp(s.wid * p.scale, 4, 38), atan2(tip.sy - p.sy, tip.sx - p.sx) + gust, s.water ? 0 : -len * 0.1, fg(s.col), 0.86 * fade, s.water ? 0.25 : 0.42, it.sid, frame, s.water ? 2 : 4, 2);
+    } else if (it.kind === 'tuft') {
+      const { tf, p } = it, sway = sin(t * 2.6 + tf.x * 0.2 + tf.z * 0.15) * 0.3;
+      const tip = project(cam, [tf.x + sway * tf.h, tf.y + tf.h, tf.z]);
+      if (!tip) continue;
+      const col = fg(tf.col), a = atan2(tip.sy - p.sy, tip.sx - p.sx), len = clamp(hypot(tip.sx - p.sx, tip.sy - p.sy), 4, 40);
+      if (tf.flower) {
+        c.strokeStyle = css(fg([104, 40, 34]), 0.75); c.lineWidth = clamp(0.03 * p.scale, 1, 3);
+        c.beginPath(); c.moveTo(p.sx, p.sy); c.lineTo(tip.sx, tip.sy); c.stroke();
+        const sz = clamp(0.26 * tip.scale, 2.5, 30);
+        brush(c,tip.sx, tip.sy, sz * 1.2, sz * 0.8, sway, -1, col, 0.94, 0.6, tf.id, frame, 2, 1.2);
+      } else {
+        brush(c,(p.sx + tip.sx) / 2, (p.sy + tip.sy) / 2, len, clamp(0.09 * p.scale, 1.4, 6), a, -len * 0.16, col, 0.86, 0.35, tf.id, frame, 2, 1.6);
+      }
+    } else if (it.kind === 'tree') {
+      const { tr, p } = it, sc = p.scale, sway = sin(t * 1.3 + tr.x * 0.1) * 0.05;
+      brush(c,p.sx, p.sy - tr.h * 0.2 * sc, tr.h * 0.42 * sc, clamp(0.3 * sc, 2, 30), -PI / 2, 0, fg([24, 30, 26]), 0.95, 0.4, tr.id, frame, 6, 0.8);
+      for (let k = 0; k < 20; k++) { // canopy: dabs low and dark first, high and light last
+        const u = k / 19, ox = (hash01(tr.id, k, 1) - 0.5) * tr.h * 0.5 * (1 - u * 0.55), oy = tr.h * (0.34 + u * 0.6 + hash01(tr.id, k, 4) * 0.08);
+        const col = fg([tr.hue - u * 16 + hash01(tr.id, k, 2) * 12, 42 + u * 10, 22 + u * 24]);
+        brush(c,p.sx + ox * sc, p.sy - oy * sc, tr.h * 0.2 * sc, tr.h * 0.11 * sc, (hash01(tr.id, k, 3) - 0.5) * 1.8 + sway, -3, col, 0.9, 0.5, tr.id + 1 + k, frame, 5, 1.4);
+      }
+    }
+  }
+
+  c.save();
+  c.globalCompositeOperation = 'multiply';
+  c.fillStyle = linenPat; c.fillRect(0, 0, W, H);
+  const vig = c.createRadialGradient(W / 2, H / 2, W * 0.34, W / 2, H / 2, W * 0.72), nt = smooth(0.25, 0.6, ds.night);
+  vig.addColorStop(0, 'rgba(255,250,238,0)');
+  vig.addColorStop(1, `rgba(${54 - 48 * nt | 0},${48 - 38 * nt | 0},${36 - 10 * nt | 0},${(0.2 + 0.16 * nt).toFixed(2)})`); // warm by day, deep blue by night
+  c.fillStyle = vig; c.fillRect(0, 0, W, H);
+  c.restore();
+}
+
+// --- 11. LOOP + INPUT: simulate every animation frame, repaint at 12 fps so the brushwork reads as hand-made ---
+const STEP = 1 / 12, DAY_SEC = 240;
+const player = { x: num('px', -124), z: num('pz', 0), yaw: num('yaw', -1.5), pitch: clamp(num('pitch', -0.04), -0.6, 0.6) };
+let tod = num('tod', 0.4), simT = 0, frameN = 0, acc = 0, last = performance.now();
+const keys = new Set();
+addEventListener('keydown', (e) => { keys.add(e.code); if (e.code.startsWith('Arrow')) e.preventDefault(); });
+addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('blur', () => keys.clear()); // a key released while the window is unfocused never sends keyup
+document.addEventListener('visibilitychange', () => { if (document.hidden) keys.clear(); });
+let drag = null;
+const endDrag = () => { drag = null; };
+canvas.addEventListener('pointerdown', (e) => { if (!drag) { drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); } });
+canvas.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (e.pointerType === 'mouse' && e.buttons === 0) { endDrag(); return; }
+  player.yaw -= (e.clientX - drag.x) * 0.004;
+  player.pitch = clamp(player.pitch + (e.clientY - drag.y) * 0.004, -0.6, 0.6);
+  drag.x = e.clientX; drag.y = e.clientY;
+});
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(ev, endDrag);
+
+function update(dt) {
+  const k = (...codes) => (codes.some((cd) => keys.has(cd)) ? 1 : 0);
+  player.yaw += (k('ArrowRight', 'KeyE') - k('ArrowLeft', 'KeyQ')) * 1.9 * dt;
+  const fwd = k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown'), strafe = k('KeyD') - k('KeyA');
+  const nx = player.x + (sin(player.yaw) * fwd + cos(player.yaw) * strafe) * 6 * dt;
+  const nz = player.z + (cos(player.yaw) * fwd - sin(player.yaw) * strafe) * 6 * dt;
+  const hn = height(nx, nz);
+  if (hn > WATER - 0.4 || hn >= height(player.x, player.z)) { player.x = nx; player.z = nz; } // wade in, never swim; always allow climbing out
+  if ((fwd || strafe) && Math.random() < dt * 0.4) player.yaw += (Math.random() - 0.5) * 0.004; // an uneven path nudges the walker now and then
+  ensureChunks(player.x, player.z);
+}
+function draw(frame, t) {
+  const s0 = paintCalls && { ...paintCalls };
+  const cam = camera(player.x, groundY(player.x, player.z) + 1.7, player.z, player.yaw, player.pitch);
+  bctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  paintFrame(bctx, cam, frame, t, dayState(tod));
+  ctx.drawImage(back, 0, 0);
+  if (paintCalls) window.__paintStats = { frame, stroke: paintCalls.stroke - s0.stroke, fill: paintCalls.fill - s0.fill };
+}
+function loop(now) {
+  const dt = min(0.05, (now - last) / 1000);
+  last = now; simT += dt; tod = (tod + dt / DAY_SEC) % 1;
+  update(dt);
+  acc += dt;
+  if (acc >= STEP) { acc %= STEP; draw(++frameN, simT); }
+  requestAnimationFrame(loop);
+}
+ensureChunks(player.x, player.z);
+const forced = parseInt(params.get('frame'), 10);
+if (!Number.isNaN(forced)) draw(forced, forced * STEP); // deterministic still for screenshots and regression checks
+else if (matchMedia('(prefers-reduced-motion: reduce)').matches) draw(1, 0); // the re-rolls are motion: paint once and rest
+else { draw(1, 0); requestAnimationFrame(loop); }
+})();
+</script>
+</body>
+</html>

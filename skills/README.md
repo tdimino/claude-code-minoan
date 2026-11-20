@@ -138,6 +138,7 @@ skill-name/
 - **[opentype.js](https://opentype.js.org/)** — JavaScript font parser for per-glyph SVG path rendering
 - **[flubber](https://github.com/veltman/flubber)** by Noah Veltman — SVG shape morphing for glyph interpolation
 - **[Impeccable](https://github.com/pbakaus/impeccable)** by Paul Bakaus — decomposed design command architecture, font reflex-reject protocol, CSS anti-pattern bans
+- **[Endless Painted World](https://endless-painted-world.georgekenwright.workers.dev/)** by George Kenwright ([@GeokenAI](https://x.com/GeokenAI)), built with Google DeepMind's Gemini 4 Neon — single-file Canvas 2D painterly world; the genesis of `painterly-canvas` and its epoch-hashed brushstroke engine
 - **[meodai/skill.color-expert](https://github.com/meodai/skill.color-expert)** — color science, OKLCH decision matrices, palette generation
 - **[Matt Pocock's Skills](https://github.com/mattpocock/skills)** — `CONTEXT.md` ubiquitous language convention, `/grill-with-docs` pattern
 - **[Open Souls](https://github.com/opensouls/opensouls)** — the AI souls paradigm that shapes our agent architecture
