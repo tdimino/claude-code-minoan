@@ -83,6 +83,7 @@ and whitespace normalisation. The trailer reports `citations=verified/total`, an
 | `--session FILE` | Carries the conversation to a second call. |
 | `--redact` | Replaces denied email addresses with `[email]`. |
 | `--zdr` | Zero-data-retention endpoints only. |
+| `--stream-reasoning` | Has the reasoning text streamed while the model thinks; it is timed and counted, never kept. Same price. |
 | `--out FILE`, `--quiet` | Where the answer goes; print only the trailer. |
 
 ## Safeguards
@@ -129,6 +130,9 @@ Exit codes: 0 done, 1 API or transport failure, 2 usage, 3 cost gate, 4 empty or
   third answered after 4 m 24 s of silence (34,471 reasoning tokens, $0.99). Neon reasons at about 125 tokens a
   second, so the 48,000-token allowance at high permits more silence than the route appears to tolerate. The cause
   is not established; the failure log exists to settle it.
+- One pack, seven source files checked against a plan, exhausted 24,000, 24,000 and 56,000 reasoning tokens at
+  medium and high and never produced an answer ($2.25 in all). A many-file cross-check is not one Neon call. The
+  allowance at medium is now 32,000.
 
 Details and request shapes: `references/openrouter-api.md`.
 
@@ -145,7 +149,7 @@ Optional `config.json` in the skill folder:
 
 ```bash
 cd ~/.claude/skills/gemini-orchestrator/scripts
-uv run python -m unittest discover -s tests    # 67 tests against a local stub server; nothing is spent
+uv run python -m unittest discover -s tests    # 70 tests against a local stub server; nothing is spent
 uv run python tests/mutants.py                 # breaks 66 lines one at a time and confirms the suite fails
 ```
 

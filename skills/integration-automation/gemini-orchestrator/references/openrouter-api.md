@@ -34,14 +34,28 @@ First real uses, the same day:
 |---|---|---|---|---|
 | Hydrogen, high, `architect` over 11 source files | 35,267 | 24,000 | 15,262 | complete, $0.21 |
 | Neon, high, `reviewer` cross-checking 12 files against a plan | 76,592 | 24,000 | 23,997 | none, $0.59 |
+| Neon, high, `reviewer`, a second project | 120,509 | 56,000 | 34,471 | complete, $0.99, first text at 4 m 24 s |
+| Neon, medium, `reviewer`, the second project | 123,535 | 24,000 | 18,873 | complete, $0.73, 4 m 26 s |
+| Neon, medium, `reviewer`, the first project again | 76,592 | 24,000 | 23,997 | none, $0.59, 4 m 55 s |
+| Neon, high, `reviewer`, four more calls across both projects | — | 56,000–60,000 | — | no answer: the stream ended or carried "A Timeout Occurred" after 6 to 7 minutes |
 
 So: reasoning takes what it wants up to the whole budget, it is billed at the output rate, and a budget that is too
 small buys an empty reply at full price. The model list gives Gemini 4 no token-budget control
 (`supports_max_tokens` is absent), so nothing caps it. `gemini_exec.py` sets `max_tokens` to the answer plus an
-allowance per effort: low 8,000, medium 16,000, high 48,000, xhigh 64,000 (tripled at high after the failed
-review). These rest on five data points. How much Neon wanted for that review is unknown, only that 24,000 was not
-enough. For cross-checking or a very large pack, pass `--reasoning-tokens` higher, or use `medium`. Simple reads at
-low on Hydrogen used 85 to 240 reasoning tokens.
+allowance per effort: low 8,000, medium 32,000, high 48,000, xhigh 64,000 (high tripled and medium doubled after the
+failed reviews). How much Neon wanted for the first project's review is unknown, only that 24,000 was not enough at
+either effort. Simple reads at low on Hydrogen used 85 to 240 reasoning tokens.
+
+One more call on the first project's pack, at high with 56,000 tokens and `--stream-reasoning`, spent all 56,000
+reasoning (55,997) in 6 m 24 s and answered nothing ($1.07). That pack, seven source files checked against a plan,
+has now exhausted 24,000, 24,000 and 56,000: the remedy is a narrower task, not a larger budget. The stream stayed
+open to its end through Vertex, with 92 reasoning chunks and a longest gap of 173 s between chunks, so streamed
+reasoning still leaves minutes of silence, and the call neither confirms nor rules out that it prevents the cut-off
+below.
+
+A second limit sits above the budget: time. Neon reasons at roughly 80 to 125 tokens a second and, with reasoning
+excluded, the stream carries only keep-alives until the answer starts. Of five reviews at high, one answered; the
+other four ended without an answer between 6 and 7 minutes in. `failures.jsonl` records each with its timings.
 
 ## Input estimates
 

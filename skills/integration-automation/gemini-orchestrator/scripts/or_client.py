@@ -37,9 +37,11 @@ ALIASES = {
 # (2,497 of 2,500) and returned nothing, and used 6,329 reasoning tokens on a small puzzle at xhigh. In first
 # real use the same day, Hydrogen at high used 15,262 on a design over 35,000 input tokens, and Neon at high used
 # all of a 24,000 budget reviewing 76,592 and returned nothing ($0.59). The allowances were tripled at high after
-# that. Nothing here caps reasoning: the model list gives Gemini 4 no token-budget control. An unused allowance
+# that. That evening Neon at medium used 18,873 reasoning tokens on one review (it fitted a 24,000 budget with 88
+# tokens to spare) and all of 24,000 on another, returning nothing ($0.59), so medium was doubled to 32,000.
+# Nothing here caps reasoning: the model list gives Gemini 4 no token-budget control. An unused allowance
 # costs nothing; one that is too small costs the whole call. --reasoning-tokens overrides.
-REASONING_ALLOWANCE = {"minimal": 4000, "low": 8000, "medium": 16000, "high": 48000, "xhigh": 64000, "max": 64000}
+REASONING_ALLOWANCE = {"minimal": 4000, "low": 8000, "medium": 32000, "high": 48000, "xhigh": 64000, "max": 64000}
 
 RETRYABLE = {408, 429, 500, 502, 503, 504, 529}
 
@@ -168,11 +170,15 @@ def prices(model: dict) -> tuple[float, float]:
 
 def build_body(model_id: str, messages: list[dict], *, effort: str | None, max_tokens: int,
                schema: dict | None = None, has_pdf: bool = False, data_collection: str = "deny",
-               zdr: bool = False) -> dict:
+               zdr: bool = False, stream_reasoning: bool = False) -> dict:
     body: dict = {"model": model_id, "messages": messages, "max_tokens": max_tokens, "stream": True}
     if effort:
         # exclude: the reasoning is still done and billed, but its text is not returned.
         body["reasoning"] = {"effort": effort, "exclude": True}
+        if stream_reasoning:
+            # The reasoning text then flows down the stream while the model thinks, so the stream is never silent.
+            # It is counted and timed, never kept. The price is the same either way.
+            body["reasoning"]["exclude"] = False
     provider: dict = {"data_collection": data_collection, "require_parameters": True}
     if zdr:
         provider["zdr"] = True
@@ -229,7 +235,9 @@ def chat(body: dict, api_key: str, *, timeout: float = 900, retries: int = 2, on
     parts: list[str] = []
     t = result.timing
     t.update(attempts=attempt + 1, headers_s=round(time.monotonic() - started, 1), first_line_s=None,
-             first_text_s=None, last_line_s=None, keepalives=0, data_chunks=0, bytes=0, done=False, exception="")
+             first_text_s=None, last_line_s=None, keepalives=0, data_chunks=0, bytes=0, done=False, exception="",
+             first_reasoning_s=None, last_reasoning_s=None, reasoning_chunks=0, longest_gap_s=0.0)
+    previous = None
     try:
         with resp:
             for raw in resp:
@@ -255,6 +263,9 @@ def chat(body: dict, api_key: str, *, timeout: float = 900, retries: int = 2, on
                 except json.JSONDecodeError:
                     continue
                 t["data_chunks"] += 1
+                # The longest wait between two data chunks, the first counted from the response headers.
+                t["longest_gap_s"] = max(t["longest_gap_s"], round(elapsed - (previous or t["headers_s"]), 1))
+                previous = elapsed
                 if chunk.get("error"):
                     err = chunk["error"]
                     result.error = str(err.get("message") if isinstance(err, dict) else err)
@@ -265,7 +276,13 @@ def chat(body: dict, api_key: str, *, timeout: float = 900, retries: int = 2, on
                 if chunk.get("usage"):
                     result.usage = chunk["usage"]
                 for choice in chunk.get("choices") or []:
-                    text = (choice.get("delta") or {}).get("content")
+                    delta = choice.get("delta") or {}
+                    if delta.get("reasoning") or delta.get("reasoning_details"):
+                        if t["first_reasoning_s"] is None:
+                            t["first_reasoning_s"] = elapsed
+                        t["last_reasoning_s"] = elapsed
+                        t["reasoning_chunks"] += 1
+                    text = delta.get("content")
                     if text:
                         if t["first_text_s"] is None:
                             t["first_text_s"] = elapsed
@@ -284,6 +301,18 @@ def chat(body: dict, api_key: str, *, timeout: float = 900, retries: int = 2, on
         result.error = "stream ended without a finish reason"
         result.partial = True
     return result
+
+
+def credits(api_key: str, *, timeout: float = 15) -> float | None:
+    """Dollars left on the OpenRouter account, or None when the lookup fails. A free lookup."""
+    req = urllib.request.Request(f"{base_url()}/credits",
+                                 headers={"Authorization": f"Bearer {api_key}", "User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read()).get("data")
+        return float(data["total_credits"]) - float(data["total_usage"])
+    except (OSError, ValueError, AttributeError, KeyError, TypeError):
+        return None
 
 
 def generation(generation_id: str, api_key: str, *, timeout: float = 15) -> dict | None:

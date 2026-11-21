@@ -80,6 +80,8 @@ class Stub(BaseHTTPRequestHandler):
             type(self).lookups.append(self.path)
             return self._send(200, json.dumps({"data": {"id": "gen-1", "total_cost": 0.0123, "latency": 9000,
                                                         "generation_time": 9500, "secret_field": "x"}}).encode())
+        if self.path.startswith("/credits"):
+            return self._send(200, json.dumps({"data": {"total_credits": 120, "total_usage": 109.55}}).encode())
         self._send(200, json.dumps({"data": [NEON, HYDROGEN, TINY]}).encode())
 
     def do_POST(self):
@@ -105,6 +107,10 @@ class Stub(BaseHTTPRequestHandler):
         elif s == "keepalive":
             body = b": OPENROUTER PROCESSING\n\n" + sse(chunk("Hello")) + b": OPENROUTER PROCESSING\n\n" + \
                 sse(chunk(" world"), chunk(finish="stop", usage=USAGE), "[DONE]")
+        elif s == "reasoning":
+            think = {"id": "gen-1", "model": "google/gemini-4-neon-20261118", "provider": "Google",
+                     "choices": [{"delta": {"reasoning": "thinking"}, "finish_reason": None}]}
+            body = sse(think, think, chunk("Hello"), chunk(finish="stop", usage=USAGE), "[DONE]")
         elif s == "no_finish":
             body = sse(chunk("Cut"))
         else:
@@ -132,6 +138,9 @@ class Base(unittest.TestCase):
         for d in (self.work, self.data, self.agents):
             d.mkdir()
         self.config = root / "config.json"
+        # A default call (Neon at medium, 40,000 max_tokens) has a ceiling of $0.60, over the shipped $0.50 gate.
+        # Tests that are not about the gate run under a gate of $1; the gate tests write their own config.
+        self.config.write_text(json.dumps({"gate_usd": 1.0}))
         env = {"OPENROUTER_BASE_URL": f"http://127.0.0.1:{self.server.server_address[1]}",
                "OPENROUTER_API_KEY": "test-key", "GEMINI_ORCH_DATA_DIR": str(self.data),
                "GEMINI_ORCH_AGENTS": str(self.agents), "GEMINI_ORCH_CONFIG": str(self.config),
@@ -209,6 +218,22 @@ class FailureLogTests(Base):
         result = oc.chat({"model": "google/gemini-4-neon", "messages": []}, "test-key")
         self.assertEqual((result.timing["keepalives"], result.timing["done"]), (2, True))
 
+    def test_stream_reasoning_asks_for_the_text_counts_it_and_keeps_none(self):
+        Stub.scenario = "reasoning"
+        code, out, _ = self.run_cli("run", "raw", "Say hello.", "--reasoning", "low", "--stream-reasoning")
+        self.assertEqual(code, 0)
+        self.assertEqual(Stub.requests[-1]["reasoning"], {"effort": "low", "exclude": False})
+        self.assertEqual(out.strip(), "Hello")
+        entry = self.ledger()[-1]
+        self.assertEqual((entry["stream_reasoning"], entry["reasoning_chunks"]), (True, 2))
+        written = Path(entry["output"]).read_text()
+        self.assertNotIn("thinking", written)
+
+    def test_reasoning_stays_excluded_without_the_flag(self):
+        self.run_cli("run", "raw", "Say hello.", "--reasoning", "low")
+        self.assertEqual(Stub.requests[-1]["reasoning"], {"effort": "low", "exclude": True})
+        self.assertEqual(self.ledger()[-1]["stream_reasoning"], False)
+
     def test_a_refusal_before_the_stream_is_logged_with_its_http_status(self):
         Stub.scenario = "http402"
         code, _, err = self.run_cli("run", "raw", "Say hello.")
@@ -225,6 +250,14 @@ class FailureLogTests(Base):
         text = (self.data / "failures.jsonl").read_text()
         self.assertNotIn("test-key", text)
         self.assertNotIn("private sentence", text)
+
+    def test_spend_shows_the_failure_count_and_the_balance(self):
+        Stub.scenario = "no_finish"
+        self.run_cli("run", "raw", "Say hello.")
+        code, out, _ = self.run_cli("spend")
+        self.assertEqual(code, 0)
+        self.assertIn("failed 1 calls recorded", out)
+        self.assertIn("OpenRouter balance $10.45", out)
 
     def test_failures_command_lists_them(self):
         code, out, _ = self.run_cli("failures")
@@ -474,7 +507,7 @@ class GateTests(Base):
 class EgressTests(Base):
     def setUp(self):
         super().setUp()
-        self.config.write_text(json.dumps({"egress_denylist": ["person@example.org"]}))
+        self.config.write_text(json.dumps({"egress_denylist": ["person@example.org"], "gate_usd": 1.0}))
 
     def test_denied_address_in_a_packed_file(self):
         self.write("notes.md", "line one\ncontact: Person@Example.org\n")
@@ -617,7 +650,7 @@ class CitationTests(Base):
 class UnitTests(Base):
     def test_max_tokens_leaves_room_for_the_answer(self):
         self.assertEqual(oc.max_tokens_for(8000, "high", NEON), 56000)
-        self.assertEqual(oc.max_tokens_for(8000, "medium", NEON), 24000)
+        self.assertEqual(oc.max_tokens_for(8000, "medium", NEON), 40000)
         self.assertEqual(oc.max_tokens_for(8000, None, NEON), 8000)
         self.assertEqual(oc.max_tokens_for(500, "high", NEON, 1000), 1500)  # --reasoning-tokens overrides
         self.assertEqual(oc.max_tokens_for(8000, "low", TINY), 1000)  # capped at the model's maximum

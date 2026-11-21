@@ -281,7 +281,7 @@ def cmd_run(args, config) -> int:
     model = prep["model"]
     body = oc.build_body(model["id"], prep["messages"], effort=prep["effort"], max_tokens=prep["max_tokens"],
                          schema=schema, has_pdf=prep["has_pdf"], data_collection=config["data_collection"],
-                         zdr=args.zdr)
+                         zdr=args.zdr, stream_reasoning=args.stream_reasoning)
     for path, why in prep["skipped"]:
         print(f"left out: {path} ({why})", file=sys.stderr)
     print(f"Sending: {prep['quote']}", file=sys.stderr)
@@ -291,6 +291,7 @@ def cmd_run(args, config) -> int:
         "model": model["id"], "effort": prep["effort"], "max_tokens": prep["max_tokens"],
         "estimated_input_tokens": prep["input_tokens"], "ceiling": round(prep["ceiling"], 4),
         "timeout": args.timeout, "attachments": bool(prep["has_pdf"]), "schema": bool(schema), "zdr": bool(args.zdr),
+        "stream_reasoning": bool(args.stream_reasoning),
     }
     sent_at = time.monotonic()
     try:
@@ -343,6 +344,8 @@ def cmd_run(args, config) -> int:
         "estimated_input_tokens": prep["input_tokens"], "generation_id": result.generation_id, "output": str(out),
         "citations": cited, "seconds": result.timing.get("total_s"),
         "first_text_seconds": result.timing.get("first_text_s"),
+        "longest_gap_seconds": result.timing.get("longest_gap_s"),
+        "stream_reasoning": bool(args.stream_reasoning), "reasoning_chunks": result.timing.get("reasoning_chunks"),
     })
     if code != EXIT_OK:
         # OpenRouter's record says what a broken call cost; a call with no record was most likely not billed.
@@ -376,9 +379,11 @@ def cmd_run(args, config) -> int:
     if code == EXIT_EMPTY:
         used = details.get("reasoning_tokens") or prep["max_tokens"]
         print(f"The answer is empty or cut off and {cost_text} was spent. Reasoning is billed as output and shares "
-              f"max_tokens ({prep['max_tokens']:,}) with the answer; it used {used:,}. To run again, quote "
-              f"--reasoning-tokens {2 * used:,} (how much it wants is unknown, only that {used:,} was not enough), "
-              f"or lower --reasoning. Not retried automatically: a second call is a new spend.", file=sys.stderr)
+              f"max_tokens ({prep['max_tokens']:,}) with the answer; it used {used:,}. How much it wants is unknown, only "
+              f"that {used:,} was not enough, and a larger allowance has been spent whole on the same pack before. "
+              f"Prefer a smaller pack or a narrower brief (one file against the specification at a time), or a "
+              f"cheaper model; failing that, quote --reasoning-tokens {2 * used:,}. Not retried automatically: a "
+              f"second call is a new spend.", file=sys.stderr)
     return code
 
 
@@ -421,6 +426,14 @@ def cmd_spend(args, config) -> int:
     print(f"today  ${spent(entries, now.strftime('%Y-%m-%d')):.4f}")
     print(f"month  ${spent(entries, now.strftime('%Y-%m')):.4f}")
     print(f"all    ${spent(entries, ''):.4f}  ({len(entries)} calls; ledger {ledger_path()})")
+    failed = read_failures()
+    print(f"failed {len(failed)} calls recorded ({failures_path()})")
+    try:
+        balance = oc.credits(oc.load_api_key())
+    except oc.ClientError:
+        balance = None
+    if balance is not None:
+        print(f"OpenRouter balance ${balance:.2f} (all uses of the account, not only this skill)")
     return EXIT_OK
 
 
@@ -470,6 +483,8 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--redact", action="store_true", help="replace denied addresses with [email]")
         p.add_argument("--allow-large", action="store_true", help="pack files over 2 MB")
         p.add_argument("--zdr", action="store_true", help="zero-data-retention endpoints only")
+        p.add_argument("--stream-reasoning", action="store_true",
+                       help="have the reasoning text streamed (timed and counted, never kept) so the stream is not silent")
         p.add_argument("--out", help="output file (default .subdaimon-output/gemini-<profile>-<time>.md)")
         p.add_argument("--quiet", action="store_true", help="print only the trailer and the path")
         p.add_argument("--timeout", type=float, default=900)
