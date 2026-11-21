@@ -242,7 +242,7 @@ Individual scripts for targeted government and public data sources. All use Pyth
 | `fetch_census.py` | US Census Bureau ACS 5-Year | Optional `CENSUS_API_KEY` | Geography (state, county, ZIP) |
 | `fetch_epa.py` | EPA ECHO Facility Search | None | `registry_id`, lat/lon, SIC/NAICS |
 | `fetch_icij.py` | ICIJ Offshore Leaks Database | None | `icij_id`, entity name, jurisdiction |
-| `fetch_osha.py` | OSHA DOL Enforcement | None | `activity_nr`, `estab_name`, SIC |
+| `fetch_osha.py` | OSHA via DOL Open Data API | `DOL_API_KEY` (free) | `activity_nr`, `estab_name`, SIC |
 | `fetch_propublica990.py` | ProPublica Nonprofit Explorer (IRS 990) | None | `ein`, org name, NTEE code |
 | `fetch_sam.py` | SAM.gov Entity Registration | `SAM_GOV_API_KEY` | UEI, CAGE code, NAICS |
 
@@ -307,7 +307,7 @@ Key datasets and their linking keys for cross-reference investigations:
 | EPA ECHO Facilities | `echodata.epa.gov` | FRS Registry ID, lat/lon | `fetch_epa.py` | JSON API |
 | ProPublica 990 (IRS) | `projects.propublica.org` | EIN, org name | `fetch_propublica990.py` | JSON API |
 | ICIJ Offshore Leaks | `offshoreleaks.icij.org` | Node ID, entity name, jurisdiction | `fetch_icij.py` | JSON API |
-| OSHA Inspections | `enforcedata.dol.gov` | Activity number, SIC code | `fetch_osha.py` | JSON API |
+| OSHA Inspections | `apiprod.dol.gov/v4` | Activity number, SIC code | `fetch_osha.py` | JSON API |
 | US Census ACS | `api.census.gov` | State/county/ZIP FIPS | `fetch_census.py` | JSON API |
 | OFAC Sanctions | `treasury.gov/ofac` (or OpenSanctions) | Name + aliases, identifiers | `dataset_fetcher.py` | CSV, XML |
 | State Corporate Registries | Per-state (or OpenCorporates API) | State registration number | — | Varies |

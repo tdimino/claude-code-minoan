@@ -7,10 +7,11 @@ establishment names to SIC codes, inspection types, and penalty amounts.
 
 Uses Python stdlib only — zero external dependencies.
 
-API: https://enforcedata.dol.gov/homePage/api_dataset
-     OSHA dataset via DOL Enforcement API
-Auth: None required (free public API).
-Rate limit: Undocumented, ~2 req/sec recommended.
+API: https://apiprod.dol.gov/v4/get/OSHA/inspection/json (DOL Open Data Portal, v4).
+     Guide: https://dataportal.dol.gov/pdf/dol-api-user-guide.pdf
+     The earlier host, enforcedata.dol.gov, is retired and redirects to an HTML page.
+Auth: DOL_API_KEY env var required (free registration at https://dataportal.dol.gov/registration).
+Rate limit: Undocumented, ~2 req/sec recommended. At most 10,000 records or 5 MB per request.
 
 Usage:
     python3 fetch_osha.py /path/to/investigation --query "Acme Manufacturing"
@@ -23,6 +24,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 import urllib.error
 import urllib.parse
@@ -30,9 +32,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-# DOL Enforcement Data API
-DOL_BASE = "https://enforcedata.dol.gov/api/enforcement"
-OSHA_DATASET = "inspection"
+# DOL Open Data Portal API v4: <server>/get/<agency>/<endpoint>/<format>
+DOL_BASE = "https://apiprod.dol.gov/v4/get/OSHA/inspection/json"
 
 # Key SIC codes for WW Watcher investigations
 RELEVANT_SIC_CODES = {
@@ -57,26 +58,42 @@ def search_inspections(
     query: str | None = None,
     state: str | None = None,
     sic: str | None = None,
+    api_key: str | None = None,
     limit: int = 25,
     timeout: int = 30,
 ) -> list[dict]:
     """Search OSHA inspection records."""
-    # DOL API uses a specific query format
+    if not api_key:
+        api_key = os.environ.get("DOL_API_KEY")
+    if not api_key:
+        print(
+            "ERROR: DOL_API_KEY required. Register free at https://dataportal.dol.gov/registration",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # filter_object: one {"field", "operator", "value"} condition, or several under "and".
+    # Establishment names are stored in capitals, so a name is matched as an upper-case substring.
     filters = []
     if query:
-        filters.append(f"estab_name eq '{query}'")
+        filters.append({"field": "estab_name", "operator": "like", "value": f"%{query.upper()}%"})
     if state:
-        filters.append(f"site_state eq '{state}'")
+        filters.append({"field": "site_state", "operator": "eq", "value": state.upper()})
     if sic:
-        filters.append(f"sic_code eq '{sic}'")
+        filters.append({"field": "sic_code", "operator": "eq", "value": sic})
 
     params: dict[str, str] = {
-        "dataset": OSHA_DATASET,
-        "$top": str(limit),
-        "$orderby": "open_date desc",
+        "limit": str(limit),
+        "sort": "desc",
+        "sort_by": "open_date",
     }
     if filters:
-        params["$filter"] = " and ".join(filters)
+        params["filter_object"] = json.dumps(
+            filters[0] if len(filters) == 1 else {"and": filters},
+            separators=(",", ":"),
+        )
+    # The key goes last and stays out of every message: errors name DOL_BASE, never the full URL.
+    params["X-API-KEY"] = api_key
 
     url = f"{DOL_BASE}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={
@@ -86,20 +103,33 @@ def search_inspections(
 
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+            content_type = resp.headers.get("Content-Type", "")
+            raw = resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
-        if e.code == 400:
-            # Try alternative: OSHA public search
-            return _fallback_search(query, state, sic, limit, timeout)
-        print(f"ERROR: DOL API returned {e.code}: {e.reason}", file=sys.stderr)
-        raise
+        if e.code in (401, 403):
+            raise RuntimeError(
+                f"DOL API rejected the API key (HTTP {e.code}). Check DOL_API_KEY at "
+                "https://dataportal.dol.gov/api-keys"
+            ) from None
+        raise RuntimeError(f"DOL API returned HTTP {e.code} from {DOL_BASE}") from None
 
-    # DOL API returns {"d": {"results": [...]}} or flat array
+    # A retired endpoint redirects to an HTML page with status 200, so the body is checked too.
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise RuntimeError(
+            f"DOL API reply was not JSON (Content-Type: {content_type or 'none'}) from {DOL_BASE}. "
+            "The endpoint may have moved; see https://dataportal.dol.gov/datasets"
+        ) from None
+
+    # v4 returns {"data": [...]}
     if isinstance(data, dict):
-        results = data.get("d", data).get("results", data.get("data", []))
+        results = data.get("data", [])
     elif isinstance(data, list):
         results = data
     else:
+        results = []
+    if not isinstance(results, list):
         results = []
 
     records = []
@@ -126,40 +156,6 @@ def search_inspections(
         records.append(record)
 
     return records
-
-
-def _fallback_search(
-    query: str | None,
-    state: str | None,
-    sic: str | None,
-    limit: int,
-    timeout: int,
-) -> list[dict]:
-    """Fallback: try the OSHA public establishment search."""
-    if not query:
-        return []
-
-    params = {
-        "p_search_type": "A",
-        "p_search_text": query,
-        "p_format": "json",
-    }
-    if state:
-        params["p_state"] = state
-
-    url = f"https://www.osha.gov/pls/imis/establishment.search?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, headers={"User-Agent": "OpenPlanter/1.0"})
-
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw = resp.read().decode("utf-8")
-    except urllib.error.HTTPError:
-        return []
-
-    try:
-        return json.loads(raw) if raw.strip().startswith("[") else []
-    except json.JSONDecodeError:
-        return []
 
 
 def write_results(
@@ -251,13 +247,17 @@ def main() -> None:
         return
 
     print("Searching OSHA inspections...")
-    records = search_inspections(
-        query=args.query,
-        state=args.state,
-        sic=args.sic,
-        limit=args.limit,
-        timeout=args.timeout,
-    )
+    try:
+        records = search_inspections(
+            query=args.query,
+            state=args.state,
+            sic=args.sic,
+            limit=args.limit,
+            timeout=args.timeout,
+        )
+    except RuntimeError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if not records:
         print("No inspections found", file=sys.stderr)

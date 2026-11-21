@@ -146,13 +146,15 @@ GET https://offshoreleaks.icij.org/api/v1/search?q={query}&type={entity|officer|
 
 **Inspection search**:
 ```
-GET https://enforcedata.dol.gov/api/enforcement?dataset=inspection&$filter={filter}&$top=25&$orderby=open_date desc
+GET https://apiprod.dol.gov/v4/get/OSHA/inspection/json?limit=25&sort=desc&sort_by=open_date&filter_object={filter}&X-API-KEY={key}
 ```
-- **Auth**: None (free public API)
-- **Rate**: ~2 req/sec recommended
+- **Auth**: `DOL_API_KEY` (free registration at https://dataportal.dol.gov/registration)
+- **Rate**: ~2 req/sec recommended; at most 10,000 records or 5 MB per request
 - **Linking keys**: `activity_nr`, `estab_name`, `sic_code`, `naics_code`, `site_state`
 - **Script**: `fetch_osha.py`
-- **Filter syntax**: `estab_name eq 'Name' and site_state eq 'TX' and sic_code eq '2911'`
+- **Filter syntax**: JSON, `{"and":[{"field":"estab_name","operator":"like","value":"%NAME%"},{"field":"site_state","operator":"eq","value":"TX"}]}`; operators `eq`, `neq`, `gt`, `lt`, `in`, `not_in`, `like`
+- **Catalogue** (no key): `https://apiprod.dol.gov/v4/datasets?limit=500` lists the other OSHA endpoints (`violation`, `accident`, `related_activity`)
+- The earlier host `enforcedata.dol.gov` is retired and redirects to an HTML page
 
 ## ProPublica Nonprofit Explorer (IRS 990)
 
