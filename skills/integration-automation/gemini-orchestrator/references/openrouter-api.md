@@ -48,7 +48,8 @@ either effort. Simple reads at low on Hydrogen used 85 to 240 reasoning tokens.
 
 One more call on the first project's pack, at high with 56,000 tokens and `--stream-reasoning`, spent all 56,000
 reasoning (55,997) in 6 m 24 s and answered nothing ($1.07). That pack, seven source files checked against a plan,
-has now exhausted 24,000, 24,000 and 56,000: the remedy is a narrower task, not a larger budget. The stream stayed
+has now exhausted 24,000, 24,000 and 56,000 on Neon, and 56,000 on Hydrogen at high in 5 m 5 s ($0.53): the remedy
+is a narrower task, not a larger budget or another model. The stream stayed
 open to its end through Vertex, with 92 reasoning chunks and a longest gap of 173 s between chunks, so streamed
 reasoning still leaves minutes of silence, and the call neither confirms nor rules out that it prevents the cut-off
 below.

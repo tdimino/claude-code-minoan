@@ -131,8 +131,8 @@ Exit codes: 0 done, 1 API or transport failure, 2 usage, 3 cost gate, 4 empty or
   second, so the 48,000-token allowance at high permits more silence than the route appears to tolerate. The cause
   is not established; the failure log exists to settle it.
 - One pack, seven source files checked against a plan, exhausted 24,000, 24,000 and 56,000 reasoning tokens at
-  medium and high and never produced an answer ($2.25 in all). A many-file cross-check is not one Neon call. The
-  allowance at medium is now 32,000.
+  medium and high on Neon, and 56,000 on Hydrogen, and never produced an answer ($2.78 in all). A many-file
+  cross-check is not one call. The allowance at medium is now 32,000.
 
 Details and request shapes: `references/openrouter-api.md`.
 
