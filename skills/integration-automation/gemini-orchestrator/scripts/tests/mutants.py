@@ -19,6 +19,17 @@ SCRIPTS = Path(__file__).resolve().parent.parent
 MUTANTS = [
     # (file, original text, replacement, behaviour removed)
     ("or_client.py", '"exclude": True}', '"exclude": False}', "reasoning text excluded from the reply"),
+    ("or_client.py", 't["keepalives"] += 1', "pass", "keep-alives counted"),
+    ("or_client.py", 't["data_chunks"] += 1', "pass", "data chunks counted"),
+    ("or_client.py", 't["first_text_s"] = elapsed', "pass", "time to first answer text recorded"),
+    ("or_client.py", "return {k: data.get(k) for k in keep}", "return data", "generation record trimmed to known fields"),
+    ("gemini_exec.py", "if code != EXIT_OK:\n        # OpenRouter's record", "if False:\n        # OpenRouter's record",
+     "failed call written to the failure log"),
+    ("gemini_exec.py", 'append_failure({**request, "stage": "before the stream"', 'dict({**request, "stage": "before the stream"',
+     "refusal before the stream written to the failure log"),
+    ("gemini_exec.py", '"citations": cited, "seconds": result.timing.get("total_s"),', '"citations": cited,',
+     "duration written to the ledger"),
+    ("gemini_exec.py", "entries = read_failures()[-args.last:]", "entries = read_failures()", "failures --last"),
     ("or_client.py", '{"data_collection": data_collection,', '{"data_collection": "allow",', "data-collection deny"),
     ("or_client.py", '"pdf": {"engine": "native"}', '"pdf": {"engine": "mistral-ocr"}', "native PDF engine pinned"),
     ("or_client.py", "if e.code in RETRYABLE and attempt < retries:", "if False:", "retry before any text"),

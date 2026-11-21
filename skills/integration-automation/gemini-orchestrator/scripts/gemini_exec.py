@@ -22,6 +22,7 @@ import json
 import math
 import os
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -89,6 +90,34 @@ def append_ledger(entry: dict) -> None:
         os.write(fd, line)  # one O_APPEND write per entry, so concurrent runs cannot interleave
     finally:
         os.close(fd)
+
+
+def failures_path() -> Path:
+    return oc.data_dir() / "failures.jsonl"
+
+
+def append_failure(entry: dict) -> None:
+    """One line for every call that was sent and did not return a usable answer, with what is needed to say why."""
+    line = json.dumps(entry, ensure_ascii=False) + "\n"
+    fd = os.open(failures_path(), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+    try:
+        os.write(fd, line.encode("utf-8"))
+    finally:
+        os.close(fd)
+
+
+def read_failures() -> list[dict]:
+    try:
+        lines = failures_path().read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    out = []
+    for line in lines:
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return out
 
 
 def read_ledger() -> list[dict]:
@@ -256,7 +285,22 @@ def cmd_run(args, config) -> int:
     for path, why in prep["skipped"]:
         print(f"left out: {path} ({why})", file=sys.stderr)
     print(f"Sending: {prep['quote']}", file=sys.stderr)
-    result = oc.chat(body, oc.load_api_key(), timeout=args.timeout)
+    api_key = oc.load_api_key()
+    request = {
+        "time": now.isoformat(timespec="seconds"), "cwd": str(Path.cwd()), "profile": args.profile,
+        "model": model["id"], "effort": prep["effort"], "max_tokens": prep["max_tokens"],
+        "estimated_input_tokens": prep["input_tokens"], "ceiling": round(prep["ceiling"], 4),
+        "timeout": args.timeout, "attachments": bool(prep["has_pdf"]), "schema": bool(schema), "zdr": bool(args.zdr),
+    }
+    sent_at = time.monotonic()
+    try:
+        result = oc.chat(body, api_key, timeout=args.timeout)
+    except oc.ClientError as e:
+        # Refused or unreachable before any stream opened: nothing was generated, so nothing is billed.
+        append_failure({**request, "stage": "before the stream", "status": str(e), "http_status": e.status,
+                        "exit_code": EXIT_API, "timing": {"total_s": round(time.monotonic() - sent_at, 1)}})
+        print(f"FAILURE_LOG={failures_path()}", file=sys.stderr)
+        raise
 
     usage = result.usage
     cost = oc.cost_of(usage)
@@ -297,8 +341,19 @@ def cmd_run(args, config) -> int:
         "completion_tokens": usage.get("completion_tokens"), "reasoning_tokens": details.get("reasoning_tokens"),
         "cached_tokens": cached, "cost": cost, "ceiling": round(prep["ceiling"], 4),
         "estimated_input_tokens": prep["input_tokens"], "generation_id": result.generation_id, "output": str(out),
-        "citations": cited,
+        "citations": cited, "seconds": result.timing.get("total_s"),
+        "first_text_seconds": result.timing.get("first_text_s"),
     })
+    if code != EXIT_OK:
+        # OpenRouter's record says what a broken call cost; a call with no record was most likely not billed.
+        record = oc.generation(result.generation_id, api_key)
+        append_failure({
+            **request, "stage": "during the stream" if result.partial else "after the stream", "status": status,
+            "exit_code": code, "error": result.error, "finish": result.finish_reason, "served": served,
+            "provider": result.provider, "generation_id": result.generation_id, "timing": result.timing,
+            "answer_chars": len(result.content), "usage": usage, "cost": cost, "openrouter_record": record,
+            "output": str(out),
+        })
 
     if code == EXIT_OK and args.session:
         history = prep["messages"] + [{"role": "assistant", "content": result.content}]
@@ -306,6 +361,14 @@ def cmd_run(args, config) -> int:
     if not args.quiet and result.content:
         print(result.content)
     print(f"{trailer}\nOUTPUT_FILE={out}", file=sys.stderr)
+    if code != EXIT_OK:
+        t = result.timing
+        print(f"FAILURE_LOG={failures_path()}\n"
+              f"Timing: {t.get('total_s')} s in all; first line at {t.get('first_line_s')} s, first answer text at "
+              f"{t.get('first_text_s')} s, last line at {t.get('last_line_s')} s; {t.get('keepalives')} keep-alives, "
+              f"{t.get('data_chunks')} data chunks. OpenRouter's record of the generation: "
+              f"{'$' + format(record['total_cost'], '.4f') + ' charged' if record and record.get('total_cost') is not None else 'none found'}.",
+              file=sys.stderr)
     if problems:
         print(f"Citations that did not verify ({len(problems)}):", file=sys.stderr)
         for line in problems:
@@ -361,6 +424,31 @@ def cmd_spend(args, config) -> int:
     return EXIT_OK
 
 
+def cmd_failures(args, config) -> int:
+    """The last failed calls, newest last, each with its timings. --json prints the full records."""
+    entries = read_failures()[-args.last:]
+    if args.json:
+        for e in entries:
+            print(json.dumps(e, ensure_ascii=False))
+        return EXIT_OK
+    if not entries:
+        print(f"no failures recorded ({failures_path()})")
+        return EXIT_OK
+    for e in entries:
+        t = e.get("timing") or {}
+        record = e.get("openrouter_record") or {}
+        cost = e.get("cost") if e.get("cost") is not None else record.get("total_cost")
+        print(f"{e.get('time')}  {e.get('profile')}  {e.get('model')}  effort={e.get('effort')}  "
+              f"max_tokens={e.get('max_tokens')}  in≈{e.get('estimated_input_tokens')}")
+        print(f"    {e.get('stage')}: {e.get('status')}")
+        print(f"    {t.get('total_s')} s in all; first line {t.get('first_line_s')} s, first text "
+              f"{t.get('first_text_s')} s, last line {t.get('last_line_s')} s; {t.get('keepalives')} keep-alives, "
+              f"{t.get('data_chunks')} chunks; provider {e.get('provider') or 'unreported'}; "
+              f"cost {'$' + format(cost, '.4f') if cost is not None else 'no record'}")
+    print(f"{len(entries)} shown; log {failures_path()}")
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="gemini_exec.py", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -389,6 +477,9 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--all", action="store_true", help="every Google model, not only the aliased ones")
     m.add_argument("--refresh", action="store_true", help="ignore the day-old cache")
     sub.add_parser("spend")
+    f = sub.add_parser("failures")
+    f.add_argument("--last", type=int, default=10, help="how many to show (default 10)")
+    f.add_argument("--json", action="store_true", help="the full records, one per line")
     v = sub.add_parser("verify")
     v.add_argument("output", help="an output file written by run")
     return parser
@@ -399,7 +490,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         config = load_config()
         commands = {"run": cmd_run, "estimate": cmd_estimate, "models": cmd_models, "spend": cmd_spend,
-                    "verify": cmd_verify}
+                    "verify": cmd_verify, "failures": cmd_failures}
         return commands[args.command](args, config)
     except Usage as e:
         print(f"Usage: {e}", file=sys.stderr)

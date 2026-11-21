@@ -15,6 +15,7 @@ import json
 import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -62,6 +63,9 @@ class Result:
     generation_id: str = ""
     error: str = ""
     partial: bool = False
+    # How the call went in time: seconds to the response headers, to the first line of any kind, to the first answer
+    # text and to the last line, with what the stream carried. A failure is diagnosed from these.
+    timing: dict = field(default_factory=dict)
 
 
 def base_url() -> str:
@@ -202,6 +206,7 @@ def chat(body: dict, api_key: str, *, timeout: float = 900, retries: int = 2, on
                  "User-Agent": USER_AGENT, "X-Title": "gemini-orchestrator"})
     backoff = float(os.environ.get("GEMINI_ORCH_BACKOFF", "2"))
     attempt = 0
+    started = time.monotonic()
     while True:
         try:
             resp = urllib.request.urlopen(req, timeout=timeout)
@@ -222,21 +227,34 @@ def chat(body: dict, api_key: str, *, timeout: float = 900, retries: int = 2, on
 
     result = Result()
     parts: list[str] = []
+    t = result.timing
+    t.update(attempts=attempt + 1, headers_s=round(time.monotonic() - started, 1), first_line_s=None,
+             first_text_s=None, last_line_s=None, keepalives=0, data_chunks=0, bytes=0, done=False, exception="")
     try:
         with resp:
             for raw in resp:
+                elapsed = round(time.monotonic() - started, 1)
+                t["bytes"] += len(raw)
                 line = raw.decode("utf-8", "replace").strip()
-                if not line or line.startswith(":"):  # blank separators and keep-alive comments
+                if not line:  # blank separator
+                    continue
+                if t["first_line_s"] is None:
+                    t["first_line_s"] = elapsed
+                t["last_line_s"] = elapsed
+                if line.startswith(":"):  # keep-alive comment
+                    t["keepalives"] += 1
                     continue
                 if not line.startswith("data:"):
                     continue
                 payload = line[5:].strip()
                 if payload == "[DONE]":
+                    t["done"] = True
                     break
                 try:
                     chunk = json.loads(payload)
                 except json.JSONDecodeError:
                     continue
+                t["data_chunks"] += 1
                 if chunk.get("error"):
                     err = chunk["error"]
                     result.error = str(err.get("message") if isinstance(err, dict) else err)
@@ -249,6 +267,8 @@ def chat(body: dict, api_key: str, *, timeout: float = 900, retries: int = 2, on
                 for choice in chunk.get("choices") or []:
                     text = (choice.get("delta") or {}).get("content")
                     if text:
+                        if t["first_text_s"] is None:
+                            t["first_text_s"] = elapsed
                         parts.append(text)
                         if on_text:
                             on_text(text)
@@ -257,11 +277,33 @@ def chat(body: dict, api_key: str, *, timeout: float = 900, retries: int = 2, on
     except (OSError, ValueError) as e:  # dropped connection, read timeout, truncated chunk
         result.error = result.error or f"stream broke: {e}"
         result.partial = True
+        t["exception"] = type(e).__name__
+    t["total_s"] = round(time.monotonic() - started, 1)
     result.content = "".join(parts)
     if not result.finish_reason and not result.error:
         result.error = "stream ended without a finish reason"
         result.partial = True
     return result
+
+
+def generation(generation_id: str, api_key: str, *, timeout: float = 15) -> dict | None:
+    """OpenRouter's own record of a generation: what it charged and how long it ran. A free lookup; None when there
+    is no record (yet), which for a failed call usually means nothing was billed."""
+    if not generation_id:
+        return None
+    req = urllib.request.Request(
+        f"{base_url()}/generation?id={urllib.parse.quote(generation_id)}",
+        headers={"Authorization": f"Bearer {api_key}", "User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read()).get("data")
+    except (OSError, ValueError, AttributeError):
+        return None
+    if not isinstance(data, dict) or not data.get("id"):
+        return None
+    keep = ("id", "created_at", "total_cost", "generation_time", "latency", "finish_reason", "native_finish_reason",
+            "tokens_prompt", "tokens_completion", "native_tokens_reasoning", "provider_name", "cancelled")
+    return {k: data.get(k) for k in keep}
 
 
 def cost_of(usage: dict) -> float | None:

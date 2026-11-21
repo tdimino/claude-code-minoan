@@ -12,7 +12,7 @@ Hand one bounded task to a Gemini model with a single OpenRouter call. The deleg
 G=~/.claude/skills/gemini-orchestrator/scripts/gemini_exec.py
 uv run $G estimate <profile> "<brief>" --context <paths> [--attach <pdf|image>]   # the quote; nothing sent
 uv run $G run      <profile> "<brief>" --context <paths> [--model neon] [--reasoning high] [--approved-usd N]
-uv run $G models | spend | verify <output.md>
+uv run $G models | spend | failures | verify <output.md>
 ```
 
 ## When to delegate, and when not to
@@ -68,6 +68,7 @@ The delegate's answer is testimony, not a finding.
 
 - **Reasoning can eat the whole budget.** On Gemini 4 an effort is a level, not a share: reasoning is billed as output and shares `max_tokens` with the answer. A budget that is too small returns nothing at full price (exit 4): Neon at high spent all of 24,000 tokens reasoning over a 76,000-token review and answered nothing, for $0.59. Nothing caps reasoning. The script now allows 8,000 (low), 16,000 (medium), 48,000 (high) and 64,000 (xhigh) on top of the answer; an unused allowance costs nothing, so the ceiling is higher than the likely cost. For cross-checking several files against a specification, or a very large pack, raise `--reasoning-tokens` further or drop to `medium`. Reasoning is mandatory; `--reasoning none` is rejected.
 - **Exit 4 is not retried.** The message gives the reasoning tokens used and a doubled allowance to quote. A second call is a new spend and needs the user's go on its own number.
+- **Exit 1 mid-stream is not retried either, and is usually not the user's network.** Every failed call is recorded in `~/.claude/data/gemini-orchestrator/failures.jsonl` with its timings and OpenRouter's own record of the charge; `uv run $G failures` lists them. Read that entry before naming a cause. Seen on 2026-11-20: Neon at high sends nothing but keep-alives while it reasons (about 125 tokens a second), and two calls ended at 6 m 10 s and 6 m 48 s with no answer, one with the provider's own "A Timeout Occurred"; a third answered after 4 m 24 s of silence. A call whose reasoning may pass about five minutes (some 40,000 tokens) is at risk: prefer `medium`, or a smaller pack. A failed call with no record at OpenRouter was most likely not billed.
 - **The egress guard refuses** a request holding an API key, a credentials file or a denied email address, naming the file and line (exit 5). Remove the file, or use `--redact` for addresses. `--allow <path>` exempts one file from the secret patterns after a false alarm; it never exempts addresses.
 - **Tokens are not characters ÷ 4.** JSON and pointed Hebrew run about 2 bytes per token, English prose about 3. Trust `estimate`, not a guess.
 - **PDFs** cost about 1,000 tokens a page. A PNG with a transparent background arrives black: flatten it onto white first. Audio and video are not supported yet.

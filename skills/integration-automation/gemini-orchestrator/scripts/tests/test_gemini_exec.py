@@ -62,6 +62,7 @@ def chunk(text=None, *, finish=None, usage=None, model="google/gemini-4-neon-202
 class Stub(BaseHTTPRequestHandler):
     scenario = "ok"
     requests: list = []
+    lookups: list = []
     calls = 0
 
     def log_message(self, *a):  # keep test output clean
@@ -75,6 +76,10 @@ class Stub(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        if self.path.startswith("/generation"):
+            type(self).lookups.append(self.path)
+            return self._send(200, json.dumps({"data": {"id": "gen-1", "total_cost": 0.0123, "latency": 9000,
+                                                        "generation_time": 9500, "secret_field": "x"}}).encode())
         self._send(200, json.dumps({"data": [NEON, HYDROGEN, TINY]}).encode())
 
     def do_POST(self):
@@ -119,7 +124,7 @@ class Base(unittest.TestCase):
         cls.server.server_close()
 
     def setUp(self):
-        Stub.scenario, Stub.requests, Stub.calls = "ok", [], 0
+        Stub.scenario, Stub.requests, Stub.calls, Stub.lookups = "ok", [], 0, []
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         root = Path(self.tmp.name).resolve()
@@ -157,6 +162,85 @@ class Base(unittest.TestCase):
     def ledger(self) -> list[dict]:
         path = self.data / "ledger.jsonl"
         return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+
+class FailureLogTests(Base):
+    def failures(self) -> list[dict]:
+        path = self.data / "failures.jsonl"
+        return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+    def test_a_good_call_logs_no_failure_and_the_ledger_gains_its_seconds(self):
+        code, _, _ = self.run_cli("run", "raw", "Say hello.")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.failures(), [])
+        self.assertEqual(Stub.lookups, [])
+        entry = self.ledger()[-1]
+        self.assertIsInstance(entry["seconds"], float)
+        self.assertIsInstance(entry["first_text_seconds"], float)
+
+    def test_a_stream_without_a_finish_is_logged_with_timings_and_openrouters_record(self):
+        Stub.scenario = "no_finish"
+        code, _, err = self.run_cli("run", "raw", "Say hello.", "--reasoning", "low")
+        self.assertEqual(code, 1)
+        (f,) = self.failures()
+        self.assertEqual((f["stage"], f["exit_code"], f["profile"], f["effort"]), ("during the stream", 1, "raw", "low"))
+        self.assertIn("without a finish reason", f["status"])
+        self.assertEqual((f["timing"]["data_chunks"], f["timing"]["keepalives"], f["timing"]["done"]), (1, 0, False))
+        self.assertIsNotNone(f["timing"]["first_text_s"])
+        self.assertEqual(f["answer_chars"], 3)
+        self.assertEqual(f["openrouter_record"]["total_cost"], 0.0123)
+        self.assertNotIn("secret_field", f["openrouter_record"])
+        self.assertEqual(Stub.lookups, ["/generation?id=gen-1"])
+        self.assertIn("FAILURE_LOG=", err)
+        self.assertIn("$0.0123 charged", err)
+
+    def test_an_empty_answer_is_logged_after_the_stream(self):
+        Stub.scenario = "empty"
+        code, _, _ = self.run_cli("run", "raw", "Say hello.")
+        self.assertEqual(code, 4)
+        (f,) = self.failures()
+        self.assertEqual((f["stage"], f["exit_code"], f["finish"]), ("after the stream", 4, "length"))
+        self.assertEqual(f["usage"]["completion_tokens_details"]["reasoning_tokens"], 25)
+        self.assertEqual(f["timing"]["first_text_s"], None)
+
+    def test_keepalives_are_counted(self):
+        Stub.scenario = "keepalive"
+        self.assertEqual(self.run_cli("run", "raw", "Say hello.")[0], 0)
+        result = oc.chat({"model": "google/gemini-4-neon", "messages": []}, "test-key")
+        self.assertEqual((result.timing["keepalives"], result.timing["done"]), (2, True))
+
+    def test_a_refusal_before_the_stream_is_logged_with_its_http_status(self):
+        Stub.scenario = "http402"
+        code, _, err = self.run_cli("run", "raw", "Say hello.")
+        self.assertEqual(code, 1)
+        (f,) = self.failures()
+        self.assertEqual((f["stage"], f["http_status"]), ("before the stream", 402))
+        self.assertIn("Insufficient credits", f["status"])
+        self.assertEqual(Stub.lookups, [])
+        self.assertIn("FAILURE_LOG=", err)
+
+    def test_the_log_never_holds_the_key_or_the_brief(self):
+        Stub.scenario = "no_finish"
+        self.run_cli("run", "raw", "A brief with a private sentence in it.")
+        text = (self.data / "failures.jsonl").read_text()
+        self.assertNotIn("test-key", text)
+        self.assertNotIn("private sentence", text)
+
+    def test_failures_command_lists_them(self):
+        code, out, _ = self.run_cli("failures")
+        self.assertEqual(code, 0)
+        self.assertIn("no failures recorded", out)
+        Stub.scenario = "no_finish"
+        self.run_cli("run", "raw", "Say hello.")
+        Stub.scenario = "http402"
+        self.run_cli("run", "raw", "Say hello.")
+        code, out, _ = self.run_cli("failures", "--last", "1")
+        self.assertIn("before the stream", out)
+        self.assertNotIn("during the stream", out)
+        self.assertIn("1 shown", out)
+        code, out, _ = self.run_cli("failures", "--json")
+        self.assertEqual([json.loads(line)["stage"] for line in out.splitlines()],
+                         ["during the stream", "before the stream"])
 
 
 class RunTests(Base):

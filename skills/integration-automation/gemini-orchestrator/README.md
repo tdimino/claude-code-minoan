@@ -42,6 +42,7 @@ uv run $G run raw "Transcribe this page." --attach scan.pdf --model hydrogen
 uv run $G run reviewer "<brief>" --context src/auth/ tests/ docs/session.md
 uv run $G verify .subdaimon-output/gemini-reviewer-….md   # re-check the answer's quotations
 uv run $G spend                                     # totals from the ledger
+uv run $G failures                                  # the last failed calls, with timings and charges
 ```
 
 Aliases: `neon`, `hydrogen`, `carbon`, `argon`, `flash`.
@@ -95,7 +96,13 @@ and whitespace normalisation. The trailer reports `citations=verified/total`, an
 - **Privacy.** Every request sets `data_collection: "deny"`. The trailer names the provider that served it.
 - **Checks on the reply.** An empty or truncated answer, a broken stream and a reply from a different model each
   have their own exit code. A failed call is never retried once text or cost may have been incurred.
-- **Ledger.** Every call sent is recorded with its cost in `~/.claude/data/gemini-orchestrator/ledger.jsonl`.
+- **Ledger.** Every call sent is recorded with its cost and duration in
+  `~/.claude/data/gemini-orchestrator/ledger.jsonl`.
+- **Failure log.** Every call that was sent and returned no usable answer adds a record to `failures.jsonl` beside
+  the ledger: the stage (before, during or after the stream), the error, seconds to the first line, to the first
+  answer text and to the last line, counts of keep-alives and data chunks, the usage reported, and OpenRouter's own
+  record of the generation with what it charged. It holds neither the key nor the brief. `failures` lists the last
+  ten; `failures --json` prints the full records.
 
 Each answer is written to `.subdaimon-output/gemini-<profile>-<time>.md` with a trailer:
 
@@ -117,6 +124,11 @@ Exit codes: 0 done, 1 API or transport failure, 2 usage, 3 cost gate, 4 empty or
 - JSON and pointed Hebrew run about 2 bytes per token, source code about 2.7, English prose about 3.
 - A text PDF costs about 1,000 tokens a page, a page image about 1,100.
 - Prompt caching was not observed.
+- Later the same day, two Neon reviews at high ended with no answer after 6 m 10 s and 6 m 48 s of a stream that
+  carried only keep-alives; one carried the provider's "A Timeout Occurred", and OpenRouter holds no record of it. A
+  third answered after 4 m 24 s of silence (34,471 reasoning tokens, $0.99). Neon reasons at about 125 tokens a
+  second, so the 48,000-token allowance at high permits more silence than the route appears to tolerate. The cause
+  is not established; the failure log exists to settle it.
 
 Details and request shapes: `references/openrouter-api.md`.
 
@@ -133,8 +145,8 @@ Optional `config.json` in the skill folder:
 
 ```bash
 cd ~/.claude/skills/gemini-orchestrator/scripts
-uv run python -m unittest discover -s tests    # 60 tests against a local stub server; nothing is spent
-uv run python tests/mutants.py                 # breaks 58 lines one at a time and confirms the suite fails
+uv run python -m unittest discover -s tests    # 67 tests against a local stub server; nothing is spent
+uv run python tests/mutants.py                 # breaks 66 lines one at a time and confirms the suite fails
 ```
 
 ## Not built or not tried yet
