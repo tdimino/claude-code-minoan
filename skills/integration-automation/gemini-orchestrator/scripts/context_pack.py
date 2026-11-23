@@ -24,7 +24,7 @@ EGRESS_HOOK = Path.home() / ".claude/hooks/block-email-egress.py"
 
 FORBIDDEN_NAME = re.compile(
     r"(^|/)(\.env(\..+)?|[^/]*\.env|secrets\.[^/]+|id_(rsa|dsa|ecdsa|ed25519)|[^/]*\.(pem|p12|pfx|key)|"
-    r"credentials\.json|\.netrc|\.npmrc|\.pypirc)$")
+    r"credentials\.json|\.netrc|\.npmrc|\.pypirc)$", re.IGNORECASE)  # macOS file names compare without case
 
 SECRET_PATTERNS = [
     ("OpenRouter key", re.compile(r"sk-or-v1-[A-Za-z0-9]{20,}")),

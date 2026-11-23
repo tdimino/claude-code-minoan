@@ -140,7 +140,9 @@ class Base(unittest.TestCase):
         self.config = root / "config.json"
         # A default call (Neon at medium, 40,000 max_tokens) has a ceiling of $0.60, over the shipped $0.50 gate.
         # Tests that are not about the gate run under a gate of $1; the gate tests write their own config.
-        self.config.write_text(json.dumps({"gate_usd": 1.0}))
+        # These tests are about the direct route, so it is the default here; profiles that also have the agy route
+        # would otherwise start the Antigravity CLI. test_agy_route.py sets its own.
+        self.config.write_text(json.dumps({"gate_usd": 1.0, "default_route": "openrouter"}))
         env = {"OPENROUTER_BASE_URL": f"http://127.0.0.1:{self.server.server_address[1]}",
                "OPENROUTER_API_KEY": "test-key", "GEMINI_ORCH_DATA_DIR": str(self.data),
                "GEMINI_ORCH_AGENTS": str(self.agents), "GEMINI_ORCH_CONFIG": str(self.config),
@@ -334,8 +336,10 @@ class RunTests(Base):
 
     def test_every_shipped_profile_has_a_persona(self):
         shipped = Path(ge.__file__).resolve().parent.parent / "agents"
-        for profile in ge.DEFAULTS["profiles"]:
-            if profile != "raw":
+        for profile, spec in ge.DEFAULTS["profiles"].items():
+            # A persona file is the direct route's system message. A profile with only the agy route (`default`,
+            # which runs agy's own agent) never reads one.
+            if profile != "raw" and "openrouter" in (spec.get("routes") or ["openrouter"]):
                 self.assertTrue((shipped / f"{profile}.md").exists(), profile)
         self.assertTrue((shipped / "_shared.md").exists())
 

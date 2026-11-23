@@ -3,16 +3,21 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""gemini-orchestrator CLI: hand one bounded task to a Gemini model through OpenRouter, with no agent harness.
+"""gemini-orchestrator CLI: hand one bounded task to a Gemini model, by one of two routes.
 
   gemini_exec.py run <profile> "<brief>" [--context PATH ...] [--attach FILE ...] [--model neon] [--reasoning high]
   gemini_exec.py estimate <same arguments>     the quote; nothing is sent
   gemini_exec.py models [--all]                today's ids, prices and efforts
   gemini_exec.py spend                         totals from the ledger
 
-`run` goes: resolve model -> pack -> egress guard -> quote -> cost gate -> send -> check reply -> write output with
-a trailer -> ledger. Exit codes: 0 done, 1 API or transport failure, 2 usage, 3 cost gate, 4 empty or truncated
-answer, 5 egress guard, 6 served by a different model.
+Routes. `openrouter` (--direct): one completion with no tools, over the pack Claude chose, quoted in dollars. `agy`:
+the Antigravity CLI, an agent that opens files itself inside a sandbox, on the plan's quota. A profile names the
+routes it has; --via or --direct chooses between them.
+
+Direct `run` goes: resolve model -> pack -> egress guard -> quote -> cost gate -> send -> check reply -> write output
+with a trailer -> ledger. An `agy` run goes: scan the folder -> deny rules -> run in the sandbox -> say how it ended
+-> list what was read and run -> scan that -> output, trailer, ledger. Exit codes: 0 done, 1 API, transport or agy
+failure, 2 usage, 3 cost or credits gate, 4 empty or truncated answer, 5 egress guard, 6 served by a different model.
 """
 from __future__ import annotations
 
@@ -29,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import context_pack as cp  # noqa: E402
 import citations as ct  # noqa: E402
 import or_client as oc  # noqa: E402
+import agy_client as ac  # noqa: E402
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 EXIT_OK, EXIT_API, EXIT_USAGE, EXIT_GATE, EXIT_EMPTY, EXIT_EGRESS, EXIT_MODEL = 0, 1, 2, 3, 4, 5, 6
@@ -40,16 +46,27 @@ DEFAULTS = {
     "data_collection": "deny",
     "egress_denylist": [],
     "answer_tokens": 8000,
+    "default_route": "agy",      # used where a profile has both routes
+    "direct_only_paths": [],     # folders under which nothing goes through agy
+    "agy_timeout_minutes": 20,
+    "agy_idle_seconds": 300,     # a run with no step for this long is stopped
     "profiles": {
+        # A profile without "routes" has the direct route only.
+        "default": {"model": "neon", "effort": "medium", "routes": ["agy"]},
         "raw": {"model": "neon", "effort": "medium"},
         "reader": {"model": "neon", "effort": "medium"},
-        "reviewer": {"model": "neon", "effort": "high"},
-        "adjudicator": {"model": "neon", "effort": "high"},
-        "architect": {"model": "neon", "effort": "high"},
-        "builder": {"model": "neon", "effort": "medium"},
+        # On the agy route one review at high effort cost about a quarter of the week's plan quota and most of a
+        # five-hour window, on Neon and on Hydrogen alike (2026-11-22). `agy -p /usage` lags a run by some minutes.
+        "reviewer": {"model": "neon", "effort": "high", "routes": ["agy", "openrouter"]},
+        "adjudicator": {"model": "neon", "effort": "high", "routes": ["agy", "openrouter"]},
+        "architect": {"model": "neon", "effort": "high", "routes": ["agy", "openrouter"]},
+        "researcher": {"model": "neon", "effort": "medium", "routes": ["agy"]},
+        "debugger": {"model": "neon", "effort": "high", "routes": ["agy"]},
+        # The one profile that writes on the agy route; on the direct route it returns whole files as text.
+        "builder": {"model": "neon", "effort": "medium", "routes": ["agy", "openrouter"], "access": "write"},
         "extractor": {"model": "hydrogen", "effort": "low"},
         "seer": {"model": "neon", "effort": "medium"},
-        "chat": {"model": "hydrogen", "effort": "low"},
+        "chat": {"model": "hydrogen", "effort": "low", "routes": ["agy", "openrouter"]},
     },
 }
 
@@ -150,11 +167,49 @@ class Egress(Exception):
         self.findings = findings
 
 
-def prepare(args, config: dict) -> dict:
-    """Everything `estimate` and `run` share: the model, the messages, the quote. Sends nothing but the model list."""
+def profile_of(args, config: dict) -> dict:
     profile = config["profiles"].get(args.profile)
     if profile is None:
         raise Usage(f"unknown profile '{args.profile}'; profiles: {', '.join(config['profiles'])}")
+    return profile
+
+
+def direct_only(cwd: Path, config: dict) -> str | None:
+    """The configured folder that holds the working directory and forbids the agy route, if any."""
+    def norm(p: Path) -> str:
+        return str(p.resolve()).casefold().rstrip(os.sep) + os.sep  # macOS paths compare without case
+
+    here = norm(cwd)
+    for raw in config.get("direct_only_paths") or []:
+        if not raw:
+            continue
+        base = norm(Path(raw).expanduser())
+        # Inside the folder, or above it: a run from a parent could open everything the folder holds.
+        if here.startswith(base) or base.startswith(here):
+            return raw
+    return None
+
+
+def route_for(args, config: dict) -> str:
+    """Which route this call takes. An explicit --via or --direct is obeyed or refused, never silently changed."""
+    routes = profile_of(args, config).get("routes") or ["openrouter"]
+    asked = "openrouter" if args.direct else args.via
+    if asked and asked not in routes:
+        raise Usage(f"profile '{args.profile}' has no {asked} route; it has: {', '.join(routes)}")
+    forced = direct_only(Path.cwd(), config)
+    if forced and (asked == "agy" or routes == ["agy"]):
+        raise Usage(f"this folder is under or holds {forced}, where nothing goes through agy (direct_only_paths in "
+                    f"config.json). Use a profile with a direct route and --context.")
+    if asked:
+        return asked
+    if forced:
+        return "openrouter"
+    return config["default_route"] if config["default_route"] in routes else routes[0]
+
+
+def prepare(args, config: dict) -> dict:
+    """Everything `estimate` and `run` share: the model, the messages, the quote. Sends nothing but the model list."""
+    profile = profile_of(args, config)
     system = ""
     if args.profile != "raw":
         persona = agents_dir() / f"{args.profile}.md"
@@ -255,7 +310,252 @@ def approval_needed(prep: dict, approved: float | None) -> str | None:
 
 # --- commands ---------------------------------------------------------------------------------------------------
 
+# --- the agy route ----------------------------------------------------------------------------------------------
+
+DIRECT_ONLY_FLAGS = [("attach", "--attach"), ("schema", "--schema"), ("session", "--session"), ("cache", "--cache"),
+                     ("redact", "--redact"), ("zdr", "--zdr"), ("stream_reasoning", "--stream-reasoning"),
+                     ("approved_usd", "--approved-usd"), ("answer_tokens", "--answer-tokens"),
+                     ("reasoning_tokens", "--reasoning-tokens"), ("allow_large", "--allow-large")]
+
+
+def prepare_agy(args, config: dict) -> dict:
+    """Everything an agy `estimate` and `run` share. Reads the folder; starts nothing."""
+    profile = profile_of(args, config)
+    given = [flag for name, flag in DIRECT_ONLY_FLAGS if getattr(args, name)]
+    if given:
+        raise Usage(f"{', '.join(given)} belong to the direct route; add --direct, or drop them")
+    workspace = Path.cwd().resolve()
+    slug = ac.model_slug(args.model or profile["model"], args.reasoning or profile.get("effort"))
+    addresses = cp.deny_addresses(config.get("egress_denylist"))
+    in_brief = cp.scan([("<brief>", args.brief)], addresses)
+    if in_brief:
+        raise Egress(in_brief)
+    hints = []
+    for raw in args.context or []:
+        if not Path(raw).exists():
+            raise Usage(f"no such file or directory: {raw}")
+        hints.append(cp._display(Path(raw)))
+    in_hints = cp.scan([("<context paths>", "\n".join(hints))], addresses)  # the paths go into the prompt
+    if in_hints:
+        raise Egress(in_hints)
+    exempt = set(args.allow or [])
+    # agy loads two kinds of file by itself, with no tool step that a deny rule or the audit could see. An agent
+    # folder named like one of this skill's personas could be loaded in the persona's place, so it stops the run.
+    # AGENTS.md and GEMINI.md go to the model as they are, so they are scanned here like the brief.
+    shadows = ac.shadow_agents(workspace)
+    if shadows:
+        raise Usage(f"{', '.join(map(str, shadows))}: an agent folder with this skill's prefix sits in or above this "
+                    f"folder, and agy could load it instead of the persona checked here. Remove or rename it.")
+    rules_files = ac.rules_files(workspace)
+    in_rules = cp.scan([(str(p), p.read_text(encoding="utf-8", errors="replace")) for p in rules_files], addresses,
+                       exempt=exempt)
+    if in_rules:
+        raise Egress(in_rules)
+    # One profile writes. Its run must start from a tree with no uncommitted edits to tracked files, so that every
+    # change it makes can be seen with `git status` and undone with git; untracked files are write-denied by rule.
+    write = profile.get("access") == "write"
+    before = ac.git_changes(workspace) if write else []
+    edited = [path for status, path in before if status not in ("??", "!!")]  # untracked and ignored are no edits
+    if edited:
+        raise Usage(f"profile '{args.profile}' writes, and these tracked files have uncommitted changes: "
+                    f"{', '.join(edited)}. Commit them first, so the run's own changes can be told apart and undone.")
+    rules, withheld = ac.deny_rules(workspace, addresses, exempt=exempt, write=write)
+    # The rules name paths, so a write run that renamed a parent folder would carry a withheld or untracked file
+    # out from under its rule. Their state is recorded here and compared after the run.
+    guarded = ac.guarded(workspace, withheld) if write else []
+    seconds = float(args.timeout or config["agy_timeout_minutes"] * 60)
+    # Every profile is a persona, `default` too; it is checked here and installed only by `run`. Probed live: a
+    # persona's tool list keeps agy's web tools from the model. Without one `search_web` runs, outside the sandbox
+    # and past the deny rules, so the model could put what it read into a search query.
+    harness = agents_dir() / "harness"
+    persona = ac.compose_persona(args.profile, harness, write=write)
+    leaks = cp.scan([("<persona>", persona)], addresses)
+    if leaks:
+        raise Egress(leaks)
+    agent = ac.agent_name(args.profile)
+    access = ("writes inside this folder (tracked and new files only) in the sandbox with no network" if write
+              else "read-only in the sandbox with no network")
+    return {
+        "write": write, "before": before, "guarded": guarded, "prints": ac.fingerprints(guarded),
+        "rules_files": [str(p) for p in rules_files],
+        "workspace": workspace, "slug": slug, "addresses": addresses, "exempt": exempt, "rules": rules,
+        "withheld": withheld, "seconds": seconds,
+        "prompt": ac.build_prompt(args.brief, workspace, hints, write=write),
+        "agent": agent, "harness": harness,
+        "quote": (f"1 run through agy on {slug}, agent {agent}, {access}, "
+                  f"{len(rules)} deny rules ({len(withheld)} files withheld), {len(addresses)} denied "
+                  f"address{'' if len(addresses) == 1 else 'es'}, time limit {round(seconds / 60)} min. "
+                  f"It draws on the Antigravity plan's quota; no dollar charge"),
+    }
+
+
+def warn_no_addresses(prep: dict) -> None:
+    if not prep["addresses"]:
+        print("warning: no denied address is known (the egress hook's list, git's user.email and the config's "
+              "egress_denylist are all empty), so no file is withheld for holding one.", file=sys.stderr)
+
+
+def credits_refusal(args) -> str | None:
+    if ac.saved_settings().get("useG1Credits") and not args.approved_credits:
+        return ("useG1Credits is on in the Antigravity settings, so a run past the quota is charged. Needs Tom's go "
+                "and --approved-credits.")
+    return None
+
+
+def cmd_estimate_agy(args, config) -> int:
+    prep = prepare_agy(args, config)
+    for path, why in prep["withheld"]:
+        print(f"withheld: {path} ({why})")
+    warn_no_addresses(prep)
+    blocked = credits_refusal(args)
+    print(blocked if blocked else f"{prep['quote']}. Would be run.")
+    return EXIT_OK
+
+
+def cmd_run_agy(args, config) -> int:
+    prep = prepare_agy(args, config)
+    blocked = credits_refusal(args)
+    if blocked:
+        print(blocked, file=sys.stderr)
+        return EXIT_GATE
+    workspace, slug = prep["workspace"], prep["slug"]
+    agent = ac.install_persona(args.profile, prep["harness"], write=prep["write"])
+    cmd = ac.build_command(ac.binary(), prep["prompt"], slug, ac.run_settings(prep["rules"]), seconds=prep["seconds"],
+                           agent=agent, write=prep["write"])
+    for path, why in prep["withheld"]:
+        print(f"withheld: {path} ({why})", file=sys.stderr)
+    warn_no_addresses(prep)
+    print(f"Running: {prep['quote']}.", file=sys.stderr)
+    now = dt.datetime.now()
+    request = {
+        "time": now.isoformat(timespec="seconds"), "cwd": str(workspace), "profile": args.profile, "route": "agy",
+        "model": slug, "agent": prep["agent"], "timeout": prep["seconds"], "deny_rules": len(prep["rules"]),
+    }
+    try:
+        # The launcher's own limit sits just past agy's, so agy's orderly timeout is seen when it works.
+        result = ac.run(cmd, workspace, idle_seconds=float(config["agy_idle_seconds"]),
+                        total_seconds=prep["seconds"] + 30)
+    except ac.AgyError as e:
+        append_failure({**request, "stage": "before the run", "status": str(e), "exit_code": EXIT_API})
+        print(f"FAILURE_LOG={failures_path()}", file=sys.stderr)
+        raise
+
+    kind, status = ac.outcome(result)
+    code = {"ok": EXIT_OK, "permission": EXIT_EMPTY, "empty": EXIT_EMPTY}.get(kind, EXIT_API)
+    if kind == "ok" and result.model and result.model != slug:
+        status, code = "served by a different model", EXIT_MODEL
+    answer = result.response or result.partial_text
+    # What a write run did to the folder, read before this launcher writes anything of its own there. In every
+    # outcome: a run that failed half-way has still written. A failure here is reported; it does not lose the run.
+    changed, change_error, control, moved = None, None, [], []
+    if prep["write"]:
+        try:
+            changed = [c for c in ac.git_changes(workspace) if c not in prep["before"]]
+            control = [path for _, path in changed if ac.control_file(path)]
+        except ac.AgyError as e:
+            change_error = str(e)
+        moved = ac.disturbed(prep["prints"], prep["guarded"])
+    problems_found = [f"the changed files could not be listed" if change_error else "",
+                      "control files changed" if control else "",
+                      f"{len(moved)} protected files missing or altered" if moved else ""]
+    if any(problems_found):
+        status = "; ".join([status, *filter(None, problems_found)])
+        code = code if code != EXIT_OK else EXIT_API
+
+    stamp = now.strftime("%Y%m%d-%H%M%S")
+    out = Path(args.out) if args.out else workspace / ".subdaimon-output" / f"gemini-{args.profile}-{stamp}-{os.getpid()}.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.with_suffix(".stream.jsonl").write_text("\n".join(result.lines) + "\n", encoding="utf-8")  # first: the record
+    cited_paths = sorted({m["path"].strip().strip("`") for m in ct.CITATION.finditer(answer)})
+    manifest, leaks = ac.audit(result, workspace, prep["addresses"], cited=cited_paths, exempt=prep["exempt"])
+    manifest["deny_rules"] = prep["rules"]
+    manifest["rules_files"] = prep["rules_files"]
+    if prep["write"]:
+        manifest["changed"] = (None if changed is None else
+                               [{"status": status_, "path": path} for status_, path in changed])
+        manifest["disturbed"] = [{"path": path, "what": what} for path, what in moved]
+    if leaks:
+        # The run cannot be unsent. It is reported and logged as a failure even when the answer is good.
+        status, code = f"{status}; egress audit found {len(leaks)}", EXIT_EGRESS
+    manifest_path = out.with_suffix(".manifest.json")
+    manifest_path.write_text(json.dumps(manifest, indent=1, ensure_ascii=False), encoding="utf-8")
+    cited, problems = ct.summarise(ct.check_answer(answer, manifest))
+    usage = result.usage
+    files_read = sum(1 for f in manifest["files"] if f.get("read"))
+    trailer = (f"<!-- gemini-exec: status={status} route=agy model={slug} served={result.model or 'unreported'} "
+               f"agent={prep['agent']} in={usage.get('input_tokens', '?')} out={usage.get('output_tokens', '?')} "
+               f"thinking={usage.get('thinking_tokens', '?')} cached={usage.get('cache_read_tokens', '?')} "
+               f"cost=quota steps={result.steps} tools={len(result.tools)} files_read={files_read} "
+               f"commands={len(manifest['commands'])} refused={len(manifest['refused'])} "
+               f"denied={len(result.denied)} egress={len(leaks)} "
+               + (f"changed={'unknown' if changed is None else len(changed)} " if prep["write"] else "") +
+               f"citations={cited} conversation={result.conversation_id or 'none'} manifest={manifest_path.name} -->")
+    out.write_text(f"{answer}\n\n{trailer}\n", encoding="utf-8")
+
+    append_ledger({
+        **request, "served": result.model, "status": status, "prompt_tokens": usage.get("input_tokens"),
+        "completion_tokens": usage.get("output_tokens"), "reasoning_tokens": usage.get("thinking_tokens"),
+        "cached_tokens": usage.get("cache_read_tokens"), "cost": None, "output": str(out), "citations": cited,
+        "seconds": result.timing.get("total_s"), "first_text_seconds": result.timing.get("first_text_s"),
+        "longest_gap_seconds": result.timing.get("longest_gap_s"), "steps": result.steps,
+        "tools": len(result.tools), "files_read": files_read, "commands": len(manifest["commands"]),
+        "refused": len(manifest["refused"]), "denied": result.denied, "egress": len(leaks),
+        "conversation": result.conversation_id, **({"changed": len(changed)} if changed is not None else {}),
+    })
+    if code != EXIT_OK:
+        stage = ("after the run" if kind in ("ok", "permission", "empty") else
+                 "before the run" if not result.steps else "during the run")
+        append_failure({
+            **request, "stage": stage, "status": status, "exit_code": code, "agy_exit": result.exit_code,
+            "error": result.error, "stderr": result.stderr[-2000:], "denied": result.denied, "steps": result.steps,
+            "tools": [t["name"] for t in result.tools], "timing": result.timing, "usage": usage,
+            "answer_chars": len(answer), "conversation": result.conversation_id, "output": str(out),
+            "egress": [{"where": f.path, "line": f.line, "kind": f.kind} for f in leaks],
+        })
+
+    if not args.quiet and answer:
+        print(answer)
+    print(f"{trailer}\nOUTPUT_FILE={out}", file=sys.stderr)
+    if code != EXIT_OK:
+        print(f"FAILURE_LOG={failures_path()}", file=sys.stderr)
+    if changed:
+        print("Changed files (review the diff and run the tests):", file=sys.stderr)
+        for status_, path in changed:
+            print(f"  {status_:>2} {path}", file=sys.stderr)
+    elif changed is not None:
+        print("No file was changed.", file=sys.stderr)
+    if change_error:
+        print(f"The changed files could not be listed; run `git status --ignored` yourself. {change_error}",
+              file=sys.stderr)
+    if control:
+        print("The run changed files that steer an agent or a shell here. Read them before anything else runs in "
+              "this folder:", file=sys.stderr)
+        for path in control:
+            print(f"  {path}", file=sys.stderr)
+    if moved:
+        print("Files the run was not allowed to touch are missing or altered (git cannot restore them):",
+              file=sys.stderr)
+        for path, what in moved:
+            print(f"  {path} ({what})", file=sys.stderr)
+    if leaks:
+        print("Egress audit: material that may not leave the machine was in what this run sent to the model.",
+              file=sys.stderr)
+        for f in leaks:
+            print(f"  {f.path}:{f.line}  {f.kind}", file=sys.stderr)
+    if kind == "permission":
+        print("The delegate asked for something outside its limits (a file outside this folder, a write, the "
+              "network) and agy ended the run with no answer. Narrow the brief or name the files with --context. "
+              "Not retried automatically.", file=sys.stderr)
+    if problems:
+        print(f"Citations in the answer that did not verify ({len(problems)}):", file=sys.stderr)
+        for line in problems:
+            print(f"  {line}", file=sys.stderr)
+    return code
+
+
 def cmd_estimate(args, config) -> int:
+    if route_for(args, config) == "agy":
+        return cmd_estimate_agy(args, config)
     prep = prepare(args, config)
     for path, why in prep["skipped"]:
         print(f"left out: {path} ({why})")
@@ -265,6 +565,9 @@ def cmd_estimate(args, config) -> int:
 
 
 def cmd_run(args, config) -> int:
+    if route_for(args, config) == "agy":
+        return cmd_run_agy(args, config)
+    args.timeout = args.timeout or 900
     prep = prepare(args, config)
     blocked = approval_needed(prep, args.approved_usd)
     if blocked:
@@ -426,6 +729,10 @@ def cmd_spend(args, config) -> int:
     print(f"today  ${spent(entries, now.strftime('%Y-%m-%d')):.4f}")
     print(f"month  ${spent(entries, now.strftime('%Y-%m')):.4f}")
     print(f"all    ${spent(entries, ''):.4f}  ({len(entries)} calls; ledger {ledger_path()})")
+    agy = [e for e in entries if e.get("route") == "agy"]
+    if agy:
+        tokens = sum(int(e.get(k) or 0) for e in agy for k in ("prompt_tokens", "completion_tokens", "reasoning_tokens"))
+        print(f"agy    {len(agy)} of those runs went through agy on the plan's quota: {tokens:,} tokens, no dollars")
     failed = read_failures()
     print(f"failed {len(failed)} calls recorded ({failures_path()})")
     try:
@@ -451,6 +758,12 @@ def cmd_failures(args, config) -> int:
         t = e.get("timing") or {}
         record = e.get("openrouter_record") or {}
         cost = e.get("cost") if e.get("cost") is not None else record.get("total_cost")
+        if e.get("route") == "agy":
+            print(f"{e.get('time')}  {e.get('profile')}  {e.get('model')}  route=agy")
+            print(f"    {e.get('stage')}: {e.get('status')}")
+            print(f"    {t.get('total_s')} s in all; longest gap {t.get('longest_gap_s')} s; {e.get('steps')} steps; "
+                  f"denied {', '.join(e.get('denied') or []) or 'nothing'}; plan quota, no dollars")
+            continue
         print(f"{e.get('time')}  {e.get('profile')}  {e.get('model')}  effort={e.get('effort')}  "
               f"max_tokens={e.get('max_tokens')}  in≈{e.get('estimated_input_tokens')}")
         print(f"    {e.get('stage')}: {e.get('status')}")
@@ -487,7 +800,12 @@ def build_parser() -> argparse.ArgumentParser:
                        help="have the reasoning text streamed (timed and counted, never kept) so the stream is not silent")
         p.add_argument("--out", help="output file (default .subdaimon-output/gemini-<profile>-<time>.md)")
         p.add_argument("--quiet", action="store_true", help="print only the trailer and the path")
-        p.add_argument("--timeout", type=float, default=900)
+        p.add_argument("--timeout", type=float, help="seconds (default 900 direct; agy_timeout_minutes through agy)")
+        route = p.add_mutually_exclusive_group()
+        route.add_argument("--via", choices=["agy", "openrouter"], help="the route, where the profile has both")
+        route.add_argument("--direct", action="store_true", help="shorthand for --via openrouter")
+        p.add_argument("--approved-credits", action="store_true",
+                       help="Tom agreed to an agy run while useG1Credits is on")
     m = sub.add_parser("models")
     m.add_argument("--all", action="store_true", help="every Google model, not only the aliased ones")
     m.add_argument("--refresh", action="store_true", help="ignore the day-old cache")
@@ -519,6 +837,9 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_EGRESS
     except oc.ClientError as e:
         print(f"OpenRouter: {e}", file=sys.stderr)
+        return EXIT_USAGE if e.usage else EXIT_API
+    except ac.AgyError as e:
+        print(f"Antigravity: {e}", file=sys.stderr)
         return EXIT_USAGE if e.usage else EXIT_API
 
 

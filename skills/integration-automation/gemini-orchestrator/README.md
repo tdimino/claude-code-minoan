@@ -1,9 +1,23 @@
 # Gemini Orchestrator
 
-> Last updated: 2026-11-20 | Status: client, packer, CLI, eight personas and citation checking built; piloted live on the `raw` profile only | Models: Gemini 4 Neon, Hydrogen, Carbon, Argon, Gemini 3.8 Flash, or any OpenRouter id
+> Last updated: 2026-11-22 | Status: two routes built. The Antigravity route (`agy`) ran live for `default`, `researcher` and `reviewer`; `builder` is built and tested against a stub, its live check still owed. The direct route is as piloted on 2026-11-20 | Models: Gemini 4 Neon, Hydrogen, Carbon, Argon, Gemini 3.8 Flash, or any OpenRouter id on the direct route
 
-Hand one bounded task to a Gemini model with a single call to OpenRouter. There is no agent CLI in between: the
-model has no shell, no file access and no tools. It sees what the request carries and nothing else.
+Hand one bounded task to a Gemini model by one of two routes.
+
+**The Antigravity route** runs the Antigravity CLI as a confined agent in the working folder, on the plan's quota:
+
+```
+Claude Code (chooses the folder, writes the brief, checks the answer)
+    ↓
+gemini_exec.py   scan the folder → deny rules → install the persona → run agy → audit → output + ledger
+    ↓
+agy --print --sandbox --agent orch-<profile> --settings '{… "permissions": {"deny": […]}}'
+    ↓
+Gemini 4 (opens files and runs commands in the sandbox; no network; no writes, except `builder`)
+```
+
+**The direct route** (`--direct`) is a single call to OpenRouter. There is no agent CLI in between: the model has
+no shell, no file access and no tools. It sees what the request carries and nothing else.
 
 ```
 Claude Code (chooses the files, writes the brief, checks the answer)
@@ -17,16 +31,18 @@ Gemini 4 (reads the pack, answers once)
 
 ## How it differs from codex-orchestrator
 
-| | codex-orchestrator | gemini-orchestrator |
-|---|---|---|
-| Delegate | Codex CLI, with a shell | One chat completion, no tools |
-| Finds its material | By exploring the repository | Receives a pack Claude chose |
-| Billing | Codex subscription or OpenAI API | OpenRouter credits, quoted before sending |
-| Good for | Work that needs running code or writing files | Large reads (1M-token window), a second model family's judgement, PDFs and images, many small identical items |
+| | codex-orchestrator | gemini-orchestrator, `agy` | gemini-orchestrator, direct |
+|---|---|---|---|
+| Delegate | Codex CLI, with a shell | Antigravity CLI, a file viewer and a sandboxed shell | One chat completion, no tools |
+| Finds its material | By exploring the repository | By exploring the folder, less what is withheld | Receives a pack Claude chose |
+| Billing | Codex subscription or OpenAI API | Antigravity plan quota | OpenRouter credits, quoted before sending |
+| Good for | Work that needs running code or writing files | Review, debugging and research over a folder; code from a spec | Large reads (1M-token window), PDFs and images, structured extraction |
 
 ## Prerequisites
 
-- `OPENROUTER_API_KEY` in the environment or in `~/.config/env/secrets.env`. An ordinary inference key; a
+- For the `agy` route: the Antigravity CLI (`agy`) on the PATH and signed in. `GEMINI_ORCH_AGY` names another
+  binary.
+- For the direct route: `OPENROUTER_API_KEY` in the environment or in `~/.config/env/secrets.env`. An ordinary inference key; a
   management key cannot run models.
 - [uv](https://docs.astral.sh/uv/). The scripts use the Python standard library only.
 
@@ -34,6 +50,12 @@ Gemini 4 (reads the pack, answers once)
 
 ```bash
 G=~/.claude/skills/gemini-orchestrator/scripts/gemini_exec.py
+
+cd <the folder to work in>
+uv run $G estimate reviewer "<brief>"               # agy: what is withheld and what would run; nothing is sent
+uv run $G run reviewer "<brief>"                    # agy, on plan quota
+uv run $G run builder "Build what SPEC.md specifies."   # agy, writes in the folder; needs a clean git tree
+uv run $G run reviewer "<brief>" --direct --context src/ --approved-usd 2   # the same profile over OpenRouter
 
 uv run $G models                                    # today's ids, prices and efforts
 uv run $G estimate raw "<brief>" --context src/     # the quote; nothing is sent
@@ -65,6 +87,37 @@ instead of guessing, and cite as `[path:L12-L14] "exact words"`.
 | `chat` | open questions | hydrogen, low | a direct answer |
 | `raw` | no persona | neon, medium | whatever the brief asks |
 
+On the `agy` route the personas are in `agents/harness/`, each a frontmatter block (name, tool list,
+`subagent: false`) and a role, joined to `agents/harness/_shared.md` (`_shared-write.md` for `builder`) and
+installed as `~/.gemini/config/agents/orch-<profile>/agent.md` when a run starts. `default`, `researcher` and
+`debugger` exist on this route only; `reviewer`, `adjudicator`, `architect`, `builder` and `chat` have both, and
+`default_route` in `config.json` picks one (`agy` as shipped). The frontmatter is read strictly: a tool beyond the
+allowed list, a repeated or unknown key, or a list in another form stops the run.
+
+## The Antigravity route's safeguards
+
+- **Deny rules.** Before each run the folder is scanned and every credentials file, every file holding a denied
+  address or a secret pattern, `.git`, earlier outputs and git's global configs (with the files they include) are
+  denied to the delegate by absolute path. `estimate` lists them. In `node_modules` and virtual environments only
+  credentials files by name are denied; their contents are not scanned.
+- **Files `agy` loads by itself.** An agent folder `.agents/agents/orch-*` in or above the folder stops the run,
+  since `agy` could load it in place of the persona. `AGENTS.md`, `GEMINI.md` and `~/.gemini/GEMINI.md` are scanned
+  like the brief and listed in the manifest.
+- **No stock agent.** Every profile runs as a persona with a short tool list; without one `agy` can search the
+  web past the sandbox.
+- **Direct-only folders.** `direct_only_paths` in `config.json`: a run from such a folder, or from one above or
+  below it, never goes through `agy`.
+- **Credits.** Runs pass `useG1Credits: false`. If it is on in the saved settings the run is refused without
+  `--approved-credits`.
+- **Audit.** After the run, what the machine showed the model is scanned again; a finding is exit 5.
+- **Writes.** `builder` only, in a git repository with no uncommitted edits. Write-denied: untracked and ignored
+  files, `.git`, submodules, and the files that steer an agent (`.claude`, `.agents`, `.gemini`, `AGENTS.md`,
+  `GEMINI.md`, `CLAUDE.md`, `.envrc`). The launcher reports the changed files from `git status --ignored`, and
+  fails the run (exit 1) if a control file changed or a withheld or untracked file is missing or altered.
+- **Stopping.** Ctrl-C, SIGTERM and SIGHUP end `agy` and its helpers, and the run is still recorded.
+
+How each measure was checked live, and what is untested: `references/antigravity-route.md`.
+
 ## Citation check
 
 After every run, each quotation in the answer is compared with the packed file it names, after Unicode (NFC/NFD)
@@ -85,6 +138,13 @@ and whitespace normalisation. The trailer reports `citations=verified/total`, an
 | `--zdr` | Zero-data-retention endpoints only. |
 | `--stream-reasoning` | Has the reasoning text streamed while the model thinks; it is timed and counted, never kept. Same price. |
 | `--out FILE`, `--quiet` | Where the answer goes; print only the trailer. |
+| `--direct`, `--via agy\|openrouter` | The route, where the profile has both. |
+| `--approved-credits` | `agy` only: the user's go for a run that may be charged past the quota. |
+| `--timeout SECONDS` | 900 on the direct route; `agy_timeout_minutes` (20) on `agy`. |
+
+On the `agy` route `--context` paths are hints in the prompt, `--allow` exempts a file from the secret patterns,
+and `--attach`, `--schema`, `--session`, `--cache`, `--redact`, `--zdr`, `--stream-reasoning`, `--approved-usd`
+and the token options are refused.
 
 ## Safeguards
 
@@ -112,8 +172,8 @@ Each answer is written to `.subdaimon-output/gemini-<profile>-<time>.md` with a 
      in=116 out=6427 reasoning=6329 cached=0 cost=$0.0968 finish=stop manifest=… -->
 ```
 
-Exit codes: 0 done, 1 API or transport failure, 2 usage, 3 cost gate, 4 empty or truncated answer, 5 egress guard,
-6 served by a different model.
+Exit codes: 0 done, 1 API, transport, `agy` or quota failure, 2 usage, 3 cost or credits gate, 4 empty or truncated
+answer or a run stopped at a permission request, 5 egress guard or audit, 6 served by a different model.
 
 ## What the pilot found (2026-11-20, 13 calls, $0.73)
 
@@ -142,20 +202,34 @@ Optional `config.json` in the skill folder:
 
 ```json
 {"gate_usd": 0.50, "daily_ceiling_usd": 10.0, "egress_denylist": [], "answer_tokens": 8000,
- "profiles": {"raw": {"model": "neon", "effort": "medium"}}}
+ "default_route": "agy", "direct_only_paths": ["~/path/kept/off/agy"],
+ "agy_timeout_minutes": 20, "agy_idle_seconds": 300,
+ "profiles": {"raw": {"model": "neon", "effort": "medium"},
+              "reviewer": {"model": "neon", "effort": "high", "routes": ["agy", "openrouter"]}}}
 ```
+
+A profile without `routes` has the direct route only. `"access": "write"` marks a profile that may write
+(`builder`). Environment: `GEMINI_ORCH_CONFIG`, `GEMINI_ORCH_AGENTS`, `GEMINI_ORCH_AGY`,
+`GEMINI_ORCH_AGY_SETTINGS`, `GEMINI_ORCH_AGY_AGENTS` point the launcher at other files, as the tests do.
 
 ## Tests
 
 ```bash
 cd ~/.claude/skills/gemini-orchestrator/scripts
-uv run python -m unittest discover -s tests    # 70 tests against a local stub server; nothing is spent
-uv run python tests/mutants.py                 # breaks 66 lines one at a time and confirms the suite fails
+uv run python -m unittest discover -s tests    # 165 tests against a local stub server and a stub agy; nothing is spent
+uv run python tests/mutants.py                 # breaks 201 lines one at a time and confirms the suite fails
 ```
+
+The mutation check runs four mutants at a time (`MUTANT_JOBS` changes that) and copies the live `scripts/` and
+`agents/` for each, so leave both alone while it runs.
 
 ## Not built or not tried yet
 
 - Two personas have met a live model once each: `architect` on Hydrogen answered; `reviewer` on Neon ran out of
   budget. Whether Gemini keeps the citation format is still unobserved (neither answer carried a citation).
+- On the `agy` route, `reviewer` has run live twice (Neon and Hydrogen, both at high) and the deny rules, the
+  persona tool list and the sandbox were probed live. `builder` has not finished a live run: its write rules for
+  untracked, ignored and control files are shown in tests only. The full list of what is untested, among it
+  which agent file `agy` prefers and whether a rule follows a renamed folder: `references/antigravity-route.md`.
 - No comparison between Neon, Hydrogen, Carbon and Argon has been run, so the default models are provisional.
 - Many-item runs and the Batch API; audio and video attachments; trigger evals for the skill's description.
