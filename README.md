@@ -29,7 +29,7 @@ claude-code-minoan/
 ├── hooks/                       # 50 lifecycle hooks (handoffs, terminal UX, lint-on-write, phase-detect, mycelium)
 ├── commands/                    # 21 slash commands (session tracking, checkpoints, quotes, design, soul, workflows)
 ├── agents/                      # Custom subagents (librarian, etc.)
-├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins)
+├── scripts/                     # Standalone utilities (syspeek, screenshot-rename, plugins, geniza)
 ├── bin/                         # CLI tools (session tracker, launchers, tmux)
 ├── lib/                         # Shared libraries (tracker-utils.js, tracker-db.js)
 ├── ghostty/                     # Ghostty terminal config for Claude Code
@@ -170,11 +170,12 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 | Tool | Purpose |
 |------|---------|
 | `claude-tracker` | List recent sessions with LIVE/INACTIVE status from Claude Code's PID files |
-| `claude-tracker-search` | FTS5 transcript search (index refreshed on every search, sessions from today included) |
+| `claude-tracker-search` | FTS5 transcript search (index refreshed on every search, sessions from today included; `--exclude-current` omits the session it runs in) |
 | `claude-tracker-recent` | Recent sessions straight from `tracker.db`—the fast listing (`--since 30m`, `--all` adds headless sessions) |
 | `claude-tracker-alive` | Live vs. stale sessions (`--json`, `--stale`, `--all-kinds`) |
 | `claude-tracker-resume` | Find crashed sessions and reopen them in Ghostty tabs (`--open`, `--workspace`) |
 | `ghostty-resume.sh` | The one terminal opener: session ID → new Ghostty tab or split (`--split right`) |
+| `geniza` | Optional transcript archive: a slim, verified copy of every session, so `projects/` holds only the last 90 days |
 | `claude-tmux-status` | Tmux statusline integration for session info |
 | `cc` / `cckill` / `ccls` / `ccpick` | Quick launchers and session management |
 | `ccnew` | Start a new session in a Ghostty tab (`--name`, `--model`, `--prompt`, `--headless`) |
@@ -182,6 +183,8 @@ Read-only research subagents invoked via the Task tool with `subagent_type: "Bas
 All CLIs are thin wrappers over `skills/planning-productivity/claude-tracker-suite/scripts/` and share `lib/tracker-utils.js` (session parsing, live detection) and `lib/tracker-db.js` (Node's built-in `node:sqlite`, no npm dependency). Ghostty is the only terminal target; cmux, tmux, Terminal.app and VS Code resume paths are retired. On Ghostty ≥ 1.3 the opener drives the native AppleScript dictionary (no keystrokes, no clipboard); older builds fall back to Cmd-T plus a single paste.
 
 The transcript index lives in a sidecar `tracker-transcripts.db`. Stop and SessionEnd hooks plus an hourly launchd job keep it current, reading a grown transcript only from the byte where the last pass stopped (~0.1 s per hourly run). Search indexes what was said—typed prompts, slash-command arguments, replies—not skill bodies, system reminders, or compaction summaries. A weekly `db-maintain.js` job merges FTS segments, truncates WALs, and VACUUMs a database once a quarter of it is free pages; failures exit 1 to `~/.claude/logs/db-maintain.err`.
+
+Old transcripts can leave `~/.claude/projects` without leaving search. [`scripts/geniza/`](scripts/geniza/INDEX.md) keeps a slim, verified zstd copy of every session and retires those older than 90 days; the indexer's prune spares every session geniza holds, search and the Ghostty opener print `geniza read <id>` for a retired one, and where geniza's index cannot be read nothing is pruned. Claude Code's own sweep stays off (`cleanupPeriodDays: 99999`). geniza is optional: without it the suite behaves as before.
 
 ### Session Cost Tracking
 

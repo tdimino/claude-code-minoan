@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- geniza's hourly job (plan 2026-11-21-001, Task 4a): sweep, the daily work when the last daily run is a day
+         old, then the stored check that SessionStart's `geniza check --brief` reads. StartCalendarInterval, not
+         StartInterval: a firing missed in sleep runs on wake. Install: cp to ~/Library/LaunchAgents/, then
+         launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.claude.geniza.plist -->
+    <key>Label</key>
+    <string>com.claude.geniza</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/opt/python@3.14/bin/python3.14</string>
+        <string>-I</string>
+        <string>/Users/tomdimino/.claude/scripts/geniza/geniza.py</string>
+        <string>hourly</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Minute</key>
+        <integer>17</integer>
+    </dict>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/tomdimino/Library/Logs/geniza/hourly.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/tomdimino/Library/Logs/geniza/hourly.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/Users/tomdimino/.local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>

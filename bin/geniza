@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# geniza — the slim, verified archive of Claude Code sessions (sweep, read, verify, check, stats, retire)
+# Thin wrapper: the one implementation lives in ~/.claude/scripts/geniza. A fixed Homebrew interpreter, not uv,
+# so it runs the same from any folder, a uv project's included.
+exec /opt/homebrew/opt/python@3.14/bin/python3.14 -I "$HOME/.claude/scripts/geniza/geniza.py" "$@"

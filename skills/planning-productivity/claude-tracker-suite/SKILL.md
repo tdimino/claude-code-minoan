@@ -81,6 +81,8 @@ claude-tracker-search "$ARGUMENTS"
 
 Before every body search, `search-sessions.js` runs an in-process index refresh (1.5s budget) so sessions from today are searchable within seconds of their last turn. The refresh line reads `Index refreshed: N session(s) in Xms — M still pending`. Pass `--no-refresh` to skip it.
 
+**Omitting the current session**: `--exclude-current` drops the session the search runs in, named by `CLAUDE_CODE_SESSION_ID` (set in Claude Code's Bash tool). That session holds the query just typed, so it always matches; `/claude-tracker-search` and `/claude-tracker-resume` pass the flag. It prints `Omitted the current session (<id>)` when it drops a hit, applies to `--name` and `--deep` too, and leaves `--id` and `titles` lookups alone. With the variable unset (a plain terminal) nothing is omitted.
+
 **Former-title fallback**: default search also checks `title_history` for sessions whose past titles match the query but whose current title does not. A session renamed away from a name the user remembers still surfaces under a "former-title matches" heading, capped to avoid crowding body results. Each former-title hit prints its old name, provenance, date, and a link to the full timeline via the `titles` subcommand.
 
 | Flag / Subcommand | Description |
@@ -222,7 +224,10 @@ Claude Code 2.1.263+ provides session management primitives that overlap with pa
 - `--bg` + `claude attach` — background sessions with attach/detach
 - `-w/--worktree` — worktree isolation
 
-This suite's `cleanupPeriodDays` is 99999 so transcripts never expire.
+Claude Code's own sweep stays off: `cleanupPeriodDays` is 99999. Where geniza (`~/.claude/scripts/geniza/`) is in
+use, it retires sessions older than 90 days out of `projects/` once it holds a verified slim copy of each. Search
+keeps finding them, since the indexer's prune spares every session geniza holds, and prints `geniza read <id>` in
+place of a resume command. Where geniza's folder exists but its index cannot be read, the prune skips entirely.
 
 ## Operations and Database
 

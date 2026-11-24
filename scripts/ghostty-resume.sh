@@ -135,10 +135,25 @@ if [[ -z "$EXEC_CMD" && "$AGENT" == "claude" ]]; then
         } catch (e) {}
       }
     }
-    process.stdout.write(project + "\t" + transcript);
+    // Retired: geniza moved the transcript out of projects/ and keeps a verified slim copy of it
+    let retired = "";
+    if (!transcript || !fs.existsSync(transcript)) {
+      try {
+        const ids = require(path.join(os.homedir(), ".claude/lib/tracker-db")).archivedSessionIds();
+        if (ids && ids.has(sid)) retired = "retired";
+      } catch (e) {}
+    }
+    process.stdout.write(project + "\t" + transcript + "\t" + retired);
   ' "$SESSION_ID" 2>/dev/null) || RESOLVED=""
   DETECTED_DIR="${RESOLVED%%$'\t'*}"
-  TRANSCRIPT="${RESOLVED#*$'\t'}"
+  REST="${RESOLVED#*$'\t'}"
+  TRANSCRIPT="${REST%%$'\t'*}"
+  RETIRED="${REST#*$'\t'}"
+  [[ "$RESOLVED" == *$'\t'* ]] || { TRANSCRIPT=""; RETIRED=""; }
+  if [[ "$RETIRED" == "retired" ]]; then
+    echo "ghostty-resume: session ${SESSION_ID:0:8} is retired (older than 90 days); read it with: geniza read $SESSION_ID" >&2
+    exit 1
+  fi
   [[ -z "$PROJECT_DIR" ]] && PROJECT_DIR="$DETECTED_DIR"
   if [[ -z "$PROJECT_DIR" ]]; then
     echo "ghostty-resume: could not resolve project directory for session $SESSION_ID" >&2

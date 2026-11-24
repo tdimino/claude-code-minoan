@@ -1,6 +1,6 @@
 # Scripts Index
 
-*15 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
+*16 utility scripts in `~/.claude/scripts/` — standalone tools, not hook-bound*
 
 ## Plugin Management
 
@@ -13,7 +13,7 @@
 
 | Script | Description |
 |--------|-------------|
-| `ghostty-resume.sh` | The one terminal opener for claude-tracker-suite: session ID (claude or codex) or `--exec` command → new Ghostty tab or `--split right\|left\|down\|up`. Writes a short launcher to `~/.claude/run/launch/`, delivered via Ghostty's AppleScript dictionary (≥ 1.3.0, no keystrokes/clipboard) or Cmd-T + paste on older builds. `--print` writes the launcher only. Installed by `setup.sh` |
+| `ghostty-resume.sh` | The one terminal opener for claude-tracker-suite: session ID (claude or codex) or `--exec` command → new Ghostty tab or `--split right\|left\|down\|up`. Writes a short launcher to `~/.claude/run/launch/`, delivered via Ghostty's AppleScript dictionary (≥ 1.3.0, no keystrokes/clipboard) or Cmd-T + paste on older builds. `--print` writes the launcher only. A session geniza has retired opens no tab: it exits 1 and names `geniza read <id>`. Installed by `setup.sh` |
 | `cc-sessions.sh` | Session history viewer with auto-categorization |
 | `cc-sessions-fzf.sh` | Interactive session picker with fzf + tmux integration |
 | `cc-sessions-ui.py` | Visual TUI for browsing and resuming sessions |
@@ -30,6 +30,7 @@
 | Directory | Description |
 |-----------|-------------|
 | `clean-browser-screenshot/` | Take browser screenshots with no toolbar or UI chrome via CleanShot X fullscreen capture |
+| `geniza/` | **geniza** — slim, verified archive of every Claude Code session (payloads cut, zstd), kept forever under `~/.local/share/geniza/`, so `~/.claude/projects` need hold only the last 90 days. Generations instead of overwrites; `retire` moves a session past 90 days into trash only with a verified copy, `untrash` undoes a day. Hourly launchd job, SessionStart/SessionEnd hooks, 35 tests and 44 mutants. `claude-tracker-suite` keeps retired sessions searchable. Optional; launcher in `bin/geniza` |
 | `cpu-watchdog/` | **phroura** — launchd daemon detecting runaway processes (>90% CPU sustained), alerts via `alerter` + Telegram, Claude session enrichment (session ID, revoked FDs) |
 | `screenshot-rename/` | macOS launchd service for auto-renaming screenshots with AI-generated descriptions |
 | `syspeek/` | macOS system resource monitor — categorized processes, Kothar-compatible JSON, Claudicle memory integration, launchd daemon |

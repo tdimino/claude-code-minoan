@@ -273,7 +273,12 @@ async function refreshTranscriptIndex({ budgetMs = Infinity, limit = Infinity, q
 
   const unbounded = limit === Infinity && budgetMs === Infinity;
   if (prune && unbounded) {
-    r.pruned = db.pruneTranscriptIndex(allFiles.map(f => path.basename(f.filePath, '.jsonl')));
+    // Fail closed: geniza retires old transcripts out of projects/ and keeps them searchable from its verified slim
+    // copies. Where geniza is in use but its index cannot be read, nothing tells a retired session from a deleted
+    // one, so nothing is pruned.
+    const archived = db.archivedSessionIds();
+    if (archived) r.pruned = db.pruneTranscriptIndex(allFiles.map(f => path.basename(f.filePath, '.jsonl')), archived);
+    else r.pruneSkipped = 'no readable geniza index';
   }
   r.ms = Date.now() - t0;
   return r;

@@ -83,7 +83,10 @@ Every user and assistant message across every session, indexed in FTS5 and searc
 claude-tracker-search "subquadratic porthole imagemagick"
 claude-tracker-search "twitter banner" --open   # resume top hit in Ghostty
 claude-tracker-search "rare term" --deep        # raw JSONL scan, bypasses index
+claude-tracker-search "deck" --exclude-current  # omit the session this runs in
 ```
+
+`--exclude-current` drops the session named by `CLAUDE_CODE_SESSION_ID` (set in Claude Code's Bash tool): it holds the query just typed, so it always matches. `/claude-tracker-search` and `/claude-tracker-resume` pass it. It leaves `--id` and `titles` lookups alone, and omits nothing when the variable is unset.
 
 Default path: transcript FTS + metadata FTS, merged, with former-title fallback. Before every body search, `search-sessions.js` runs an in-process index refresh (1.5s budget) so sessions from today are searchable within seconds of their last turn. Multi-word queries match per-term at the session level (terms may land in different messages), expand through synonym groups (`references/synonyms.json`), and fall back from AND to OR with a labeled notice. Ranking: IDF-weighted saturated match-density with a short-session damp. Results carry highlighted snippets.
 
@@ -450,7 +453,10 @@ Claude Code 2.1.263+ provides session management primitives that overlap with pa
 - `--bg` + `claude attach` — background sessions with attach/detach
 - `-w/--worktree` — worktree isolation
 
-This suite's `cleanupPeriodDays` is 99999 so transcripts never expire.
+Claude Code's own sweep stays off: `cleanupPeriodDays` is 99999. Where geniza (`~/.claude/scripts/geniza/`) is in
+use, it retires sessions older than 90 days out of `projects/` once it holds a verified slim copy of each. Search
+keeps finding them, since the indexer's prune spares every session geniza holds, and prints `geniza read <id>` in
+place of a resume command. Where geniza's folder exists but its index cannot be read, the prune skips entirely.
 
 ---
 
@@ -535,7 +541,7 @@ The regression suite includes an expected-fail fixture documenting the semantic-
 
 | Script | Usage |
 |--------|-------|
-| `search-sessions.js` | `node search-sessions.js "query" [--id <prefix>] [titles <prefix>] [--open] [--copy] [--deep] [--no-refresh]` |
+| `search-sessions.js` | `node search-sessions.js "query" [--id <prefix>] [titles <prefix>] [--open] [--copy] [--deep] [--no-refresh] [--exclude-current]` |
 | `index-transcripts.js` | `node index-transcripts.js [--rebuild] [--limit N] [--budget MS] [--quiet] [--session ID] [--file PATH] [--stdin] [--debounce SEC] [--detach]` |
 | `backfill-summaries.js` | `node backfill-summaries.js --enable [--provider claude\|openrouter] [--dry-run] [--session <id>]` |
 | `claude-tracker-pick` | `claude-tracker-pick [--here] [--project <name>] [--limit N]` |

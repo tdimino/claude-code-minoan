@@ -9,8 +9,10 @@ $ARGUMENTS - Search term(s) to find in your sessions
 ## Instructions
 
 ```bash
-node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js "$ARGUMENTS"
+node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js "$ARGUMENTS" --exclude-current
 ```
+
+`--exclude-current` omits the session this command runs in: it holds the query just typed, so it always matches. The line `Omitted the current session (<id>)` says when that happened; drop the flag to list it.
 
 Search across all Claude sessions by keyword with:
 - Project name and session age

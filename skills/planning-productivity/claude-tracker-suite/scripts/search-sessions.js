@@ -2,10 +2,11 @@
 /**
  * search-sessions.js — Search all Claude Code sessions by keyword
  *
- * Usage: node search-sessions.js <search-term> [--limit N] [--name]
+ * Usage: node search-sessions.js <search-term> [--limit N] [--name] [--exclude-current]
  *
  * Searches user and assistant messages across all session JSONL files.
  * --name: search only session names/slugs/summaries (fast, no body scan).
+ * --exclude-current: omit the session this runs in (CLAUDE_CODE_SESSION_ID).
  * Filters out system context injections (CLAUDE.md, MEMORY.md, active-projects).
  * Outputs: project name, session age, summary, slug, git remote, session ID,
  *          and highlighted matching excerpts.
@@ -22,9 +23,28 @@ let firstResumeCmd = null;
 const ghosttyScript = path.join(os.homedir(), '.claude', 'scripts', 'ghostty-resume.sh');
 const hasGhostty = fs.existsSync(ghosttyScript);
 
+// geniza retires sessions older than 90 days out of projects/, keeping a verified slim copy: such a session has no
+// transcript left to resume, only a copy to read
+let archivedIds;
+function isRetired(sessionId) {
+  if (archivedIds === undefined) {
+    archivedIds = require(os.homedir() + '/.claude/lib/tracker-db.js').archivedSessionIds() || new Set();
+  }
+  return archivedIds.has(sessionId) && !require(path.join(__dirname, 'index-transcripts.js')).findTranscript(sessionId);
+}
+
+function resumeCommand(projectPath, sessionId) {
+  return isRetired(sessionId) ? 'geniza read ' + sessionId : 'cd ' + projectPath + ' && claude --resume ' + sessionId;
+}
+
+function resumeLine(projectPath, sessionId) {
+  const label = isRetired(sessionId) ? 'Read (retired):' : 'Resume:';
+  return '    \x1b[90m' + label + '\x1b[0m \x1b[36m' + resumeCommand(projectPath, sessionId) + '\x1b[0m';
+}
+
 function trackResume(projectPath, sessionId) {
   if (!firstResumeCmd) {
-    firstResumeCmd = 'cd ' + projectPath + ' && claude --resume ' + sessionId;
+    firstResumeCmd = resumeCommand(projectPath, sessionId);
   }
   trackTopHit(sessionId);
 }
@@ -48,6 +68,10 @@ function trackTopHit(sessionId) {
 /** --open: resume the top hit in a new Ghostty tab */
 function openTopHit() {
   if (!openTop || !firstSessionId) return;
+  if (isRetired(firstSessionId)) {
+    console.log('\x1b[33m--open: the top hit is retired; read it with: geniza read ' + firstSessionId + '\x1b[0m\n');
+    return;
+  }
   if (!hasGhostty) {
     console.log('\x1b[33m--open: ghostty-resume.sh not found; resume manually with the command above.\x1b[0m\n');
     return;
@@ -72,6 +96,7 @@ let openTop = false;
 let titlesMode = false;
 let noRefresh = false;   // --no-refresh: skip the on-demand index catch-up
 let copyFirst = false;   // --copy: put the top hit's resume command on the clipboard
+let excludeCurrent = false; // --exclude-current: omit the session this search runs in
 
 // `titles <id-prefix>` subcommand — print the title/nickname timeline
 if (args[0] === 'titles') {
@@ -100,6 +125,8 @@ for (let i = 0; i < args.length; i++) {
     noRefresh = true;
   } else if (args[i] === '--copy') {
     copyFirst = true;
+  } else if (args[i] === '--exclude-current') {
+    excludeCurrent = true;
   } else if (args[i] === '--id' && args[i + 1]) {
     idPrefix = args[i + 1].toLowerCase();
     i++;
@@ -109,16 +136,46 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (!searchTerm && !idPrefix) {
-  console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js <search-term> [--limit N] [--name] [--deep] [--open] [--copy] [--no-refresh]');
+  console.log('\n\x1b[33mUsage:\x1b[0m node search-sessions.js <search-term> [--limit N] [--name] [--deep] [--open] [--copy] [--no-refresh] [--exclude-current]');
   console.log('\x1b[90mExample: node search-sessions.js "kothar soul"');
   console.log('Example: node search-sessions.js "websocket" --limit 5');
   console.log('Example: node search-sessions.js "thera" --name    (name/slug only, fast)');
   console.log('Example: node search-sessions.js --id d7b8f4dd     (lookup by session ID prefix)');
   console.log('Example: node search-sessions.js titles d7b8f4dd   (title/nickname history timeline)');
   console.log('Example: node search-sessions.js "twitter banner" --open   (resume top hit in Ghostty)');
+  console.log('Example: node search-sessions.js "deck" --exclude-current   (omit the session this runs in)');
   console.log('Example: node search-sessions.js "rare term" --deep        (streaming JSONL scan, bypasses index)\x1b[0m\n');
   process.exit(0);
 }
+
+// --exclude-current: inside Claude Code the running session always matches, because it holds the query just typed.
+// CLAUDE_CODE_SESSION_ID (set in the Bash tool environment) names it. Unlike /tag and /quote there is no
+// newest-transcript guess: a wrong guess would hide a real result, and a plain terminal has no session to omit.
+const SESSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let excludedId = null;
+let omittedCurrent = false;
+if (excludeCurrent) {
+  const fromEnv = process.env.CLAUDE_CODE_SESSION_ID;
+  if (fromEnv && SESSION_ID_RE.test(fromEnv)) {
+    excludedId = fromEnv.toLowerCase();
+  } else {
+    console.log('\x1b[90m--exclude-current: CLAUDE_CODE_SESSION_ID is ' +
+      (fromEnv ? 'not a session id' : 'not set') + '; nothing omitted.\x1b[0m');
+  }
+}
+// Rows fetched under a limit ask for one more, so dropping the current session never shortens the list
+const fetchLimit = () => maxResults + (excludedId ? 1 : 0);
+
+/** False for the session --exclude-current drops (explicit --id and titles lookups never call this) */
+function keep(sessionId) {
+  if (!excludedId || !sessionId || sessionId.toLowerCase() !== excludedId) return true;
+  omittedCurrent = true;
+  return false;
+}
+
+process.on('exit', () => {
+  if (omittedCurrent) console.log('\x1b[90mOmitted the current session (' + excludedId.slice(0, 8) + ').\x1b[0m\n');
+});
 
 // Text extraction and noise filtering are the shared tracker-utils versions —
 // the same list the indexer applies, so --deep and the no-DB fallback agree
@@ -303,7 +360,7 @@ function searchByName() {
   }
 
   results.sort((a, b) => new Date(b.fileMtime) - new Date(a.fileMtime));
-  return results;
+  return results.filter(r => keep(r.sessionId));
 }
 
 /**
@@ -347,7 +404,7 @@ function printNameResults(results, escapedTerm) {
     console.log('    \x1b[90mDir:\x1b[0m ' + result.projectPath);
     console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
     trackResume(result.projectPath, result.sessionId);
-    console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
+    console.log(resumeLine(result.projectPath, result.sessionId));
     if (hasGhostty) {
       console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + result.sessionId + '\x1b[0m');
     }
@@ -405,7 +462,7 @@ function printDbResults(results, escapedTerm) {
     console.log('    \x1b[90mDir:\x1b[0m ' + r.project_path);
     console.log('    \x1b[90mID:\x1b[0m ' + r.session_id);
     trackResume(r.project_path, r.session_id);
-    console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + r.project_path + ' && claude --resume ' + r.session_id + '\x1b[0m');
+    console.log(resumeLine(r.project_path, r.session_id));
     if (hasGhostty) {
       console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + r.session_id + '\x1b[0m');
     }
@@ -449,7 +506,7 @@ function printFtsResults(rows) {
     console.log('    \x1b[90mDir:\x1b[0m ' + projectPath);
     console.log('    \x1b[90mID:\x1b[0m ' + r.session_id);
     trackResume(projectPath, r.session_id);
-    console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + projectPath + ' && claude --resume ' + r.session_id + '\x1b[0m');
+    console.log(resumeLine(projectPath, r.session_id));
     if (hasGhostty) {
       console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + r.session_id + '\x1b[0m');
     }
@@ -512,7 +569,8 @@ async function main() {
 
       if (nameOnly) {
         console.log('\n\x1b[1m\x1b[36mSearching for:\x1b[0m "' + searchTerm + '" \x1b[90m(--name, sqlite)\x1b[0m\n');
-        const results = db.searchSessions(searchTerm, { limit: maxResults, nameOnly: true });
+        const results = db.searchSessions(searchTerm, { limit: fetchLimit(), nameOnly: true })
+          .filter(r => keep(r.session_id)).slice(0, maxResults);
         if (results.length === 0) {
           console.log('\x1b[33mNo matches found.\x1b[0m\n');
           return;
@@ -547,12 +605,14 @@ async function main() {
           }
         }
 
-        const bodyRows = db.searchTranscripts(searchTerm, { limit: maxResults });
+        const rawBodyRows = db.searchTranscripts(searchTerm, { limit: fetchLimit() });
+        const bodyInfo = rawBodyRows[0]; // dropped_terms and mode ride on the first row, kept or not
+        const bodyRows = rawBodyRows.filter(r => keep(r.session_id)).slice(0, maxResults);
         const bodyIds = new Set(bodyRows.map(r => r.session_id));
         let metaRows = [];
         try {
-          metaRows = db.searchSessions(searchTerm, { limit: maxResults })
-            .filter(r => !bodyIds.has(r.session_id));
+          metaRows = db.searchSessions(searchTerm, { limit: fetchLimit() })
+            .filter(r => !bodyIds.has(r.session_id) && keep(r.session_id));
         } catch (e) { /* metadata search optional */ }
 
         // Former-nickname fallback: a session renamed away from a title the
@@ -563,8 +623,8 @@ async function main() {
         if (db.searchTitleHistory) {
           const knownIds = new Set([...bodyIds, ...metaRows.map(r => r.session_id)]);
           try {
-            formerRows = db.searchTitleHistory(searchTerm, maxResults)
-              .filter(r => !knownIds.has(r.session_id));
+            formerRows = db.searchTitleHistory(searchTerm, fetchLimit())
+              .filter(r => !knownIds.has(r.session_id) && keep(r.session_id));
           } catch (e) { /* history table optional */ }
         }
 
@@ -575,11 +635,11 @@ async function main() {
           return;
         }
 
-        if (bodyRows[0] && bodyRows[0].dropped_terms && bodyRows[0].dropped_terms.length > 0) {
+        if (bodyInfo && bodyInfo.dropped_terms && bodyInfo.dropped_terms.length > 0) {
           console.log('\x1b[33mWarning: some search terms could not be parsed and were ignored: ' +
-            bodyRows[0].dropped_terms.join(', ') + '\x1b[0m\n');
+            bodyInfo.dropped_terms.join(', ') + '\x1b[0m\n');
         }
-        if (bodyRows[0] && bodyRows[0].mode === 'OR') {
+        if (bodyRows.length > 0 && bodyInfo.mode === 'OR') {
           console.log('\x1b[90mNo session matched every term — showing best partial matches (OR mode).\x1b[0m\n');
         }
 
@@ -637,7 +697,7 @@ async function main() {
       console.log('    \x1b[90mDir:\x1b[0m ' + projectPath);
       console.log('    \x1b[90mID:\x1b[0m ' + sessionId);
       trackResume(projectPath, sessionId);
-      console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + projectPath + ' && claude --resume ' + sessionId + '\x1b[0m');
+      console.log(resumeLine(projectPath, sessionId));
       const ghosttyScript = path.join(os.homedir(), '.claude', 'scripts', 'ghostty-resume.sh');
       if (fs.existsSync(ghosttyScript)) {
         console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + sessionId + '\x1b[0m');
@@ -693,6 +753,7 @@ async function main() {
     const projectPath = utils.decodeProjectPath(file.projectDir);
     const projectName = projectPath.split('/').pop();
     const sessionId = path.basename(file.filePath, '.jsonl');
+    if (!keep(sessionId)) continue;
 
     // Pre-read custom title (user rename) from JSONL tail — survives line limit
     const preReadTitle = utils.readCustomTitle(file.filePath);
@@ -762,7 +823,7 @@ async function main() {
       console.log('    \x1b[90mDir:\x1b[0m ' + result.projectPath);
       console.log('    \x1b[90mID:\x1b[0m ' + result.sessionId);
       trackResume(result.projectPath, result.sessionId);
-      console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + result.projectPath + ' && claude --resume ' + result.sessionId + '\x1b[0m');
+      console.log(resumeLine(result.projectPath, result.sessionId));
       if (hasGhostty) {
         console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + result.sessionId + '\x1b[0m');
       }
@@ -821,7 +882,7 @@ async function main() {
     console.log('    \x1b[90mDir:\x1b[0m ' + meta.projectPath);
     console.log('    \x1b[90mID:\x1b[0m ' + meta.sessionId);
     trackResume(meta.projectPath, meta.sessionId);
-    console.log('    \x1b[90mResume:\x1b[0m \x1b[36mcd ' + meta.projectPath + ' && claude --resume ' + meta.sessionId + '\x1b[0m');
+    console.log(resumeLine(meta.projectPath, meta.sessionId));
     if (hasGhostty) {
       console.log('    \x1b[90mGhostty:\x1b[0m \x1b[35m' + ghosttyScript + ' ' + meta.sessionId + '\x1b[0m');
     }

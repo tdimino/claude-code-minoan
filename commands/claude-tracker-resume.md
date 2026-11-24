@@ -27,10 +27,12 @@ elif printf '%s' "$ARGS" | grep -Eq '^[0-9a-fA-F-]{8,}$'; then
     ~/.claude/scripts/ghostty-resume.sh "$ARGS"
   fi
 elif $HERE; then
-  node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js "$ARGS" --limit 1
+  node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js "$ARGS" --limit 1 --exclude-current
 else
-  node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js "$ARGS" --open --limit 1
+  node ~/.claude/skills/claude-tracker-suite/scripts/search-sessions.js "$ARGS" --open --limit 1 --exclude-current
 fi
 ```
+
+A search never resumes the session it runs in: `--exclude-current` drops it, since that session holds the query just typed and would otherwise be the top hit.
 
 A session that is already live is refused by Claude Code ("already running"); `/claude-tracker-here` shows which ones are. If Ghostty cannot be scripted, the opener prints the exact `bash ~/.claude/run/launch/r-….sh` line to run by hand. To reopen every tab from the last workspace stamp: `claude-tracker-resume --workspace`.

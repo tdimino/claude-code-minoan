@@ -10,6 +10,8 @@ mkdir -p ~/.claude/lib ~/.claude/scripts && cp lib/* ~/.claude/lib/
 cp scripts/ghostty-resume.sh ~/.claude/scripts/ && chmod +x ~/.claude/scripts/ghostty-resume.sh
 ```
 
+`bin/geniza` is the launcher for the optional transcript archive; it needs `scripts/geniza/` installed too (see [`scripts/geniza/INDEX.md`](../scripts/geniza/INDEX.md)).
+
 Requires macOS, Node ≥ 22.13 (the DB layer uses the built-in `node:sqlite`—there is no `npm install`), Ghostty (≥ 1.3.0 for the native tab/split path), fzf for the picker, and the `sqlite3` CLI. The `claude-tracker*` commands are thin wrappers over the scripts in `skills/planning-productivity/claude-tracker-suite/scripts/`, so install that skill too.
 
 ## Session Management
@@ -67,7 +69,12 @@ claude-tracker-search --id 1da2b718               # Lookup by session ID prefix
 claude-tracker-search --name knossot              # Match names/slugs/titles only
 claude-tracker-search "rare term" --deep          # Streaming JSONL scan, bypasses the index
 claude-tracker-search "query" --copy              # Copy the first resume command (opt-in)
+claude-tracker-search "query" --exclude-current   # Omit the session this runs in
 ```
+
+`--exclude-current` drops the session named by `CLAUDE_CODE_SESSION_ID`, which Claude Code sets in its Bash tool. Inside Claude Code that session always matches, since it holds the query just typed; the `/claude-tracker-search` and `/claude-tracker-resume` commands pass the flag. In a plain terminal the variable is unset and nothing is omitted. `--id` lookups are never filtered.
+
+A session older than 90 days that geniza has retired still appears in results, with `geniza read <id>` in place of the resume command.
 
 ### `claude-tracker-resume` — Crash Recovery
 
@@ -95,7 +102,23 @@ ghostty-resume.sh <session-id> --print               # Only write the launcher, 
 
 On Ghostty ≥ 1.3.0 it uses the AppleScript dictionary (`new tab … with configuration`, `split … direction`), which needs no keystrokes, clipboard or focus. Older builds fall back to Cmd-T + one paste of the launcher path, with the clipboard saved and restored.
 
+A retired session (its transcript moved out of `~/.claude/projects` by geniza) opens no tab: the opener exits 1 and names `geniza read <id>`.
+
 **Requires**: macOS, Ghostty
+
+### `geniza` — Transcript Archive (optional)
+
+Keeps a slim, verified zstd copy of every session under `~/.local/share/geniza/`, so `~/.claude/projects` need hold only the last 90 days. Search goes on finding a retired session. Install and design: [`scripts/geniza/INDEX.md`](../scripts/geniza/INDEX.md).
+
+```bash
+geniza sweep --dry-run      # What would be archived; writes nothing
+geniza check                # Every problem, or "all checks pass"
+geniza read 999c2dc8        # A session as Markdown, retired or not
+geniza retire               # Dry run: sessions past 90 days, eligible or blocked, and why
+geniza retire --apply       # Move the eligible ones into trash (undo a day with untrash)
+```
+
+**Requires**: Homebrew `python@3.14` (zstd is in its standard library)
 
 ## Quick Launchers
 
